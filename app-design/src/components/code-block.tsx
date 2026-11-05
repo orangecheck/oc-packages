@@ -95,8 +95,11 @@ function Well({
     diff,
     lineNumbers,
     wrap,
+    label,
 }: {
     preRef?: RefObject<HTMLPreElement | null>;
+    /** The scroll region's name when a long line makes it a tab stop: the caption, or the tab's label. */
+    label?: string;
     html?: string;
     children?: ReactNode;
     lang?: string;
@@ -117,7 +120,7 @@ function Well({
                 className={cn(folded && 'overflow-hidden')}
                 style={folded ? { maxHeight: `calc(${maxLines} * 1.625em + 2rem)` } : undefined}
             >
-                <ScrollFade fade="var(--oca-code-surface)">
+                <ScrollFade fade="var(--oca-code-surface)" label={label}>
                     <pre
                         ref={preRef}
                         data-diff={diff ? '' : undefined}
@@ -147,7 +150,7 @@ function Well({
                         type="button"
                         onClick={() => setOpen((v) => !v)}
                         aria-expanded={open}
-                        className="rounded-none border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10"
+                        className="rounded-none border border-white/20 px-4 py-1.5 text-[0.8125rem] text-white transition-colors hover:bg-white/10 pointer-coarse:min-h-11"
                     >
                         {open ? 'Show less' : `Show all ${lines} lines`}
                     </button>
@@ -251,7 +254,7 @@ export function CodeBlock({
     return (
         <figure className={cn(FRAME, className)} onCopy={onCopy}>
             <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
-                <span className="truncate text-[0.8125rem] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
+                <span className="truncate font-mono text-[0.75rem] uppercase tracking-[0.08em] text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
                 <span className="flex shrink-0 items-center gap-1">
                     {actions}
                     {copy ? <CopyButton value={read} label="Copy code" clearAfter={clearAfter} className={COPY_ON_INK} /> : null}
@@ -259,6 +262,7 @@ export function CodeBlock({
             </figcaption>
             <Well
                 preRef={preRef}
+                label={typeof caption === 'string' ? caption : (languageName(lang) ?? 'Code')}
                 html={markup}
                 lang={lang}
                 lines={lines}
@@ -363,7 +367,7 @@ export function CodeTabs({
             className={cn(FRAME, className)}
         >
             <div className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-2 pr-2">
-                <ScrollFade fade="var(--oca-code-surface)" className="min-w-0 flex-1">
+                <ScrollFade fade="var(--oca-code-surface)" label="Versions" className="min-w-0 flex-1">
                     <TabsPrimitive.List aria-label="Versions" className="flex w-max items-center gap-0.5">
                         {items.map((it) => (
                             <TabsPrimitive.Trigger
@@ -392,6 +396,7 @@ export function CodeTabs({
             {items.map((it, i) => (
                 <TabsPrimitive.Content key={it.label} value={it.label} className="outline-none" tabIndex={-1}>
                     <Well
+                        label={it.label}
                         html={prepared[i]!.html}
                         lang={it.lang}
                         lines={prepared[i]!.lines}

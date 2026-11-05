@@ -56,11 +56,18 @@ const CEILING = {
     './session': 61_000,
     './acknowledgement': 11_000,
     './vitest': 500,
-    // 191.7 KB on 2026-11-04: og's JetBrains Mono 400 for the card labels (27.0 KB) and its eleven baked dither PNGs,
-    // 2x included (6.0 KB), inlined for Satori (lead; measured by review-lows).
-    './og': 226_000,
+    // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
+    // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
+    // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
+    './og': 202_000,
     './fonts': 500,
     './motion': 49_500,
+    // 35,948 bytes on 2026-11-04 (whole entry; Radix's slider rides in it), the ceiling 15% over. DitherMark's nine baked
+    // PNGs, inlined, are 6.0 KB of that gzipped: 3.5 KB in a chunk it shares with ./og (the 240 and 480 bakes of the
+    // ink, peach and brand marks) and 2.6 KB in its own (the component and the three 960 bakes). Under 10 KB, so it
+    // stays in ./blocks; package.json marks every non-CSS file free of side effects, so a site's bundler can leave
+    // those chunks out of a page that draws no mark.
+    './blocks': 41_340,
 };
 // ./motion on its own: the eight scenes and their loop. 12.0 KB at the DitherImage commit; 12.8 KB now. The
 // 0.8 KB buys the crowd's phone grid, outline ghosts and pair of posters (0.5 KB), the reduced-motion listener

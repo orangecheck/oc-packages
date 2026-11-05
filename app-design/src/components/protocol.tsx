@@ -69,7 +69,8 @@ export function ProtocolNav({
 }) {
     return (
         <nav aria-label="Protocols" className={className}>
-            <ScrollFade fade="var(--background)">
+            {/* Above the band that starts flush under it, to a thumb, so each link keeps its bottom edge. */}
+            <ScrollFade fade="var(--background)" label="Protocols" className="pointer-coarse:z-1">
                 <ul className="flex w-max min-w-full items-center gap-6 border-b border-border">
                     {PROTOCOLS.map((p) => {
                         const on = p.slug === current;
@@ -79,7 +80,7 @@ export function ProtocolNav({
                                     href={link === 'tool' ? p.toolHref : p.pageHref}
                                     aria-current={on ? 'page' : undefined}
                                     className={cn(
-                                        '-mb-px inline-flex h-11 items-center border-b-2 text-[0.9375rem] transition-colors',
+                                        '-mb-px inline-flex h-11 items-center justify-center border-b-2 text-[0.9375rem] transition-colors pointer-coarse:min-w-11',
                                         on
                                             ? 'border-foreground text-foreground'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -160,7 +161,7 @@ function SpecFileNote({ repo, file, kind = 'spec', version, note, className }: E
         <Callout title={version ? `${d.title} · ${version}` : d.title} className={className}>
             <p>{note ?? d.note}</p>
             <p>
-                <TextLink href={`https://github.com/orangecheck/${repo}/blob/main/${f}`} className="break-all font-mono text-[0.875rem]">
+                <TextLink href={`https://github.com/orangecheck/${repo}/blob/main/${f}`} standalone className="break-all font-mono text-[0.875rem]">
                     {`${repo}/${f}`}
                 </TextLink>
             </p>
@@ -435,8 +436,8 @@ export function ComparisonTable({
                 </li>
             ))}
             {columns.some((c) => c.action) ? (
-                // Under each column its way in; on a phone the tinted one first, then the rest.
-                <li className={cn('flex flex-col gap-2 px-5 py-5', wide ? 'lg:items-center lg:gap-5 lg:px-8' : 'md:items-center md:gap-5 md:px-8', grid)}>
+                // Under each column its way in; on a phone the tinted one first, then the rest, their 44px targets clear of each other.
+                <li className={cn('flex flex-col gap-2 px-5 py-5', wide ? 'max-lg:pointer-coarse:gap-3 lg:items-center lg:gap-5 lg:px-8' : 'max-md:pointer-coarse:gap-3 md:items-center md:gap-5 md:px-8', grid)}>
                     <span aria-hidden className={cn('hidden', desk === 'lg' ? 'lg:block' : 'md:block')} />
                     {columns.map((c) => (
                         <div

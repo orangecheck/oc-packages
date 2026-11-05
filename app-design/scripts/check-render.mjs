@@ -42,14 +42,16 @@ const html = (el) => renderToStaticMarkup(el);
 // 2.0 is square: every rounded- class in the source is square (rounded-none), a depiction's
 // (rounded-depict), a tile's (rounded-tile) or its parent's (rounded-[inherit]). Round by meaning
 // only: a dot (rounded-full on a size-* box or the inset-0 halo filling one, with no padding), and
-// in the brand art, an app's monogram, an avatar and a depicted device. The stylesheets' own
+// in the brand art, an app's monogram, an avatar, a depicted device, and the made-up app the sign-in
+// demo draws inside its window (a product keeps its own corners; it has a file of its own, so the
+// demo's step list, Try again and cursor are still held square). The stylesheets' own
 // border-radius is a radius token or nothing.
 {
     const { readdirSync, readFileSync, statSync } = require('node:fs');
     const src = join(here, '../src');
     const walk = (d, ext) =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f), ext) : ext.test(f) && !/\.(stories|test)\.tsx?$/.test(f) ? [join(d, f)] : []));
-    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames))\.tsx$/;
+    const ROUND_BY_MEANING = /(brand\/(sphere|iso-check)|components\/(monogram|avatar|frames)|blocks\/sign-in-demo-app)\.tsx$/;
     const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
     const rounded = [];
     for (const f of walk(src, /\.tsx?$/)) {
@@ -80,6 +82,33 @@ const html = (el) => renderToStaticMarkup(el);
     }
     check(rounded.length === 0, `2.0 is square, but these are rounded: ${rounded.join(', ')}`);
     check(/rounded-depict/.test(readFileSync(join(src, 'components/frames.tsx'), 'utf8')), 'BrowserFrame is not on the depiction radius');
+
+    // No text under 12px: a size in rem or px is 0.75rem (12px) or more, and one in em, which follows a
+    // smaller parent down (0.875em of a 13px table head was 11.375px), is floored: max(…em, 0.75rem).
+    const small = [];
+    const tooSmall = (v) => {
+        const n = parseFloat(v);
+        if (/^[\d.]+rem$/.test(v)) return n < 0.75;
+        if (/^[\d.]+px$/.test(v)) return n < 12;
+        if (/^[\d.]+em$/.test(v)) return n < 1;
+        return false;
+    };
+    for (const f of walk(src, /\.tsx?$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                for (const m of line.matchAll(/(?<![\w-])text-\[([\d.]+(?:rem|px|em))\]/g)) if (tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} text-[${m[1]}]`);
+            });
+    }
+    for (const f of walk(join(src, 'styles'), /\.css$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                const m = line.match(/(?<![\w-])font-size:\s*([\d.]+(?:rem|px|em))\s*;/);
+                if (m && tooSmall(m[1])) small.push(`${f.slice(src.length + 1)}:${i + 1} font-size: ${m[1]}`);
+            });
+    }
+    check(small.length === 0, `text under 12px in the source: ${small.join(', ')}`);
 }
 
 // One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square
@@ -270,6 +299,26 @@ const html = (el) => renderToStaticMarkup(el);
     const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
     check(cmp.includes('>Use OC Stamp</a>') && (cmp.match(/<li/g) ?? []).length === 3, 'ComparisonTable: no action row');
     check(html(h(C.Closing, { title: 't', fineprint: h('span', { 'data-fine': '' }, 'credit') })).includes('data-fine'), 'Closing: no fineprint');
+    // Every block that draws a CTA pair draws it in HERO_ACTIONS, the row sites import for their own pairs: a block
+    // with a row of its own, or one that drops or overrides a class of it, parts from the sites' rows.
+    {
+        const act = () => h('a', { href: '/go', 'data-act': '' }, 'Go');
+        const rows = {
+            PageHero: html(h(C.PageHero, { title: 't', actions: act() })),
+            'PageHero layout="s10"': html(h(C.PageHero, { layout: 's10', title: 't', actions: act() })),
+            'PageHero variant="document"': html(h(C.PageHero, { variant: 'document', title: 't', actions: act() })),
+            DocHeader: html(h(C.DocHeader, { title: 't', actions: act() })),
+            ErrorPage: html(h(C.ErrorPage, { code: 404, art: null, actions: act() })),
+            Closing: html(h(C.Closing, { title: 't', art: null, actions: act() })),
+        };
+        const row = typeof C.HERO_ACTIONS === 'string' ? C.HERO_ACTIONS.split(' ') : [];
+        check(row.length > 0, 'HERO_ACTIONS is not exported from ./components');
+        for (const [name, out] of Object.entries(rows)) {
+            const cls = out.match(/<div class="([^"]*)"><a href="\/go" data-act="">/)?.[1].split(' ');
+            const missing = row.filter((c) => !cls?.includes(c));
+            check(cls && missing.length === 0, `${name}: its actions are not drawn in HERO_ACTIONS (${cls ? `missing ${missing.join(' ')}` : 'no row around them'})`);
+        }
+    }
     // A product without a page of its own links ochk.io's, and keeps all five.
     const F = require(join(here, '../dist/family.js'));
     const vault = F.selfHostedLegalLinks({ contact: false });
@@ -582,8 +631,8 @@ const html = (el) => renderToStaticMarkup(el);
     const view = (props) => html(h(Ch.SessionAccountView, { state: 'out', signInHref: '/x', ...props }));
     const btn = (out) => out.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? '';
     check(/\bbg-primary\b/.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label }))) && /\bbg-primary\b/.test(btn(cta)), 'SessionAccountView: the account phrase is not drawn as AccountCta draws it');
-    // 2.0's secondary is the outlined button (an ink hairline, no fill), so it is known by its edge.
-    const SECONDARY = /\bborder-foreground\/45\b/;
+    // 2.0's secondary is the outlined button (the field's edge, no fill), so it is known by its edge.
+    const SECONDARY = /\bborder-input\b/;
     check(SECONDARY.test(btn(view({}))) && !/\bbg-primary\b/.test(btn(view({}))), 'SessionAccountView: "Sign in" changed its look');
     check(SECONDARY.test(btn(view({ signInLabel: F.GET_AN_ACCOUNT.label, signInVariant: 'secondary' }))), 'SessionAccountView: signInVariant is ignored');
     // Typed as a string, so it passes where a string label is asked for.

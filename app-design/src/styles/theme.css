@@ -66,7 +66,9 @@
     --color-oca-code-link: var(--oca-code-link);
     --color-oca-surface: var(--oca-surface);
     --color-oca-surface-foreground: var(--oca-surface-foreground);
+    --color-oca-surface-muted: var(--oca-surface-muted);
     --color-oca-primary-hover: var(--oca-primary-hover);
+    --color-oca-cta-hover: var(--oca-cta-hover);
     --color-oca-ring-on-fill: var(--oca-ring-on-fill);
     --color-oca-burnt: var(--oca-burnt);
     --color-oca-burnt-foreground: var(--oca-burnt-foreground);
@@ -239,11 +241,21 @@
     font-feature-settings: 'tnum' 1;
 }
 
+/* The frame's column: its content starts where the Frame's does (the rule plus
+   the gutter), so a Section, a PageHero and a site's own container share one
+   left axis with the header. Reading measures keep their own max-width. */
 @utility oca-container {
     width: 100%;
-    max-width: 75rem;
+    max-width: var(--oca-frame-max);
     margin-inline: auto;
-    padding-inline: clamp(1rem, 0.4rem + 2.6vw, 2.5rem);
+    padding-inline: calc(var(--oca-frame-rule) + var(--oca-frame-gutter));
+    --oca-bar-bleed: var(--oca-frame-gutter);
+    --oca-bar-inset: var(--oca-frame-gutter);
+    /* Inside another container (a site's own inside a Section's) it adds no second gutter. */
+    :where(.oca-container) & {
+        max-width: none;
+        padding-inline: 0;
+    }
 }
 
 @utility oca-section {
@@ -273,6 +285,29 @@
     --accent-foreground: var(--oca-ink-foreground);
     --oca-surface: var(--oca-ink-card);
     --oca-surface-foreground: var(--oca-ink-foreground);
+    /* The page's own grounds and the small orange text, so nothing a component
+       paints in the band keeps the page's colours (orange text on ink was 2.51:1). */
+    --background: var(--oca-ink);
+    --popover: var(--oca-ink-card);
+    --popover-foreground: var(--oca-ink-foreground);
+    --oca-table-head: var(--oca-ink-card);
+    --oca-surface-muted: var(--oca-ink-muted);
+    --oca-accent-ink: var(--oca-ink-eyebrow);
+    --destructive: var(--oca-ink-destructive);
+    --destructive-foreground: var(--oca-ink-status-foreground);
+    --success: var(--oca-ink-success);
+    --success-foreground: var(--oca-ink-status-foreground);
+    --warning: var(--oca-ink-warning);
+    --warning-foreground: var(--oca-ink-status-foreground);
+    --info: var(--oca-ink-info);
+    --info-foreground: var(--oca-ink-status-foreground);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-ink-subtle);
+    /* The CTA is the brand look, orange with ink words: no deep orange under white words holds 3:1 on the
+       dark ink band (2.79:1, and 2.56 on its card). */
+    --primary: var(--brand);
+    --primary-foreground: var(--brand-foreground);
+    --oca-cta-hover: var(--oca-orange-light);
 }
 
 @utility oca-band-ink {
@@ -297,6 +332,24 @@
     --accent-foreground: var(--oca-burnt-foreground);
     --oca-surface: var(--oca-burnt-card);
     --oca-surface-foreground: var(--oca-burnt-foreground);
+    --background: var(--oca-burnt);
+    --popover: var(--oca-burnt-card);
+    --popover-foreground: var(--oca-burnt-foreground);
+    --oca-table-head: var(--oca-burnt-card);
+    --oca-surface-muted: var(--oca-burnt-muted);
+    --oca-accent-ink: var(--oca-burnt-accent);
+    --destructive: var(--oca-ink-destructive);
+    --destructive-foreground: var(--oca-ink-status-foreground);
+    --success: var(--oca-ink-success);
+    --success-foreground: var(--oca-ink-status-foreground);
+    --warning: var(--oca-ink-warning);
+    --warning-foreground: var(--oca-ink-status-foreground);
+    --info: var(--oca-ink-info);
+    --info-foreground: var(--oca-ink-status-foreground);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-burnt-muted);
+    /* The CTA's hover lightens here: the darker one was 2.42:1 on the brown. */
+    --oca-cta-hover: var(--oca-primary-lift);
 }
 
 @utility oca-band-burnt {
@@ -325,6 +378,28 @@
     --accent-foreground: var(--brand-foreground);
     --oca-surface: var(--brand);
     --oca-surface-foreground: var(--brand-foreground);
+    /* No status hue reads on orange: status takes the band's ink, its word or
+       icon says which, and a status fill is ink with orange text. */
+    --background: var(--brand);
+    --popover: var(--brand);
+    --popover-foreground: var(--brand-foreground);
+    --oca-table-head: var(--brand);
+    --oca-surface-muted: var(--brand-foreground);
+    --oca-accent-ink: var(--brand-foreground);
+    --destructive: var(--brand-foreground);
+    --destructive-foreground: var(--brand);
+    --success: var(--brand-foreground);
+    --success-foreground: var(--brand);
+    --warning: var(--brand-foreground);
+    --warning-foreground: var(--brand);
+    --info: var(--brand-foreground);
+    --info-foreground: var(--brand);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--brand-foreground);
+    /* The CTA is ink with orange words, as a status fill is: the deep orange was 1.85:1 on the band. */
+    --primary: var(--brand-foreground);
+    --primary-foreground: var(--brand);
+    --oca-cta-hover: var(--oca-ink-card);
 }
 
 @utility oca-band-brand {
@@ -341,7 +416,8 @@
     --border: var(--oca-footer-line);
     --oca-accent-display: var(--oca-footer-foreground);
     --ring: var(--oca-ring-on-fill);
-    --card: var(--oca-footer);
+    /* Raised a step darker, as a hover is: a badge's tint of white on the footer itself left its white text at 4.10:1. */
+    --card: var(--oca-primary-hover);
     --card-foreground: var(--oca-footer-foreground);
     --muted: var(--oca-footer);
     --secondary: var(--oca-footer);
@@ -351,6 +427,28 @@
     --accent-foreground: var(--oca-footer-foreground);
     --oca-surface: var(--oca-footer);
     --oca-surface-foreground: var(--oca-footer-foreground);
+    /* As on orange: status in the footer's white, a status fill white with the darker deep text. */
+    --background: var(--oca-footer);
+    --popover: var(--oca-footer);
+    --popover-foreground: var(--oca-footer-foreground);
+    --oca-table-head: var(--oca-footer);
+    --oca-surface-muted: var(--oca-footer-muted);
+    --oca-accent-ink: var(--oca-footer-foreground);
+    --destructive: var(--oca-footer-foreground);
+    --destructive-foreground: var(--oca-primary-hover);
+    --success: var(--oca-footer-foreground);
+    --success-foreground: var(--oca-primary-hover);
+    --warning: var(--oca-footer-foreground);
+    --warning-foreground: var(--oca-primary-hover);
+    --info: var(--oca-footer-foreground);
+    --info-foreground: var(--oca-footer);
+    /* A field's edge, and a drawn window's, at 3:1 on the band. */
+    --input: var(--oca-footer-foreground);
+    /* The CTA as its status fills: white with the deep orange's words, where the deep orange was the footer
+       itself (1.00:1). Its hover is the CTA's own token, since the deep orange's hover is this band's --card. */
+    --primary: var(--oca-footer-foreground);
+    --primary-foreground: var(--oca-footer);
+    --oca-cta-hover: var(--oca-footer-muted);
 }
 
 @utility oca-band-footer {
@@ -412,7 +510,8 @@
     [data-oc-app='ochk'] kbd,
     [data-oc-app='ochk'] samp {
         font-family: var(--oc-font-mono);
-        font-size: 0.92em;
+        /* Never under 12px: in a 13px table head, 0.92em was 11.96px. */
+        font-size: max(0.92em, 0.75rem);
     }
 
     /* Code is read character by character: => stays two characters, never an arrow glyph. */
@@ -457,6 +556,16 @@
     :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
         scroll-padding-top: calc(4.5rem + 3rem + 2px + 0.75rem);
+    }
+}
+/* And never under the phone's TabBar at the bottom, below md where it is shown, on a page that has one. Its
+   height is the one the bar publishes from its own box, the safe area in it (--oca-tabbar-h); before any script
+   has run, and without script, it is the bar's own size, so the server's page is clear of it too. The room
+   above it is 0.75rem. */
+@media (width < 48rem) {
+    :root[data-oc-app='ochk']:has([data-oca-tabbar]),
+    :root:has([data-oc-app='ochk'] [data-oca-tabbar]) {
+        scroll-padding-bottom: calc(var(--oca-tabbar-h, calc(3.5rem + 1px + env(safe-area-inset-bottom))) + 0.75rem);
     }
 }
 @media (width >= 64rem) {
@@ -510,12 +619,17 @@
     }
 }
 
+/* Reduced motion: every animation and transition ends at once, delays too. A
+   delayed entrance otherwise held its first frame for the delay (a hero's h1
+   sat 14px low for 70 ms, then snapped up). */
 @media (prefers-reduced-motion: reduce) {
     [data-oc-app='ochk'] *,
     [data-oc-app='ochk'] *::before,
     [data-oc-app='ochk'] *::after {
         animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
     }
 }

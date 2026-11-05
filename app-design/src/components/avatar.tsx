@@ -11,7 +11,7 @@ import { cn } from '../lib/cn';
  */
 
 const SIZES = {
-    '2xs': 'size-7 text-[0.6875rem] [&_svg]:size-3.5',
+    '2xs': 'size-7 text-[0.75rem] [&_svg]:size-3.5',
     xs: 'size-8 text-[0.75rem] [&_svg]:size-4',
     sm: 'size-9 text-[0.8125rem] [&_svg]:size-4',
     md: 'size-11 text-[0.9375rem] [&_svg]:size-5',

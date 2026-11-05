@@ -6,6 +6,7 @@ import { Lockup } from '../brand/mark';
 import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
+import { HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
 import { useFamilySignInHref } from '../lib/sign-in';
 import { Button } from '../primitives/button';
@@ -251,7 +252,7 @@ export function SiteHeader({
                         <NavDropdown key={n.href} item={n} />
                     ) : (
                         // The site's links are text, 28px apart; the tool's keep their padding and bar.
-                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center px-0 hover:text-oca-accent-ink'} />
+                        <NavLink key={n.href} item={n} line={tool} className={tool ? undefined : 'flex h-11 items-center justify-center px-0 hover:text-oca-accent-ink pointer-coarse:min-w-11'} />
                     )
                 )}
             </nav>
@@ -271,16 +272,17 @@ export function SiteHeader({
                     tool
                         ? 'h-14 px-4 md:px-6'
                         : // The frame's column: the page's gutter at left, the CTA at the right rule.
-                          'mx-auto h-14 w-full max-w-[82.5rem] border-border pl-[clamp(1rem,0.333rem+2.857vw,3rem)] min-[900px]:h-[4.25rem] min-[900px]:border-x',
+                          'mx-auto h-14 w-full max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
                     framed &&
                         (headerCta
                             ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
-                              'max-[479px]:pr-[clamp(1rem,0.333rem+2.857vw,3rem)]'
-                            : 'pr-[clamp(1rem,0.333rem+2.857vw,3rem)]')
+                              'max-[479px]:pr-[var(--oca-frame-gutter)]'
+                            : 'pr-[var(--oca-frame-gutter)]')
                 )}
             >
                 <div className={cn('flex min-w-0 items-center gap-1', tool ? 'md:gap-1' : 'min-w-0 flex-1')}>
-                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1">
+                    {/* It may narrow to its mark on a crowded phone bar, never under 44 to a thumb. */}
+                    <Link href={home} className="-ml-1 flex min-h-11 min-w-0 items-center rounded-none p-1 pointer-coarse:min-w-11">
                         {brandNode}
                         {/* Read as "orangecheck home": the name starts with what the link shows. */}
                         <span className="sr-only"> home</span>
@@ -397,7 +399,7 @@ export function SiteHeader({
                                     // Below 480px the bar keeps the brand, the actions and the menu: the CTA
                                     // is the menu's full-width button there, so nothing overlaps.
                                     'max-[479px]:hidden',
-                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-primary-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
+                                    'group/cta outline-none transition-colors duration-200 ease-oca-out hover:bg-oca-cta-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oca-ring-on-fill'
                                 )}
                             >
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} />
@@ -461,7 +463,7 @@ export function SiteBanner({
 }) {
     return (
         <div role="status" aria-live="polite" data-tone={tone} className={cn('border-b text-[0.875rem]', BANNER_TONE[tone], className)}>
-            <div className="oca-container flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+            <div className="oca-container flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 pointer-coarse:py-3">
                 <p className="flex min-w-0 items-baseline gap-2.5 leading-snug">
                     {tone !== 'neutral' ? (
                         <span
@@ -475,7 +477,7 @@ export function SiteBanner({
                     <span>{children}</span>
                 </p>
                 {/* On a phone the link wraps under the words, lined up with them, not the dot. */}
-                {action ? <div className={cn('shrink-0 font-medium', tone !== 'neutral' && 'max-sm:pl-[1.125rem]')}>{action}</div> : null}
+                {action ? <div className={cn('shrink-0 font-medium', HIT_LINKS, tone !== 'neutral' && 'max-sm:pl-[1.125rem]')}>{action}</div> : null}
             </div>
         </div>
     );
@@ -483,16 +485,18 @@ export function SiteBanner({
 
 /**
  * A link in the legal row or a tool's protocol row, lines of inline text links: 44px to a thumb on
- * any screen, a tablet's included, and WCAG 2.5.8's 24px to a mouse. The pointer decides, not the width.
+ * any screen, a tablet's included, in both axes (a short word, "Terms", was 41px wide), and WCAG
+ * 2.5.8's 24px to a mouse. The pointer decides, not the width; the label stays centred in its box.
+ * Positioned to a thumb, so a link keeps its bottom edge where the year's line starts flush under it.
  */
-const FOOT_LINK = 'inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11';
+const FOOT_LINK = 'inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:relative pointer-coarse:min-h-11 pointer-coarse:min-w-11';
 
 function LegalRow({ links }: { links: readonly NavItem[] }) {
     return (
         // To a thumb each link is a 44px target with room under its text: the year needs no gap of its own.
         <div className="flex flex-col gap-x-6 gap-y-2 sm:flex-row sm:items-center sm:justify-between pointer-coarse:gap-y-0">
             <nav aria-label="Legal">
-                <ul className="flex flex-wrap gap-x-5">
+                <ul className="flex flex-wrap gap-x-4 md:gap-x-5">
                     {/* Two links may share an address; the label and place keep them apart. */}
                     {links.map((l, i) => (
                         <li key={`${i}:${l.label}`}>
@@ -535,7 +539,8 @@ export interface SiteFooterProps {
 
 /** The footer's deep ground (the oca-band-footer utility re-points the tokens) and the frame's width. */
 const FOOTER_GROUND = 'oca-band-footer';
-const FRAME_X = 'mx-auto w-full max-w-[82.5rem] px-[clamp(1rem,0.333rem+2.857vw,3rem)]';
+// The footer's content on the frame's axis: it has no rules of its own, so it counts the page's.
+const FRAME_X = 'mx-auto w-full max-w-[var(--oca-frame-max)] px-[calc(var(--oca-frame-rule)+var(--oca-frame-gutter))]';
 
 
 /**

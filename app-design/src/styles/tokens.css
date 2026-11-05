@@ -36,6 +36,8 @@
     /* The product surface: inputs, tables, receipts and mock screens. */
     --oca-surface: #ffffff;
     --oca-surface-foreground: #161412;
+    /* Secondary text drawn on the surface; no band re-points it, so a receipt or mock screen keeps it inside one. */
+    --oca-surface-muted: #5e5852;
 
     /* Actions: page CTAs are deep orange with white text; a brand (orange) fill
        takes ink text. White on orange is never used (2.80:1). */
@@ -46,6 +48,10 @@
     /* The CTA's hover, and the ring on a brand or deep fill (an orange ring on
        orange would vanish), ink in both modes. */
     --oca-primary-hover: #9a3412;
+    /* A primary Button's hover, which a band re-points: on paper the deep orange a step darker. */
+    --oca-cta-hover: #9a3412;
+    /* The deep orange a step lighter, a hover for dark grounds: the darker one sank to 2.42:1 on burnt. */
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     /* Lines */
@@ -62,7 +68,9 @@
     --destructive-foreground: #ffffff;
     --success: #157a3a;
     --success-foreground: #ffffff;
-    --warning: #a15c07;
+    /* Darkened by the smallest step in OKLab lightness that clears 4.5:1 on the
+       paper canvas (#a15c07 was 4.33:1 there; a DataTable cell in caution). */
+    --warning: #9e5900;
     --warning-foreground: #ffffff;
     --info: #1d4ed8;
     --info-foreground: #ffffff;
@@ -112,6 +120,15 @@
     --oca-ink-subtle: #a39d97;
     --oca-ink-title: #fcb781;
     --oca-ink-eyebrow: #fb923c;
+    /* Status on the dark grounds, in both modes: the dark theme's own set. A band
+       re-points the status tokens to these (theme.css oca-on-ink, oca-on-burnt);
+       the light set is 2.6-3.5:1 on ink. Red is one step lighter (#fca5a5, not
+       #f87171), so a danger badge's tint on the dark ink card keeps 4.5:1. */
+    --oca-ink-destructive: #fca5a5;
+    --oca-ink-success: #4ade80;
+    --oca-ink-warning: #fbbf24;
+    --oca-ink-info: #93c5fd;
+    --oca-ink-status-foreground: #0a0a0a;
     --oca-code-package: #e99a8f;
     --oca-code-tag: #e3a8c2;
     --oca-code-link: #9db4ec;
@@ -127,7 +144,8 @@
     --oca-code-function: #9db4ec;
     --oca-code-type: #8fd0c2;
     --oca-code-property: #9db4ec;
-    --oca-code-comment: #909397;
+    /* Lifted by the smallest OKLab step that keeps 4.5:1 on the dark ink card (#909397 was 4.29:1 there). */
+    --oca-code-comment: #94979b;
     --oca-code-punctuation: #d5d8dc;
     --oca-code-added: #86d39b;
     --oca-code-removed: #f19a9a;
@@ -162,6 +180,24 @@
     --radius: 0px;
     --oca-radius-depict: 0.75rem;
     --oca-radius-tile: 1.5rem;
+
+    /* The page's one framed column (PLAN §2): 82.5rem at most, a 1px rule at
+       each side, and a gutter of 3rem that narrows to 1rem. Every left edge on
+       the page (the header's lockup, a hero, a section's container) sits at the
+       rule plus the gutter. Inside PageFrame the rule is the page's own, so
+       --oca-frame-rule is 0 there and nothing draws or counts it twice. */
+    --oca-frame-max: 82.5rem;
+    --oca-frame-gutter: clamp(1rem, 0.333rem + 2.857vw, 3rem);
+    --oca-frame-rule: 1px;
+    /* How far a focus ring reaches outside its control: ring-2 plus ring-offset-2.
+       A box that clips (a framed Section) keeps this much room past its edge. */
+    --oca-focus-reach: 4px;
+    /* A SectionBar spans its nearest edged box: it takes back the gutter that box gives
+       (--oca-bar-bleed) and sets its label in that box's inset (--oca-bar-inset). A
+       container, a padded Frame and a Card set both; a box with its own edge and no gutter
+       (a Frame without padding, PageFrame) bleeds 0. Here, the page with no such box. */
+    --oca-bar-bleed: 0px;
+    --oca-bar-inset: var(--oca-frame-gutter);
     --oc-font-sans: 'OCA Inter', 'OCA Inter Fallback', ui-sans-serif, system-ui, sans-serif;
     --oc-font-mono:
         'OCA JetBrains Mono', 'OCA JetBrains Mono Fallback', ui-monospace, SFMono-Regular, monospace;
@@ -219,9 +255,19 @@
     --oc-shadow-md: 0 4px 16px -4px rgb(22 20 18 / 0.08);
     --oc-shadow-lg: 0 12px 32px -8px rgb(22 20 18 / 0.12);
     --oc-shadow-xl: 0 24px 56px -12px rgb(22 20 18 / 0.18);
-    /* A depicted product (a mock browser or phone) and the orange glow behind it. */
-    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 50px 100px -24px rgb(0 0 0 / 0.7);
+    /* A depicted product (a mock browser or phone) and the orange glow behind it.
+       The shadow reaches 48px below the window (20 + 40 - 12), inside a hero's
+       56px foot: it was 126px, and painted onto the next section. */
+    --oca-shadow-depict: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.2), 0 20px 40px -12px rgb(0 0 0 / 0.6);
     --oca-glow: radial-gradient(closest-side, rgb(249 115 22 / 0.32), transparent);
+}
+
+/* To a thumb the wallet buttons are 44px, as this design's own are; a mouse keeps 36. */
+@media (pointer: coarse) {
+    :root[data-oc-app='ochk'],
+    [data-oc-app='ochk'] {
+        --oc-wallet-min-height: 2.75rem;
+    }
 }
 
 :root.dark[data-oc-app='ochk'],
@@ -235,7 +281,10 @@
     --card-foreground: #eeeae6;
     --popover: #1c1916;
     --popover-foreground: #eeeae6;
-    --muted: #1c1916;
+    /* Sunken in light, lifted in dark, and apart from every surface it is drawn on
+       by at least light's own step (1.10:1): #1c1916 was the window's own colour,
+       so a muted fill vanished on --oca-surface and --popover (1.00:1). */
+    --muted: #26221f;
     --muted-foreground: #a39d97;
     /* Lifted above the card, so a secondary button never reads as a hole. */
     --secondary: #1c1916;
@@ -244,12 +293,16 @@
     --accent-foreground: #eeeae6;
     --oca-surface: #1c1916;
     --oca-surface-foreground: #eeeae6;
+    --oca-surface-muted: #a39d97;
 
     --primary: #c2410c;
     --primary-foreground: #ffffff;
     --brand: #f97316;
     --brand-foreground: #161412;
     --oca-primary-hover: #9a3412;
+    /* Lighter on the dark page: the darker hover was 2.67:1 on night. */
+    --oca-cta-hover: #cc4a0e;
+    --oca-primary-lift: #cc4a0e;
     --oca-ring-on-fill: #161412;
 
     --border: #242221;
@@ -265,7 +318,9 @@
     --info: #93c5fd;
     --info-foreground: #0a0a0a;
 
-    --oca-subtle-foreground: #8a837d;
+    /* Lifted with --muted, by the smallest step in OKLab lightness that keeps
+       4.5:1 on it (#8a837d was 4.22:1 on #26221f). */
+    --oca-subtle-foreground: #8f8882;
     --oca-hairline-strong: #363432;
     --oca-table-head: #1c1916;
     --oca-accent-display: #f97316;
@@ -278,9 +333,14 @@
     --oca-avatar-bg-l: 22%;
     --oca-avatar-fg-l: 82%;
     --oca-outline: #3a2a24;
-    /* In dark the ink band lifts off the night canvas, so the rhythm survives. */
-    --oca-ink: #1c1916;
-    --oca-ink-card: #221f1c;
+    /* In dark the ink band lifts off the night canvas, so the rhythm survives, and
+       off every page ground: it was #1c1916, the window's and the popover's own
+       colour. Now the smallest step from the scale that is 1.09:1 or more from
+       each (1.09 on --muted, 1.21 on --oca-surface); its card and line follow
+       by the steps they had (1.09, 1.14). */
+    --oca-ink: #2c2927;
+    --oca-ink-card: #332f2d;
+    --oca-ink-line: #3c3836;
     --oca-icon-tile: #1c1916;
     --oca-icon-ring: #363432;
     --oca-code-surface: #0a0908;

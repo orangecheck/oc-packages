@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { HIT_LINK } from '../lib/hit';
+import { visibleObserver } from '../lib/viewport';
 import { MonoLabel } from './frame';
 import { Section } from './section';
 
@@ -16,6 +18,9 @@ import { Section } from './section';
  * `page` takes `layout="s10"`, PLAN's S10 page header: the title at the top of
  * a tall band, the lead at its foot on the right and the art (a mark) at its
  * foot on the left, from md. On a phone the mark sits under the lead.
+ *
+ * The h1 and lead enter with `oca-enter-lift`, opaque from the first frame,
+ * because one of them is the page's LCP; the rest fades in with `oca-enter`.
  */
 export interface PageHeroProps {
     eyebrow?: ReactNode;
@@ -34,7 +39,7 @@ export interface PageHeroProps {
     size?: 'lg' | 'xl';
     /** 2.0's page-header grounds: paper (default), the ink band or the orange band. `page` only. */
     ground?: 'paper' | 'ink' | 'brand';
-    /** A full-width hairline under the hero. `page` only. */
+    /** The hairline that closes the hero, between the frame's rules. Default true. `page` only. */
     rule?: boolean;
     /**
      * `split` (default): art in a column beside the text. `s10`: the title at the top of a band
@@ -47,6 +52,14 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
+/**
+ * A page's CTA pair: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at
+ * their own widths. PageHero, DocHeader, ErrorPage and Closing draw their actions in it, and a site draws any other
+ * pair in it too (`cn('mt-8', HERO_ACTIONS)`), so every CTA pair on a page follows one rule. check-render fails
+ * if a block draws its own row.
+ */
+export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
+
 export function PageHero({
     eyebrow,
     title,
@@ -58,7 +71,7 @@ export function PageHero({
     variant = 'page',
     size = 'lg',
     ground = 'paper',
-    rule = false,
+    rule = true,
     layout = 'split',
     className,
 }: PageHeroProps) {
@@ -87,13 +100,13 @@ export function PageHero({
             >
                 <div className="flex flex-col items-start gap-6 pb-6">
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
-                    <h1 className={cn(h1, 'oca-enter [--enter-delay:70ms]')}>{title}</h1>
+                    <h1 className={cn(h1, 'oca-enter-lift [--enter-delay:70ms]')}>{title}</h1>
                 </div>
                 <div className="mt-auto grid grid-cols-1 gap-10 md:grid-cols-12 md:items-start">
                     <div className="flex flex-col items-start gap-6 md:col-span-7 md:col-start-6 md:row-start-1 md:justify-self-end">
-                        {lead ? <p className="oca-lead oca-enter max-w-[22em] text-left [--enter-delay:150ms]">{lead}</p> : null}
+                        {lead ? <p className="oca-lead oca-enter-lift max-w-[22em] text-left [--enter-delay:150ms]">{lead}</p> : null}
                         {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground [--enter-delay:190ms]">{meta}</p> : null}
-                        {actions ? <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">{actions}</div> : null}
+                        {actions ? <div className={cn('oca-enter [--enter-delay:230ms]', HERO_ACTIONS)}>{actions}</div> : null}
                     </div>
                     {art ? <div className="oca-enter md:col-span-5 md:col-start-1 md:row-start-1 [--enter-delay:120ms]">{art}</div> : null}
                 </div>
@@ -108,12 +121,12 @@ export function PageHero({
             <div className={cn('grid grid-cols-1 gap-10', art && 'items-center md:grid-cols-12')}>
                 <div className={cn('flex flex-col items-start gap-6', art ? 'md:col-span-7' : 'max-w-[52rem]')}>
                     {eyebrow ? <MonoLabel className="oca-enter">{eyebrow}</MonoLabel> : null}
-                    <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter [--enter-delay:70ms]')}>
+                    <h1 className={cn(size === 'xl' ? 'oca-display-1' : 'oca-display-2', 'oca-enter-lift [--enter-delay:70ms]')}>
                         {title}
                     </h1>
-                    {lead ? <p className="oca-lead oca-enter max-w-[38rem] [--enter-delay:150ms]">{lead}</p> : null}
+                    {lead ? <p className="oca-lead oca-enter-lift max-w-[38rem] [--enter-delay:150ms]">{lead}</p> : null}
                     {meta ? <p className="oca-enter text-[0.875rem] text-muted-foreground [--enter-delay:190ms]">{meta}</p> : null}
-                    {actions ? <div className="oca-enter flex flex-wrap gap-3 [--enter-delay:230ms]">{actions}</div> : null}
+                    {actions ? <div className={cn('oca-enter [--enter-delay:230ms]', HERO_ACTIONS)}>{actions}</div> : null}
                     {children ? <div className="oca-enter w-full [--enter-delay:270ms]">{children}</div> : null}
                 </div>
                 {art ? <div className="oca-enter md:col-span-5 [--enter-delay:120ms]">{art}</div> : null}
@@ -138,10 +151,10 @@ export function DocHeader({
     return (
         <div className={cn('flex flex-col gap-5', className)}>
             {eyebrow ? <p className="oca-eyebrow oca-enter">{eyebrow}</p> : null}
-            <h1 className="oca-display-2 oca-enter [--enter-delay:70ms]">{title}</h1>
+            <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title}</h1>
             {lead ? <p className="oca-lead">{lead}</p> : null}
             {meta ? <p className="text-[0.875rem] text-muted-foreground">{meta}</p> : null}
-            {actions ? <div className="mt-1 flex flex-wrap gap-3">{actions}</div> : null}
+            {actions ? <div className={cn('mt-1', HERO_ACTIONS)}>{actions}</div> : null}
             {children}
         </div>
     );
@@ -166,7 +179,7 @@ export function useActiveHeading(ids: string[]): string | undefined {
             .map((id) => document.getElementById(id))
             .filter((el): el is HTMLElement => el !== null);
         if (els.length === 0 || typeof IntersectionObserver === 'undefined') return;
-        const io = new IntersectionObserver(
+        const io = visibleObserver(
             (entries) => {
                 const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
                 if (hit) setActive(hit.target.id);
@@ -204,7 +217,8 @@ export function DocLayout({
                     href={`#${t.id}`}
                     aria-current={active === t.id ? 'location' : undefined}
                     className={cn(
-                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors',
+                        // 31px to a mouse; 44 to a thumb, the label centred in it.
+                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
                         active === t.id
                             ? 'border-foreground text-foreground'
                             : 'border-border text-muted-foreground hover:text-foreground'
@@ -236,7 +250,7 @@ export function DocLayout({
                             <ul>{links()}</ul>
                         </nav>
                         <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
-                            <summary className="cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden">
+                            <summary className={cn('cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden', HIT_LINK)}>
                                 On this page
                             </summary>
                             <ul className="mt-3">{links()}</ul>

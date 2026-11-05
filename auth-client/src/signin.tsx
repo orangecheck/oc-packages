@@ -43,6 +43,7 @@ import * as React from 'react';
 
 import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
+import { DesignCheckbox } from './controls';
 import { LinkPromptStep } from './linked-identities';
 import { ownWord } from './own-word';
 import { stripFragment } from './return-to';
@@ -774,12 +775,7 @@ export function OcSignIn({
 
             {linkPrompt && (
                 <label data-oc-signin-linkalso="" style={linkAlsoStyle}>
-                    <input
-                        type="checkbox"
-                        checked={linkAlso}
-                        onChange={(e) => setLinkAlso(e.target.checked)}
-                        style={{ margin: 0, accentColor: 'var(--primary, #f97316)' }}
-                    />
+                    <DesignCheckbox checked={linkAlso} onChange={(e) => setLinkAlso(e.target.checked)} />
                     <span>
                         After signing in, also link{' '}
                         {activeMethod === 'email' ? 'a Bitcoin wallet' : 'an email'}{' '}
@@ -1691,6 +1687,10 @@ function Label({
 
 const inputStyle: React.CSSProperties = {
     width: '100%',
+    // 44px to a thumb, as the submit buttons are: one line drew the email field 43.6. The padding and border sit
+    // inside it, so a host without a border-box reset gets 44 too.
+    boxSizing: 'border-box',
+    minHeight: 44,
     padding: '0.55rem 0.75rem',
     background: 'var(--background, #0a0a0a)',
     color: 'var(--foreground, #fafafa)',
@@ -1722,6 +1722,8 @@ const linkAlsoStyle: React.CSSProperties = {
 function submitStyle(disabled: boolean): React.CSSProperties {
     return {
         marginTop: 12,
+        // 44px to a thumb, as the tabs are: the padding round one line drew it 42.
+        minHeight: 44,
         padding: '0.6rem 1rem',
         background: 'var(--primary, #f97316)',
         color: 'var(--primary-foreground, #0a0a0a)',

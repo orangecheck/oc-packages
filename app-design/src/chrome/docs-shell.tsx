@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { OnThisPage, useHeadings } from '../components/docs';
+import { PageFrame } from '../components/frame';
 import { useActiveHeading } from '../components/hero';
 import type { TocItem } from '../components/hero';
 import { DOCS_HREF, OCHK_IO, OCHK_IO_NAV } from '../family';
@@ -85,7 +86,7 @@ export function DocsNav({
                                 });
                             }}
                             className={cn(
-                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-none px-2.5 py-1.5 text-left text-[0.875rem] transition-colors',
+                                'flex min-h-9 w-full items-center justify-between gap-2 rounded-none px-2.5 py-1.5 text-left text-[0.875rem] transition-colors pointer-coarse:min-h-11',
                                 isActive ? 'font-medium text-foreground hover:bg-accent' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >
@@ -112,7 +113,8 @@ export function DocsNav({
                                             onClick={onNavigate}
                                             aria-current={on ? 'page' : undefined}
                                             className={cn(
-                                                '-ml-px flex min-h-9 items-center gap-2 border-l-2 py-1.5 pl-3.5 pr-2 text-[0.875rem] leading-snug transition-colors',
+                                                // 44px tall to a thumb; the rail's width already gives the row its 44.
+                                                '-ml-px flex min-h-9 items-center gap-2 border-l-2 py-1.5 pl-3.5 pr-2 text-[0.875rem] leading-snug transition-colors pointer-coarse:min-h-11',
                                                 on
                                                     ? 'border-foreground font-medium text-foreground'
                                                     : 'border-transparent text-muted-foreground hover:border-oca-hairline-strong hover:text-foreground'
@@ -220,7 +222,7 @@ export function DocsShell({
             >
                 <div className="oca-container flex h-12 items-center gap-2">
                     <Sheet open={menu} onOpenChange={setMenu}>
-                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-none px-2.5 text-[0.875rem] hover:bg-accent">
+                        <SheetTrigger className="-ml-2 inline-flex h-10 min-w-0 items-center gap-2 rounded-none px-2.5 text-[0.875rem] hover:bg-accent pointer-coarse:h-11">
                             <PanelLeft aria-hidden className="size-[1.125rem] shrink-0" />
                             <span className="sr-only">Docs menu. </span>
                             {place ? (
@@ -244,8 +246,9 @@ export function DocsShell({
                     </Sheet>
                 </div>
             </div>
-            <div className="oca-container flex-1">
-                <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
+            {/* The page's framed column, its rules from the header to the footer; the content on its axis. */}
+            <PageFrame as="div" className="flex-1">
+                <div className="oca-container lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
                     <div className="sticky top-[4.5rem] hidden max-h-[calc(100dvh-4.5rem)] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
                         <DocsNav sections={nav} current={marked} />
                     </div>
@@ -270,7 +273,7 @@ export function DocsShell({
                         {items.length > 1 ? <OnThisPage items={items} activeId={activeId} /> : null}
                     </div>
                 </div>
-            </div>
+            </PageFrame>
             {footer ?? <OchkIoFooter />}
         </div>
     );

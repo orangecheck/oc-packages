@@ -13,8 +13,8 @@ export function PhoneFrame({ className, style, children }: { className?: string;
     return (
         <div
             className={cn(
-                // A lighter bezel in dark mode, or the phone dissolves into the page.
-                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
+                // A lighter bezel in dark mode, and the field edge around it, or the phone dissolves into a dark ground.
+                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] border border-input bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
                 'shadow-[0_50px_100px_-40px_rgb(10_10_10/0.55),0_0_0_1px_rgb(255_255_255/0.06)_inset]',
                 className
             )}
@@ -28,40 +28,69 @@ export function PhoneFrame({ className, style, children }: { className?: string;
     );
 }
 
-/** A browser window with its address. Children are the page. */
+/**
+ * A browser window with its address. Children are the page. `paper` is the
+ * product as a depiction on a page of paper: a white screen with the 12px
+ * corner pictures of products keep, a plain bar with no address when `url`
+ * is null, and with `glow`, an orange light behind it.
+ */
 export function BrowserFrame({
     url = 'ochk.app',
+    variant = 'default',
+    glow = false,
     className,
     style,
     children,
 }: {
-    url?: string;
+    url?: string | null;
+    variant?: 'default' | 'paper';
+    glow?: boolean;
     className?: string;
     style?: CSSProperties;
     children: ReactNode;
 }) {
-    return (
+    const paper = variant === 'paper';
+    const frame = (
         <div
+            data-frame={variant}
             className={cn(
-                'overflow-hidden rounded-depict border border-border bg-card',
-                // 2.0's depiction shadow (tokens.css), drawn tight to the window.
-                'shadow-[var(--oca-shadow-depict)]',
-                className
+                'relative overflow-hidden',
+                // 2.0's depiction shadow (tokens.css), drawn tight to the window, and the field edge around it:
+                // a window is told from its page by a line at 3:1, not by its fill (white on paper) or a shadow.
+                paper
+                    ? 'rounded-depict border border-input bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
+                    : 'rounded-depict border border-input bg-card shadow-[var(--oca-shadow-depict)]',
+                !glow && className
             )}
-            style={style}
+            style={glow ? undefined : style}
         >
-            <div className="flex h-10 items-center gap-3 border-b border-border px-4">
+            <div className={cn('flex h-10 items-center gap-3 border-b px-4', paper ? 'border-oca-surface-foreground/10 bg-oca-surface-foreground/[0.04]' : 'border-border')}>
                 <div aria-hidden className="flex gap-1.5">
                     <span className="size-2.5 rounded-full bg-[#ff5f57]" />
                     <span className="size-2.5 rounded-full bg-[#febc2e]" />
                     <span className="size-2.5 rounded-full bg-[#28c840]" />
                 </div>
-                <div className="mx-auto flex h-6 min-w-0 max-w-[60%] flex-1 items-center justify-center rounded-md bg-muted px-3 text-[0.75rem] text-muted-foreground">
-                    <span className="truncate">{url}</span>
-                </div>
-                <span aria-hidden className="w-[2.6rem]" />
+                {url ? (
+                    <div className="mx-auto flex h-6 min-w-0 max-w-[60%] flex-1 items-center justify-center rounded-md bg-muted px-3 text-[0.75rem] text-muted-foreground">
+                        <span className="truncate">{url}</span>
+                    </div>
+                ) : null}
+                {url ? <span aria-hidden className="w-[2.6rem]" /> : null}
             </div>
             <div className="relative">{children}</div>
+        </div>
+    );
+    if (!glow) return frame;
+    return (
+        <div className={cn('relative isolate', className)} style={style}>
+            {/* The light behind the screen: a still gradient, no blur filter to raster. On a phone it stays within the
+                frame's width, so it never widens the page. */}
+            <div
+                aria-hidden
+                data-frame-glow=""
+                className="pointer-events-none absolute inset-x-0 -inset-y-[min(20%,3rem)] -z-10 bg-[image:var(--oca-glow)] md:-inset-x-[12%]"
+            />
+            {frame}
         </div>
     );
 }

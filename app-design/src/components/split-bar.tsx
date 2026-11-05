@@ -36,7 +36,7 @@ export function SplitBar({
                     >
                         <span
                             // One size for every figure, so they sit on one line; it fits a segment at its min width.
-                            className="oca-tabular text-[1.125rem] leading-none tracking-[-0.02em] md:text-[1.5rem]"
+                            className="oca-tabular text-[1.125rem] leading-none tracking-[-0.02em] md:text-[1.75rem] md:font-light"
                         >
                             {s.pct}%
                         </span>

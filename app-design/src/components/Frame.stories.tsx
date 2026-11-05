@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Button } from '../primitives';
-import { Display, Faq, Frame, Lead, MonoLabel, PageHero, Section, SectionBar, StatRow } from './index';
+import { Display, Faq, Lead, MonoLabel, PageHero, Section, SectionBar, StatRow } from './index';
 
 const meta: Meta = { title: 'Components/Frame (2.0)' };
 export default meta;
@@ -19,8 +19,7 @@ export const Labels: StoryObj = {
 /** The framed column, a title-block bar, and the hairline stat grid. */
 export const FramedColumn: StoryObj = {
     render: () => (
-        <Section space="none" rule>
-            <Frame className="flex flex-col gap-10 py-12">
+        <Section framed space="none" rule frameClassName="flex flex-col gap-10 py-12">
                 <SectionBar start="Lumen Notes" end="01 / 04" />
                 <Display level={2}>Notes that know who wrote them.</Display>
                 <Lead>Lumen Notes asks for a backed account before a note can be shared.</Lead>
@@ -31,7 +30,6 @@ export const FramedColumn: StoryObj = {
                         { value: '48', label: 'Unbacked' },
                     ]}
                 />
-            </Frame>
         </Section>
     ),
 };

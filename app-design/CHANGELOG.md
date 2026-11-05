@@ -2,7 +2,221 @@
 
 ## [Unreleased]
 
-## [2.0.0] — unreleased (2.0.0-pre)
+- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
+  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
+  every real card the same pixels). Any other character in a mono field draws
+  in Inter where Inter has it, and the server logs a warning naming the field
+  and code point. A glyph neither font has still makes next/og fetch a font,
+  as on 2.0.0.
+
+## [2.0.1] — 2026-11-05
+
+- `HalftoneCanvas` plays its intro where it is seen. It draws nothing until
+  its observer first reports it on screen, so a portrait below the fold or
+  under a phone's `TabBar` starts its intro as it comes into view. It used to
+  draw two frames at mount wherever it sat, and the first started the
+  intro's clock: by the time anyone scrolled to it, the intro was over.
+  check-tabbar counts its frames from mount, none under the bar, and wants
+  the intro above it after 2.5 s there.
+
+- A `Button` is told from its ground by its fill or its edge at 3:1, at rest
+  and on hover, on the page, in every band and in every Card tone.
+  - **Visible change on the ink band:** `primary` is now the brand look,
+    orange with ink words (6.56:1 on the band, 8.12:1 for the words on its
+    hover). This is chat's ink-hero CTA. No deep orange under white words
+    holds 3:1 on the dark ink band: it was 2.79:1, and 2.56 on its Card.
+  - **Visible change in dark mode, on every site:** a primary Button's hover,
+    and `SiteHeader`'s CTA's, now lightens to `#cc4a0e` instead of darkening.
+    The darker hover was 2.67:1 on the night page.
+  - **Visible change on the orange band:** `primary` is ink with orange words
+    (6.56:1). The deep orange was 1.85:1 there.
+  - **Visible change in the footer band:** `primary` is white with
+    deep-orange words (5.18:1), as the footer's status fills are. The deep
+    orange was the footer itself.
+  - `secondary` takes the field's edge, `--input`, on every ground. The ink
+    at 45% was 2.87:1 on paper and 2.36:1 on orange. On paper the new edge
+    reads the same grey.
+  - The primary hover has its own token, `--oca-cta-hover` (palette
+    `ctaHover`), which each band re-points. In dark mode it is `#cc4a0e`
+    (4.23:1 on night, white words 4.61:1). On the burnt band, in both modes,
+    it takes `--oca-primary-lift`, the same lighter orange; the darker hover
+    was 2.42:1 there. On paper it stays `#9a3412`.
+- `variant="brand"` is for dark grounds and tiles only: the ink and burnt
+  bands and Cards, and the dark page. On paper it was 2.34:1, and on orange
+  1.00. **Migrate**: a CTA on paper is `primary`. check-contrast fails on a
+  brand `Button` drawn outside an ink or burnt ground, in a component, a
+  block or a story. It reads the variant through the type checker, so a
+  const, a conditional, a spread or a forwarded prop counts, and a variant it
+  cannot pin to literals counts as brand. A ground counts only when it is
+  written out: the `dark` class, not a `dark:` variant.
+
+- `ParticlePortrait` sets `data-phase="formed"` in its last frame, as its
+  loop goes to sleep, so a page that waits for it sees no frame after.
+  It used to read formed as soon as the dots gathered, at 1.9 s of play,
+  and then drew the wave for 2.45 s more: 147 frames after formed in Chrome
+  on SwiftShader. Under reduced motion it reads formed after its one still
+  frame, not before it. A replay reads `forming` until the portrait sleeps
+  again; the pointer lens wakes the loop without changing the phase. The
+  notes still come in once the dots gather, now on a `data-notes`
+  attribute. **Migrate**: a site that showed something with the notes on
+  `[data-phase='formed']` keys it on `[data-notes]`.
+
+- On a phone, nothing under the app shell's `TabBar` counts as on screen. The
+  bar covers the bottom of the window, and the package's on-screen tests and
+  IntersectionObservers used the whole window. So vote's share, 56px of
+  `ParticleText` at 807 in an 844 window, formed in place under the bar from
+  787, out of sight.
+  - The `TabBar` publishes its height, measured from its own box with the safe
+    area in it, as `--oca-tabbar-h` on the root. It is `0px` from md, where the
+    bar is hidden, and gone when the bar is. With two mounted at once (a shell
+    in a shell, or a route change), the one left keeps it when the other
+    goes. Nothing else measures it.
+  - `ParticleText`, `StepPath`, `Reveal`, `Ticker`, `useInView`, `Wipe`,
+    `Marquee`, `HalftoneCanvas`, the motion scheduler, `useActiveHeading` and
+    the blocks' on-screen hook (`SignInDemo`, `CostDemo`) test against the
+    window less the bar. Their observers' bottom margins leave it out, and
+    are remade when the bar comes, goes or changes height. With no bar,
+    nothing changes.
+  - `ParticleText` says what it decided in `data-form`: `place` (formed where
+    it stood), `wait` (scattered until a third of it is seen), then `gather`.
+  - Focus is kept clear of the bar (WCAG 2.4.11). Below md, on a page that
+    has a bar, the root's `scroll-padding-bottom` is the bar's height and
+    0.75rem. Before any script runs, and without script, it is the bar's own
+    size, so the server's page is clear of it too. A page with no bar gets
+    none. The shells' room under their content is the bar's published height
+    too. It was 3.5rem, 1px short of the bar and its border.
+
+- `HERO_ACTIONS` is exported from `./components`: the row PageHero,
+  DocHeader, ErrorPage and Closing draw their CTA pair in. On a phone it is a
+  column, each action at full width, in DOM order. From sm it is a row at the
+  actions' own widths. check-render fails if one of those blocks draws a row
+  of its own. **Migrate**: a site that copied the row swaps its copy for the
+  import, as in `cn('mt-8', HERO_ACTIONS)`. ochk.app's `CTA_ROW` is one.
+- No glow scrolls the page sideways. A framed `Section`, and so `PageHero`,
+  clipped 4px past its edge on both axes, a focus ring's reach. A glow at the
+  frame's edge then widened a page as wide as the frame by those 4px: a hero
+  with a glowing `BrowserFrame` (chat's and vault's) scrolled 3px sideways
+  from 768 to 1280, and `IsoCheck`'s tilt glow did at 320 (ochk.io /about).
+  The section's `Frame` now clips sideways at its own edge, so a glow is cut
+  there and the mark stays whole. The 4px reach still works on the block axis,
+  so a control flush with a section's foot keeps its ring. **Migrate**: drop
+  the `[overflow-clip-margin:0px]` that chat and vault put on `PageHero`
+  (their `TODO(app-design)`). A site's own element that reaches sideways past
+  a framed section's edge is now cut at that edge, so check for one when you
+  move to 2.0.1.
+- `Prose` breaks a word that is wider than its line, so a long hostname or URL
+  wraps instead of scrolling the page. `LegalDocument` sets its text in
+  `Prose`. On ochk.io, /privacy and /terms scroll 30px sideways at 320 today,
+  on 1.x.
+- More targets reach 44px to a thumb. A mouse still gets the size each one is
+  drawn at:
+  - `ProtocolNav`'s names are at least 44 wide, as an underline tab's are.
+    "lock" was 29.
+  - `SearchButton` is 44 square on a phone and 44 tall from md. It was 40.
+  - `DocsShell`'s sections button, in the bar above a phone's page, is 44
+    tall. It was 40.
+  - On a phone, "On this page" in `DocLayout` reaches 44 by a pseudo-element.
+    It was 23 tall, and its box keeps that size.
+  - A folded `CodeBlock`'s "Show all" is 44 tall. It was 34.
+  - A `Sheet`'s and a `Dialog`'s Close is 44 square, a site's phone menu
+    included. It was 36.
+- Anything that scrolls sideways in a `ScrollFade` is a tab stop, and it is now
+  a region with a name. `ScrollFade` takes a `label`, and without one it takes
+  the text of the nearest heading before it, without the heading's own `#`
+  anchor. Each user names its own:
+  - a `CodeBlock`: its caption, or its language when the caption is not text;
+  - a `CodeTabs` panel: its tab's label, and its row of tabs "Versions";
+  - `ApiTable` and `Diagram`: their caption;
+  - an `MdxTable`: the heading above it;
+  - `TabsList`: its `aria-label`, or "Tabs";
+  - `ProtocolNav`: "Protocols".
+
+  **Migrate**: a site that named the region itself can drop that code
+  (ochk.io's `SignedMessage`, its `TODO(app-design)`).
+- On a phone, at 320 and 390, every target the package draws is 44px to a
+  thumb, and a census proves it. Tablet widths with a touch screen (768 to
+  1180) are not measured yet; they come in 2.0.2. check-layout renders every
+  story on a touch screen at both widths, about 550 targets. It opens each
+  closed trigger in turn (popover, menu, select, dialog, sheet, collapsed
+  control and closed details) and reads what appears, about 360 more targets.
+  The dialog that `SearchDialog` holds open gets a page of its own. It taps
+  each target 21.5px out from its centre in every direction.
+
+  A link is exempt only when its own line holds other text, as WCAG 2.5.8
+  exempts a link in a sentence. Planted cases must fail: a card title alone
+  in its heading, a 13x13 checkbox in a list item, a 20x20 icon button in a
+  list item. A link in a sentence must pass.
+
+  On 53e2b87d the census found 113 targets under 44 at 390, plus one in the
+  dialog. Behind its triggers it found 27 more, and at 320 others again.
+  Each is now 44 to a coarse pointer, and a mouse sees the same boxes in
+  every story:
+  - `SourceNote`'s "Source" (74x28), the source link in its popover (107x17)
+    and `Button variant="link"` (23 tall) reach 44 by a pseudo-element.
+  - Behind a trigger: `DocLayout`'s and `DocsShell`'s "On this page" links
+    (31 tall), `DocsShell`'s menu section buttons (36) and `SelectItem` (40)
+    are 44 tall.
+  - At 320: `SiteHeader`'s home link is at least 44 wide, where it was 37 to
+    41. Stacked wallet buttons and `DropZone`'s two buttons leave room
+    between their rows.
+  - An `IsoCheck` given `max-w-full` scales its mark. It used to shrink its
+    box and let the mark spill, and a closing band at 320 cut it.
+  - `RadioGroupItem` takes `Checkbox`'s 44px hit area, its label row counting
+    as `Checkbox`'s does, and its rows space out so that two never meet. It
+    was 20x20.
+  - A `SiteBanner`'s action link (25 tall), `FactBlock`'s source links (30),
+    `ApiTable`'s "Defined in" links (25), the spec note's link (26) and a docs
+    heading's `#` anchor (19x23) reach 44.
+  - The connect-a-wallet buttons are 44 tall (`--oc-wallet-min-height`). They
+    were 37.
+  - `SearchDialog`'s Close reaches 44. It was 50x32.
+  - Rows whose 44px areas reached each other now leave room under a coarse
+    pointer: `ListRow`'s trailing actions, `CompareActions`, wrapped pill tabs,
+    and a `FactBlock`'s wrapped links.
+  - Where a box covered a target's edge, the target wins it. That was the
+    footer's copyright line over the legal row, the hero below
+    `ProtocolNav`'s links, and `IsoCheck`'s glow over a closing band's button.
+    The glow covered that button to a mouse too, so it now takes no pointer
+    events.
+  - `LegalDocument`'s callouts set their text in a paragraph, so a link in
+    them counts as part of a sentence.
+
+  Not counted: the sign-in button stories, since that button is
+  `@orangecheck/me-client`'s.
+- Swagger UI's controls and its own buttons (`.btn`: Try it out, Execute,
+  Cancel, Hide) are 44px to a thumb on any touch screen, a tablet included. It
+  used to apply below 48rem only, and never to `.btn`: attest's Hide was 80x30.
+  check-swagger reads the `pointer: coarse` rule, and on 53e2b87d it fails all
+  six.
+- The gates measure sideways scroll against the page's `clientWidth`. A phone
+  page (`isMobile`) widens its layout viewport to its content, so the window's
+  inner width grew with the overflow and the old measure read 0. A 400px child
+  at 320 reads 0 by the window and 80 by `clientWidth`. check-layout fails if
+  any gate script measures against the window again (9 did, in check-layout,
+  check-blocks and check-focus). With the right measure, the head shows no
+  overflow that the old one hid.
+- check-layout checks all of this:
+  - No page scrolls sideways at 320, 390, 768, 900, 1024, 1200, 1280 or
+    1440. It loads each glow shape in a `PageFrame` and bare, and a legal page
+    with a long hostname.
+  - At 320, IsoCheck's mark stays inside the edge where its section clips.
+  - Each target is hit from 21.5px out in every direction at 390 touch, and
+    keeps its drawn size to a mouse.
+  - Every ScrollFade user that scrolls, in a box too narrow for it, is a
+    named region, by the name it should have. On 53e2b87d seven of the eight
+    had none.
+
+  On main's build it found 39 failures. The two Close checks came later, and
+  fail when the fix is taken out.
+
+- `BlockHeight`'s link is a 44px target to a thumb, centred on the number by a
+  pseudo-element, as a `HashChip`'s is. It was the line of text, 27px tall at
+  18px. To a mouse it keeps the box it draws, and the line keeps its height.
+  Heights in a feed of cards, and two in one line, do not reach each other.
+  **Migrate**: a site that gave a height its own hit area can drop it (globe's
+  blocks feed adds `HIT`).
+
+## [2.0.0] — 2026-11-04
 
 Design iteration 2: one family system that looks like a specification
 drawing. Warm paper, ink text, light display type, mono labels with square
@@ -11,10 +225,186 @@ adopts it whole, in its own PR. It is a major, so Renovate does not merge it
 on its own.
 
 **What a site must change: nothing beyond the version, except as noted
-below.** Every export keeps its name and its props, and the new props are
-optional. What changes is how things look.
+below.** Every export, prop and entry of 1.29.3 keeps its name, and the new
+props are optional. What changes is how things look and a few defaults.
 
-### Follow-up (design2-foundation-2)
+It landed in these units on oc-packages main:
+
+- the foundation (`b1efeaa7`): tokens, shape, type, primitives, components
+  and chrome;
+- the foundation follow-up (`eb6f8fe5`): targets by pointer, bands that hold
+  their contrast, square by default, the S10 hero;
+- `./motion` (`ed542302`): the dot scenes on one loop that sleeps;
+- `./og` and `./art/*` (`ec9df56b`, `e9a18ba3`, `f15962a3`): social cards and
+  bento tiles with the baked dither art;
+- `./blocks` (`f642df4f`): the prototype's product blocks, and its
+  follow-up (`5553c70a`);
+- the chrome follow-up (`0ccbacd0`, `4bf8b67a`): one lockup in all chrome,
+  and `THEME_COLOR`;
+- the hero entrance (`1c3fba2e`, `26c0a79b`, `ad1669bd`, `c82db4ff`): the
+  hero's title and lead readable at first paint, and its actions on a phone;
+- the tokens follow-up (`f4cfba94`): every band holds its contrast, every
+  state shows a 3:1 edge, and targets are 44px in both axes to a thumb;
+- the framed column (`f175c80a`): `PageFrame`, one left axis, each section a
+  closed box, and a `SectionBar` that spans its box;
+- `Closing`'s actions (`98d9b60f`): full width on a phone, as the hero's;
+- the targets follow-up (`aaa6ca6f`): the underline tabs, `SignInFrame`'s
+  header and `AppShell`'s sidebar and rail at 44px to a thumb.
+
+### Migrating from 1.x
+
+Nothing in 1.29.3's surface is removed or renamed: no entry, no export, no
+component prop. `scripts/check-surface.mjs` compares the built surface with
+1.29.3's (`scripts/surface-1.29.3.json`) and fails the build when one is gone
+without a line here, or when a new entry or export is not named in this
+section. `scripts/check-surface-1.29.3.mjs`, a step of its own in CI, fetches
+npm's 1.29.3 tarball, checks it against its pinned integrity, and fails if the
+snapshot is not exactly its surface. It also fails if any component prop lost
+a string option or became required since 1.29.3. Each line below is before →
+after, starting with what to grep for.
+
+- **The version.** `"@orangecheck/app-design": "^1.…"` → `"^2.0.0"`. A site
+  that renders site-kit's `./og` or `./document` moves `@orangecheck/site-kit`
+  to `^0.8.0`, which needs app-design 2; a site on app-design 1.x stays on
+  site-kit 0.7.x.
+- **Token values, same names.** No custom property is renamed or removed;
+  their values move to paper and ink:
+  - `--background` `#fafafa` → `#eeeae6` (dark `#0a0a0a` → `#0e0c0b`);
+  - `--foreground` `#0a0a0a` → `#161412` (dark `#fafafa` → `#eeeae6`);
+  - `--card` `#ffffff` → `#f5f2ef`;
+  - `--primary` was ink `#0a0a0a` with white text in light, and paper
+    `#fafafa` with `#0a0a0a` text in dark → deep orange `#c2410c` with white
+    text in both. Every `variant="primary"` `Button`, `bg-primary` and
+    `text-primary` turns orange: grep them and keep only the page's CTA on
+    primary; a quiet action takes `variant="secondary"`;
+  - `--brand` and `--oca-orange` `#f66d36` → `#f97316`;
+    `--oca-orange-deep` `#ea580b` → `#c2410c`;
+  - `--radius` `1rem` → `0`.
+- **Hard-coded hex.** Grep `#fafafa`, `#0a0a0a`, `#f66d36`, `#ea580b`,
+  `#ffffff` in a site's own CSS and TSX → read `appColors.light`,
+  `appColors.dark` or `appColors.brand` from `@orangecheck/app-design/tokens`.
+- **theme-color.** `<meta name="theme-color" … content="#fafafa">` and
+  `#0a0a0a` in `_document` → `<ThemeColorMeta />` from
+  `@orangecheck/site-kit/document` (0.8.0), or `THEME_COLOR.light` and
+  `THEME_COLOR.dark` from `@orangecheck/app-design/tokens`.
+- **Radius.** `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl` and
+  `rounded-2xl` to `rounded-4xl` scale with `--radius`, so they are now
+  square with no edit. A site's own `rounded-full` pill or `rounded-[…]` on
+  chrome, a card or a control → square (`rounded-none`). A depiction (a mock
+  screen, a product shot) → `rounded-depict` (12px). A social or OG tile →
+  `rounded-tile` (24px). Dots, avatars and radios stay `rounded-full`.
+- **Dark and orange grounds.** A hand-built panel
+  `bg-oca-ink text-oca-ink-foreground` → `oca-band-ink`, or `oca-on-ink` beside
+  your own ground, so a `MonoLabel`, a muted line, a card or a `Button` on it
+  reads in its colours. The same goes for `oca-band-burnt`/`oca-on-burnt`,
+  `oca-band-brand`/`oca-on-brand` and `oca-band-footer`/`oca-on-footer`.
+  `Card tone="ink"`, `"burnt"` and `"brand"` do this themselves, so overrides
+  like `[&_.text-muted-foreground]:…` on them can go.
+- **Fills and colours in bands.** A muted fill raised a step by hand in dark
+  (chat's `bg-muted dark:bg-accent`) → `bg-muted`: dark `--muted` is now that
+  colour. Orange text, a status colour or `--background` re-pointed by hand
+  inside a band → drop it: the band re-points them.
+- **The lockup.** A site's own `<Lockup />` (the default `variant`, the square
+  app icon) in its chrome → `<Lockup variant="flat" />`, the swoosh and the
+  wordmark. `AppIcon` is for the favicon, the app icon and the OG mark only.
+  `SiteHeader`, `SiteFooter`, `SignInFrame`, `ToolShell` and `AppShell` draw
+  the flat lockup themselves, the product word after its hairline;
+  `ProductLockup` is internal.
+- **SiteHeader's CTA and sign-in.** A CTA `Button` or a "Sign in" link passed
+  in `actions` → the `cta` and `signIn` props. Below 480px the CTA moves into
+  the menu, and below 420px a product word replaces the wordmark. `DocsShell`
+  takes the same `signIn` and `cta`.
+- **Targets by pointer.** A site's own `max-md:h-11`, `md:min-h-6` or
+  `sm:min-h-6` for a thumb's 44px → `pointer-coarse:` (`pointer-coarse:h-11`,
+  or `HIT_32` and `HIT_LINK`'s pattern). A tablet is a touch screen too.
+- **Faq.** `<Faq …>` keeps working but defaults to `variant="rule"`, hairline
+  rows → `variant="card"` to keep the framed panel.
+- **Eyebrows.** `Eyebrow` and `oca-eyebrow` now draw the mono label with its
+  ember square; nothing to edit. New work → `MonoLabel`.
+- **PageHero.** `size="xl"` is the home page's H1 and content pages take
+  `"lg"`. New optional `ground`, `rule` and `layout="s10"`: a hand-built S10
+  (child selectors over PageHero's markup, as ochk.app's legal pages had) →
+  `layout="s10"`. PageHero and `Closing` sit on the `Frame`. `rule` now
+  defaults to true; pass `rule={false}` for a hero without its closing
+  hairline. A local `overflow-y-clip` on a hero (chat's `TODO(app-design)`)
+  can go.
+- **The CTA pair.** A full-width class on `PageHero`'s or `Closing`'s buttons
+  (chat's `max-sm:w-full`, on its hero and its closing) → drop it: both stack
+  their actions full width on a phone themselves. A pair moved into
+  PageHero's children so that it could stack (vault's hero stopgap) → back
+  to `actions`.
+- **The page frame.** A site that composes `SiteHeader`, its `main` and
+  `SiteFooter` by hand → `<PageFrame>` around the `main`, with the header
+  above it and the footer below. That is ochk.io (oc-www), ochk.app's public
+  pages (oc-app-web), chat, vault, cosign, globe and btc, and oc-docs' 404
+  and 500: `DocsFrame`'s `bare` branch builds `SiteHeader`, its `main` and
+  `OchkIoFooter` by hand. No package shell renders `PageFrame` but
+  `DocsShell`, so the docs pages that render it need no wrap, and the tool
+  sites on `ToolShell` (lock, vote, stamp, pledge, agent, attest) need none
+  either. `ToolShell` and `AppShell` keep their own frames (a tool's
+  column, an app's sidebar). Pages that render `DocsShell` or `AppShell` stay
+  outside a layout's `PageFrame`, since both draw their own frame. A
+  `PageFrame` nested in another draws no second rule, but it is still one
+  column too many.
+- **A site's own container.** A `max-w-[75rem]` or `max-w-6xl` with its own
+  `px-*` gutter → `oca-container`, or `Frame` for a framed block, so its
+  content joins the axis. Until it moves, a `SectionBar` in it puts its label
+  a gutter inside that container's padding (41.5px at 390, 25 plus the 16.5
+  gutter, against the axis at 17.5).
+  Inside a `Section`, drop it: the Section gives one, and a nested
+  `oca-container` adds no second gutter (it had put content at 153.9 against
+  107.5 at 1440). A framed block is `<Section framed>`, not a `Frame` inside
+  a Section.
+- **SectionBar.** No edit in the package's own parents: it sizes itself, so
+  there is no `GUTTER` className to drop or keep (one that is there sets the
+  same padding). A box a site builds itself from a border and padding, like
+  ochk.app how's receipt → a `Card`, or `--oca-bar-bleed` and
+  `--oca-bar-inset` set to its padding, so the bar spans it.
+- **Section.** New optional `framed` (the content on the `Frame`, its
+  hairlines meeting the next section's), `frameClassName`, `rule`, and tone
+  `burnt`.
+- **StatRow.** A site's own `[&_dd]:text-[clamp(…)]` for long values →
+  `size="sm"`.
+- **Compact density.** Under a tool's `density="compact"` a `Button` with no
+  `size` is `sm`; pass `size` to keep another.
+- **Test DOMs.** `matchMedia`, `IntersectionObserver` and `ResizeObserver`
+  stubs written for `Reveal`, the halftone or docs' width reader can go: they
+  run without them.
+- **The sign-in and wallet radii.** `--oc-signin-radius`,
+  `--oc-signin-button-radius`, `--oc-wallet-radius` and
+  `--oc-wallet-button-radius` are `0`; a site that set its own keeps it.
+
+### New entries
+
+- `./motion`: the dot scenes, on one loop that sleeps (`schedule`), each
+  still before its canvas starts and still under reduced motion. Nothing
+  here is reachable from `.` or `./components`.
+  - `ParticlePortrait`: a person made of dots, with callouts at
+    `PORTRAIT_ANCHORS`. Points come from `bustPoints` (the default) or
+    `deckPortraitPoints`, or your own via `fetchPoints`, `decodePoints` or
+    `unpackPoints`.
+  - `ParticleText`: a short word or numeral drawn in dots, real text
+    underneath.
+  - `MiniCheck`: a success moment, dots that settle into the check once.
+  - `CrowdDissolve`: the crowd that dissolves as a `ScrollStory` plays.
+  - `StorySwap`, two states of a headline in one place, and `watchStory`,
+    the story's progress for your own scene.
+  - `StackCards`, numbered cards that stack as you scroll; `Marquee`, a line
+    that runs sideways and pauses on request; `DitherImage`, a dithered
+    picture that comes alive under a fine pointer; `Wipe`, `Reveal`'s
+    clip-path sibling.
+  - `Reveal`, `ScrollStory` and `Ticker` are re-exported here, so a page
+    imports its motion from one place.
+- `./og`: `OgCard` takes `art` and the tones `burnt` and `brand`. `OgBento`
+  lays tiles on the social sheet (`ogBentoGrid` is its grid in whole pixels;
+  `SOCIAL_SIZE` is a social post's size). `ogArt` has the baked art as PNG
+  data URIs for an OG route.
+- `./art/*`: the baked art as files, for pages: the dither mark (plain,
+  `-brand` and `-ink`) at its sizes, and the dither and halftone fields.
+- `./blocks`: the product blocks, under "Blocks" below.
+- `./package.json`: so a site can read the installed version.
+
+### Foundation follow-up
 
 - Reveal, the halftone, the iso check's tilt, docs' width reader and the
   theme's scheme listener run in a test DOM with no `matchMedia`,
@@ -154,7 +544,55 @@ optional. What changes is how things look.
 - `@orangecheck/app-design/package.json` is exported, so a site can read the
   installed version (`require('@orangecheck/app-design/package.json')`).
 
-### Follow-up (design2-chrome-app)
+### One framed column
+
+- The page is one framed column, as the prototype's is. The new `PageFrame`
+  is the page's `main`: 82.5rem at most, with a hairline at each side that
+  runs from the header's foot to the footer's top, at the viewport's edges on
+  a phone. Its sections and bands, dark ones included, sit between the
+  hairlines. `DocsShell` puts its body in one, so its sidebar starts on the
+  header's axis and the rules run beside the sidebar and the page.
+- One left axis: `oca-container` now starts its content where `Frame` does,
+  the rule plus the gutter (tokens.css `--oca-frame-max`, `--oca-frame-gutter`
+  and `--oca-frame-rule`). The header's lockup, a hero's eyebrow and H1, a
+  `SectionBar`'s square, a section's heading and its first card share one x:
+  at 1440 they had been at 108 for the header and hero and 160 for the
+  sections. Reading measures keep their own max-width, and centred
+  compositions stay centred.
+- A section is a closed box. Its closing hairline (`Section rule`, and the
+  hero, whose `rule` now defaults to true) runs from rule to rule, not from
+  edge to edge. A framed `Section` and `PageHero` clip on both axes
+  (`overflow: clip`, so sticky children still stick), so nothing inside
+  paints across them, but for a focus ring: `overflow-clip-margin` keeps
+  `--oca-focus-reach` (4px, ring-2 plus its 2px offset) past the edge, so a
+  control flush with a section's foot keeps its whole ring. `--oca-shadow-depict` reaches 48px below a depiction,
+  inside a hero's foot; it had reached 126px, and smudged the next band in
+  chat's hero. BrowserFrame's glow stays within 3rem of the window.
+- On a phone the legal row's links are 16px apart (20px from md), so the row
+  still fits the narrower column.
+- A `SectionBar`'s rule spans its nearest edged box, as every rule in the
+  frame does: the frame between its side rules (the prototype's title-block
+  label rows span the frame), or a `Card` inside its border. Its label and
+  end sit on that box's axis. It takes back only the gutter its box gives:
+  a container, a padded `Frame` and a `Card` set `--oca-bar-bleed` and
+  `--oca-bar-inset`, while `Frame padded={false}` and `PageFrame` bleed
+  0. So in the package's own parents it is right with no prop, and it never
+  scrolls the page sideways. In a site's own container not yet migrated (a
+  `max-w-6xl px-6`) its label sits a gutter inside that container's padding,
+  41.5px at 390 against the axis at 17.5: "Migrating from 1.x" says how to
+  move it.
+- What a site changes for the frame is under "Migrating from 1.x": the page
+  frame, a site's own container, `SectionBar` and the hero's `rule`.
+- check-layout proves it on built pages at 390 and 1440: one x for the page's
+  left edges, the rules continuous pixel by pixel from the header to the
+  footer, each section's hairline exactly the frame's inner width, DocsShell
+  at 1440 and 1920 on the header's axis with continuous rules, and nothing
+  from a hero with a depiction in the next section's top rows. A 75rem
+  container fails the axis checks (sections at 160 against 107.5; DocsShell's
+  sidebar at 160 and, at 1920, 400 against 349). Framed sections clipped on
+  the x axis only fail the closed-box check.
+
+### One lockup and THEME_COLOR
 
 - One lockup in all chrome: the swoosh and the wordmark, the lockup the site
   header already drew. It is now used in `SiteFooter`, the compact footer,
@@ -173,6 +611,128 @@ optional. What changes is how things look.
   site's `_document` hard-coded `#fafafa` and `#0a0a0a`, 1.x's colours.
   check-mirror holds it to tokens.css.
 
+### Bands, chosen states and targets
+
+- The bands hold every colour a component paints on them, not only their own
+  text. A brand badge on the ink band was 2.14:1, and small orange text on it
+  was 2.51:1, because `oca-on-ink` never re-pointed `--oca-accent-ink`. It now
+  takes the ink eyebrow `#fb923c`, so the badge reads 6.91:1 and orange text
+  8.12:1. Every band and dark or orange Card tone now also re-points:
+  - `--oca-accent-ink`;
+  - the page's own grounds: `--background`, `--popover` and `--oca-table-head`;
+  - `--oca-surface-muted`;
+  - the status colours. On ink and burnt they take the dark theme's set, as
+    the new `--oca-ink-destructive`, `-success`, `-warning`, `-info` and
+    `--oca-ink-status-foreground` (destructive 6.64:1 on ink). On orange and
+    on the deep footer, status takes the band's own text colour, and its word
+    or icon says which status it is.
+
+  The footer's raised ground (`--card`) is a step darker, `--oca-primary-hover`.
+  On the footer itself, a badge's white tint left its white text at 4.10:1.
+- Dark `--muted` is `#26221f` (it was `#1c1916`). It was the same colour as
+  `--oca-surface` and `--popover`, so a muted fill vanished in a drawn window
+  or a popover (1.00:1). It is now 1.11:1 on them, 1.16:1 on `--card` and
+  1.24:1 on `--background`, a step at least as large as light's (1.10:1).
+  Dark `--oca-subtle-foreground` is lifted from `#8a837d` to `#8f8882`, so it
+  keeps 4.5:1 on muted (4.52:1). **Migrating:** a site that drew muted fills
+  a step up in dark by hand (chat's `bg-muted dark:bg-accent`) can drop the
+  `dark:` half, since dark `--muted` is now that colour. A site that
+  re-pointed orange text, a status colour or `--background` inside a band by
+  hand can drop that too.
+- Light `--warning` is `#9e5900` (it was `#a15c07`), so a DataTable cell in
+  caution is 4.52:1 on paper (it was 4.33:1).
+- The dark ink band is `#2c2927` (it was `#1c1916`), its card `#332f2d`, and its
+  line `#3c3836`. It was the same colour as the window, the popover and the
+  table head, so a drawn window in the band vanished. It is now at least
+  1.09:1 from every page ground: 1.09 on `--muted`, 1.21 on `--oca-surface`.
+  The code comment colour moves `#909397` to `#94979b`, to keep 4.5:1 on the
+  lighter card. The band's red is one step lighter (`#fca5a5`), so a danger
+  badge's tint keeps 4.5:1.
+- The segmented `Tabs` (`look="pill"`) draws the chosen segment's ink edge as
+  well as its raised fill. Card on the muted list was 1.18:1, and apart from
+  its text colour that was the only sign of which segment was chosen.
+  check-contrast fails any selected, pressed or current state drawn as a fill
+  under 3:1 with no edge at 3:1.
+- Three more chosen states now carry an edge at 3:1, as the pill tab does:
+  - `AppShell`'s current page in the sidebar (card on the page, 1.07:1, with
+    a 1.28:1 hairline) is ringed in ink;
+  - its section switcher's chosen section (1.18:1 on the muted list) is
+    bordered in ink;
+  - a JSON panel's Formatted / Raw toggle (1.45:1 on the code bar) is ringed
+    in the bar's subtle text.
+
+  Menu and select items already ring their highlight in `--ring`.
+  check-contrast holds that highlighted variant, and check-focus measures
+  the ring on an open menu. check-layout reads every rendered current,
+  selected, pressed or active element, however a script chose it. Its fill
+  must be 3:1 on the ground under it, or an edge must be 3:1 on both the
+  fill and that ground. This covers every page it loads, plus a states page
+  in light and dark. On the build before the fix it failed on all three.
+  Every page check-layout writes is now loaded through the same checks, the
+  hero pages included.
+- No text is under 12px. Inline code is `max(0.875em, 0.75rem)`; in a 13px
+  table head it was 11.375px. The same floor now applies to the base
+  `code`, `kbd` and `samp` size (`0.92em`), to a heading's `#` anchor and to
+  the `sats` unit. At 12px now: `AppShell`'s count badge (was 10px) and tab
+  labels (11px), a `2xs` `Avatar`'s initials (11px), and chart ticks (10px).
+  check-render fails any font size under 12px in the source (8 on main).
+  check-layout fails any text it computes under 12px on its pages at 390 and
+  at 1440. On main that was the table-head code at 11.375px and the rail's
+  labels at 11px.
+- To a thumb, chrome targets are 44px wide as well as 44px tall. A short word
+  in the legal row ("Terms") was 41×44 at 390 on every site using
+  `SiteFooter`. At 1024 touch, the compact footer's protocol links were 27 to
+  37px wide. Now these get `min-w-11` under a coarse pointer, with the label
+  centred, so a mouse sees no change:
+  - the legal and protocol rows;
+  - breadcrumbs;
+  - `FilterChips`;
+  - `SiteHeader`'s nav.
+
+  `DocsShell`'s rail rows were 36px tall to a thumb and are now 44. The legal
+  row's gap is 16px on a phone, so the family footer stays within its 600px.
+  check-layout measures both axes of every header and footer control at 390
+  touch, the inline rows at 1024 touch and the docs rail at 1280 touch. On
+  main it failed on "Terms" at 41.
+- A drawn window or phone is told from its page by an edge at 3:1, not by
+  its fill or a shadow. `BrowserFrame` (both variants) and `PhoneFrame` take
+  `border-input`, the field edge: 3.12:1 on paper and 3.61:1 on night. Before
+  this, a paper window was white on paper (1.20:1) and the default window's
+  hairline was 1.28:1. Every band now re-points `--input`, both a field's edge
+  and a window's: to the band's subtle text on ink, its quiet text on burnt,
+  ink on orange and white on the footer. On the lighter dark ink band the old
+  edge would have been 2.67:1. check-contrast holds every depiction frame in
+  the package against the page, each band and each Card tone (65 failures on
+  main), and each band's `--input` on its ground.
+- check-contrast reads the components. It checks every text and ground named
+  in a component's class strings, a badge's `color-mix` tint included. It
+  checks them on the page, in every band and in every Card tone, in light and
+  in dark. A status dot or other mark drawn as a fill must reach 3:1, and
+  `--muted` must stay apart from every surface it is drawn on. On 2.0.0-pre at
+  f642df4f it found 142 failures.
+
+### More 44px targets
+
+- More targets reach 44px to a thumb, in both axes. A fine pointer still
+  gets them at their drawn size.
+  - The underline tabs (`Tabs look="line"`) take `min-w-11` under a coarse
+    pointer, with the label centred. On btc's desk "DCA" was 32×44 and
+    "Paper" 41×44.
+  - `SignInFrame`'s lockup and "Back to home" reach 44px through a `::before`
+    (the `HIT_LINK` that `TextLink standalone` uses), so the header keeps its
+    height. They were 27 and 23px tall.
+  - `AppShell`'s sidebar lockup gets the same treatment. The sidebar's page
+    rows and section switcher are 44px tall under a coarse pointer, and the
+    rail's icons are 44 square. On a tablet they were 24, 36, 32 and 40.
+  - check-layout loads each shape on a touch screen and asks that every target
+    is hit from 21.5px out in each direction. That is 390 and 1024 for the tabs
+    and the sign-in header, 1024 for the sidebar and 768 for the rail. It also
+    checks that a mouse gets the drawn sizes. On main 15 targets failed: four
+    at both 390 and 1024, all five in the sidebar and both rail icons.
+- The rail's current page is drawn in ink, as the sidebar's row is. It was
+  card on the page with a hairline, at 1.07:1 and 1.28:1. check-layout's state
+  rule found it once the rail page was loaded.
+
 ### Tokens (`tokens.css`, `appColors`)
 
 - Light: paper `#eeeae6` canvas, `#f5f2ef` cards, `#e4e0dc` sunken, ink
@@ -187,7 +747,8 @@ optional. What changes is how things look.
   numerals. Small orange text is `--oca-accent-ink` `#9a3412`.
 - New: `--oca-surface` and `--oca-surface-foreground` for the product
   surface (fields, tables, receipts, mock screens): white in light, `#1c1916`
-  in dark. The bands are new too: `--oca-burnt*` (the dark brown stage),
+  in dark. `--oca-surface-muted` is its secondary text (`#5e5852`, dark
+  `#a39d97`), which a band re-points with the surface. The bands are new too: `--oca-burnt*` (the dark brown stage),
   `--oca-footer*` (the deep footer), and `--oca-burnt-line` and
   `--oca-brand-line`.
 - Status colours are re-tuned for paper: `--destructive` `#b21d26`,
@@ -225,6 +786,8 @@ optional. What changes is how things look.
 
 ### Motion
 
+- The hero title and lead are readable at first paint: they rise without
+  fading, and no entrance blurs.
 - New custom properties: `--oca-ease-out`, `--oca-ease-glide`,
   `--oca-duration-quick/-base/-slow/-reveal` (200/300/500/1000ms),
   `--oca-stagger-centre` (40ms) and `--oca-stagger-list` (60ms). Tailwind
@@ -256,7 +819,14 @@ optional. What changes is how things look.
 - `Faq` defaults to `variant="rule"`. **Migrate**: pass `variant="card"` to
   keep the framed panel.
 - `PageHero` takes `ground`: `paper` (default), `ink` or `brand`.
-- `Section` takes tone `burnt` and `rule` (a full-width hairline under it).
+- On a phone `PageHero`'s actions stack full width, in DOM order; from
+  640px they sit side by side at their own widths. `Closing`'s actions
+  follow the same rule, with the same classes; on a phone they used to wrap
+  at their own widths, 178 and 262 of 357px at 390. A single action goes
+  full width on a phone too, as ochk.app home's closing link does (357 of
+  357px at 390). **Migrate**: drop any full-width class a site put on
+  Closing's buttons (chat's `max-sm:w-full`).
+- `Section` takes tone `burnt` and `rule` (a hairline under it).
   Its `ink`, `burnt` and `brand` bands now re-point `--foreground`,
   `--muted-foreground`, `--oca-subtle-foreground` and `--border`, and
   `burnt` and `brand` also re-point the accent and the ring. Text and
@@ -294,6 +864,79 @@ optional. What changes is how things look.
   and check-contrast holds each band's text and ring on its ground.
 - `AppShell`, `DocsShell`, `ToolShell` and the family menu keep their
   layouts and go square.
+
+### Blocks (`./blocks`, new)
+
+A new entry, so a site that uses none of them pays nothing. Words are
+props; the defaults are neutral placeholders ("Label", "Value") a site
+replaces with its own copy, so a missing prop shows nothing untrue.
+
+- `SignInDemo` (and `signInDemoSteps(copy)`): our sign-in played on a
+  made-up app in a paper `BrowserFrame`: the app's own sign-in with its
+  other ways in, then the email and the code under one step, then "You're
+  in" with what it took. A step holds one or more screens. It plays only
+  while a third of it is on screen in a shown tab, plays through once and
+  rests. The first press, key or focus stops it for good; the step buttons
+  then drive it, and each step is said once. Nothing is said while it
+  plays. "Try again" (a real button, `tryAgain`) plays it from the start;
+  at the end the cursor rests on it, and there is no cursor at all under
+  reduced motion.
+  Under reduced motion it shows the first step with the buttons. `success`
+  is a render prop (a MiniCheck). Every string is in `copy`.
+- `Slider` (also in `./primitives`, so the root entry carries it, and
+  Radix's slider with it, in `index.js` too): Radix's, square, its value in
+  words through `valueText`. The thumb's own box is the 44px target, with
+  the 18px square in its middle; the track and the ticks are inset by half
+  a thumb, so the square, the fill's end and a tick meet at every value.
+- `CostDemo`: two sliders step through the bars an app can set (`amounts`,
+  `dayStops`), in the site's words (`amountText`, `dayText`, and the short
+  ticks `amountTick` and `dayTick`). One total for a crowd of accounts
+  (`cost`, the site's own function), a real person's verdict that follows
+  the bar (`labels.personBody(bar, passes)`; badges "Gets in" and "Under
+  this bar", ruling 11), and a line under the total (`labels.farmBody(bar)`).
+  Once a change settles the total is said, and the verdict with it when the
+  person crossed the bar (`labels.costSaid`, `labels.verdictSaid`). The
+  crowd is one element with one sweep per change, none under reduced
+  motion. `id`, `role` and `aria-label` reach its root. `costText(sats)` is
+  the total's own formatting, exported for a site's copy: BTC once it reaches
+  a hundredth of one, sats below that, as `{ value, unit }`.
+- `ReceiptCard`: `facts` (when, paid to, pricing) above mono rows whose
+  amounts line up on the decimal point; an amount may be any node (a struck
+  original beside the new one). The split is one bar, each share in its
+  percentage or its own `value` ("192 sats"). Secondary text is the new
+  `--oca-surface-muted` token, which no band re-points. `id`, `role` and
+  `aria-label` reach its root.
+- `StepPath`: drawn on view, still under reduced motion, including after
+  hydration (the server's answer is "not still", and the line used to stay
+  hidden). The end labels run inward from their node and every label wraps
+  inside the path's own box, from 320px up.
+- `BentoGrid`, `BentoTile` (paper, white, ink, burnt, brand; a numeral, a
+  halftone in a strip its words keep clear of).
+- `DitherMark`: the baked two-tone dither of the mark (`./art`), the ink top
+  face on a light ground, the peach one on a dark ground, and ink alone on
+  brand orange (`ground`: `light`, `dark`, `brand`, or `theme`, the default,
+  which follows the page). It is
+  PNG only: for 1-bit dither the AVIF is 5 to 12 times the PNG at every
+  size, so an AVIF would only cost bytes. The PNGs are inlined as data URIs,
+  so it needs no asset pipeline: 0.7 KB of HTML at `sm`, 1.8 KB at `md`,
+  2.7 KB at `lg`, 3.4 KB when a class sizes it with `sizes`, and twice that
+  with `ground="theme"`. `size` is 120, 240 or 480px, each drawn from the
+  art's own 1x and 2x; the image keeps its 2:1 box, so nothing shifts as it
+  loads. The widths changed from the placeholder's 96/192/384. Its nine
+  PNGs are 6.0 KB of the ./blocks entry gzipped (check-budget keeps the
+  entry under its ceiling).
+- The window, the receipt and each tile keep their own colours inside a
+  band; the step list, the slider and the path take the band's.
+
+### Data parts
+
+- `SplitBar`, `StatGrid`/`StatCard`, `KeyValueList`, `DataTable` and
+  `CodeBlock` go square. A grid's stat cards become hairline cells with a
+  mono label over a light figure that sizes to its cell. Table headers,
+  phone-card keys and the code caption take the mono label. No prop changes.
+- `BrowserFrame` takes `variant="paper"` (the product surface, the 12px
+  depiction corner, the depiction shadow), `glow` (the orange light behind
+  it) and `url={null}` (no address). The default look is unchanged.
 
 ## [1.29.3] — 2026-10-29
 

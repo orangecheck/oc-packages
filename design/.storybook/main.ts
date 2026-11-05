@@ -20,6 +20,8 @@ const config: StorybookConfig = {
      */
     addons: [],
     framework: { name: '@storybook/react-vite', options: {} },
+    // app-design's self-hosted faces, for the frame around the stories (manager-head.html links fonts.css).
+    staticDirs: [{ from: '../../app-design/src/styles', to: '/oca' }],
     core: { disableTelemetry: true },
     async viteFinal(viteConfig) {
         // Tailwind 4 via the Vite plugin so @theme / @apply / @source resolve.
@@ -27,8 +29,8 @@ const config: StorybookConfig = {
         viteConfig.plugins = viteConfig.plugins ?? [];
         viteConfig.plugins.push(tailwindcss());
 
-        // Stub Next.js client deps so @orangecheck/ui composites render without
-        // a Next runtime/router.
+        // Stub Next.js client deps so both systems' chrome and composites render
+        // without a Next runtime/router.
         viteConfig.resolve = viteConfig.resolve ?? {};
         // app-design resolves its own node_modules; one React, one next-themes.
         viteConfig.resolve.dedupe = ['react', 'react-dom', 'next-themes', 'lucide-react'];

@@ -9,6 +9,47 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.1] — 2026-11-04
+
+### Fixed
+
+- `<OcSignIn>`'s submit buttons ("Send one-time code", "Verify · sign me in"
+  and the wallet steps' buttons) are at least 44px tall, as its tabs and the
+  opt-in row are. The padding round one line drew them 41.7px tall, under a
+  thumb's 44 at every width.
+- Its fields (the email, the one-time code, the Bitcoin address, the
+  message to sign, the pasted signature and the wallet picker) are at least
+  44px tall too, padding and border included. One line drew the email field
+  43.6px tall inside `SignInFrame`. On a host with no border-box reset the
+  fields also stop running 26px past their column.
+
+## [2.42.0] — 2026-11-04
+
+### Changed
+
+- The opt-in under `<OcSignIn>` ("After signing in, also link…") is drawn as
+  app-design 2.0's checkbox, not the browser's. It is a 20px square with a
+  hairline in `--input`, filled with `--primary` and showing a check mark in
+  `--primary-foreground` when checked. Before, it was the platform's 13px
+  native checkbox, rounded and tinted by `accent-color`. It is still a real
+  `<input type="checkbox">` inside its label, so the whole 44px row checks it
+  and the props are unchanged. A site that styled
+  `[data-oc-signin-linkalso] input` should check how it now looks.
+  - Under forced colors (Windows high contrast) a checked box is drawn as a
+    native one is: a `Highlight` fill and border with the mark in
+    `HighlightText`, and an unchecked box has a `CanvasText` border. Without
+    this the fill turned to `Canvas` while the mark kept its own white, so a
+    checked box looked empty. A small `<style>` beside the box carries the
+    rule, because inline styles cannot say forced-colors.
+- `<OcBond>`'s coin chooser uses the matching design radio. It is 20px and
+  round, as app-design's radio is, since a square radio reads as a checkbox,
+  with a `--primary` dot on the chosen coin. Before, it was the platform's
+  radio tinted by `accent-color`. Each
+  coin's row is a 44px target at least. It is still a real
+  `<input type="radio">` in one group, so arrow keys and the form behave as
+  before. Under forced colors a chosen radio's border and dot are drawn in
+  `Highlight`.
+
 ### Fixed
 
 - `<OcAccountChip>`'s default `dashboardUrl` is `https://ochk.app/me/account`,

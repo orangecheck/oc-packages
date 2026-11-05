@@ -15,6 +15,7 @@ import {
 
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
+import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { InTableContext } from '../lib/in-table';
 import { Badge } from '../primitives/badge';
 import { ScrollFade } from '../primitives/scroll-fade';
@@ -66,7 +67,7 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                         return (
                             <li key={i} className={cn('flex items-center gap-1.5', last ? 'min-w-0' : 'shrink-0')}>
                                 {c.href && !last ? (
-                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center transition-colors hover:text-foreground pointer-coarse:min-h-11">
+                                    <DocLink href={c.href} className="inline-flex min-h-6 items-center justify-center transition-colors hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11">
                                         {c.label}
                                     </DocLink>
                                 ) : (
@@ -191,7 +192,8 @@ export function OnThisPage({
                                 onClick={onNavigate}
                                 aria-current={on ? 'location' : undefined}
                                 className={cn(
-                                    'block border-l py-1.5 text-[0.875rem] leading-snug transition-colors',
+                                    // 31px to a mouse; 44 to a thumb, the label centred in it.
+                                    'block border-l py-1.5 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
                                     t.level === 3 ? 'pl-7' : 'pl-4',
                                     on ? 'border-foreground text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
                                 )}
@@ -398,7 +400,7 @@ export function ApiTable({
     const cell = 'px-4 py-3 max-sm:p-0';
     return (
         <div className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card', className)}>
-            <ScrollFade fade="var(--card)">
+            <ScrollFade fade="var(--card)" label={caption}>
                 <table className="w-full border-collapse text-left text-[0.875rem] max-sm:block">
                     {caption ? <caption className="sr-only">{caption}</caption> : null}
                     <thead className="max-sm:sr-only">
@@ -442,7 +444,7 @@ export function ApiTable({
                                     </td>
                                 ) : null}
                                 {hasSource ? (
-                                    <td className={cn(cell, 'text-[0.8125rem] text-muted-foreground max-sm:order-last max-sm:break-all', !said(r.source) && 'max-sm:hidden')}>
+                                    <td className={cn(cell, 'text-[0.8125rem] text-muted-foreground max-sm:order-last max-sm:break-all', HIT_LINKS, !said(r.source) && 'max-sm:hidden')}>
                                         {r.source}
                                     </td>
                                 ) : null}
@@ -720,7 +722,7 @@ export function Diagram({
             className={cn('not-prose my-6 overflow-hidden rounded-none border border-border bg-card [container-type:inline-size]', className)}
         >
             {drawn ? (
-                <ScrollFade fade="var(--card)">
+                <ScrollFade fade="var(--card)" label={typeof caption === 'string' ? caption : undefined}>
                     <div
                         data-fit={fits ? '' : undefined}
                         className={cn(
@@ -770,8 +772,11 @@ export function DocsHeading({
             {id && Tag !== 'h1' ? (
                 <a
                     href={`#${id}`}
-                    // A 24px target drawn around it (before:), so the heading's line does not grow.
-                    className="relative ml-2 inline-block rounded-none px-1 align-baseline text-[0.85em] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                    // A 24px target drawn around it (before:), 44px to a thumb, so the heading's line does not grow.
+                    className={cn(
+                        "relative ml-2 inline-block rounded-none px-1 align-baseline text-[max(0.85em,0.75rem)] font-normal text-oca-subtle no-underline opacity-0 transition-opacity before:absolute before:inset-x-0 before:top-1/2 before:h-6 before:-translate-y-1/2 before:content-[''] hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100",
+                        HIT_LINK
+                    )}
                 >
                     <span aria-hidden>#</span>
                     <span className="sr-only">Link to this section</span>

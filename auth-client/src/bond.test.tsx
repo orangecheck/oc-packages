@@ -151,6 +151,32 @@ describe('OcBond', () => {
         expect(input.value).toBe('bc1qholder0holder0holder');
     });
 
+    it('picks a coin with the design radio: a round 20px box, a dot on the chosen coin that moves with the choice', async () => {
+        const second = { ...COIN, outpoint: 'cd'.repeat(32) + ':0', sats: 200_000 };
+        coins = [COIN, second];
+        render(<OcBond authOrigin="https://ochk.io" />);
+        await toCoins();
+        await screen.findByText(/200,000 sats/);
+        const radios = screen.getAllByRole('radio') as HTMLInputElement[];
+        expect(radios).toHaveLength(2);
+        for (const r of radios) {
+            expect(r.style.width).toBe('20px');
+            expect(r.style.height).toBe('20px');
+            // Round by meaning: a square radio reads as a checkbox.
+            expect(r.style.borderRadius).toBe('50%');
+        }
+        const dotIn = (r: HTMLInputElement) => r.closest('label')!.querySelector('svg[data-oc-dot]');
+        expect(radios[0]!.checked).toBe(true);
+        expect(dotIn(radios[0]!)).not.toBeNull();
+        expect(dotIn(radios[1]!)).toBeNull();
+        fireEvent.click(screen.getByText(/200,000 sats/));
+        expect(radios[1]!.checked).toBe(true);
+        expect(dotIn(radios[1]!)).not.toBeNull();
+        expect(dotIn(radios[0]!)).toBeNull();
+        // The whole row is the target: 44px at least.
+        expect(radios[1]!.closest('label')!.style.minHeight).toBe('44px');
+    });
+
     it('says why a coin was refused', async () => {
         answer = (c) =>
             c.body?.action === 'bond'

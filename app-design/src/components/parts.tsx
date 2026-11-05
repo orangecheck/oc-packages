@@ -190,7 +190,8 @@ export function ListRow({
         lines === 'all' ? 'items-start' : 'items-center',
         !split && 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         lg ? 'py-5' : look.box,
-        lg ? null : variant === 'pane' ? 'py-2' : tight ? 'py-3' : 'py-4',
+        // A pane row's title stretches its target over the row: to a thumb it sits 21.5px or more from the row's top edge.
+        lg ? null : variant === 'pane' ? 'py-2 pointer-coarse:py-3' : tight ? 'py-3' : 'py-4',
         interactive && !current && look.hover,
         current && look.current
     );
@@ -278,7 +279,8 @@ export function ListRow({
                 {trailing ? (
                     <span
                     className={cn(
-                        'flex shrink-0 items-center gap-2',
+                        // Two 32px icon buttons' 44px targets meet, not overlap, to a thumb.
+                        'flex shrink-0 items-center gap-2 pointer-coarse:gap-3.5',
                         lines === 'all' && 'min-h-[1.40625rem]',
                         lines === 'all' && eyebrow && 'mt-[1.34375rem]',
                         // Stacked under the title it needs no lift to meet the title's line.

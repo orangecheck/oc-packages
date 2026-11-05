@@ -1,13 +1,15 @@
 import { ChevronRight, Ellipsis, Menu, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme, type ThemeProviderProps as NextThemeProviderProps } from 'next-themes';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ProductLockup } from './product-lockup';
 import type { FamilySlug } from '../family';
 import { cn } from '../lib/cn';
 import { InColumnContext } from '../lib/column';
+import { HIT_LINK } from '../lib/hit';
 import { ShellContext } from '../lib/shell-context';
+import { publishBottomInset } from '../lib/viewport';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -72,10 +74,12 @@ export function SideNav({ groups, onNavigate }: { groups: ShellNavGroup[]; onNav
                             onClick={onNavigate}
                             aria-current={it.active ? 'page' : undefined}
                             className={cn(
-                                'flex h-9 items-center gap-3 rounded-none px-3 text-[0.9375rem] transition-colors',
+                                // 36px to a mouse, 44 to a thumb: the rows sit 2px apart, too close for a target past the row.
+                                'flex h-9 items-center gap-3 rounded-none px-3 text-[0.9375rem] transition-colors pointer-coarse:h-11',
                                 '[&_svg]:size-[1.0625rem] [&_svg]:shrink-0',
+                                // The current page is drawn in ink as well as raised: card on the page was 1.07:1, its hairline 1.3.
                                 it.active
-                                    ? 'bg-card text-foreground shadow-sm ring-1 ring-border [&_svg]:text-foreground'
+                                    ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground [&_svg]:text-foreground'
                                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                             )}
                         >
@@ -117,8 +121,9 @@ function SectionSwitch({
                         onClick={onNavigate}
                         aria-current={on ? 'true' : undefined}
                         className={cn(
-                            'flex h-8 min-w-0 items-center justify-center rounded-none px-1.5 text-[0.8125rem] font-medium transition-colors',
-                            on ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                            'flex h-8 min-w-0 items-center justify-center rounded-none border border-transparent px-1.5 text-[0.8125rem] font-medium transition-colors pointer-coarse:h-11',
+                            // The chosen section is edged in ink, as a pill tab's is: card on the muted list was 1.18:1.
+                            on ? 'border-foreground bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                         )}
                     >
                         <span className="truncate">{sec.label}</span>
@@ -136,7 +141,7 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
             <span
                 aria-hidden
                 className={cn(
-                    'absolute flex h-4 min-w-4 items-center justify-center rounded-none bg-primary px-1 text-[0.625rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
+                    'absolute flex h-4 min-w-4 items-center justify-center rounded-none bg-primary px-1 text-[0.75rem] font-medium leading-none text-primary-foreground ring-2 ring-background oca-tabular',
                     className
                 )}
             >
@@ -149,7 +154,7 @@ function NavBadge({ badge, className }: { badge: ReactNode; className: string })
 }
 
 const TAB =
-    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-none text-[0.6875rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+    'flex min-w-0 flex-col items-center justify-center gap-1 rounded-none text-[0.75rem] leading-none outline-none transition-colors [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
 
 function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: string; badge?: ReactNode; active?: boolean }) {
     return (
@@ -176,12 +181,16 @@ function TabFace({ icon, label, badge, active }: { icon: ReactNode; label: strin
  */
 export function TabBar({ items }: { items: ShellNavItem[] }) {
     const [more, setMore] = useState(false);
+    // Its height, for everything that asks what is on screen: before their effects run, so none counts the strip under it.
+    const ref = useRef<HTMLElement>(null);
+    useEarlyEffect(() => (ref.current ? publishBottomInset(ref.current) : undefined), []);
     const overflow = items.length > 5;
     const shown = overflow ? items.slice(0, 4) : items;
     const rest = overflow ? items.slice(4) : [];
     const restBadge = rest.find((it) => it.badge)?.badge;
     return (
         <nav
+            ref={ref}
             aria-label="Pages"
             data-oca-tabbar=""
             className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
@@ -367,7 +376,7 @@ function SidebarShell({
             <div
                 className={cn(
                     'min-h-dvh bg-background',
-                    tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]',
+                    tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]',
                     className
                 )}
             >
@@ -423,7 +432,7 @@ function SidebarShell({
                     <header className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">{account}</header>
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
                         <div className="flex items-center gap-1">
-                            <Link href={home} className="min-w-0 px-2">
+                            <Link href={home} className={cn('min-w-0 px-2', HIT_LINK)}>
                                 <ProductLockup size={product ? 22 : 24} product={product} />
                                 <span className="sr-only"> home</span>
                             </Link>
@@ -457,10 +466,11 @@ function RailItem({ item }: { item: ShellNavItem }) {
                     href={item.href}
                     aria-current={item.active ? 'page' : undefined}
                     className={cn(
-                        'relative flex size-10 items-center justify-center rounded-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                        'relative flex size-10 items-center justify-center rounded-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:size-11',
                         '[&_svg]:size-5 [&_svg]:shrink-0',
+                        // The current page in ink, as the sidebar's row: card on the page with a hairline was 1.07:1 and 1.28.
                         item.active
-                            ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                            ? 'bg-card text-foreground shadow-sm ring-1 ring-foreground'
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                     )}
                 >
@@ -509,7 +519,7 @@ function RailShell({ nav = [], persistent = [], page: pageOverride, header, acco
                         <main
                             id="main-content"
                             tabIndex={-1}
-                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col outline-none', tabs && 'max-md:pb-[calc(3.5rem_+_env(safe-area-inset-bottom))]')}
+                            className={cn('flex min-h-0 min-w-0 flex-1 flex-col outline-none', tabs && 'max-md:pb-[var(--oca-tabbar-h,calc(3.5rem_+_1px_+_env(safe-area-inset-bottom)))]')}
                         >
                             {children}
                         </main>

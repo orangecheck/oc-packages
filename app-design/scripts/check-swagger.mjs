@@ -3,7 +3,8 @@
  * styles/swagger.css keeps its promises. Swagger UI's method badges carry
  * white text at AA; the operation lock clears 3:1 and a parameter's small
  * print 4.5:1 on every method's tinted row, light and dark; each of its
- * small controls is a 24px target at every width and 44px on a phone, and the
+ * small controls is a 24px target at every width and 44px to a thumb, as is each
+ * of its buttons, and the
  * info block's links are 24px tall. Reads the stylesheet and tokens.css, so an
  * edit to either is checked here.
  */
@@ -13,7 +14,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, '../src/styles/swagger.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-const tokens = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8');
+// Without its comments, so a brace in one cannot end a block early.
+const tokens = readFileSync(join(here, '../src/styles/tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 let failures = 0;
 let checks = 0;
@@ -45,14 +47,14 @@ const ratio = (a, b) => {
 };
 const over = (top, alpha, under) => top.map((v, i) => v * alpha + under[i] * (1 - alpha));
 
-/** Each rule's declarations, by selector, outside or inside the phone query. */
+/** Each rule's declarations, by selector, outside or inside a media query. */
 function rules(text) {
     const out = [];
     for (const m of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) out.push({ selector: m[1].trim(), body: m[2] });
     return out;
 }
-const phone = (() => {
-    const i = css.indexOf('@media (width < 48rem)');
+const block = (query) => {
+    const i = css.indexOf(query);
     if (i < 0) return '';
     let depth = 0;
     for (let j = css.indexOf('{', i); j < css.length; j++) {
@@ -60,8 +62,10 @@ const phone = (() => {
         else if (css[j] === '}' && --depth === 0) return css.slice(css.indexOf('{', i) + 1, j);
     }
     return '';
-})();
-const outside = css.replace(phone, '');
+};
+const phone = block('@media (width < 48rem)');
+const coarse = block('@media (pointer: coarse)');
+const outside = css.replace(phone, '').replace(coarse, '');
 
 // Method badges: white text on each fill.
 const badges = [...outside.matchAll(/\.opblock-(\w+) \.opblock-summary-method\s*\{\s*background:\s*(#[0-9a-f]{6})/gi)];
@@ -99,25 +103,25 @@ for (const [name, selector, prop, min] of INKS) {
     }
 }
 
-// Phone targets.
+// Targets to a thumb: by the pointer, so a tablet's touch screen gets them too. Swagger's own buttons as well.
 const CONTROLS = ['.expand-operation', '.expand-methods', '.opblock-control-arrow', '.authorization__btn', '.models-control'];
-const sized = rules(phone).filter((r) => /min-height:\s*44px/.test(r.body) && /min-width:\s*44px/.test(r.body));
-for (const c of CONTROLS) {
+const sized = rules(coarse).filter((r) => /min-height:\s*44px/.test(r.body) && /min-width:\s*44px/.test(r.body));
+for (const c of [...CONTROLS, '.btn']) {
     check(
         sized.some((r) => r.selector.includes(c) && r.selector.includes("[data-oc-app='ochk'] .swagger-ui")),
-        `${c} is not a 44px target on a phone`
+        `${c} is not a 44px target to a thumb (pointer: coarse)`
     );
 }
 
-// Every width: each small control at least 24px, below the phone rule; the info block's links 24px tall.
+// Every width: each small control at least 24px, below the coarse rule; the info block's links 24px tall.
 const floor = rules(outside).filter((r) => /min-height:\s*24px/.test(r.body) && /min-width:\s*24px/.test(r.body));
 for (const c of CONTROLS) {
     check(
         floor.some((r) => r.selector.includes(c) && r.selector.includes("[data-oc-app='ochk'] .swagger-ui")),
-        `${c} has no 24px floor outside the phone rule`
+        `${c} has no 24px floor outside the coarse rule`
     );
 }
-check(css.indexOf('min-width: 24px') >= 0 && css.indexOf('min-width: 24px') < css.indexOf('@media (width < 48rem)'), 'the 24px floor must come before the phone rule, which wins below 48rem');
+check(css.indexOf('min-width: 24px') >= 0 && css.indexOf('min-width: 24px') < css.indexOf('@media (pointer: coarse)'), 'the 24px floor must come before the coarse rule, which wins on a touch screen');
 const info = rules(outside).find((r) => /\.swagger-ui \.info a$/.test(r.selector));
 check(/padding-block:\s*max\(0px,\s*calc\(\(24\.5px - 1em\) \/ 2\)\)/.test(info?.body ?? ''), "the info block's links are not padded to 24px");
 
@@ -125,4 +129,4 @@ if (failures) {
     console.error(`\n${failures} swagger failure(s)`);
     process.exit(1);
 }
-console.log(`✓ swagger: ${checks} checks; method badges, the lock and parameter inks in both modes, 24px targets at every width and 44px on a phone`);
+console.log(`✓ swagger: ${checks} checks; method badges, the lock and parameter inks in both modes, 24px targets at every width and 44px to a thumb, buttons too`);

@@ -12,6 +12,7 @@ import {
 } from '../format';
 import { cn } from '../lib/cn';
 import { useDensity } from '../lib/density';
+import { HIT_LINK } from '../lib/hit';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import { Textarea } from '../primitives/form';
@@ -99,7 +100,8 @@ export function ArtifactView({
                                     className={cn(
                                         // The pill stays 28px; its target reaches the bar's 44.
                                         'relative h-7 rounded-none px-2.5 text-[0.75rem] transition-colors before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2',
-                                        view === v ? 'bg-white/[0.12] text-white' : 'text-oca-ink-subtle hover:text-white'
+                                        // The chosen view is edged, not only lighter: white at 12 percent on the bar was 1.45:1.
+                                        view === v ? 'bg-white/[0.12] text-white ring-1 ring-inset ring-oca-ink-subtle' : 'text-oca-ink-subtle hover:text-white'
                                     )}
                                 >
                                     {v === 'formatted' ? 'Formatted' : 'Raw'}
@@ -318,7 +320,8 @@ export function DropZone({
                             </p>
                             {hint ? <p className="text-[0.875rem] text-muted-foreground">{hint}</p> : null}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                        {/* Wrapped, the two buttons' 44px targets stand clear of each other to a thumb. */}
+                        <div className="mt-1 flex flex-wrap items-center justify-center gap-2 pointer-coarse:gap-y-3">
                             <Button size="sm" variant="secondary" disabled={disabled} onClick={() => input.current?.click()}>
                                 Choose a file
                             </Button>
@@ -478,7 +481,7 @@ export function createStateBadge<S extends string>(states: Record<S, StateDef>) 
 
 /* ── Bitcoin time ────────────────────────────────────────────────────── */
 
-/** A block height in tabular figures, linked to the block on mempool.space. */
+/** A block height in tabular figures, linked to the block on mempool.space: a 44px target to a thumb, the text's box to a mouse. */
 export function BlockHeight({
     height,
     label = false,
@@ -501,7 +504,7 @@ export function BlockHeight({
             target="_blank"
             rel="noreferrer"
             title={`Block ${formatBlockHeight(height)} on mempool.space`}
-            className={cn('oca-tabular underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', className)}
+            className={cn('oca-tabular underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground', HIT_LINK, className)}
         >
             {text}
             <span className="sr-only"> (opens mempool.space in a new tab)</span>
@@ -794,7 +797,7 @@ export function FilterChips<T extends string | number>({
                         aria-disabled={o.disabled || undefined}
                         onClick={() => (o.disabled ? undefined : press(o.value))}
                         className={cn(
-                            'inline-flex shrink-0 items-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors',
+                            'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-none border px-3.5 text-[0.875rem] transition-colors pointer-coarse:min-w-11',
                             // A thumb's 44px on any touch screen, a tablet's included; a mouse's chip is smaller.
                             tight ? 'h-8 pointer-coarse:h-11' : 'h-9 pointer-coarse:h-11',
                             on
