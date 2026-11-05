@@ -16,7 +16,9 @@ import {
     type SignatureVerifier,
     type TalliedResult,
     type TallyResult,
+    type UnreadResult,
     type UtxoLookup,
+    type UtxoUnreadReason,
 } from '@orangecheck/vote-core';
 
 import { anchoredChain, type AnchoredChain } from '../anchors.js';
@@ -30,6 +32,33 @@ import {
 } from '../nostr.js';
 import { ballotsToCount, findPoll, requireComplete, selectReveal } from '../select.js';
 import { buildLookup, mempoolSource } from '../utxos.js';
+
+/**
+ * The exit code of a tally with voters whose coins were not read (SPEC §8): no
+ * count, which is neither a count (0), a failure (1), nor a publish below the
+ * write quorum (2, report.ts NOT_IN_YET). Tally again once the chain answers.
+ */
+export const UNREAD_EXIT = 3;
+
+/** What each unread reason means for whoever runs the tally next. */
+const UNREAD_WHY: Record<UtxoUnreadReason, string> = {
+    utxo_cap_unread:
+        "the explorer lists no more than about 500 unspent outputs for one address, and this one has more; tallying again from it won't help",
+    chain_unread: 'the explorer did not answer; tally again once it answers',
+    provider_refused_unread: 'the explorer refused the lookup',
+};
+
+/** The STATE and unread lines for a tally with voters whose coins were not read. */
+export function unreadLines(result: UnreadResult): string[] {
+    const n = result.unread.length;
+    const width = Math.max(...result.unread.map((u) => u.voter.length));
+    return [
+        `  STATE:      unread — not counted: ${n} ${n === 1 ? 'voter' : 'voters'} could not be read at block ${result.snapshot_block}`,
+        ...result.unread.map(
+            (u, i) => `  ${i === 0 ? 'unread:    ' : '           '} ${u.voter.padEnd(width)}  ${u.reason}  ${UNREAD_WHY[u.reason]}`
+        ),
+    ];
+}
 
 export interface TallyOptions {
     pollId: string;
@@ -215,6 +244,9 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         ...result,
     };
 
+    // No count: who was not read and why (SPEC §8), and an exit code of its own.
+    if (result.state === 'unread') process.exitCode = UNREAD_EXIT;
+
     if (opts.json) {
         process.stdout.write(JSON.stringify(output, null, 2) + '\n');
         return;
@@ -252,6 +284,10 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     }
     if (result.state === 'deferred') {
         w(`  STATE:      deferred (${result.code}) — the snapshot block is not known yet or has fewer than 6 confirmations\n\n`);
+        return;
+    }
+    if (result.state === 'unread') {
+        w(unreadLines(result).join('\n') + '\n\n');
         return;
     }
 
