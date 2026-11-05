@@ -570,6 +570,8 @@ try {
             )
         )
     );
+    // A site header with short nav words (ochk.app's Earn and Trust): its nav shows from 1024, where a tablet is touch.
+    const touchNav = page('touch-nav', renderToStaticMarkup(h(Ch.SiteHeader, { nav: [{ href: '/earn', label: 'Earn' }, { href: '/trust', label: 'Trust' }], signIn: true, cta: true })));
     // Block heights as globe's feed sets them, eight cards in a grid, and two in one line of small text (BlockCountdown's
     // "Target · tip"): each link is a line of text, so its target is a ::before, and no two may share a pixel.
     const heights = [971632, 971631, 971630, 971629, 971628, 971627, 971626, 971625];
@@ -2210,9 +2212,10 @@ try {
                     check(rows.length >= 3 && small.length === 0, `[1280 touch] docs rail rows under 44x44: ${small.length} of ${rows.length}: ${JSON.stringify(small)}`);
                     await c.close();
                 }
-                // Underline tabs, a sign-in frame's header links and an app shell's sidebar and rail: to a thumb each
+                // Underline tabs, a sign-in frame's header links, an app shell's sidebar and rail, and a site header's
+                // nav at 1024 (in the menu at 390 and to a mouse at 1440, so only a tablet touches it): to a thumb each
                 // lands from 21.5px out in every direction, on the box or by a ::before. To a mouse they keep their
-                // drawn size (a short tab its label's width), and the sign-in header its height either way.
+                // drawn size (a short tab or nav word its own width), and the sign-in header its height either way.
                 {
                     const read = async (url, w, touch, sel) => {
                         const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
@@ -2236,6 +2239,7 @@ try {
                         ['line tabs and the sign-in header', touchShapes, [390, 1024], '[data-t="line-tab"], main header a', 5],
                         ['the app shell sidebar', touchShell, [1024], 'aside a', 5],
                         ['the app shell rail', touchRail, [768], 'nav[aria-label="Pages"] a', 2],
+                        ['the site header nav', touchNav, [1024], 'nav[aria-label="Main"] a', 2],
                     ];
                     const mouse = {};
                     for (const [name, url, widths, sel, n] of shapes) {
@@ -2253,6 +2257,8 @@ try {
                     // A mouse's drawn sizes: section switcher 32, page rows 36, rail icons 40.
                     const bar = mouse['the app shell sidebar'].targets;
                     check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
+                    const earn = mouse['the site header nav'].targets.find((x) => x.name === 'Earn');
+                    check(earn && earn.w < 44 && earn.h === 44, `[1024 mouse] the header's Earn is drawn ${earn?.w}x${earn?.h}: a fine pointer's nav word keeps its own width`);
                     check(mouse['the app shell rail'].targets.length === 2 && mouse['the app shell rail'].targets.every((x) => x.w === 40 && x.h === 40), `[768 mouse] the rail's icons are drawn ${sizes('the app shell rail')}, not 40x40`);
                 }
                 // Block heights to a thumb: each lands from 21.5px out in every direction, and no point of one's 44px square

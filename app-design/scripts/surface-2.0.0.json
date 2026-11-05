@@ -1,0 +1,5123 @@
+{
+ "entries": [
+  ".",
+  "./acknowledgement",
+  "./art/*",
+  "./blocks",
+  "./brand",
+  "./chrome",
+  "./code",
+  "./components",
+  "./family",
+  "./fonts",
+  "./format",
+  "./mdx",
+  "./motion",
+  "./og",
+  "./primitives",
+  "./session",
+  "./styles.css",
+  "./styles/*",
+  "./tokens",
+  "./vitest"
+ ],
+ "exports": {
+  ".": {
+   "Accent": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "Accordion": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "single",
+     "variant"
+    ]
+   },
+   "AccordionItem": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "defaultOpen",
+     "id",
+     "title"
+    ]
+   },
+   "AccountCta": {
+    "kind": "component",
+    "props": [
+     "className",
+     "href"
+    ]
+   },
+   "AccountMenu": {
+    "kind": "component",
+    "props": [
+     "detail",
+     "items",
+     "name",
+     "nameFrom",
+     "onOpenChange"
+    ]
+   },
+   "AccountMenuItem": {
+    "kind": "type"
+   },
+   "ActivityItem": {
+    "kind": "type"
+   },
+   "ActivityList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "empty",
+     "items"
+    ]
+   },
+   "AnchorState": {
+    "kind": "type"
+   },
+   "AnchorStatus": {
+    "kind": "component",
+    "props": [
+     "blockHeight",
+     "blockTime",
+     "calendar",
+     "className",
+     "message",
+     "network",
+     "state",
+     "submittedAt",
+     "variant"
+    ]
+   },
+   "announce": {
+    "kind": "function"
+   },
+   "ApiRow": {
+    "kind": "type"
+   },
+   "ApiTable": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "nameHeader",
+     "rows"
+    ]
+   },
+   "APP_ATTRIBUTE": {
+    "kind": "value"
+   },
+   "APP_ID": {
+    "kind": "value"
+   },
+   "AppCard": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "href",
+     "line",
+     "name",
+     "protocols",
+     "status"
+    ]
+   },
+   "AppCardProps": {
+    "kind": "type"
+   },
+   "appColors": {
+    "kind": "value"
+   },
+   "appFonts": {
+    "kind": "value"
+   },
+   "AppGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "group",
+     "sites"
+    ]
+   },
+   "AppIcon": {
+    "kind": "component",
+    "props": [
+     "size",
+     "title"
+    ]
+   },
+   "AppIconProps": {
+    "kind": "type"
+   },
+   "AppShell": {
+    "kind": "component",
+    "props": [
+     "account",
+     "activeSection",
+     "banner",
+     "children",
+     "className",
+     "family",
+     "footer",
+     "header",
+     "home",
+     "nav",
+     "page",
+     "persistent",
+     "product",
+     "sections",
+     "variant"
+    ]
+   },
+   "AppShellProps": {
+    "kind": "type"
+   },
+   "ArtifactView": {
+    "kind": "component",
+    "props": [
+     "className",
+     "content",
+     "defaultView",
+     "filename",
+     "maxLines",
+     "mime",
+     "title"
+    ]
+   },
+   "Avatar": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "seed",
+     "size",
+     "src"
+    ]
+   },
+   "Badge": {
+    "kind": "component",
+    "props": [
+     "tone"
+    ]
+   },
+   "BadgeProps": {
+    "kind": "type"
+   },
+   "badgeVariants": {
+    "kind": "function"
+   },
+   "BlockCountdown": {
+    "kind": "component",
+    "props": [
+     "className",
+     "from",
+     "minutesPerBlock",
+     "network",
+     "reached",
+     "target",
+     "tip"
+    ]
+   },
+   "BlockHeight": {
+    "kind": "component",
+    "props": [
+     "className",
+     "height",
+     "label",
+     "link",
+     "network"
+    ]
+   },
+   "blocksToDuration": {
+    "kind": "function"
+   },
+   "Breadcrumbs": {
+    "kind": "component",
+    "props": [
+     "action",
+     "className",
+     "items"
+    ]
+   },
+   "BrowserFrame": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "glow",
+     "style",
+     "url",
+     "variant"
+    ]
+   },
+   "Button": {
+    "kind": "component",
+    "props": [
+     "asChild",
+     "loading",
+     "plus",
+     "size",
+     "variant"
+    ]
+   },
+   "ButtonProps": {
+    "kind": "type"
+   },
+   "buttonVariants": {
+    "kind": "function"
+   },
+   "Callout": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "title",
+     "tone"
+    ]
+   },
+   "Card": {
+    "kind": "component",
+    "props": [
+     "flush",
+     "interactive",
+     "padding",
+     "tone"
+    ]
+   },
+   "CardContent": {
+    "kind": "component"
+   },
+   "CardDescription": {
+    "kind": "component"
+   },
+   "CardFooter": {
+    "kind": "component"
+   },
+   "CardGrid": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "columns"
+    ]
+   },
+   "CardHeader": {
+    "kind": "component"
+   },
+   "CardNumeral": {
+    "kind": "component"
+   },
+   "CardProps": {
+    "kind": "type"
+   },
+   "CardTitle": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "cardVariants": {
+    "kind": "function"
+   },
+   "chartColor": {
+    "kind": "function"
+   },
+   "ChartFrame": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "children",
+     "className",
+     "legend"
+    ]
+   },
+   "ChartTone": {
+    "kind": "type"
+   },
+   "Checkbox": {
+    "kind": "component"
+   },
+   "CheckState": {
+    "kind": "type"
+   },
+   "ChoiceCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "description",
+     "disabled",
+     "icon",
+     "title",
+     "value"
+    ]
+   },
+   "ChoiceGroup": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "columns",
+     "disabled",
+     "error",
+     "label",
+     "onValueChange",
+     "size",
+     "value"
+    ]
+   },
+   "ChosenFile": {
+    "kind": "type"
+   },
+   "Closing": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "as",
+     "className",
+     "fineprint",
+     "lead",
+     "title"
+    ]
+   },
+   "cn": {
+    "kind": "function"
+   },
+   "CODE_LANGS": {
+    "kind": "value"
+   },
+   "CodeBlock": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "caption",
+     "children",
+     "className",
+     "clearAfter",
+     "code",
+     "copy",
+     "diff",
+     "highlight",
+     "html",
+     "lang",
+     "lineNumbers",
+     "maxLines",
+     "trailingNewline",
+     "wrap"
+    ]
+   },
+   "CodeBlockProps": {
+    "kind": "type"
+   },
+   "CodeLine": {
+    "kind": "type"
+   },
+   "CodeMeta": {
+    "kind": "type"
+   },
+   "CodeTab": {
+    "kind": "type"
+   },
+   "CodeTabs": {
+    "kind": "component",
+    "props": [
+     "className",
+     "defaultValue",
+     "items",
+     "maxLines",
+     "syncKey"
+    ]
+   },
+   "Column": {
+    "kind": "type"
+   },
+   "CommandDialog": {
+    "kind": "component",
+    "props": [
+     "className",
+     "debounceMs",
+     "defaultQuery",
+     "hotkey",
+     "idle",
+     "label",
+     "onOpenChange",
+     "onQuery",
+     "onSelect",
+     "open",
+     "placeholder"
+    ]
+   },
+   "ComparisonColumn": {
+    "kind": "type"
+   },
+   "ComparisonRow": {
+    "kind": "type"
+   },
+   "ComparisonTable": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns",
+     "label",
+     "propertyHeading",
+     "rows"
+    ]
+   },
+   "confirm": {
+    "kind": "function"
+   },
+   "ConfirmOptions": {
+    "kind": "type"
+   },
+   "Container": {
+    "kind": "component"
+   },
+   "CopyButton": {
+    "kind": "component",
+    "props": [
+     "className",
+     "clearAfter",
+     "label",
+     "onCopied",
+     "onError",
+     "showLabel",
+     "value",
+     "variant"
+    ]
+   },
+   "CopyButtonProps": {
+    "kind": "type"
+   },
+   "CountdownRing": {
+    "kind": "component",
+    "props": [
+     "className",
+     "period",
+     "remaining",
+     "showSeconds",
+     "size",
+     "warnAt"
+    ]
+   },
+   "createMdxComponents": {
+    "kind": "function"
+   },
+   "createStateBadge": {
+    "kind": "function"
+   },
+   "Crowd": {
+    "kind": "component",
+    "props": [
+     "className",
+     "cols",
+     "label",
+     "real",
+     "rows",
+     "seed",
+     "story",
+     "tone"
+    ]
+   },
+   "CrowdProps": {
+    "kind": "type"
+   },
+   "Crumb": {
+    "kind": "type"
+   },
+   "darkPalette": {
+    "kind": "value"
+   },
+   "DataTable": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "columns",
+     "dense",
+     "empty",
+     "linkColumn",
+     "onRowSelect",
+     "phone",
+     "rowHref",
+     "rowKey",
+     "rows"
+    ]
+   },
+   "Density": {
+    "kind": "type"
+   },
+   "DensityProvider": {
+    "kind": "component",
+    "props": [
+     "children",
+     "density"
+    ]
+   },
+   "Diagram": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "chart",
+     "className",
+     "load",
+     "size"
+    ]
+   },
+   "Dialog": {
+    "kind": "component"
+   },
+   "DialogClose": {
+    "kind": "component"
+   },
+   "DialogContent": {
+    "kind": "component",
+    "props": [
+     "hideClose",
+     "overlayClassName"
+    ]
+   },
+   "DialogDescription": {
+    "kind": "component"
+   },
+   "DialogFooter": {
+    "kind": "component"
+   },
+   "DialogHeader": {
+    "kind": "component"
+   },
+   "DialogHost": {
+    "kind": "component"
+   },
+   "DialogTitle": {
+    "kind": "component"
+   },
+   "DialogTrigger": {
+    "kind": "component"
+   },
+   "DiffMark": {
+    "kind": "type"
+   },
+   "Display": {
+    "kind": "component",
+    "props": [
+     "as",
+     "level"
+    ]
+   },
+   "DisplayProps": {
+    "kind": "type"
+   },
+   "DocHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "children",
+     "className",
+     "eyebrow",
+     "lead",
+     "meta",
+     "title"
+    ]
+   },
+   "DocLayout": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "header",
+     "toc"
+    ]
+   },
+   "DOCS_HEADER_NAV": {
+    "kind": "value"
+   },
+   "DOCS_HREF": {
+    "kind": "value"
+   },
+   "DocsHeading": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "DocsNav": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current",
+     "onNavigate",
+     "sections"
+    ]
+   },
+   "DocsNavItem": {
+    "kind": "type"
+   },
+   "DocsNavSection": {
+    "kind": "type"
+   },
+   "DocsPager": {
+    "kind": "component",
+    "props": [
+     "className",
+     "next",
+     "prev"
+    ]
+   },
+   "DocsShell": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "breadcrumbs",
+     "children",
+     "cta",
+     "current",
+     "footer",
+     "header",
+     "nav",
+     "navCurrent",
+     "pager",
+     "search",
+     "signIn",
+     "toc"
+    ]
+   },
+   "DocsShellProps": {
+    "kind": "type"
+   },
+   "DropdownMenu": {
+    "kind": "component"
+   },
+   "DropdownMenuContent": {
+    "kind": "component"
+   },
+   "DropdownMenuGroup": {
+    "kind": "component"
+   },
+   "DropdownMenuItem": {
+    "kind": "component",
+    "props": [
+     "destructive"
+    ]
+   },
+   "DropdownMenuLabel": {
+    "kind": "component"
+   },
+   "DropdownMenuSeparator": {
+    "kind": "component"
+   },
+   "DropdownMenuTrigger": {
+    "kind": "component"
+   },
+   "DropZone": {
+    "kind": "component",
+    "props": [
+     "accept",
+     "className",
+     "disabled",
+     "error",
+     "file",
+     "hint",
+     "onClear",
+     "onFile",
+     "onText",
+     "privacy",
+     "progress",
+     "progressLabel",
+     "title"
+    ]
+   },
+   "EmptyLine": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "EmptyState": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "icon",
+     "title"
+    ]
+   },
+   "Endpoint": {
+    "kind": "type"
+   },
+   "EndpointList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "label"
+    ]
+   },
+   "ErrorBoundary": {
+    "kind": "value"
+   },
+   "ErrorPage": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "className",
+     "code",
+     "detail",
+     "home",
+     "protocol",
+     "title"
+    ]
+   },
+   "escapeHtml": {
+    "kind": "function"
+   },
+   "ExplorerKind": {
+    "kind": "type"
+   },
+   "explorerUrl": {
+    "kind": "function"
+   },
+   "Eyebrow": {
+    "kind": "component",
+    "props": [
+     "onInk"
+    ]
+   },
+   "FactBlock": {
+    "kind": "component",
+    "props": [
+     "as",
+     "aside",
+     "children",
+     "className",
+     "description",
+     "id",
+     "title"
+    ]
+   },
+   "FactRow": {
+    "kind": "type"
+   },
+   "FactRows": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "columns",
+     "label",
+     "rows"
+    ]
+   },
+   "failureText": {
+    "kind": "function"
+   },
+   "FailureTextOptions": {
+    "kind": "type"
+   },
+   "FAMILY": {
+    "kind": "value"
+   },
+   "FAMILY_GROUPS": {
+    "kind": "value"
+   },
+   "familyByGroup": {
+    "kind": "function"
+   },
+   "FamilyGroup": {
+    "kind": "type"
+   },
+   "FamilyMenu": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current"
+    ]
+   },
+   "familySite": {
+    "kind": "function"
+   },
+   "FamilySite": {
+    "kind": "type"
+   },
+   "FamilySlug": {
+    "kind": "type"
+   },
+   "Faq": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "variant"
+    ]
+   },
+   "Field": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "error",
+     "hideLabel",
+     "hint",
+     "id",
+     "label",
+     "optional"
+    ]
+   },
+   "FieldControlProps": {
+    "kind": "type"
+   },
+   "FieldProps": {
+    "kind": "type"
+   },
+   "FilterChips": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "multiple",
+     "onChange",
+     "options",
+     "value"
+    ]
+   },
+   "FilterOption": {
+    "kind": "type"
+   },
+   "FloatChip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "delay",
+     "detail",
+     "icon",
+     "style",
+     "title"
+    ]
+   },
+   "FooterColumn": {
+    "kind": "type"
+   },
+   "Footnote": {
+    "kind": "component"
+   },
+   "formatBlockHeight": {
+    "kind": "function"
+   },
+   "formatBytes": {
+    "kind": "function"
+   },
+   "formatUtc": {
+    "kind": "function"
+   },
+   "FormSection": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "hint",
+     "id",
+     "n",
+     "status",
+     "title"
+    ]
+   },
+   "Frame": {
+    "kind": "component",
+    "props": [
+     "as",
+     "padded"
+    ]
+   },
+   "FrameProps": {
+    "kind": "type"
+   },
+   "GET_AN_ACCOUNT": {
+    "kind": "value"
+   },
+   "grammarOf": {
+    "kind": "function"
+   },
+   "HalftoneCanvas": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "breathe",
+     "className",
+     "density",
+     "fallbackSrc",
+     "ink",
+     "intro",
+     "lens",
+     "style",
+     "tone"
+    ]
+   },
+   "HalftoneCanvasProps": {
+    "kind": "type"
+   },
+   "HalftoneSphere": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "className",
+     "float",
+     "live",
+     "src",
+     "stadium",
+     "style"
+    ]
+   },
+   "HalftoneSphereProps": {
+    "kind": "type"
+   },
+   "HashChip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "copy",
+     "explorer",
+     "head",
+     "href",
+     "network",
+     "tail",
+     "value"
+    ]
+   },
+   "highlight": {
+    "kind": "function"
+   },
+   "highlightToHtml": {
+    "kind": "function"
+   },
+   "hotkeyBlocked": {
+    "kind": "function"
+   },
+   "HudCard": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "eyebrow",
+     "footer",
+     "live",
+     "title"
+    ]
+   },
+   "Input": {
+    "kind": "component",
+    "props": [
+     "size"
+    ]
+   },
+   "InputProps": {
+    "kind": "type"
+   },
+   "InstallTabs": {
+    "kind": "component",
+    "props": [
+     "className",
+     "dev",
+     "pkg"
+    ]
+   },
+   "IsoCheck": {
+    "kind": "component",
+    "props": [
+     "className",
+     "settle",
+     "shadow",
+     "size",
+     "tilt",
+     "title"
+    ]
+   },
+   "IsoCheckProps": {
+    "kind": "type"
+   },
+   "Kbd": {
+    "kind": "component"
+   },
+   "KeyValueItem": {
+    "kind": "type"
+   },
+   "KeyValueList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "dense",
+     "items"
+    ]
+   },
+   "Label": {
+    "kind": "component"
+   },
+   "languageName": {
+    "kind": "function"
+   },
+   "Lead": {
+    "kind": "component"
+   },
+   "LEGAL_LINKS": {
+    "kind": "value"
+   },
+   "LegalBlock": {
+    "kind": "type"
+   },
+   "LegalDocument": {
+    "kind": "component",
+    "props": [
+     "className",
+     "doc"
+    ]
+   },
+   "LegalSource": {
+    "kind": "type"
+   },
+   "LegendItem": {
+    "kind": "type"
+   },
+   "lightPalette": {
+    "kind": "value"
+   },
+   "LineMarks": {
+    "kind": "type"
+   },
+   "linesToHtml": {
+    "kind": "function"
+   },
+   "LinkCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "description",
+     "href",
+     "icon",
+     "meta",
+     "title"
+    ]
+   },
+   "ListCard": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "ListRow": {
+    "kind": "component",
+    "props": [
+     "action",
+     "actions",
+     "as",
+     "className",
+     "current",
+     "description",
+     "detail",
+     "eyebrow",
+     "href",
+     "leading",
+     "lines",
+     "meta",
+     "onSelect",
+     "revealActions",
+     "size",
+     "stackBelow",
+     "title",
+     "trailing",
+     "unread",
+     "variant"
+    ]
+   },
+   "LoadError": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "onRetry",
+     "retryLabel",
+     "rows",
+     "title"
+    ]
+   },
+   "LoadingBlock": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onRetry",
+     "rows",
+     "timeoutMs"
+    ]
+   },
+   "LockedPreview": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "description",
+     "title"
+    ]
+   },
+   "Lockup": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "nameClassName",
+     "size",
+     "variant"
+    ]
+   },
+   "LockupProps": {
+    "kind": "type"
+   },
+   "Mark": {
+    "kind": "component",
+    "props": [
+     "size",
+     "title"
+    ]
+   },
+   "MARK_FACES": {
+    "kind": "value"
+   },
+   "MarkProps": {
+    "kind": "type"
+   },
+   "MdxComponentMap": {
+    "kind": "type"
+   },
+   "mdxComponents": {
+    "kind": "value"
+   },
+   "MdxOptions": {
+    "kind": "type"
+   },
+   "MdxTable": {
+    "kind": "component"
+   },
+   "MermaidLike": {
+    "kind": "type"
+   },
+   "MermaidLoader": {
+    "kind": "type"
+   },
+   "Meter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "figure",
+     "ghost",
+     "label",
+     "max",
+     "size",
+     "tone",
+     "value"
+    ]
+   },
+   "Monogram": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "seed",
+     "size",
+     "style"
+    ]
+   },
+   "monogramGround": {
+    "kind": "function"
+   },
+   "monogramLetter": {
+    "kind": "function"
+   },
+   "MonoLabel": {
+    "kind": "component",
+    "props": [
+     "as",
+     "mark"
+    ]
+   },
+   "MonoLabelProps": {
+    "kind": "type"
+   },
+   "NavItem": {
+    "kind": "type"
+   },
+   "Network": {
+    "kind": "type"
+   },
+   "Notice": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "icon",
+     "role",
+     "title",
+     "tone"
+    ]
+   },
+   "OCHK_APP": {
+    "kind": "value"
+   },
+   "OCHK_APP_ACCOUNT": {
+    "kind": "value"
+   },
+   "OCHK_IO": {
+    "kind": "value"
+   },
+   "OCHK_IO_FOOTER": {
+    "kind": "value"
+   },
+   "OCHK_IO_NAV": {
+    "kind": "value"
+   },
+   "OchkIoFooter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns"
+    ]
+   },
+   "OFFLINE_TEXT": {
+    "kind": "value"
+   },
+   "OnThisPage": {
+    "kind": "component",
+    "props": [
+     "activeId",
+     "className",
+     "items",
+     "onNavigate",
+     "title"
+    ]
+   },
+   "PackageCard": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "items"
+    ]
+   },
+   "PackageItem": {
+    "kind": "type"
+   },
+   "PageFrame": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "PageHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "className",
+     "description",
+     "eyebrow",
+     "title"
+    ]
+   },
+   "PageHero": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "children",
+     "className",
+     "eyebrow",
+     "ground",
+     "layout",
+     "lead",
+     "meta",
+     "rule",
+     "size",
+     "title",
+     "variant"
+    ]
+   },
+   "PageHeroProps": {
+    "kind": "type"
+   },
+   "PagerLink": {
+    "kind": "type"
+   },
+   "Pagination": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onPage",
+     "pageIndex",
+     "pageSize",
+     "total"
+    ]
+   },
+   "PaneHeader": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "Panel": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "as",
+     "children",
+     "className",
+     "description",
+     "expandable",
+     "source",
+     "title"
+    ]
+   },
+   "parseCodeMeta": {
+    "kind": "function"
+   },
+   "parseLineRanges": {
+    "kind": "function"
+   },
+   "PhoneFrame": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "style"
+    ]
+   },
+   "PlanCard": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "badge",
+     "badgeTone",
+     "className",
+     "features",
+     "footnote",
+     "highlight",
+     "name",
+     "period",
+     "price",
+     "subtitle"
+    ]
+   },
+   "Popover": {
+    "kind": "component"
+   },
+   "PopoverAnchor": {
+    "kind": "component"
+   },
+   "PopoverContent": {
+    "kind": "component"
+   },
+   "PopoverTrigger": {
+    "kind": "component"
+   },
+   "portraitTone": {
+    "kind": "function"
+   },
+   "ProgressStep": {
+    "kind": "type"
+   },
+   "ProgressSteps": {
+    "kind": "component",
+    "props": [
+     "className",
+     "steps"
+    ]
+   },
+   "prompt": {
+    "kind": "function"
+   },
+   "PromptOptions": {
+    "kind": "type"
+   },
+   "ProofStrip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items"
+    ]
+   },
+   "Prose": {
+    "kind": "component"
+   },
+   "PROTOCOL_ORDER": {
+    "kind": "value"
+   },
+   "ProtocolGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "link",
+     "protocols"
+    ]
+   },
+   "ProtocolHero": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "children",
+     "className",
+     "lead",
+     "protocol",
+     "title"
+    ]
+   },
+   "ProtocolNav": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current",
+     "link"
+    ]
+   },
+   "PROTOCOLS": {
+    "kind": "value"
+   },
+   "protocolSite": {
+    "kind": "function"
+   },
+   "ProtocolSite": {
+    "kind": "type"
+   },
+   "ProtocolSlug": {
+    "kind": "type"
+   },
+   "QrCode": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "size",
+     "value"
+    ]
+   },
+   "RadioGroup": {
+    "kind": "component"
+   },
+   "RadioGroupItem": {
+    "kind": "component"
+   },
+   "readDiff": {
+    "kind": "function"
+   },
+   "rehypeCode": {
+    "kind": "function"
+   },
+   "RehypeCodeOptions": {
+    "kind": "type"
+   },
+   "Reveal": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "className",
+     "delay",
+     "style"
+    ]
+   },
+   "Sats": {
+    "kind": "component",
+    "props": [
+     "compact",
+     "signed",
+     "unit",
+     "unknown",
+     "value"
+    ]
+   },
+   "SatsFigure": {
+    "kind": "component",
+    "props": [
+     "className",
+     "hint",
+     "label",
+     "size",
+     "value"
+    ]
+   },
+   "SatsProps": {
+    "kind": "type"
+   },
+   "satsText": {
+    "kind": "function"
+   },
+   "SatsTextOptions": {
+    "kind": "type"
+   },
+   "ScrollFade": {
+    "kind": "component",
+    "props": [
+     "fade",
+     "innerClassName"
+    ]
+   },
+   "ScrollFadeProps": {
+    "kind": "type"
+   },
+   "ScrollStory": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "innerClassName",
+     "length"
+    ]
+   },
+   "SearchButton": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onClick"
+    ]
+   },
+   "SearchDialog": {
+    "kind": "component",
+    "props": [
+     "browse",
+     "button",
+     "className",
+     "debounceMs",
+     "defaultQuery",
+     "hotkey",
+     "idle",
+     "label",
+     "onOpenChange",
+     "onQuery",
+     "onSelect",
+     "open",
+     "placeholder"
+    ]
+   },
+   "SearchDialogProps": {
+    "kind": "type"
+   },
+   "SearchGroup": {
+    "kind": "type"
+   },
+   "SearchQuery": {
+    "kind": "type"
+   },
+   "SearchResult": {
+    "kind": "type"
+   },
+   "Section": {
+    "kind": "component",
+    "props": [
+     "contained",
+     "frameClassName",
+     "framed",
+     "rule",
+     "space",
+     "tone"
+    ]
+   },
+   "SectionBar": {
+    "kind": "component",
+    "props": [
+     "as",
+     "end",
+     "start"
+    ]
+   },
+   "SectionBarProps": {
+    "kind": "type"
+   },
+   "SectionHeading": {
+    "kind": "component",
+    "props": [
+     "align",
+     "as",
+     "className",
+     "eyebrow",
+     "id",
+     "lead",
+     "level",
+     "onInk",
+     "reveal",
+     "title"
+    ]
+   },
+   "SectionIntro": {
+    "kind": "component",
+    "props": [
+     "align",
+     "reveal"
+    ]
+   },
+   "SectionProps": {
+    "kind": "type"
+   },
+   "SectionStatus": {
+    "kind": "type"
+   },
+   "SectionTitle": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "className",
+     "description",
+     "id",
+     "meta",
+     "size",
+     "title",
+     "tone"
+    ]
+   },
+   "sectionVariants": {
+    "kind": "function"
+   },
+   "Select": {
+    "kind": "component",
+    "props": [
+     "aria-describedby",
+     "aria-invalid",
+     "id"
+    ]
+   },
+   "SelectContent": {
+    "kind": "component"
+   },
+   "SelectGroup": {
+    "kind": "component"
+   },
+   "SelectItem": {
+    "kind": "component"
+   },
+   "SelectTrigger": {
+    "kind": "component",
+    "props": [
+     "size"
+    ]
+   },
+   "SelectValue": {
+    "kind": "component"
+   },
+   "SELF_HOSTED_LEGAL_LINKS": {
+    "kind": "value"
+   },
+   "selfHostedLegalLinks": {
+    "kind": "function"
+   },
+   "Separator": {
+    "kind": "component"
+   },
+   "SessionAccountView": {
+    "kind": "component",
+    "props": [
+     "accountHref",
+     "detail",
+     "items",
+     "name",
+     "nameFrom",
+     "onMenuOpenChange",
+     "onSignOut",
+     "signInHref",
+     "signInLabel",
+     "signInPath",
+     "signInVariant",
+     "signOutRefused",
+     "state"
+    ]
+   },
+   "SessionState": {
+    "kind": "type"
+   },
+   "Sheet": {
+    "kind": "component"
+   },
+   "SheetClose": {
+    "kind": "component"
+   },
+   "SheetContent": {
+    "kind": "component",
+    "props": [
+     "overlayClassName",
+     "side"
+    ]
+   },
+   "SheetDescription": {
+    "kind": "component"
+   },
+   "SheetTitle": {
+    "kind": "component"
+   },
+   "SheetTrigger": {
+    "kind": "component"
+   },
+   "ShellContext": {
+    "kind": "component"
+   },
+   "ShellNavGroup": {
+    "kind": "type"
+   },
+   "ShellNavItem": {
+    "kind": "type"
+   },
+   "ShellPlace": {
+    "kind": "type"
+   },
+   "ShellSection": {
+    "kind": "type"
+   },
+   "shortenMiddle": {
+    "kind": "function"
+   },
+   "SIGN_IN_LABEL": {
+    "kind": "value"
+   },
+   "SignInFrame": {
+    "kind": "component",
+    "props": [
+     "art",
+     "back",
+     "brand",
+     "caption",
+     "children",
+     "className",
+     "error",
+     "fineprint",
+     "home",
+     "lead",
+     "product",
+     "protocol",
+     "title"
+    ]
+   },
+   "SignMessage": {
+    "kind": "component",
+    "props": [
+     "address",
+     "busy",
+     "className",
+     "error",
+     "lead",
+     "message",
+     "onSignature",
+     "scheme",
+     "secondary",
+     "submitLabel",
+     "wallets"
+    ]
+   },
+   "SiteBanner": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "tone"
+    ]
+   },
+   "SiteFooter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns",
+     "compact",
+     "family",
+     "fineprint",
+     "legal",
+     "meta",
+     "signature"
+    ]
+   },
+   "SiteFooterProps": {
+    "kind": "type"
+   },
+   "SiteHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "brand",
+     "className",
+     "cta",
+     "family",
+     "home",
+     "menu",
+     "nav",
+     "navOnPhone",
+     "product",
+     "search",
+     "signIn",
+     "variant"
+    ]
+   },
+   "SiteHeaderProps": {
+    "kind": "type"
+   },
+   "SiteStatus": {
+    "kind": "type"
+   },
+   "Skeleton": {
+    "kind": "component"
+   },
+   "SkipLink": {
+    "kind": "component",
+    "props": [
+     "children",
+     "href"
+    ]
+   },
+   "Slider": {
+    "kind": "component",
+    "props": [
+     "aria-label",
+     "aria-labelledby",
+     "defaultValue",
+     "marks",
+     "onValueChange",
+     "onValueCommit",
+     "value",
+     "valueText"
+    ]
+   },
+   "SliderMark": {
+    "kind": "type"
+   },
+   "SliderProps": {
+    "kind": "type"
+   },
+   "SourceNote": {
+    "kind": "component",
+    "props": [
+     "className",
+     "detail",
+     "href",
+     "source",
+     "updated",
+     "variant"
+    ]
+   },
+   "SourceNoteProps": {
+    "kind": "type"
+   },
+   "Sparkline": {
+    "kind": "component",
+    "props": [
+     "area",
+     "className",
+     "height",
+     "label",
+     "tone",
+     "values",
+     "width"
+    ]
+   },
+   "SpecCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "protocol",
+     "repo",
+     "version"
+    ]
+   },
+   "SpecCardProps": {
+    "kind": "type"
+   },
+   "SpecFileKind": {
+    "kind": "type"
+   },
+   "SPHERE_GRADIENT": {
+    "kind": "value"
+   },
+   "Spinner": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label"
+    ]
+   },
+   "SplitBar": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "segments"
+    ]
+   },
+   "SplitSegment": {
+    "kind": "type"
+   },
+   "StatCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "delta",
+     "hint",
+     "label",
+     "raw",
+     "size",
+     "value"
+    ]
+   },
+   "StatCardProps": {
+    "kind": "type"
+   },
+   "StateBadge": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "title",
+     "tone"
+    ]
+   },
+   "StateDef": {
+    "kind": "type"
+   },
+   "Statement": {
+    "kind": "type"
+   },
+   "StateTone": {
+    "kind": "type"
+   },
+   "StatGrid": {
+    "kind": "component",
+    "props": [
+     "columns",
+     "empty",
+     "isEmpty"
+    ]
+   },
+   "StatGridProps": {
+    "kind": "type"
+   },
+   "StatItem": {
+    "kind": "type"
+   },
+   "StatRow": {
+    "kind": "component",
+    "props": [
+     "columns",
+     "items",
+     "size"
+    ]
+   },
+   "StatRowProps": {
+    "kind": "type"
+   },
+   "Status": {
+    "kind": "type"
+   },
+   "StatusBadge": {
+    "kind": "component",
+    "props": [
+     "status"
+    ]
+   },
+   "StatusBadgeProps": {
+    "kind": "type"
+   },
+   "StatusDot": {
+    "kind": "component",
+    "props": [
+     "className",
+     "pulse",
+     "tone"
+    ]
+   },
+   "StatusPill": {
+    "kind": "component",
+    "props": [
+     "pulse"
+    ]
+   },
+   "statusWord": {
+    "kind": "function"
+   },
+   "Step": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "id",
+     "title"
+    ]
+   },
+   "StepGrid": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "look"
+    ]
+   },
+   "StepGridProps": {
+    "kind": "type"
+   },
+   "StepItem": {
+    "kind": "type"
+   },
+   "Steps": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "StepState": {
+    "kind": "type"
+   },
+   "Switch": {
+    "kind": "component"
+   },
+   "Tabs": {
+    "kind": "component",
+    "props": [
+     "look"
+    ]
+   },
+   "TabsContent": {
+    "kind": "component",
+    "props": [
+     "keepMounted"
+    ]
+   },
+   "TabsList": {
+    "kind": "component",
+    "props": [
+     "wrap"
+    ]
+   },
+   "TabsTrigger": {
+    "kind": "component"
+   },
+   "Textarea": {
+    "kind": "component"
+   },
+   "TextLink": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "external",
+     "href",
+     "standalone"
+    ]
+   },
+   "THEME_COLOR": {
+    "kind": "value"
+   },
+   "ThemeProvider": {
+    "kind": "component"
+   },
+   "ThemeProviderProps": {
+    "kind": "type"
+   },
+   "ThemeToggle": {
+    "kind": "component",
+    "props": [
+     "className"
+    ]
+   },
+   "Ticker": {
+    "kind": "component",
+    "props": [
+     "className",
+     "duration",
+     "format",
+     "value"
+    ]
+   },
+   "toast": {
+    "kind": "function"
+   },
+   "Toaster": {
+    "kind": "component"
+   },
+   "TocItem": {
+    "kind": "type"
+   },
+   "Token": {
+    "kind": "type"
+   },
+   "TOKEN_CLASS": {
+    "kind": "value"
+   },
+   "TokenKind": {
+    "kind": "type"
+   },
+   "Tone": {
+    "kind": "type"
+   },
+   "ToolColumn": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "measure"
+    ]
+   },
+   "ToolGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "tools"
+    ]
+   },
+   "ToolItem": {
+    "kind": "type"
+   },
+   "ToolShell": {
+    "kind": "component",
+    "props": [
+     "account",
+     "banner",
+     "children",
+     "footer",
+     "home",
+     "measure",
+     "protocol",
+     "rail",
+     "railFooter",
+     "tools",
+     "variant"
+    ]
+   },
+   "ToolShellProps": {
+    "kind": "type"
+   },
+   "Tooltip": {
+    "kind": "component"
+   },
+   "TooltipContent": {
+    "kind": "component"
+   },
+   "TooltipProvider": {
+    "kind": "component"
+   },
+   "TooltipTrigger": {
+    "kind": "component"
+   },
+   "TruthRow": {
+    "kind": "type"
+   },
+   "TruthStatus": {
+    "kind": "type"
+   },
+   "TruthTable": {
+    "kind": "component",
+    "props": [
+     "className",
+     "rows",
+     "statusHeading",
+     "whatHeading"
+    ]
+   },
+   "UsdApprox": {
+    "kind": "component",
+    "props": [
+     "className",
+     "sats",
+     "usdPerBtc"
+    ]
+   },
+   "useActiveHeading": {
+    "kind": "function"
+   },
+   "useCopy": {
+    "kind": "function"
+   },
+   "useDensity": {
+    "kind": "function"
+   },
+   "useFamilySignInHref": {
+    "kind": "function"
+   },
+   "useHeadings": {
+    "kind": "function"
+   },
+   "useHotkey": {
+    "kind": "function"
+   },
+   "useInView": {
+    "kind": "function"
+   },
+   "useRefusals": {
+    "kind": "function"
+   },
+   "useShellPlace": {
+    "kind": "function"
+   },
+   "useSignInHref": {
+    "kind": "function"
+   },
+   "useTheme": {
+    "kind": "function"
+   },
+   "useTimedOut": {
+    "kind": "function"
+   },
+   "ValueTone": {
+    "kind": "type"
+   },
+   "VerifyBox": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "className",
+     "description",
+     "hint",
+     "label",
+     "multiline",
+     "onVerify",
+     "param",
+     "placeholder",
+     "submitLabel",
+     "title"
+    ]
+   },
+   "VerifyCheck": {
+    "kind": "type"
+   },
+   "VerifyReport": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "as",
+     "checks",
+     "className",
+     "facts",
+     "notChecked",
+     "summary",
+     "title",
+     "verdict"
+    ]
+   },
+   "wordFor": {
+    "kind": "function"
+   }
+  },
+  "./tokens": {
+   "APP_ATTRIBUTE": {
+    "kind": "value"
+   },
+   "APP_ID": {
+    "kind": "value"
+   },
+   "appColors": {
+    "kind": "value"
+   },
+   "appFonts": {
+    "kind": "value"
+   },
+   "darkPalette": {
+    "kind": "value"
+   },
+   "lightPalette": {
+    "kind": "value"
+   },
+   "THEME_COLOR": {
+    "kind": "value"
+   }
+  },
+  "./primitives": {
+   "Accordion": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "single",
+     "variant"
+    ]
+   },
+   "AccordionItem": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "defaultOpen",
+     "id",
+     "title"
+    ]
+   },
+   "announce": {
+    "kind": "function"
+   },
+   "Badge": {
+    "kind": "component",
+    "props": [
+     "tone"
+    ]
+   },
+   "BadgeProps": {
+    "kind": "type"
+   },
+   "badgeVariants": {
+    "kind": "function"
+   },
+   "Button": {
+    "kind": "component",
+    "props": [
+     "asChild",
+     "loading",
+     "plus",
+     "size",
+     "variant"
+    ]
+   },
+   "ButtonProps": {
+    "kind": "type"
+   },
+   "buttonVariants": {
+    "kind": "function"
+   },
+   "Card": {
+    "kind": "component",
+    "props": [
+     "flush",
+     "interactive",
+     "padding",
+     "tone"
+    ]
+   },
+   "CardContent": {
+    "kind": "component"
+   },
+   "CardDescription": {
+    "kind": "component"
+   },
+   "CardFooter": {
+    "kind": "component"
+   },
+   "CardHeader": {
+    "kind": "component"
+   },
+   "CardNumeral": {
+    "kind": "component"
+   },
+   "CardProps": {
+    "kind": "type"
+   },
+   "CardTitle": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "cardVariants": {
+    "kind": "function"
+   },
+   "Checkbox": {
+    "kind": "component"
+   },
+   "cn": {
+    "kind": "function"
+   },
+   "confirm": {
+    "kind": "function"
+   },
+   "ConfirmOptions": {
+    "kind": "type"
+   },
+   "Density": {
+    "kind": "type"
+   },
+   "DensityProvider": {
+    "kind": "component",
+    "props": [
+     "children",
+     "density"
+    ]
+   },
+   "Dialog": {
+    "kind": "component"
+   },
+   "DialogClose": {
+    "kind": "component"
+   },
+   "DialogContent": {
+    "kind": "component",
+    "props": [
+     "hideClose",
+     "overlayClassName"
+    ]
+   },
+   "DialogDescription": {
+    "kind": "component"
+   },
+   "DialogFooter": {
+    "kind": "component"
+   },
+   "DialogHeader": {
+    "kind": "component"
+   },
+   "DialogHost": {
+    "kind": "component"
+   },
+   "DialogTitle": {
+    "kind": "component"
+   },
+   "DialogTrigger": {
+    "kind": "component"
+   },
+   "DropdownMenu": {
+    "kind": "component"
+   },
+   "DropdownMenuContent": {
+    "kind": "component"
+   },
+   "DropdownMenuGroup": {
+    "kind": "component"
+   },
+   "DropdownMenuItem": {
+    "kind": "component",
+    "props": [
+     "destructive"
+    ]
+   },
+   "DropdownMenuLabel": {
+    "kind": "component"
+   },
+   "DropdownMenuSeparator": {
+    "kind": "component"
+   },
+   "DropdownMenuTrigger": {
+    "kind": "component"
+   },
+   "Field": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "error",
+     "hideLabel",
+     "hint",
+     "id",
+     "label",
+     "optional"
+    ]
+   },
+   "FieldControlProps": {
+    "kind": "type"
+   },
+   "FieldProps": {
+    "kind": "type"
+   },
+   "hotkeyBlocked": {
+    "kind": "function"
+   },
+   "Input": {
+    "kind": "component",
+    "props": [
+     "size"
+    ]
+   },
+   "InputProps": {
+    "kind": "type"
+   },
+   "Kbd": {
+    "kind": "component"
+   },
+   "Label": {
+    "kind": "component"
+   },
+   "Pagination": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onPage",
+     "pageIndex",
+     "pageSize",
+     "total"
+    ]
+   },
+   "Popover": {
+    "kind": "component"
+   },
+   "PopoverAnchor": {
+    "kind": "component"
+   },
+   "PopoverContent": {
+    "kind": "component"
+   },
+   "PopoverTrigger": {
+    "kind": "component"
+   },
+   "prompt": {
+    "kind": "function"
+   },
+   "PromptOptions": {
+    "kind": "type"
+   },
+   "QrCode": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "size",
+     "value"
+    ]
+   },
+   "RadioGroup": {
+    "kind": "component"
+   },
+   "RadioGroupItem": {
+    "kind": "component"
+   },
+   "ScrollFade": {
+    "kind": "component",
+    "props": [
+     "fade",
+     "innerClassName"
+    ]
+   },
+   "ScrollFadeProps": {
+    "kind": "type"
+   },
+   "Select": {
+    "kind": "component",
+    "props": [
+     "aria-describedby",
+     "aria-invalid",
+     "id"
+    ]
+   },
+   "SelectContent": {
+    "kind": "component"
+   },
+   "SelectGroup": {
+    "kind": "component"
+   },
+   "SelectItem": {
+    "kind": "component"
+   },
+   "SelectTrigger": {
+    "kind": "component",
+    "props": [
+     "size"
+    ]
+   },
+   "SelectValue": {
+    "kind": "component"
+   },
+   "Separator": {
+    "kind": "component"
+   },
+   "Sheet": {
+    "kind": "component"
+   },
+   "SheetClose": {
+    "kind": "component"
+   },
+   "SheetContent": {
+    "kind": "component",
+    "props": [
+     "overlayClassName",
+     "side"
+    ]
+   },
+   "SheetDescription": {
+    "kind": "component"
+   },
+   "SheetTitle": {
+    "kind": "component"
+   },
+   "SheetTrigger": {
+    "kind": "component"
+   },
+   "Skeleton": {
+    "kind": "component"
+   },
+   "Slider": {
+    "kind": "component",
+    "props": [
+     "aria-label",
+     "aria-labelledby",
+     "defaultValue",
+     "marks",
+     "onValueChange",
+     "onValueCommit",
+     "value",
+     "valueText"
+    ]
+   },
+   "SliderMark": {
+    "kind": "type"
+   },
+   "SliderProps": {
+    "kind": "type"
+   },
+   "Spinner": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label"
+    ]
+   },
+   "Statement": {
+    "kind": "type"
+   },
+   "Status": {
+    "kind": "type"
+   },
+   "StatusBadge": {
+    "kind": "component",
+    "props": [
+     "status"
+    ]
+   },
+   "StatusBadgeProps": {
+    "kind": "type"
+   },
+   "StatusDot": {
+    "kind": "component",
+    "props": [
+     "className",
+     "pulse",
+     "tone"
+    ]
+   },
+   "StatusPill": {
+    "kind": "component",
+    "props": [
+     "pulse"
+    ]
+   },
+   "statusWord": {
+    "kind": "function"
+   },
+   "Switch": {
+    "kind": "component"
+   },
+   "Tabs": {
+    "kind": "component",
+    "props": [
+     "look"
+    ]
+   },
+   "TabsContent": {
+    "kind": "component",
+    "props": [
+     "keepMounted"
+    ]
+   },
+   "TabsList": {
+    "kind": "component",
+    "props": [
+     "wrap"
+    ]
+   },
+   "TabsTrigger": {
+    "kind": "component"
+   },
+   "Textarea": {
+    "kind": "component"
+   },
+   "toast": {
+    "kind": "function"
+   },
+   "Toaster": {
+    "kind": "component"
+   },
+   "Tooltip": {
+    "kind": "component"
+   },
+   "TooltipContent": {
+    "kind": "component"
+   },
+   "TooltipProvider": {
+    "kind": "component"
+   },
+   "TooltipTrigger": {
+    "kind": "component"
+   },
+   "useDensity": {
+    "kind": "function"
+   },
+   "useHotkey": {
+    "kind": "function"
+   },
+   "useRefusals": {
+    "kind": "function"
+   },
+   "useTimedOut": {
+    "kind": "function"
+   }
+  },
+  "./brand": {
+   "AppIcon": {
+    "kind": "component",
+    "props": [
+     "size",
+     "title"
+    ]
+   },
+   "AppIconProps": {
+    "kind": "type"
+   },
+   "Crowd": {
+    "kind": "component",
+    "props": [
+     "className",
+     "cols",
+     "label",
+     "real",
+     "rows",
+     "seed",
+     "story",
+     "tone"
+    ]
+   },
+   "CrowdProps": {
+    "kind": "type"
+   },
+   "HalftoneCanvas": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "breathe",
+     "className",
+     "density",
+     "fallbackSrc",
+     "ink",
+     "intro",
+     "lens",
+     "style",
+     "tone"
+    ]
+   },
+   "HalftoneCanvasProps": {
+    "kind": "type"
+   },
+   "HalftoneSphere": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "className",
+     "float",
+     "live",
+     "src",
+     "stadium",
+     "style"
+    ]
+   },
+   "HalftoneSphereProps": {
+    "kind": "type"
+   },
+   "IsoCheck": {
+    "kind": "component",
+    "props": [
+     "className",
+     "settle",
+     "shadow",
+     "size",
+     "tilt",
+     "title"
+    ]
+   },
+   "IsoCheckProps": {
+    "kind": "type"
+   },
+   "Lockup": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "nameClassName",
+     "size",
+     "variant"
+    ]
+   },
+   "LockupProps": {
+    "kind": "type"
+   },
+   "Mark": {
+    "kind": "component",
+    "props": [
+     "size",
+     "title"
+    ]
+   },
+   "MARK_FACES": {
+    "kind": "value"
+   },
+   "MarkProps": {
+    "kind": "type"
+   },
+   "portraitTone": {
+    "kind": "function"
+   },
+   "SPHERE_GRADIENT": {
+    "kind": "value"
+   },
+   "Tone": {
+    "kind": "type"
+   }
+  },
+  "./components": {
+   "Accent": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "ActivityItem": {
+    "kind": "type"
+   },
+   "ActivityList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "empty",
+     "items"
+    ]
+   },
+   "AnchorState": {
+    "kind": "type"
+   },
+   "AnchorStatus": {
+    "kind": "component",
+    "props": [
+     "blockHeight",
+     "blockTime",
+     "calendar",
+     "className",
+     "message",
+     "network",
+     "state",
+     "submittedAt",
+     "variant"
+    ]
+   },
+   "ApiRow": {
+    "kind": "type"
+   },
+   "ApiTable": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "nameHeader",
+     "rows"
+    ]
+   },
+   "AppCard": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "href",
+     "line",
+     "name",
+     "protocols",
+     "status"
+    ]
+   },
+   "AppCardProps": {
+    "kind": "type"
+   },
+   "AppGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "group",
+     "sites"
+    ]
+   },
+   "ArtifactView": {
+    "kind": "component",
+    "props": [
+     "className",
+     "content",
+     "defaultView",
+     "filename",
+     "maxLines",
+     "mime",
+     "title"
+    ]
+   },
+   "Avatar": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "seed",
+     "size",
+     "src"
+    ]
+   },
+   "BlockCountdown": {
+    "kind": "component",
+    "props": [
+     "className",
+     "from",
+     "minutesPerBlock",
+     "network",
+     "reached",
+     "target",
+     "tip"
+    ]
+   },
+   "BlockHeight": {
+    "kind": "component",
+    "props": [
+     "className",
+     "height",
+     "label",
+     "link",
+     "network"
+    ]
+   },
+   "Breadcrumbs": {
+    "kind": "component",
+    "props": [
+     "action",
+     "className",
+     "items"
+    ]
+   },
+   "BrowserFrame": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "glow",
+     "style",
+     "url",
+     "variant"
+    ]
+   },
+   "Callout": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "title",
+     "tone"
+    ]
+   },
+   "CardGrid": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "columns"
+    ]
+   },
+   "chartColor": {
+    "kind": "function"
+   },
+   "ChartFrame": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "children",
+     "className",
+     "legend"
+    ]
+   },
+   "ChartTone": {
+    "kind": "type"
+   },
+   "CheckState": {
+    "kind": "type"
+   },
+   "ChoiceCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "description",
+     "disabled",
+     "icon",
+     "title",
+     "value"
+    ]
+   },
+   "ChoiceGroup": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "columns",
+     "disabled",
+     "error",
+     "label",
+     "onValueChange",
+     "size",
+     "value"
+    ]
+   },
+   "ChosenFile": {
+    "kind": "type"
+   },
+   "Closing": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "as",
+     "className",
+     "fineprint",
+     "lead",
+     "title"
+    ]
+   },
+   "CodeBlock": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "caption",
+     "children",
+     "className",
+     "clearAfter",
+     "code",
+     "copy",
+     "diff",
+     "highlight",
+     "html",
+     "lang",
+     "lineNumbers",
+     "maxLines",
+     "trailingNewline",
+     "wrap"
+    ]
+   },
+   "CodeBlockProps": {
+    "kind": "type"
+   },
+   "CodeTab": {
+    "kind": "type"
+   },
+   "CodeTabs": {
+    "kind": "component",
+    "props": [
+     "className",
+     "defaultValue",
+     "items",
+     "maxLines",
+     "syncKey"
+    ]
+   },
+   "Column": {
+    "kind": "type"
+   },
+   "CommandDialog": {
+    "kind": "component",
+    "props": [
+     "className",
+     "debounceMs",
+     "defaultQuery",
+     "hotkey",
+     "idle",
+     "label",
+     "onOpenChange",
+     "onQuery",
+     "onSelect",
+     "open",
+     "placeholder"
+    ]
+   },
+   "ComparisonColumn": {
+    "kind": "type"
+   },
+   "ComparisonRow": {
+    "kind": "type"
+   },
+   "ComparisonTable": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns",
+     "label",
+     "propertyHeading",
+     "rows"
+    ]
+   },
+   "Container": {
+    "kind": "component"
+   },
+   "CopyButton": {
+    "kind": "component",
+    "props": [
+     "className",
+     "clearAfter",
+     "label",
+     "onCopied",
+     "onError",
+     "showLabel",
+     "value",
+     "variant"
+    ]
+   },
+   "CopyButtonProps": {
+    "kind": "type"
+   },
+   "CountdownRing": {
+    "kind": "component",
+    "props": [
+     "className",
+     "period",
+     "remaining",
+     "showSeconds",
+     "size",
+     "warnAt"
+    ]
+   },
+   "createStateBadge": {
+    "kind": "function"
+   },
+   "Crumb": {
+    "kind": "type"
+   },
+   "DataTable": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "columns",
+     "dense",
+     "empty",
+     "linkColumn",
+     "onRowSelect",
+     "phone",
+     "rowHref",
+     "rowKey",
+     "rows"
+    ]
+   },
+   "Diagram": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "chart",
+     "className",
+     "load",
+     "size"
+    ]
+   },
+   "Display": {
+    "kind": "component",
+    "props": [
+     "as",
+     "level"
+    ]
+   },
+   "DisplayProps": {
+    "kind": "type"
+   },
+   "DocHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "children",
+     "className",
+     "eyebrow",
+     "lead",
+     "meta",
+     "title"
+    ]
+   },
+   "DocLayout": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "header",
+     "toc"
+    ]
+   },
+   "DocsHeading": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "DocsPager": {
+    "kind": "component",
+    "props": [
+     "className",
+     "next",
+     "prev"
+    ]
+   },
+   "DropZone": {
+    "kind": "component",
+    "props": [
+     "accept",
+     "className",
+     "disabled",
+     "error",
+     "file",
+     "hint",
+     "onClear",
+     "onFile",
+     "onText",
+     "privacy",
+     "progress",
+     "progressLabel",
+     "title"
+    ]
+   },
+   "EmptyLine": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "EmptyState": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "icon",
+     "title"
+    ]
+   },
+   "Endpoint": {
+    "kind": "type"
+   },
+   "EndpointList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "label"
+    ]
+   },
+   "ErrorBoundary": {
+    "kind": "value"
+   },
+   "ErrorPage": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "className",
+     "code",
+     "detail",
+     "home",
+     "protocol",
+     "title"
+    ]
+   },
+   "Eyebrow": {
+    "kind": "component",
+    "props": [
+     "onInk"
+    ]
+   },
+   "FactBlock": {
+    "kind": "component",
+    "props": [
+     "as",
+     "aside",
+     "children",
+     "className",
+     "description",
+     "id",
+     "title"
+    ]
+   },
+   "FactRow": {
+    "kind": "type"
+   },
+   "FactRows": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "columns",
+     "label",
+     "rows"
+    ]
+   },
+   "Faq": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "variant"
+    ]
+   },
+   "FilterChips": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "multiple",
+     "onChange",
+     "options",
+     "value"
+    ]
+   },
+   "FilterOption": {
+    "kind": "type"
+   },
+   "FloatChip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "delay",
+     "detail",
+     "icon",
+     "style",
+     "title"
+    ]
+   },
+   "Footnote": {
+    "kind": "component"
+   },
+   "FormSection": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "hint",
+     "id",
+     "n",
+     "status",
+     "title"
+    ]
+   },
+   "Frame": {
+    "kind": "component",
+    "props": [
+     "as",
+     "padded"
+    ]
+   },
+   "FrameProps": {
+    "kind": "type"
+   },
+   "HashChip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "copy",
+     "explorer",
+     "head",
+     "href",
+     "network",
+     "tail",
+     "value"
+    ]
+   },
+   "HudCard": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "eyebrow",
+     "footer",
+     "live",
+     "title"
+    ]
+   },
+   "InstallTabs": {
+    "kind": "component",
+    "props": [
+     "className",
+     "dev",
+     "pkg"
+    ]
+   },
+   "KeyValueItem": {
+    "kind": "type"
+   },
+   "KeyValueList": {
+    "kind": "component",
+    "props": [
+     "className",
+     "dense",
+     "items"
+    ]
+   },
+   "languageName": {
+    "kind": "function"
+   },
+   "Lead": {
+    "kind": "component"
+   },
+   "LegalBlock": {
+    "kind": "type"
+   },
+   "LegalDocument": {
+    "kind": "component",
+    "props": [
+     "className",
+     "doc"
+    ]
+   },
+   "LegalSource": {
+    "kind": "type"
+   },
+   "LegendItem": {
+    "kind": "type"
+   },
+   "LinkCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "description",
+     "href",
+     "icon",
+     "meta",
+     "title"
+    ]
+   },
+   "ListCard": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "ListRow": {
+    "kind": "component",
+    "props": [
+     "action",
+     "actions",
+     "as",
+     "className",
+     "current",
+     "description",
+     "detail",
+     "eyebrow",
+     "href",
+     "leading",
+     "lines",
+     "meta",
+     "onSelect",
+     "revealActions",
+     "size",
+     "stackBelow",
+     "title",
+     "trailing",
+     "unread",
+     "variant"
+    ]
+   },
+   "LoadError": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "onRetry",
+     "retryLabel",
+     "rows",
+     "title"
+    ]
+   },
+   "LoadingBlock": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onRetry",
+     "rows",
+     "timeoutMs"
+    ]
+   },
+   "LockedPreview": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "children",
+     "className",
+     "description",
+     "title"
+    ]
+   },
+   "MdxTable": {
+    "kind": "component"
+   },
+   "MermaidLike": {
+    "kind": "type"
+   },
+   "MermaidLoader": {
+    "kind": "type"
+   },
+   "Meter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "figure",
+     "ghost",
+     "label",
+     "max",
+     "size",
+     "tone",
+     "value"
+    ]
+   },
+   "Monogram": {
+    "kind": "component",
+    "props": [
+     "className",
+     "name",
+     "seed",
+     "size",
+     "style"
+    ]
+   },
+   "monogramGround": {
+    "kind": "function"
+   },
+   "monogramLetter": {
+    "kind": "function"
+   },
+   "MonoLabel": {
+    "kind": "component",
+    "props": [
+     "as",
+     "mark"
+    ]
+   },
+   "MonoLabelProps": {
+    "kind": "type"
+   },
+   "Notice": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "icon",
+     "role",
+     "title",
+     "tone"
+    ]
+   },
+   "OnThisPage": {
+    "kind": "component",
+    "props": [
+     "activeId",
+     "className",
+     "items",
+     "onNavigate",
+     "title"
+    ]
+   },
+   "PackageCard": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "items"
+    ]
+   },
+   "PackageItem": {
+    "kind": "type"
+   },
+   "PageFrame": {
+    "kind": "component",
+    "props": [
+     "as"
+    ]
+   },
+   "PageHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "className",
+     "description",
+     "eyebrow",
+     "title"
+    ]
+   },
+   "PageHero": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "children",
+     "className",
+     "eyebrow",
+     "ground",
+     "layout",
+     "lead",
+     "meta",
+     "rule",
+     "size",
+     "title",
+     "variant"
+    ]
+   },
+   "PageHeroProps": {
+    "kind": "type"
+   },
+   "PagerLink": {
+    "kind": "type"
+   },
+   "Panel": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "as",
+     "children",
+     "className",
+     "description",
+     "expandable",
+     "source",
+     "title"
+    ]
+   },
+   "PhoneFrame": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "style"
+    ]
+   },
+   "PlanCard": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "badge",
+     "badgeTone",
+     "className",
+     "features",
+     "footnote",
+     "highlight",
+     "name",
+     "period",
+     "price",
+     "subtitle"
+    ]
+   },
+   "ProgressStep": {
+    "kind": "type"
+   },
+   "ProgressSteps": {
+    "kind": "component",
+    "props": [
+     "className",
+     "steps"
+    ]
+   },
+   "ProofStrip": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items"
+    ]
+   },
+   "Prose": {
+    "kind": "component"
+   },
+   "ProtocolGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "link",
+     "protocols"
+    ]
+   },
+   "ProtocolHero": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "art",
+     "children",
+     "className",
+     "lead",
+     "protocol",
+     "title"
+    ]
+   },
+   "ProtocolNav": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current",
+     "link"
+    ]
+   },
+   "Reveal": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "className",
+     "delay",
+     "style"
+    ]
+   },
+   "Sats": {
+    "kind": "component",
+    "props": [
+     "compact",
+     "signed",
+     "unit",
+     "unknown",
+     "value"
+    ]
+   },
+   "SatsFigure": {
+    "kind": "component",
+    "props": [
+     "className",
+     "hint",
+     "label",
+     "size",
+     "value"
+    ]
+   },
+   "SatsProps": {
+    "kind": "type"
+   },
+   "satsText": {
+    "kind": "function"
+   },
+   "SatsTextOptions": {
+    "kind": "type"
+   },
+   "ScrollStory": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "innerClassName",
+     "length"
+    ]
+   },
+   "SearchButton": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "onClick"
+    ]
+   },
+   "SearchDialog": {
+    "kind": "component",
+    "props": [
+     "browse",
+     "button",
+     "className",
+     "debounceMs",
+     "defaultQuery",
+     "hotkey",
+     "idle",
+     "label",
+     "onOpenChange",
+     "onQuery",
+     "onSelect",
+     "open",
+     "placeholder"
+    ]
+   },
+   "SearchDialogProps": {
+    "kind": "type"
+   },
+   "SearchGroup": {
+    "kind": "type"
+   },
+   "SearchQuery": {
+    "kind": "type"
+   },
+   "SearchResult": {
+    "kind": "type"
+   },
+   "Section": {
+    "kind": "component",
+    "props": [
+     "contained",
+     "frameClassName",
+     "framed",
+     "rule",
+     "space",
+     "tone"
+    ]
+   },
+   "SectionBar": {
+    "kind": "component",
+    "props": [
+     "as",
+     "end",
+     "start"
+    ]
+   },
+   "SectionBarProps": {
+    "kind": "type"
+   },
+   "SectionHeading": {
+    "kind": "component",
+    "props": [
+     "align",
+     "as",
+     "className",
+     "eyebrow",
+     "id",
+     "lead",
+     "level",
+     "onInk",
+     "reveal",
+     "title"
+    ]
+   },
+   "SectionIntro": {
+    "kind": "component",
+    "props": [
+     "align",
+     "reveal"
+    ]
+   },
+   "SectionProps": {
+    "kind": "type"
+   },
+   "SectionStatus": {
+    "kind": "type"
+   },
+   "SectionTitle": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "className",
+     "description",
+     "id",
+     "meta",
+     "size",
+     "title",
+     "tone"
+    ]
+   },
+   "sectionVariants": {
+    "kind": "function"
+   },
+   "SignMessage": {
+    "kind": "component",
+    "props": [
+     "address",
+     "busy",
+     "className",
+     "error",
+     "lead",
+     "message",
+     "onSignature",
+     "scheme",
+     "secondary",
+     "submitLabel",
+     "wallets"
+    ]
+   },
+   "SourceNote": {
+    "kind": "component",
+    "props": [
+     "className",
+     "detail",
+     "href",
+     "source",
+     "updated",
+     "variant"
+    ]
+   },
+   "SourceNoteProps": {
+    "kind": "type"
+   },
+   "Sparkline": {
+    "kind": "component",
+    "props": [
+     "area",
+     "className",
+     "height",
+     "label",
+     "tone",
+     "values",
+     "width"
+    ]
+   },
+   "SpecCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "protocol",
+     "repo",
+     "version"
+    ]
+   },
+   "SpecCardProps": {
+    "kind": "type"
+   },
+   "SpecFileKind": {
+    "kind": "type"
+   },
+   "SplitBar": {
+    "kind": "component",
+    "props": [
+     "caption",
+     "className",
+     "segments"
+    ]
+   },
+   "SplitSegment": {
+    "kind": "type"
+   },
+   "StatCard": {
+    "kind": "component",
+    "props": [
+     "className",
+     "delta",
+     "hint",
+     "label",
+     "raw",
+     "size",
+     "value"
+    ]
+   },
+   "StatCardProps": {
+    "kind": "type"
+   },
+   "StateBadge": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "title",
+     "tone"
+    ]
+   },
+   "StateDef": {
+    "kind": "type"
+   },
+   "StateTone": {
+    "kind": "type"
+   },
+   "StatGrid": {
+    "kind": "component",
+    "props": [
+     "columns",
+     "empty",
+     "isEmpty"
+    ]
+   },
+   "StatGridProps": {
+    "kind": "type"
+   },
+   "StatItem": {
+    "kind": "type"
+   },
+   "StatRow": {
+    "kind": "component",
+    "props": [
+     "columns",
+     "items",
+     "size"
+    ]
+   },
+   "StatRowProps": {
+    "kind": "type"
+   },
+   "Step": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "id",
+     "title"
+    ]
+   },
+   "StepGrid": {
+    "kind": "component",
+    "props": [
+     "className",
+     "items",
+     "look"
+    ]
+   },
+   "StepGridProps": {
+    "kind": "type"
+   },
+   "StepItem": {
+    "kind": "type"
+   },
+   "Steps": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "StepState": {
+    "kind": "type"
+   },
+   "TextLink": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "external",
+     "href",
+     "standalone"
+    ]
+   },
+   "Ticker": {
+    "kind": "component",
+    "props": [
+     "className",
+     "duration",
+     "format",
+     "value"
+    ]
+   },
+   "TocItem": {
+    "kind": "type"
+   },
+   "ToolGrid": {
+    "kind": "component",
+    "props": [
+     "as",
+     "className",
+     "tools"
+    ]
+   },
+   "ToolItem": {
+    "kind": "type"
+   },
+   "TruthRow": {
+    "kind": "type"
+   },
+   "TruthStatus": {
+    "kind": "type"
+   },
+   "TruthTable": {
+    "kind": "component",
+    "props": [
+     "className",
+     "rows",
+     "statusHeading",
+     "whatHeading"
+    ]
+   },
+   "UsdApprox": {
+    "kind": "component",
+    "props": [
+     "className",
+     "sats",
+     "usdPerBtc"
+    ]
+   },
+   "useActiveHeading": {
+    "kind": "function"
+   },
+   "useCopy": {
+    "kind": "function"
+   },
+   "useHeadings": {
+    "kind": "function"
+   },
+   "useInView": {
+    "kind": "function"
+   },
+   "ValueTone": {
+    "kind": "type"
+   },
+   "VerifyBox": {
+    "kind": "component",
+    "props": [
+     "action",
+     "as",
+     "className",
+     "description",
+     "hint",
+     "label",
+     "multiline",
+     "onVerify",
+     "param",
+     "placeholder",
+     "submitLabel",
+     "title"
+    ]
+   },
+   "VerifyCheck": {
+    "kind": "type"
+   },
+   "VerifyReport": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "as",
+     "checks",
+     "className",
+     "facts",
+     "notChecked",
+     "summary",
+     "title",
+     "verdict"
+    ]
+   }
+  },
+  "./chrome": {
+   "AccountCta": {
+    "kind": "component",
+    "props": [
+     "className",
+     "href"
+    ]
+   },
+   "AccountMenu": {
+    "kind": "component",
+    "props": [
+     "detail",
+     "items",
+     "name",
+     "nameFrom",
+     "onOpenChange"
+    ]
+   },
+   "AccountMenuItem": {
+    "kind": "type"
+   },
+   "AppShell": {
+    "kind": "component",
+    "props": [
+     "account",
+     "activeSection",
+     "banner",
+     "children",
+     "className",
+     "family",
+     "footer",
+     "header",
+     "home",
+     "nav",
+     "page",
+     "persistent",
+     "product",
+     "sections",
+     "variant"
+    ]
+   },
+   "AppShellProps": {
+    "kind": "type"
+   },
+   "DOCS_HEADER_NAV": {
+    "kind": "value"
+   },
+   "DocsNav": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current",
+     "onNavigate",
+     "sections"
+    ]
+   },
+   "DocsNavItem": {
+    "kind": "type"
+   },
+   "DocsNavSection": {
+    "kind": "type"
+   },
+   "DocsShell": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "breadcrumbs",
+     "children",
+     "cta",
+     "current",
+     "footer",
+     "header",
+     "nav",
+     "navCurrent",
+     "pager",
+     "search",
+     "signIn",
+     "toc"
+    ]
+   },
+   "DocsShellProps": {
+    "kind": "type"
+   },
+   "FamilyMenu": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current"
+    ]
+   },
+   "FooterColumn": {
+    "kind": "type"
+   },
+   "NavItem": {
+    "kind": "type"
+   },
+   "OCHK_APP_ACCOUNT": {
+    "kind": "value"
+   },
+   "OchkIoFooter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns"
+    ]
+   },
+   "PaneHeader": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className"
+    ]
+   },
+   "SessionAccountView": {
+    "kind": "component",
+    "props": [
+     "accountHref",
+     "detail",
+     "items",
+     "name",
+     "nameFrom",
+     "onMenuOpenChange",
+     "onSignOut",
+     "signInHref",
+     "signInLabel",
+     "signInPath",
+     "signInVariant",
+     "signOutRefused",
+     "state"
+    ]
+   },
+   "SessionState": {
+    "kind": "type"
+   },
+   "ShellContext": {
+    "kind": "component"
+   },
+   "ShellNavGroup": {
+    "kind": "type"
+   },
+   "ShellNavItem": {
+    "kind": "type"
+   },
+   "ShellPlace": {
+    "kind": "type"
+   },
+   "ShellSection": {
+    "kind": "type"
+   },
+   "SignInFrame": {
+    "kind": "component",
+    "props": [
+     "art",
+     "back",
+     "brand",
+     "caption",
+     "children",
+     "className",
+     "error",
+     "fineprint",
+     "home",
+     "lead",
+     "product",
+     "protocol",
+     "title"
+    ]
+   },
+   "SiteBanner": {
+    "kind": "component",
+    "props": [
+     "action",
+     "children",
+     "className",
+     "tone"
+    ]
+   },
+   "SiteFooter": {
+    "kind": "component",
+    "props": [
+     "className",
+     "columns",
+     "compact",
+     "family",
+     "fineprint",
+     "legal",
+     "meta",
+     "signature"
+    ]
+   },
+   "SiteFooterProps": {
+    "kind": "type"
+   },
+   "SiteHeader": {
+    "kind": "component",
+    "props": [
+     "actions",
+     "brand",
+     "className",
+     "cta",
+     "family",
+     "home",
+     "menu",
+     "nav",
+     "navOnPhone",
+     "product",
+     "search",
+     "signIn",
+     "variant"
+    ]
+   },
+   "SiteHeaderProps": {
+    "kind": "type"
+   },
+   "SkipLink": {
+    "kind": "component",
+    "props": [
+     "children",
+     "href"
+    ]
+   },
+   "ThemeProvider": {
+    "kind": "component"
+   },
+   "ThemeProviderProps": {
+    "kind": "type"
+   },
+   "ThemeToggle": {
+    "kind": "component",
+    "props": [
+     "className"
+    ]
+   },
+   "ToolColumn": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "measure"
+    ]
+   },
+   "ToolShell": {
+    "kind": "component",
+    "props": [
+     "account",
+     "banner",
+     "children",
+     "footer",
+     "home",
+     "measure",
+     "protocol",
+     "rail",
+     "railFooter",
+     "tools",
+     "variant"
+    ]
+   },
+   "ToolShellProps": {
+    "kind": "type"
+   },
+   "useFamilySignInHref": {
+    "kind": "function"
+   },
+   "useShellPlace": {
+    "kind": "function"
+   },
+   "useSignInHref": {
+    "kind": "function"
+   },
+   "useTheme": {
+    "kind": "function"
+   }
+  },
+  "./family": {
+   "DOCS_HREF": {
+    "kind": "value"
+   },
+   "FAMILY": {
+    "kind": "value"
+   },
+   "FAMILY_GROUPS": {
+    "kind": "value"
+   },
+   "familyByGroup": {
+    "kind": "function"
+   },
+   "FamilyGroup": {
+    "kind": "type"
+   },
+   "familySite": {
+    "kind": "function"
+   },
+   "FamilySite": {
+    "kind": "type"
+   },
+   "FamilySlug": {
+    "kind": "type"
+   },
+   "GET_AN_ACCOUNT": {
+    "kind": "value"
+   },
+   "LEGAL_LINKS": {
+    "kind": "value"
+   },
+   "OCHK_APP": {
+    "kind": "value"
+   },
+   "OCHK_IO": {
+    "kind": "value"
+   },
+   "OCHK_IO_FOOTER": {
+    "kind": "value"
+   },
+   "OCHK_IO_NAV": {
+    "kind": "value"
+   },
+   "PROTOCOL_ORDER": {
+    "kind": "value"
+   },
+   "PROTOCOLS": {
+    "kind": "value"
+   },
+   "protocolSite": {
+    "kind": "function"
+   },
+   "ProtocolSite": {
+    "kind": "type"
+   },
+   "ProtocolSlug": {
+    "kind": "type"
+   },
+   "SELF_HOSTED_LEGAL_LINKS": {
+    "kind": "value"
+   },
+   "selfHostedLegalLinks": {
+    "kind": "function"
+   },
+   "SIGN_IN_LABEL": {
+    "kind": "value"
+   },
+   "SiteStatus": {
+    "kind": "type"
+   }
+  },
+  "./code": {
+   "CODE_LANGS": {
+    "kind": "value"
+   },
+   "CodeLine": {
+    "kind": "type"
+   },
+   "CodeMeta": {
+    "kind": "type"
+   },
+   "DiffMark": {
+    "kind": "type"
+   },
+   "escapeHtml": {
+    "kind": "function"
+   },
+   "grammarOf": {
+    "kind": "function"
+   },
+   "highlight": {
+    "kind": "function"
+   },
+   "highlightToHtml": {
+    "kind": "function"
+   },
+   "LineMarks": {
+    "kind": "type"
+   },
+   "linesToHtml": {
+    "kind": "function"
+   },
+   "parseCodeMeta": {
+    "kind": "function"
+   },
+   "parseLineRanges": {
+    "kind": "function"
+   },
+   "readDiff": {
+    "kind": "function"
+   },
+   "rehypeCode": {
+    "kind": "function"
+   },
+   "RehypeCodeOptions": {
+    "kind": "type"
+   },
+   "Token": {
+    "kind": "type"
+   },
+   "TOKEN_CLASS": {
+    "kind": "value"
+   },
+   "TokenKind": {
+    "kind": "type"
+   }
+  },
+  "./format": {
+   "blocksToDuration": {
+    "kind": "function"
+   },
+   "ExplorerKind": {
+    "kind": "type"
+   },
+   "explorerUrl": {
+    "kind": "function"
+   },
+   "failureText": {
+    "kind": "function"
+   },
+   "FailureTextOptions": {
+    "kind": "type"
+   },
+   "formatBlockHeight": {
+    "kind": "function"
+   },
+   "formatBytes": {
+    "kind": "function"
+   },
+   "formatUtc": {
+    "kind": "function"
+   },
+   "Network": {
+    "kind": "type"
+   },
+   "OFFLINE_TEXT": {
+    "kind": "value"
+   },
+   "shortenMiddle": {
+    "kind": "function"
+   },
+   "wordFor": {
+    "kind": "function"
+   }
+  },
+  "./mdx": {
+   "createMdxComponents": {
+    "kind": "function"
+   },
+   "MdxComponentMap": {
+    "kind": "type"
+   },
+   "mdxComponents": {
+    "kind": "value"
+   },
+   "MdxOptions": {
+    "kind": "type"
+   }
+  },
+  "./session": {
+   "accountName": {
+    "kind": "function"
+   },
+   "SessionAccount": {
+    "kind": "component",
+    "props": [
+     "accountHref",
+     "items",
+     "nameFrom",
+     "signInHref",
+     "signInLabel",
+     "signInPath",
+     "signInVariant"
+    ]
+   },
+   "SessionAccountView": {
+    "kind": "component",
+    "props": [
+     "accountHref",
+     "detail",
+     "items",
+     "name",
+     "nameFrom",
+     "onMenuOpenChange",
+     "onSignOut",
+     "signInHref",
+     "signInLabel",
+     "signInPath",
+     "signInVariant",
+     "signOutRefused",
+     "state"
+    ]
+   },
+   "SessionState": {
+    "kind": "type"
+   }
+  },
+  "./acknowledgement": {
+   "Acknowledgement": {
+    "kind": "component",
+    "props": [
+     "className",
+     "onBrand"
+    ]
+   }
+  },
+  "./vitest": {
+   "appDesignVitest": {
+    "kind": "function"
+   },
+   "AppDesignVitest": {
+    "kind": "type"
+   }
+  },
+  "./fonts": {
+   "FONT_FILES": {
+    "kind": "value"
+   },
+   "FontPreloads": {
+    "kind": "component",
+    "props": [
+     "mono"
+    ]
+   }
+  },
+  "./blocks": {
+   "BentoGrid": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "columns"
+    ]
+   },
+   "BentoTile": {
+    "kind": "component",
+    "props": [
+     "art",
+     "children",
+     "className",
+     "footer",
+     "halftone",
+     "label",
+     "numeral",
+     "rows",
+     "span",
+     "title",
+     "tone"
+    ]
+   },
+   "BentoTileProps": {
+    "kind": "type"
+   },
+   "BentoTone": {
+    "kind": "type"
+   },
+   "CostBar": {
+    "kind": "type"
+   },
+   "CostDemo": {
+    "kind": "component",
+    "props": [
+     "accounts",
+     "amountText",
+     "amountTick",
+     "amounts",
+     "className",
+     "cost",
+     "dayStops",
+     "dayText",
+     "dayTick",
+     "defaultAmountIndex",
+     "defaultDayIndex",
+     "labels",
+     "onChange",
+     "person",
+     "tone"
+    ]
+   },
+   "CostDemoLabels": {
+    "kind": "type"
+   },
+   "CostDemoProps": {
+    "kind": "type"
+   },
+   "costText": {
+    "kind": "function"
+   },
+   "DitherMark": {
+    "kind": "component",
+    "props": [
+     "className",
+     "ground",
+     "size",
+     "sizes",
+     "title"
+    ]
+   },
+   "DitherMarkProps": {
+    "kind": "type"
+   },
+   "PathStep": {
+    "kind": "type"
+   },
+   "ReceiptCard": {
+    "kind": "component",
+    "props": [
+     "action",
+     "caption",
+     "className",
+     "facts",
+     "footer",
+     "label",
+     "rows",
+     "split",
+     "title",
+     "unit"
+    ]
+   },
+   "ReceiptCardProps": {
+    "kind": "type"
+   },
+   "ReceiptRow": {
+    "kind": "type"
+   },
+   "ReceiptSplit": {
+    "kind": "type"
+   },
+   "SignInDemo": {
+    "kind": "component",
+    "props": [
+     "className",
+     "label",
+     "stepWords",
+     "steps",
+     "stepsLabel",
+     "success",
+     "tryAgain",
+     "url"
+    ]
+   },
+   "SignInDemoCopy": {
+    "kind": "type"
+   },
+   "SignInDemoProps": {
+    "kind": "type"
+   },
+   "SignInDemoScreen": {
+    "kind": "type"
+   },
+   "SignInDemoScreenState": {
+    "kind": "type"
+   },
+   "SignInDemoStep": {
+    "kind": "type"
+   },
+   "signInDemoSteps": {
+    "kind": "function"
+   },
+   "Slider": {
+    "kind": "component",
+    "props": [
+     "aria-label",
+     "aria-labelledby",
+     "defaultValue",
+     "marks",
+     "onValueChange",
+     "onValueCommit",
+     "value",
+     "valueText"
+    ]
+   },
+   "SliderMark": {
+    "kind": "type"
+   },
+   "SliderProps": {
+    "kind": "type"
+   },
+   "StepPath": {
+    "kind": "component",
+    "props": [
+     "className",
+     "current",
+     "stateWords",
+     "steps"
+    ]
+   },
+   "StepPathProps": {
+    "kind": "type"
+   }
+  },
+  "./og": {
+   "OG_SIZE": {
+    "kind": "value"
+   },
+   "ogArt": {
+    "kind": "value"
+   },
+   "OgBento": {
+    "kind": "component",
+    "props": [
+     "hero",
+     "row",
+     "size",
+     "top",
+     "wide"
+    ]
+   },
+   "ogBentoGrid": {
+    "kind": "function"
+   },
+   "OgBentoProps": {
+    "kind": "type"
+   },
+   "OgCard": {
+    "kind": "component",
+    "props": [
+     "art",
+     "eyebrow",
+     "host",
+     "mark",
+     "product",
+     "title",
+     "tone"
+    ]
+   },
+   "OgCardProps": {
+    "kind": "type"
+   },
+   "ogFonts": {
+    "kind": "function"
+   },
+   "OgImage": {
+    "kind": "type"
+   },
+   "OgTile": {
+    "kind": "type"
+   },
+   "OgTileTone": {
+    "kind": "type"
+   },
+   "OgTone": {
+    "kind": "type"
+   },
+   "SOCIAL_SIZE": {
+    "kind": "value"
+   }
+  },
+  "./motion": {
+   "bustPoints": {
+    "kind": "function"
+   },
+   "Callout": {
+    "kind": "type"
+   },
+   "CrowdDissolve": {
+    "kind": "component",
+    "props": [
+     "className",
+     "cols",
+     "label",
+     "progress",
+     "real",
+     "rows",
+     "seed",
+     "style",
+     "tone"
+    ]
+   },
+   "CrowdDissolveProps": {
+    "kind": "type"
+   },
+   "deckPortraitPoints": {
+    "kind": "function"
+   },
+   "decodePoints": {
+    "kind": "function"
+   },
+   "DitherImage": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "className",
+     "dark",
+     "height",
+     "light",
+     "pixel",
+     "sizes",
+     "src",
+     "srcSet",
+     "style",
+     "tone",
+     "width"
+    ]
+   },
+   "DitherImageProps": {
+    "kind": "type"
+   },
+   "fetchPoints": {
+    "kind": "function"
+   },
+   "Marquee": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "labels",
+     "speed",
+     "style"
+    ]
+   },
+   "MarqueeProps": {
+    "kind": "type"
+   },
+   "MiniCheck": {
+    "kind": "component",
+    "props": [
+     "className",
+     "playKey",
+     "size",
+     "style",
+     "title"
+    ]
+   },
+   "MiniCheckProps": {
+    "kind": "type"
+   },
+   "ParticlePortrait": {
+    "kind": "component",
+    "props": [
+     "alt",
+     "callouts",
+     "className",
+     "ground",
+     "labels",
+     "lens",
+     "points",
+     "poster",
+     "style"
+    ]
+   },
+   "ParticlePortraitProps": {
+    "kind": "type"
+   },
+   "ParticleText": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "className",
+     "repel",
+     "step",
+     "style"
+    ]
+   },
+   "ParticleTextProps": {
+    "kind": "type"
+   },
+   "Points": {
+    "kind": "type"
+   },
+   "PORTRAIT_ANCHORS": {
+    "kind": "value"
+   },
+   "Reveal": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "className",
+     "delay",
+     "style"
+    ]
+   },
+   "Scene": {
+    "kind": "type"
+   },
+   "schedule": {
+    "kind": "function"
+   },
+   "ScrollStory": {
+    "kind": "component",
+    "props": [
+     "children",
+     "className",
+     "innerClassName",
+     "length"
+    ]
+   },
+   "StackCards": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "top"
+    ]
+   },
+   "StackCardsProps": {
+    "kind": "type"
+   },
+   "StorySwap": {
+    "kind": "component",
+    "props": [
+     "after",
+     "at",
+     "before",
+     "className",
+     "style"
+    ]
+   },
+   "StorySwapProps": {
+    "kind": "type"
+   },
+   "Ticker": {
+    "kind": "component",
+    "props": [
+     "className",
+     "duration",
+     "format",
+     "value"
+    ]
+   },
+   "Ticket": {
+    "kind": "type"
+   },
+   "unpackPoints": {
+    "kind": "function"
+   },
+   "watchStory": {
+    "kind": "function"
+   },
+   "Wipe": {
+    "kind": "component",
+    "props": [
+     "as",
+     "children",
+     "delay",
+     "from"
+    ]
+   },
+   "WipeProps": {
+    "kind": "type"
+   }
+  }
+ }
+}

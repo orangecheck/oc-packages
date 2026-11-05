@@ -50,7 +50,12 @@ export interface PageHeroProps {
 
 const GROUND = { paper: 'canvas', ink: 'ink', brand: 'brand' } as const;
 
-/** A page's CTA pair, a hero's and the closing band's: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at their own widths. */
+/**
+ * A page's CTA pair: on a phone a column, so each action stretches to its full width, in DOM order; from sm a row at
+ * their own widths. PageHero, DocHeader, ErrorPage and Closing draw their actions in it, and a site draws any other
+ * pair in it too (`cn('mt-8', HERO_ACTIONS)`), so every CTA pair on a page follows one rule. check-render fails
+ * if a block draws its own row.
+ */
 export const HERO_ACTIONS = 'flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap';
 
 export function PageHero({

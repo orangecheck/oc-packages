@@ -267,7 +267,8 @@ for (const [mode, vars, behind] of [
 // Every text token it names clears 4.5:1 on its ground and its ring 3:1, in light
 // and dark, so an outline button on the orange band can't be drawn in paper again.
 {
-    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8');
+    // Without its comments, so a brace in one cannot end an @utility block early.
+    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const utilities = Object.fromEntries([...theme.matchAll(/@utility (oca-(?:band|on)-[a-z]+) \{([^}]*)\}/g)].map((m) => [m[1], m[2]]));
     // A band's own block with the oca-on-* it applies.
     const resolved = (body) => body + [...body.matchAll(/@apply ([a-z0-9- ]+);/g)].flatMap((m) => m[1].split(/\s+/)).map((u) => utilities[u] ?? '').join('\n');
@@ -403,7 +404,8 @@ for (const [mode, vars] of [
 const census = { strings: 0, pairs: 0 };
 {
     const { readdirSync, statSync } = await import('node:fs');
-    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8');
+    // Without its comments, so a brace in one cannot end an @utility block early.
+    const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const colorVar = Object.fromEntries([...theme.matchAll(/--color-([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
     const FIXED = { white: '#ffffff', black: '#000000' };
     const files = [];
