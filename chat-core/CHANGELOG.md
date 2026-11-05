@@ -6,7 +6,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
-## [Unreleased]
+## [0.2.4] — 2026-11-05
 
 - `readChannelVersions` returns `incomplete: true` when a relay fills a role
   holder's key read to its page of 500, the founder's keys under the channel's
