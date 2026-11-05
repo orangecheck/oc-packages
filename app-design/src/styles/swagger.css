@@ -240,6 +240,37 @@
     }
 }
 
+/* Three of Swagger's own targets are text, not buttons: a schema's "Expand all"
+   (62x14), an operation's path link (130x18 at 390) and the licence link (24x27,
+   "MIT"). A pseudo-element centred on each makes the target, so no row moves:
+   24px to a mouse for Expand all, which was under 2.5.8's floor, and 44 to a
+   thumb for all three (attest's /api-explorer at 390). */
+[data-oc-app='ochk'] .swagger-ui :is(.json-schema-2020-12-expand-deep-button, .opblock-summary-path a.nostyle, .info a) {
+    position: relative;
+}
+[data-oc-app='ochk'] .swagger-ui .json-schema-2020-12-expand-deep-button::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    min-width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+}
+@media (pointer: coarse) {
+    [data-oc-app='ochk'] .swagger-ui :is(.json-schema-2020-12-expand-deep-button, .opblock-summary-path a.nostyle, .info a)::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 100%;
+        min-width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+}
+
 /* The operation lock drew at 40% black when open: 2.8:1 on a tinted row in
    light, 1.1:1 in dark. It takes the muted ink in both modes, open or shut;
    the glyph says which. A parameter's place ("path") was grey at 3.5:1 and

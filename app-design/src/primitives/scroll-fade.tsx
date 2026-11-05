@@ -19,9 +19,12 @@ export interface ScrollFadeProps extends HTMLAttributes<HTMLDivElement> {
     label?: string;
 }
 
-/** The text of the nearest heading before an element, in reading order. */
-// A heading's own words: not its link to itself (a docs heading's "#", read "Link to this section") or what it
-// hides from a screen reader. A heading that is all link (an autolinked one) keeps that link's words.
+const HEADINGS = 'h1, h2, h3, h4, h5, h6';
+const SECTIONS = 'section, article, main, aside, nav';
+
+// A heading's own words: not its link to itself (a docs heading's "#", read "Link to this section"), a "#" left
+// at its end as text, or what it hides from a screen reader. A heading that is all link (an autolinked one) keeps
+// that link's words.
 function headingText(h: Element): string | undefined {
     const own = h.cloneNode(true) as Element;
     own.querySelectorAll('a[href^="#"], [aria-hidden="true"]').forEach((n) => n.remove());
@@ -29,10 +32,16 @@ function headingText(h: Element): string | undefined {
     return words(own) || words(h) || undefined;
 }
 
+/**
+ * The text of the nearest heading before an element in its own section, in reading order: never one past the
+ * section, article, main, aside or nav it sits in, nor one inside an earlier section of its own, which names that.
+ */
 function headingBefore(el: Element): string | undefined {
     for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
+        if (node !== el && node.matches(SECTIONS)) break;
         for (let sib = node.previousElementSibling; sib; sib = sib.previousElementSibling) {
-            const h = sib.matches('h1, h2, h3, h4, h5, h6') ? sib : [...sib.querySelectorAll('h1, h2, h3, h4, h5, h6')].pop();
+            const own = sib.matches(SECTIONS) ? [] : [...sib.querySelectorAll(HEADINGS)].filter((x) => !sib.contains(x.parentElement?.closest(SECTIONS) ?? null));
+            const h = sib.matches(HEADINGS) ? sib : own.pop();
             const text = h && headingText(h);
             if (text) return text;
         }

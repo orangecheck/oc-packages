@@ -2,13 +2,6 @@
 
 ## [Unreleased]
 
-- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
-  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
-  every real card the same pixels). Any other character in a mono field draws
-  in Inter where Inter has it, and the server logs a warning naming the field
-  and code point. A glyph neither font has still makes next/og fetch a font,
-  as on 2.0.0.
-
 ## [2.1.0] — unreleased
 
 A family site's sign-in page in the package. Six tool sites (lock, stamp,
@@ -57,6 +50,65 @@ target to a thumb until each was patched by hand.
   words. cosign keeps its origin prefix on the return path until a test shows
   auth-client's own (it prefixes a path that starts with `/`) brings the
   Google and GitHub return back to cosign.
+
+## [2.0.2] — 2026-11-05
+
+- `DocsShell`'s article breaks a word wider than its column, so a link that
+  is one long name (a generated README's `FederationMigrationCancelledWebhookPayload`)
+  no longer scrolls a phone sideways: docs.ochk.io's agent-core, auth-client,
+  auth-core, pledge-core and me-client READMEs ran 6 to 79px past 320. It is
+  `overflow-wrap: break-word`, so a table still keeps whole words in its
+  cells and scrolls, and a code fence still scrolls its lines.
+
+- `./og`'s mono font is JetBrains Mono cut to what a family caller's mono
+  field can draw: printable ASCII, `·`, `…` and `£` (27,496 B to 6,360 B;
+  every real card the same pixels). Any other character in a mono field draws
+  in Inter where Inter has it, and the server logs a warning naming the field
+  and code point. A glyph neither font has still makes next/og fetch a font,
+  as on 2.0.0.
+- On a touch tablet (768, 900, 1024 and 1180) every target the package draws
+  is 44px to a thumb, as it was on a phone, and to a mouse (1440 and 1024)
+  every target is at least 24px or has room around it (WCAG 2.5.8's spacing
+  exemption: a 24px circle on its centre meets no other target). check-layout's
+  census now runs at all of these widths. It opens what is behind each trigger
+  at 390, at 1024 to a thumb and at 1440 to a mouse, where every finding
+  behind a trigger has shown. On 9cb966b8 it found 42, 52, 53 and 52 targets
+  under 44 at the four tablet widths, and 15 under 24 to a mouse. Fixed, each
+  to a coarse pointer only unless it says so:
+  - the tool header's nav, its "About" link and the rail footer's links;
+  - the site header's Protocols trigger and its "All protocols" link;
+  - the docs header's nav words now reach 44 by a pseudo-element, with more
+    room between them, so Search no longer covers "About" at 900;
+  - a compact `DataTable` row is 46 tall, so stacked `HashChip`s keep their
+    own 44px targets;
+  - `Breadcrumbs`' action and `RailShell`'s account slot take `HIT_LINKS`;
+  - to a mouse too: `HIT_LINK` and `HIT_LINKS` are at least 24px at every
+    pointer, which brings `HashChip`, `SignInFrame`'s "Back to home",
+    `Button variant="link"` and `SourceNote`'s popover link to 24. `Checkbox`
+    and `RadioGroupItem` take a 24px hit area as well.
+- `ParticlePortrait` lists its notes in the legend wherever its side labels
+  would spill past the stage. At 768 to 1180 with a mouse too, the story's
+  page was 981 to 1187px wide. Where the labels fit (1440 at the story's
+  height), nothing moves. This is the change a desktop user can see. A figure
+  that narrows without the window (a container resize) switches as well.
+  `./motion`'s own code may be 13.2 KB, up from 13.0, for that measure (13,433
+  bytes).
+- An unlabelled `ScrollFade` takes its name only from a heading in its own
+  section, and never from one further up the page. A heading's trailing
+  plain-text "#" stays out of the name, which a fixture now holds.
+- Swagger UI's text targets reach 44px to a thumb through a pseudo-element, so
+  no row moves: a schema's "Expand all" (62x14), an operation's path link
+  (130x18 at 390) and the licence link (24x27). "Expand all" is now 24 to a
+  mouse as well. On Swagger UI's own bundle at 390 with touch and at 1440 with
+  a mouse, each is hit from its centre's reach, where before all three missed
+  (attest's /api-explorer). check-swagger reads every `pointer: coarse` block
+  in the sheet.
+- `next` is an optional peer. `.`, `/components`, `/chrome`, `/mdx` and
+  `/session` import `next/link` and `next/compat/router`. `/primitives`,
+  `/brand`, `/blocks`, `/motion`, `/og`, `/tokens`, `/format`, `/code`,
+  `/family`, `/fonts` and `/acknowledgement` load no Next, so a consumer that
+  is not a Next app (the vault extension) no longer installs Next for them.
+  check-entries fails if one of those starts to.
 
 ## [2.0.1] — 2026-11-05
 

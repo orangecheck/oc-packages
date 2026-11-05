@@ -81,7 +81,8 @@ export function Breadcrumbs({ items, action, className }: { items: Crumb[]; acti
                     })}
                 </ol>
             </nav>
-            {action ? <div className="shrink-0 text-[0.875rem]">{action}</div> : null}
+            {/* A link a page puts here ("View source") is 44px to a thumb, as the crumbs are. */}
+            {action ? <div className={cn('shrink-0 text-[0.875rem]', HIT_LINKS)}>{action}</div> : null}
         </div>
     );
 }

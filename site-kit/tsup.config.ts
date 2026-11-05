@@ -9,6 +9,7 @@ export default defineConfig({
         sitemap: 'src/sitemap/index.ts',
         analytics: 'src/analytics/index.tsx',
         rate: 'src/rate/index.ts',
+        document: 'src/document/index.tsx',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],
@@ -18,5 +19,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', '@orangecheck/auth-core', '@orangecheck/app-design/og'],
+    external: ['react', 'react-dom', 'next', 'next/head.js', 'next/og.js', '@orangecheck/auth-core', '@orangecheck/app-design/og', '@orangecheck/app-design/tokens'],
 });

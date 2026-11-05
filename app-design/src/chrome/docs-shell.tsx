@@ -264,7 +264,9 @@ export function DocsShell({
                                 <OnThisPage items={items} activeId={activeId} title={null} className="px-4 pb-4" />
                             </details>
                         ) : null}
-                        <article id="docs-content" className="max-w-[46rem]">
+                        {/* A link that is one long name breaks inside the column. break-word, not anywhere: a table still
+                            sizes its cells to whole words and scrolls, and a fence keeps its lines. */}
+                        <article id="docs-content" className="max-w-[46rem] break-words">
                             <InDocsContext.Provider value={true}>{children}</InDocsContext.Provider>
                         </article>
                         {pager ? <div className="mt-16 max-w-[46rem]">{pager}</div> : null}

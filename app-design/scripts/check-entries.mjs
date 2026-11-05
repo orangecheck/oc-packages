@@ -92,6 +92,16 @@ check(
 for (const entry of ['./session', './signin']) {
     check(graph(pkg.exports[entry].require).bare.has('@orangecheck/auth-client') && graph(pkg.exports[entry].import).bare.has('@orangecheck/auth-client'), `${entry} does not read auth-client`);
 }
+// next is an optional peer: a site that is not a Next app (the vault extension) uses entries that never load it.
+// Only ., ./components, ./chrome, ./mdx, ./session and ./signin read next/link and next/compat/router.
+const NEXT_FREE = ['./primitives', './brand', './blocks', './motion', './og', './tokens', './format', './code', './family', './fonts', './acknowledgement'];
+check(pkg.peerDependenciesMeta?.next?.optional === true, 'next is not marked an optional peer');
+for (const entry of NEXT_FREE) {
+    for (const form of ['require', 'import']) {
+        const nexts = [...graph(pkg.exports[entry][form]).bare].filter((s) => s === 'next' || s.startsWith('next/'));
+        check(nexts.length === 0, `${entry} (${form}) loads next, an optional peer: ${nexts.join(', ')}`);
+    }
+}
 
 if (failures) {
     console.error(`\n${failures} entry failure(s)`);
