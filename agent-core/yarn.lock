@@ -181,9 +181,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/lock-core@^1.0.1":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.4.0.tgz#b4be02313478e667a868d37e7bbaa4e71bdd6a67"
-  integrity sha512-V4Fd7L+vhvEaY/DVFJzk4VxCRwANfAbJ0ATFjm5C4DEfNIpsJzKcVBaXOsQhXhc6z6V/zLzYlzVuPpqzjGxYKg==
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.5.0.tgz#c269e563c4c083a7e0189e08bdde49bd5e276435"
+  integrity sha512-Ifb5ZR/3VuqCULXXUChybjVK1gBoHyCx5XbA1LIJwwg7bdMv3anAHB2nQCpoh1M5AgPZkGxTR1zdzK0skvluCQ==
   dependencies:
     "@orangecheck/lock-crypto" "^0.1.0"
     "@orangecheck/stamp-ots" "^0.6.1"

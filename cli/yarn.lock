@@ -219,9 +219,9 @@
     "@orangecheck/stamp-ots" "^0.6.1"
 
 "@orangecheck/lock-core@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.4.0.tgz#b4be02313478e667a868d37e7bbaa4e71bdd6a67"
-  integrity sha512-V4Fd7L+vhvEaY/DVFJzk4VxCRwANfAbJ0ATFjm5C4DEfNIpsJzKcVBaXOsQhXhc6z6V/zLzYlzVuPpqzjGxYKg==
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.5.0.tgz#c269e563c4c083a7e0189e08bdde49bd5e276435"
+  integrity sha512-Ifb5ZR/3VuqCULXXUChybjVK1gBoHyCx5XbA1LIJwwg7bdMv3anAHB2nQCpoh1M5AgPZkGxTR1zdzK0skvluCQ==
   dependencies:
     "@orangecheck/lock-crypto" "^0.1.0"
     "@orangecheck/stamp-ots" "^0.6.1"
@@ -259,9 +259,9 @@
     "@noble/hashes" "^1.8.0"
 
 "@orangecheck/sdk@^1.21.0":
-  version "1.21.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.21.0.tgz#cbfec04643167111d3a8de07249b716944bf3173"
-  integrity sha512-TRgGWxq+/RcjTEDhBdTA4bJ3+1vVnis0Gbb5znO7kSek86YU6+m6dLdwAeuZlc/YGkxmNqA1meGsEd0qOIpVNw==
+  version "1.23.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.23.1.tgz#6d7838b5cce129e133c4603ca320604545719238"
+  integrity sha512-Uxnr33JE1z07wvbgQvalOW2sX+7GMGvqXAPksFKfNSvyMERdC2i72mCp4yYzW0OtJHPWtAtV5r9rc7+t78sWsQ==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
