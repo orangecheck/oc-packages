@@ -114,6 +114,8 @@ function measure() {
         menu: Boolean(header.querySelector('button[aria-label="Open menu"]')?.getClientRects().length),
         family: Boolean(familyShown),
         links: shownLinks.map((a) => a.textContent.trim()),
+        // The links marked as the page you are on.
+        current: shownLinks.filter((a) => a.getAttribute('aria-current') === 'page').map((a) => a.textContent.trim()),
         // The space between one link and the next, each distinct value once.
         gaps: [...new Set(shownLinks.slice(1).map((a, i) => Math.round(a.getBoundingClientRect().left - shownLinks[i].getBoundingClientRect().right)))],
         wrapped: shownLinks.filter((a) => lines(a) > 1).map((a) => a.textContent.trim()),
@@ -188,19 +190,28 @@ try {
                 if (TOOLS.has(place)) {
                     const wantLinks = width < 900 ? [] : [...(place === 'toolrail' && width >= 1024 ? [] : ['Create', 'Inspect', 'Delegations', 'Playground']), ...(width >= 1180 ? ['Docs', `About ${place === 'toolapp' ? 'attest' : 'agent'}`] : [])];
                     check(JSON.stringify(got.links) === JSON.stringify(wantLinks), `${at}: the bar's links are ${JSON.stringify(got.links)}, not ${JSON.stringify(wantLinks)}`);
+                    // The tool you are on is marked, and only it.
+                    const wantCurrent = wantLinks.includes('Create') ? ['Create'] : [];
+                    check(JSON.stringify(got.current) === JSON.stringify(wantCurrent), `${at}: the bar marks ${JSON.stringify(got.current)} as the page, not ${JSON.stringify(wantCurrent)}`);
                 }
                 check(got.theme === 0, `${at}: ${got.theme} theme switch in the bar`);
-                // What sticks under the bar, scrolled: the docs' section bar below lg, its sidebar from lg, flush.
+                // What sticks under the bar, scrolled: the docs' section bar below lg, its sidebar from lg and its On this
+                // page column from xl, flush.
                 if (place === 'docs') {
                     const stuck = await p.evaluate(() => {
                         window.scrollTo({ top: 800, behavior: 'instant' });
                         const half = (n) => Math.round(n * 2) / 2;
-                        const bar = document.querySelector('[data-oca-sticky="docs-bar"]');
-                        const side = document.querySelector('#main-content').previousElementSibling;
-                        const el = bar.getClientRects().length ? bar : side;
-                        return { header: half(document.querySelector('header').getBoundingClientRect().bottom), top: half(el.getBoundingClientRect().top), which: el === bar ? 'section bar' : 'sidebar' };
+                        const main = document.querySelector('#main-content');
+                        const parts = [
+                            ['section bar', document.querySelector('[data-oca-sticky="docs-bar"]')],
+                            ['sidebar', main.previousElementSibling],
+                            ['On this page column', main.nextElementSibling],
+                        ].filter(([, el]) => el.getClientRects().length);
+                        return { header: half(document.querySelector('header').getBoundingClientRect().bottom), parts: parts.map(([which, el]) => [which, half(el.getBoundingClientRect().top)]) };
                     });
-                    check(stuck.top === stuck.header, `${at}: scrolled, the ${stuck.which} sticks at ${stuck.top}, the bar ends at ${stuck.header}`);
+                    const want = width >= 1280 ? ['sidebar', 'On this page column'] : width >= 1024 ? ['sidebar'] : ['section bar'];
+                    check(JSON.stringify(stuck.parts.map(([which]) => which)) === JSON.stringify(want), `${at}: scrolled, the bar has ${JSON.stringify(stuck.parts)} under it, not ${JSON.stringify(want)}`);
+                    for (const [which, top] of stuck.parts) check(top === stuck.header, `${at}: scrolled, the ${which} sticks at ${top}, the bar ends at ${stuck.header}`);
                 }
                 if (bleed) {
                     check(got.row.w === width && got.rules.every((r) => r === '0px'), `${at}: a full-width bar is ${got.row.w} wide with rules ${got.rules}`);
@@ -228,6 +239,8 @@ try {
             );
             const labels = rows.map((r) => r[0]);
             check(JSON.stringify(labels) === JSON.stringify(['Create', 'Inspect', 'Delegations', 'Playground', 'Docs', 'About agent']), `ToolShell's phone menu lists ${JSON.stringify(labels)}`);
+            const current = await p.evaluate(() => [...document.querySelectorAll('[role="dialog"] nav[aria-label="Main"] a[aria-current="page"]')].map((a) => a.textContent.trim()));
+            check(JSON.stringify(current) === '["Create"]', `ToolShell's phone menu marks ${JSON.stringify(current)} as the page, not Create`);
             check(rows.every((r) => r[1] === rows[0][1] && r[3] >= 44) && rows.every((r, i) => i === 0 || r[2] >= rows[i - 1][2] + rows[i - 1][3] - 1), `ToolShell's phone menu is not one 44px row per link: ${JSON.stringify(rows)}`);
             await close();
         }

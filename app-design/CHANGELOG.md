@@ -32,6 +32,8 @@ The checks hold what 2.3.0 left unread.
   site's word, the bar's right gutter below 480 with the trigger 8px into
   it, and a site's own CTA with no account, pending and not: in the bar
   from 480, in the phone menu below 900.
+- check-header holds the tool you are on, marked in the bar and in the phone
+  menu, and the docs' On this page column flush under the bar from xl.
 
 ## [2.3.0] — 2026-11-05
 
