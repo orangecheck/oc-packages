@@ -83,10 +83,14 @@ const page = <main id="main-content" style={{ height: 1200 }}><p>page</p></main>
 const views = {
     site: () => <><SiteHeader family="me" nav={nav} account={account} />{page}</>,
     // A site that gave the header its account and still passes its old control among the actions and in the menu.
-    dup: () => <><SiteHeader family="me" nav={nav} account={account} actions={account} menu={account} />{page}</>,
+    dup: () => <><SiteHeader family="me" nav={nav} account={account} search={account} actions={account} menu={account} />{page}</>,
     // A site not yet bumped: its control among the actions, no \`account\`. It still draws (the inline look).
     old: () => <><SiteHeader family="me" nav={nav} actions={account} />{page}</>,
+    // The same with \`account\` given as null, as a site that has no account to give: its own control still draws.
+    nul: () => <><SiteHeader family="me" nav={nav} account={null} actions={account} />{page}</>,
     cta: () => <><SiteHeader product="vault" family="vault" nav={nav} cta={{ label: 'Open your vault', href: '/vault' }} account={account} />{page}</>,
+    // A site's own CTA and no account at all.
+    own: () => <><SiteHeader product="vault" family="vault" nav={nav} cta={{ label: 'Open your vault', href: '/vault', pending: q.has('pending') }} />{page}</>,
     // agent's own four tools, the longest set of the six sites.
     tool: () => (
         <ToolShell
@@ -118,18 +122,18 @@ const views = {
 createRoot(document.getElementById('root')).render(<ThemeProvider>{views[place]()}</ThemeProvider>);
 `;
 
-const PLACES = ['site', 'dup', 'old', 'cta', 'tool', 'docs', 'app'];
+const PLACES = ['site', 'dup', 'old', 'nul', 'cta', 'tool', 'docs', 'app'];
 // Places whose lockup is orangecheck's alone (no site's word).
-const BARE = new Set(['site', 'dup', 'old', 'docs']);
+const BARE = new Set(['site', 'dup', 'old', 'nul', 'docs']);
 // The site's word beside the lockup, where there is one.
 const WORD = { cta: 'vault', tool: 'agent', app: 'vault' };
 // The one place whose trigger shows the name only from lg: a site's own control among a header's actions.
-const INLINE = new Set(['old']);
+const INLINE = new Set(['old', 'nul']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 // 440: between the wordmark's 420 and the bar's 480, where a signed-in lockup drops its wordmark. 900: where the
 // links come into the bar, its most crowded width; 1180, where a tool bar's Docs and About join its links. 389, 419,
-// 479 and 1179: the last width of each band, which belongs to it.
-const WIDTHS = [320, 360, 389, 390, 419, 440, 479, 768, 900, 1024, 1179, 1180, 1440];
+// 479 and 1179: the last width of each band, which belongs to it; 390, 420 and 480, the first of the next.
+const WIDTHS = [320, 360, 389, 390, 419, 420, 440, 479, 480, 768, 900, 1024, 1179, 1180, 1440];
 
 // In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
 // them the same way: a page function carries nothing in with it).
@@ -185,10 +189,27 @@ function nameRoom() {
     const slack = parts.length ? half(right.getBoundingClientRect().left - parseFloat(getComputedStyle(row).columnGap) - Math.max(...parts.map((e) => e.getBoundingClientRect().right))) : Infinity;
     // A word drawn and cut; one kept only for screen readers (sr-only, 1px) is not drawn.
     const spans = [...(row.querySelector('a')?.querySelectorAll('span') ?? [])];
+    // The hairline between the wordmark and a site's word (its one empty, 1px-wide span), where the lockup has one.
+    const hairline = spans.find((e) => !e.textContent.trim() && getComputedStyle(e).width === '1px');
     const brandCut = spans.some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
-    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, lead, slack, brandCut, brandWords: spans
+    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, lead, hair: hairline ? hairline.getClientRects().length > 0 : null, slack, brandCut, brandWords: spans
             .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
             .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0, sticky: bar.dataset.ocaSticky ?? null };
+}
+
+// In the page, a SiteHeader's bar: how far its right group ends from the frame's inner edge (the gutter, or none where
+// the account's or the CTA's block meets the rule), and how far a signed-in trigger reaches past that group.
+function edges() {
+    const half = (v) => Math.round(v * 2) / 2;
+    const row = [...document.querySelectorAll('header')].find((h) => h.getClientRects().length).querySelector(':scope > div');
+    const rs = getComputedStyle(row);
+    const group = row.lastElementChild.getBoundingClientRect();
+    const t = [...row.lastElementChild.querySelectorAll('[data-oca-account="in"]')].find((e) => e.getClientRects().length);
+    return {
+        gutter: half(parseFloat(rs.paddingLeft)),
+        end: half(row.getBoundingClientRect().right - parseFloat(rs.borderRightWidth) - group.right),
+        over: t ? half(t.getBoundingClientRect().right - group.right) : null,
+    };
 }
 
 // In the page: every account control drawn, and every link or button that says "Your account" or the CTA the account replaced.
@@ -221,7 +242,7 @@ try {
     const url = writePage(dir, 'account', '<div id="root"></div>', { head: `<script>${COLOUR_KIT}</script>`, script: '<script src="account.js"></script>' });
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
-    const open = async (place, state, width, dark = false, extra = '') => {
+    const open = async (place, state, width, dark = false, extra = '', ready = '[data-oca-account]') => {
         const phone = width < 768;
         // The theme follows the system until someone picks one, so dark is the system's.
         const ctx = await browser.newContext({ viewport: { width, height: 800 }, isMobile: phone, hasTouch: phone, colorScheme: dark ? 'dark' : 'light' });
@@ -230,7 +251,7 @@ try {
         p.on('pageerror', (e) => errors.push(e.message));
         await p.goto(`${url}?place=${place}&state=${state}${dark ? '&dark' : ''}${extra}`);
         // A page that draws no control at all is a failure the counts below report, not a crash here.
-        await p.waitForSelector('[data-oca-account]', { state: 'attached', timeout: 5000 }).catch(() => {});
+        await p.waitForSelector(ready, { state: 'attached', timeout: 5000 }).catch(() => {});
         await p.evaluate(() => document.fonts.ready);
         return { p, errors, close: () => ctx.close() };
     };
@@ -306,6 +327,8 @@ try {
                             // AppShell's desk bar holds the account alone: its lockup is in the sidebar.
                             const words = place === 'app' && width >= 1024 ? null : BARE.has(place) ? (width < 480 ? [] : ['orangecheck']) : width < 390 ? [] : width < 480 ? [WORD[place]] : null;
                             if (words) check(JSON.stringify(n.brandWords) === JSON.stringify(words), `${at}: signed in, the lockup draws ${JSON.stringify(n.brandWords)}, not ${JSON.stringify(words)}`);
+                            // The hairline goes with the site's word: never a rule beside the mark alone.
+                            if (WORD[place] && !(place === 'app' && width >= 1024)) check(n.hair === n.brandWords.includes(WORD[place]), `${at}: the lockup's hairline is ${n.hair ? 'drawn' : 'gone'} with its words ${JSON.stringify(n.brandWords)}`);
                             check(n.typical32 <= n.cap && n.typical32 >= n.cap * 0.85, `${at}: 32 characters of an email are ${n.typical32}px against the ${n.cap}px cap: not about 32`);
                             // Whole wherever the bar has the room: at 768, where the links are still in the phone's menu, and
                             // from 1024. At 900 the links have just come into the bar, and the name gives them its room.
@@ -334,6 +357,14 @@ try {
                         check(icon ? s.w <= 44 && !s.drawn && !s.kbd : s.w === 224 && s.drawn && s.kbd, `${at}: the search is ${JSON.stringify(s)}, not ${icon ? 'its icon' : 'its field'}`);
                         check(s.label === 'Search', `${at}: the search is named "${s.label}"`);
                     }
+                    // SiteHeader's right end: with the account given, its block meets the rule from 480px, and below that
+                    // the bar keeps the gutter, with the trigger reaching 8px into it; a site's own control keeps the gutter.
+                    if (place !== 'app') {
+                        const e = await p.evaluate(edges);
+                        const given = !INLINE.has(place);
+                        check(e.end === (given && width >= 480 ? 0 : e.gutter), `${at}: the bar's right group ends ${e.end}px from the rule (the gutter is ${e.gutter})`);
+                        if (signedIn && given) check(e.over === (width < 480 ? 8 : 0), `${at}: the trigger reaches ${e.over}px past the bar's right group`);
+                    }
                     if (width <= 390) {
                         const fit = await p.evaluate(() => {
                             const row = document.querySelector('header > div');
@@ -344,6 +375,32 @@ try {
                     }
                     await close();
                 }
+            }
+        }
+
+        // A site's own CTA and no account: the block at the right rule from 480px, the phone menu's full-width button
+        // below 900; while the session check runs, a box with no words, link or tab stop in its place.
+        for (const pending of [false, true]) {
+            for (const width of [320, 389, 390, 479, 480, 768, 900, 1440]) {
+                const at = `[${width}] own CTA${pending ? ', pending' : ''}`;
+                const { p, errors, close } = await open('own', 'out', width, false, pending ? '&pending' : '', '[data-oca-cta]');
+                const cta = () =>
+                    [...document.querySelectorAll('[data-oca-cta]')]
+                        .filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden')
+                        .map((e) => ({ inMenu: Boolean(e.closest('[role="dialog"]')), kind: e.dataset.ocaCta, link: e.matches('a[href]'), hidden: e.getAttribute('aria-hidden') }));
+                const as = (c) => (pending ? c.kind === 'pending' && !c.link && c.hidden === 'true' : c.kind === '' && c.link);
+                const bar = (await p.evaluate(cta)).filter((c) => !c.inMenu);
+                check(errors.length === 0, `${at}: the page threw ${errors.join('; ')}`);
+                check(width >= 480 ? bar.length === 1 && as(bar[0]) : bar.length === 0, `${at}: the bar holds ${JSON.stringify(bar)}`);
+                const e = await p.evaluate(edges);
+                check(e.end === (width >= 480 ? 0 : e.gutter), `${at}: the bar's right group ends ${e.end}px from the rule (the gutter is ${e.gutter})`);
+                if (width < 900) {
+                    await p.locator('header button[aria-label="Open menu"]').click();
+                    await p.waitForSelector('[role="dialog"]');
+                    const sheet = (await p.evaluate(cta)).filter((c) => c.inMenu);
+                    check(sheet.length === 1 && as(sheet[0]), `${at}: the phone menu holds ${JSON.stringify(sheet)}`);
+                }
+                await close();
             }
         }
 
