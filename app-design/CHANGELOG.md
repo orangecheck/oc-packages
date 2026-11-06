@@ -14,6 +14,10 @@ DitherImage's live dither takes the still's own grain.
   display-size still passes its `cells`, or `pixel={2}` for the earlier
   look. check-idle-motion holds the live buffer to the still's cells at 1
   and 2 px a cell and across a resize, and to `cells` and `pixel` as given.
+- The live dither's trail centres on the pointer: the brush weighs each
+  8px trail cell from its centre. check-idle-motion rests the pointer on a
+  still drawn at 1 and at 2 px a cell and holds the lit live pixels'
+  centre within half a trail cell of it.
 - `Ticker` is deprecated: no family site renders it. It goes in 3.0.
 
 ## [2.6.0] — 2026-11-06

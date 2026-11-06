@@ -191,7 +191,8 @@ function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, w
             const cy = (from.y + ((y - from.y) * s) / steps) / CELL;
             for (let gy = Math.max(0, Math.floor(cy - r)); gy <= Math.min(gh - 1, Math.ceil(cy + r)); gy++) {
                 for (let gx = Math.max(0, Math.floor(cx - r)); gx <= Math.min(gw - 1, Math.ceil(cx + r)); gx++) {
-                    const f = 1 - Math.hypot(gx - cx, gy - cy) / r;
+                    // Each trail cell is weighed from its centre, as it draws over [gx, gx + 1): the trail centres on the pointer.
+                    const f = 1 - Math.hypot(gx + 0.5 - cx, gy + 0.5 - cy) / r;
                     if (f > 0) trail[gy * gw + gx] = Math.min(1, trail[gy * gw + gx]! + f * 0.35);
                 }
             }
