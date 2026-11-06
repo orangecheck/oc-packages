@@ -229,6 +229,7 @@ export function SearchDialog({
                                     }
                                 }}
                                 placeholder={placeholder}
+                                data-ui="search"
                                 role="combobox"
                                 aria-label={label}
                                 aria-expanded={showList}

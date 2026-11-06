@@ -373,6 +373,7 @@ export function CodeTabs({
                             <TabsPrimitive.Trigger
                                 key={it.label}
                                 value={it.label}
+                                data-ui="tab"
                                 className={cn(
                                     'relative inline-flex h-11 items-center whitespace-nowrap px-3 text-[0.8125rem] text-oca-ink-subtle outline-none transition-colors',
                                     'hover:text-white focus-visible:text-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',

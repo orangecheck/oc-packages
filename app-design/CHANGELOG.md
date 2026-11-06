@@ -12,6 +12,15 @@ Every label in the package is oca-label.
   uppercase and tracked 0.08em that is not oca-label or oca-eyebrow, and
   holds the label of each of the four primitives.
 
+A control that picks a value carries a mark.
+
+- A select, radio, choice card, tab, checkbox, switch, filter chip, view
+  toggle, the marquee's pause and the search field carry `data-ui`, as a
+  button and a card do: `select`, `radio`, `choice`, `tab`, `checkbox`,
+  `switch`, `chip`, `toggle` and `search`. A site's census can tell them
+  from a control drawn by hand. The layout census refuses a control that
+  picks a value with no mark, on the page and behind each trigger.
+
 ## [2.3.1] — 2026-11-05
 
 - The layout census decides what a trigger showed once it has shut. Each

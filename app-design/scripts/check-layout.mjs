@@ -2866,6 +2866,12 @@ try {
                 const R = fine ? 11.5 : 21.5;
                 document.documentElement.style.scrollBehavior = 'auto';
                 const SEL = 'a[href], button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="menuitem"], [role="link"], [role="option"], input[type="checkbox"], input[type="radio"]';
+                // A control that picks a value (a select, radio, tab, checkbox, switch or pressed toggle) carries its data-ui
+                // mark, so a census of a site tells the package's apart from one drawn by hand.
+                window.__unmarked = () =>
+                    [...document.querySelectorAll('[role="combobox"], [role="radio"], [role="tab"], [role="checkbox"], [role="switch"], [aria-pressed]')]
+                        .filter((el) => !el.hasAttribute('data-ui') && el.getClientRects().length && el.checkVisibility({ visibilityProperty: true }))
+                        .map((el) => `${el.closest('[data-story]')?.dataset.story ?? 'outside a story (a portal)'}: ${el.tagName.toLowerCase()}[${el.getAttribute('role') ?? 'aria-pressed'}] "${(el.getAttribute('aria-label') || el.textContent || el.getAttribute('placeholder') || '').trim().replace(/\s+/g, ' ').slice(0, 24)}"`);
                 window.__censusPage = () => ({ stories: document.querySelectorAll('[data-story]').length, failed: [...document.querySelectorAll('[data-story-failed]')].map((e) => `${e.closest('[data-story]')?.dataset.story} (${e.dataset.storyFailed})`), dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((d) => `${d.closest('[data-story]')?.dataset.story ?? 'portal'}: ${d.getAttribute('aria-label') ?? ''} ${d.textContent.trim().slice(0, 60)}`), hidden: document.querySelectorAll('[data-story][aria-hidden="true"], [data-story] [aria-hidden="true"] [data-story]').length + document.querySelectorAll('body > [aria-hidden="true"]').length });
                 // A link inside a sentence, as WCAG 2.5.8 exempts it: an inline link (never a button, a checkbox or a
                 // radio) whose own line holds words of its block outside any target. Read from the link's line boxes
@@ -3031,6 +3037,7 @@ try {
                 window.__letGoUnread = () => letGo.filter((g) => !g.el.isConnected || !g.el.hasAttribute('data-census-read')).map(({ plant, name }) => ({ plant, name }));
             }, fine);
             const r = { width, fine, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [], gone: [] };
+            const unmarked = new Set(await c.evaluate(() => window.__unmarked()));
             // A story wider than the screen widens the page, and a phone then places fixed overlays off the screen.
             r.sideways = await c.evaluate((w) => [...document.querySelectorAll('[data-story], [data-plants]')].filter((s) => s.scrollWidth > w + 1).map((s) => `${s.dataset.story ?? 'plants'} (${s.scrollWidth})`), width);
             // Behind a trigger: each closed popover, menu, select, dialog or sheet, each collapsed control and each
@@ -3057,6 +3064,7 @@ try {
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 300)));
                     await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
                     const got = await c.evaluate((n) => window.__census(n), name);
+                    for (const u of await c.evaluate(() => window.__unmarked())) unmarked.add(u);
                     // Shut it again: Escape for an overlay, a second press for a toggle or a details.
                     await c.keyboard.press('Escape');
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
@@ -3096,6 +3104,7 @@ try {
             const goneUnread = r.gone.filter((g) => !g.plant).map((g) => g.name);
             check(goneUnread.length === 0, `[${to}] these targets showed by themselves behind a trigger and were gone by the page pass, so no pass read them: ${goneUnread.slice(0, 12).join('; ')}`);
             check(r.sideways.length === 0, `[${width}] these stories are wider than the screen: ${r.sideways.join(', ')}`);
+            check(unmarked.size === 0, `[${to}] ${tag} found controls that pick a value with no data-ui mark: ${[...unmarked].slice(0, 12).join('; ')}`);
             // The plants prove the measure: what is small is found, only a link in a sentence is let off, and to a mouse
             // an undersized target alone is let off by its spacing while two crowded ones are not.
             const want = fine

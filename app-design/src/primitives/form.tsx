@@ -253,6 +253,7 @@ export const SelectTrigger = forwardRef<
     return (
         <SelectPrimitive.Trigger
             ref={ref}
+            data-ui="select"
             id={field?.id}
             aria-describedby={field?.['aria-describedby']}
             aria-invalid={field?.['aria-invalid']}
@@ -323,6 +324,7 @@ export const Checkbox = forwardRef<
     return (
         <CheckboxPrimitive.Root
             ref={ref}
+            data-ui="checkbox"
             className={cn(
                 // 20px drawn; 24 to a mouse and 44 to a thumb. The inset is measured from inside the 1px border.
                 'peer relative inline-flex size-5 shrink-0 items-center justify-center rounded-none border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',
@@ -347,6 +349,7 @@ export const Switch = forwardRef<
     return (
         <SwitchPrimitive.Root
             ref={ref}
+            data-ui="switch"
             className={cn(
                 // 44 by 24 drawn, 44 by 44 to a thumb. The inset is measured from inside the 1px border.
                 'peer relative inline-flex h-6 w-11 shrink-0 items-center rounded-none border border-transparent bg-input p-0.5 pointer-coarse:before:absolute pointer-coarse:before:-inset-x-px pointer-coarse:before:-inset-y-[11px]',
@@ -377,6 +380,7 @@ export const RadioGroupItem = forwardRef<
     return (
         <RadioGroupPrimitive.Item
             ref={ref}
+            data-ui="radio"
             className={cn(
                 // 20px drawn; 24 to a mouse and 44 to a thumb, as a Checkbox is. The inset is measured from inside the 1px border.
                 'relative inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-input bg-oca-surface before:absolute before:-inset-[3px] pointer-coarse:before:-inset-[13px]',

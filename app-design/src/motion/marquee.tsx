@@ -64,6 +64,7 @@ export function Marquee({ children, speed = 60, labels, className, style }: Marq
             </div>
             <button
                 type="button"
+                data-ui="toggle"
                 className="oca-marquee-control"
                 aria-pressed={stopped}
                 aria-label={stopped ? words.play : words.pause}
