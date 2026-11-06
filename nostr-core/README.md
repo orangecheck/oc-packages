@@ -59,8 +59,9 @@ than a page it sent before; anything else is paged with `until`. A second that
 holds more events than a relay sends in a page cannot be paged past: the read
 steps past it and reads that relay as `cut_off`. A relay that sent anything and
 whose NIP-11 document declares a `max_limit` under 100 (or under `limit`, when
-that is smaller) is `cut_off` (`relayMaxLimit` reads it; `readRelays` asks it
-unless you pass your own `query`). A read stops at 16 REQs or 2,000 events
+that is smaller) is `cut_off` (`relayMaxLimit` reads it at the relay's URL with
+`ws` made `http` and `wss` made `https`, the scheme in any case; `readRelays`
+asks it unless you pass your own `query`). A read stops at 16 REQs or 2,000 events
 (`maxPages`, `maxEvents`), and in `readRelays` at each relay's deadline; a
 relay still open then is `cut_off` and the read `truncated`. Only a `complete`
 relay says what it does not hold. A relay that caps below 100 without declaring

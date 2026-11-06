@@ -350,6 +350,22 @@ export async function readPages(
 const declaredLimits = new Map<string, Promise<number | undefined>>();
 
 /**
+ * Where relay `url`'s NIP-11 document is: a scheme the URL parser reads as ws
+ * or wss, in any case, made http or https, and the rest of `url` as written.
+ */
+function nip11Url(url: string): string {
+  let protocol: string;
+  try {
+    ({ protocol } = new URL(url));
+  } catch {
+    return url;
+  }
+  if (protocol !== "ws:" && protocol !== "wss:") return url;
+  // The parser's scheme ends at the first colon in `url`.
+  return (protocol === "wss:" ? "https:" : "http:") + url.slice(url.indexOf(":") + 1);
+}
+
+/**
  * The `max_limit` relay `url`'s NIP-11 document declares, or undefined when it
  * declares none or the document cannot be read. A redirect is not followed: it
  * is a document that cannot be read. A declared limit is kept for the life of
@@ -362,7 +378,7 @@ export function relayMaxLimit(url: string, timeoutMs = 3000): Promise<number | u
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const res = await fetch(url.replace(/^ws/, "http"), {
+      const res = await fetch(nip11Url(url), {
         headers: { Accept: "application/nostr+json" },
         redirect: "error",
         signal: ctrl.signal,

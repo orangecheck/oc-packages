@@ -10,7 +10,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Fixed
+
+- `relayMaxLimit(url)` reads the scheme of `url` as the URL parser (and so a
+  WebSocket) does, in any case: a relay written `WSS://relay.example` has its
+  NIP-11 document read at `https://relay.example`, and its declared
+  `max_limit` counts.
 
 ## [0.8.2] — 2026-11-06
 
