@@ -1005,9 +1005,9 @@ export async function queryEvents(
  * `filter` read on each relay alone with readPages, so one relay's flood or
  * silence touches only its own read, every page of one relay sharing one
  * deadline (`timeoutMs`, default 4000). A relay that does not finish by then
- * is cut off, or no answer if it sent nothing. NIP-11 `max_limit` is read with
- * relayMaxLimit; with your own `query`, pass `maxLimit` too. `eose` is true
- * only for a relay whose read is complete.
+ * is cut off and the read truncated, or no answer if it sent nothing. NIP-11
+ * `max_limit` is read with relayMaxLimit; with your own `query`, pass
+ * `maxLimit` too. `eose` is true only for a relay whose read is complete.
  */
 export async function readRelays(
   filter: Filter,
@@ -1030,8 +1030,10 @@ export async function readRelays(
     ...opts,
     maxLimit: opts.maxLimit ?? (opts.query ? undefined : relayMaxLimit),
   };
+  // A relay cut off once its deadline has passed was stopped by that bound.
+  const timedOut = relays.map(() => false);
   const reads = await Promise.all(
-    relays.map((relay) => {
+    relays.map(async (relay, i) => {
       const deadlineAt = Date.now() + (opts.timeoutMs ?? 4000);
       const one: PageQuery = async (f) => {
         const left = deadlineAt - Date.now();
@@ -1040,18 +1042,23 @@ export async function readRelays(
         }
         return query(f, [relay], left);
       };
-      return readPages(one, filter, bounds);
+      const read = await readPages(one, filter, bounds);
+      timedOut[i] = Date.now() >= deadlineAt;
+      return read;
     }),
   );
   const byId = new Map<string, NostrEvent>();
   for (const r of reads) for (const e of r.events) if (!byId.has(e.id)) byId.set(e.id, e);
+  const relayStatus = relays.map((relay, i) => {
+    const state = reads[i]!.relayStatus?.[0]?.state ?? "no_answer";
+    return { relay, eose: state === "complete", state };
+  });
   return {
     events: [...byId.values()].sort((a, b) => b.created_at - a.created_at),
-    relayStatus: relays.map((relay, i) => {
-      const state = reads[i]!.relayStatus?.[0]?.state ?? "no_answer";
-      return { relay, eose: state === "complete", state };
-    }),
-    truncated: reads.some((r) => r.truncated),
+    relayStatus,
+    truncated:
+      reads.some((r) => r.truncated) ||
+      relayStatus.some((r, i) => r.state === "cut_off" && timedOut[i]),
   };
 }
 

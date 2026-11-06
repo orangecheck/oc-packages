@@ -53,7 +53,8 @@ export interface PagedRead {
   /** Per relay, how its read ended. Absent when the query named no relay. */
   relayStatus?: { relay?: string; eose: boolean; state: PagedReadState }[];
   /** A relay that may hold more was stopped: by a bound, by a second holding
-   *  more than it sends in a page, or by a page size it declares below MIN_PAGE. */
+   *  more than it sends in a page, or by a page size it declares below the
+   *  page that ends a read (MIN_PAGE, or `limit` when smaller). */
   truncated: boolean;
   /** REQs made. */
   pages: number;
@@ -319,12 +320,12 @@ export async function readPages(
     until = at - 1;
   }
 
-  // A relay that declares it sends fewer than MIN_PAGE a page cannot be read
-  // past a page by this rule.
+  // A relay that declares it sends fewer than the page that ends a read
+  // cannot be read past a page by this rule.
   for (const p of relays.values()) {
     if (!p.declared || !p.sent || p.state !== "complete") continue;
     const declared = await p.declared;
-    if (declared !== undefined && declared < MIN_PAGE) {
+    if (declared !== undefined && declared < short) {
       p.capped = true;
       p.state = "cut_off";
     }
@@ -350,8 +351,9 @@ const declaredLimits = new Map<string, Promise<number | undefined>>();
 
 /**
  * The `max_limit` relay `url`'s NIP-11 document declares, or undefined when it
- * declares none or the document cannot be read. A declared limit is kept for
- * the life of the process; a failed read is tried again next time.
+ * declares none or the document cannot be read. A redirect is not followed: it
+ * is a document that cannot be read. A declared limit is kept for the life of
+ * the process; a failed read is tried again next time.
  */
 export function relayMaxLimit(url: string, timeoutMs = 3000): Promise<number | undefined> {
   const known = declaredLimits.get(url);
@@ -362,6 +364,7 @@ export function relayMaxLimit(url: string, timeoutMs = 3000): Promise<number | u
     try {
       const res = await fetch(url.replace(/^ws/, "http"), {
         headers: { Accept: "application/nostr+json" },
+        redirect: "error",
         signal: ctrl.signal,
       });
       if (!res.ok) throw new Error(`NIP-11 ${res.status}`);

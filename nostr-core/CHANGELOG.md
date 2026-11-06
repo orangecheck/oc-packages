@@ -25,16 +25,19 @@ this file tracks the package's TS / Node / runtime API surface.
   events by default, and a `budget` several reads share. Returns every event,
   each relay's `state` (`complete`, `cut_off`, `no_answer`) and `truncated`.
 - **`readRelays(filter, relays?, opts?)`**: `readPages` on each relay alone,
-  every page of one relay sharing one deadline (`timeoutMs`, default 4000).
+  every page of one relay sharing one deadline (`timeoutMs`, default 4000). A
+  relay still paging at its deadline reads `cut_off` and the read `truncated`.
 - **`relayMaxLimit(url)`**: the `max_limit` a relay's NIP-11 document
-  declares. A relay declaring one under `MIN_PAGE` that sent anything reads
-  `cut_off`.
+  declares; a redirect is not followed. A relay declaring one under `MIN_PAGE`
+  (or `limit`, when smaller) that sent anything reads `cut_off`.
 - **`MIN_PAGE`**, and the types `PageQuery`, `PageAnswer`, `PageBounds`,
   `PagedRead` and `PagedReadState`.
 
-## [0.8.1] — 2026-10-29
-
 ### Changed
+
+0.8.1 (2026-10-29) was never published to npm; its change ships here, so a
+reader moving from 0.8.0 to 0.8.2 reads and publishes to a different fifth
+relay.
 
 - **`DEFAULT_RELAYS`**: `wss://nostr.mom` replaces `wss://relay.damus.io`. From
   2026-10-28 damus answered about half of the family's device-record reads, and
