@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.1] — 2026-11-05
+
 - The layout census decides what a trigger showed once it has shut. Each
   target read behind a trigger is held until then. One still shown after it
   shuts, outside a fixed layer, was not the trigger's: a demo's last screen,
