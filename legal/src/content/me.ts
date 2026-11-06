@@ -212,7 +212,7 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what orangecheck stores.',
     effective: '2026-05-15',
-    updated: '2026-11-03',
+    updated: '2026-11-06',
     preamble: [
         {
             kind: 'callout',
@@ -353,11 +353,11 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'On ochk.app, two cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
+                    text: 'On ochk.app, up to three cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. `oc_logo` — which of our two logos you chose, set only when you open a page with `?logo=` in its address and kept for a year; `?logo=classic` deletes it. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
                 },
                 {
                     kind: 'para',
-                    text: 'On me.ochk.io, four cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin` and `oc_motion` — your dark/light, appearance and reduced-motion preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                    text: 'On me.ochk.io, five cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` — your dark/light, appearance, reduced-motion and logo preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
                 },
             ],
         },

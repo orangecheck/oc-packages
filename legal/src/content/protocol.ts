@@ -239,7 +239,7 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-10-31',
+    updated: '2026-11-06',
     preamble: [
         {
             kind: 'callout',
@@ -402,8 +402,8 @@ const privacy: DocSpec = {
                             v: 'only during a Google or GitHub sign-in: HttpOnly; SameSite=Lax; 10 minutes; deleted when the sign-in completes',
                         },
                         {
-                            k: 'oc_theme · oc_skin · oc_motion',
-                            v: 'your light/dark, appearance and reduced-motion choices (Domain=.ochk.io); not used to identify you',
+                            k: 'oc_theme · oc_skin · oc_motion · oc_logo',
+                            v: 'your light/dark, appearance, reduced-motion and logo choices (Domain=.ochk.io); not used to identify you. `oc_logo` is set only when you open a page with `?logo=` in its address, and is kept for a year; `?logo=classic` deletes it',
                         },
                     ],
                 },

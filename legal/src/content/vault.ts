@@ -223,7 +223,7 @@ const privacy: DocSpec = {
     metaDescription:
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
-    updated: '2026-10-31',
+    updated: '2026-11-06',
     preamble: [
         {
             kind: 'callout',
@@ -339,7 +339,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'No cookies of vault.ochk.io\'s own. The family sign-in cookie `oc_session` (set by ochk.io: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days) and the appearance cookies `oc_theme`, `oc_skin` and `oc_motion` apply here. Your vault data lives in your browser\'s IndexedDB, under your account. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
+                    text: 'No cookies of vault.ochk.io\'s own. The family sign-in cookie `oc_session` (set by ochk.io: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days) and the appearance cookies `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` (your logo choice, set only when you open a page with `?logo=` in its address) apply here. Your vault data lives in your browser\'s IndexedDB, under your account. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
                 },
             ],
         },
