@@ -23,6 +23,16 @@ A cut name keeps its whole ellipsis.
   edge and its ellipsis ran past the right: at 900 the docs' bar showed
   "ana@examp..". check-account holds a cut name's line at its left edge.
 
+The checks hold what 2.3.0 left unread.
+
+- check-account reads 420 and 480, the first widths of the bands that start
+  there. It holds a header given `account={null}`, whose own control still
+  draws, and a control left in the header's search, which draws nothing
+  when the header has the account. It holds the lockup's hairline with the
+  site's word, the bar's right gutter below 480 with the trigger 8px into
+  it, and a site's own CTA with no account, pending and not: in the bar
+  from 480, in the phone menu below 900.
+
 ## [2.3.0] — 2026-11-05
 
 A signed-in docs bar gives the name its room. At 390px it showed "ana…"
