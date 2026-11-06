@@ -958,6 +958,18 @@ const html = (el) => renderToStaticMarkup(el);
         check(links.every((a) => cls(a).includes(' min-h-11 ') && cls(a).includes(' border-l-2 ') && cls(a).includes(' -ml-px ')), `Toc (${name}): an entry is not 44px tall with its mark over the rule`);
     }
 
+    // Contents of a site's own making (ochk.app's changelog, grouped by month): the same column and fold, its list as given.
+    const grouped = h('div', { 'data-list': '' }, h('p', null, 'November'), h('ol', { className: 'border-l border-border' }, ...['v2', 'v1'].map((id) => h('li', { key: id }, h(C.ContentsLink, { id, here: id === 'v1' }, id)))));
+    const own = dom(h(C.ContentsNav, { active: 'v1', list: grouped, aside: h('p', { 'data-aside': '' }, 'Aside') }));
+    const ownNavs = [...own.querySelectorAll('nav[aria-label="On this page"]')];
+    check(ownNavs.length === 2 && cls(ownNavs[0]).includes(' sticky ') && ownNavs[0].querySelector('[data-aside]') && own.querySelector('details')?.contains(ownNavs[1]) && !own.querySelector('details [data-aside]'), 'ContentsNav: not the sticky column with its aside and the phone fold without it');
+    for (const nav of ownNavs) {
+        const links = [...nav.querySelectorAll('[data-list] ol > li > a')];
+        check(nav.querySelector('[data-list] > p')?.textContent === 'November' && links.map((a) => a.getAttribute('href')).join() === '#v2,#v1', 'ContentsNav: the list is not drawn as given, in each place');
+        check(links[1]?.getAttribute('aria-current') === 'location' && cls(links[1]).includes(' border-oca-accent-display ') && !links[0]?.hasAttribute('aria-current') && cls(links[0]).includes(' border-transparent ') && links.every((a) => cls(a).includes(' min-h-11 ')), 'ContentsLink: the entry here is not the one marked, or an entry is not 44px tall');
+    }
+    check(html(h(C.Toc, { entries })) === html(h(C.ContentsNav, { active: 'a', list: h('ol', { className: 'border-l border-border' }, entries.map((e) => h('li', { key: e.id }, h(C.ContentsLink, { id: e.id, here: e.id === 'a' }, h('span', { className: 'w-5 shrink-0 font-mono text-[0.75rem] tabular-nums text-oca-subtle' }, e.num), h('span', null, e.label))))) })), 'Toc: not ContentsNav over a numbered list of ContentsLinks');
+
     const cols = dom(h(C.DocColumns, { nav: h('nav', null, 'N') }, h('p', { 'data-text': '' }, 'T'))).body.firstElementChild;
     const [navCell, textCell] = cols ? [...cols.children] : [];
     check(cls(cols).includes(' min-[900px]:grid-cols-[15.5rem_minmax(0,1fr)] ') && cls(cols).includes(' xl:grid-cols-[18.5rem_minmax(0,1fr)] '), `DocColumns: not 15.5rem then 18.5rem of contents beside the text: ${cls(cols)}`);
