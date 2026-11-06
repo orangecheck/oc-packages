@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-11-06
+
 The theme emits no custom property that refers to itself.
 
 - A bare `rounded` reads the theme key `--radius` from its own reference
