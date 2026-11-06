@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+Every label in the package is oca-label.
+
+- StatCard's label, DataTable's column heads and the terms of its phone
+  card, CodeBlock's caption, the cost demo's verdict and the sign-in demo
+  phone's labels are oca-label, where each set the label's type by hand.
+  Each draws as before, in light and dark, and a census of a site now
+  counts them as the package's. check-render refuses a class string set
+  uppercase and tracked 0.08em that is not oca-label or oca-eyebrow, and
+  holds the label of each of the four primitives.
+
 ## [2.3.1] — 2026-11-05
 
 - The layout census decides what a trigger showed once it has shut. Each

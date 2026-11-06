@@ -68,7 +68,7 @@ export function signInDemoPhone(copy: Partial<SignInDemoPhoneCopy> = {}): SignIn
     return { ...PLACEHOLDER, ...copy };
 }
 
-const LABEL = 'font-mono text-[0.75rem] uppercase leading-none tracking-[0.08em] text-oca-surface-muted';
+const LABEL = 'oca-label leading-none text-oca-surface-muted';
 const LINE = 'border-oca-surface-foreground/10';
 
 /** The account's Home, as a phone draws it. */
