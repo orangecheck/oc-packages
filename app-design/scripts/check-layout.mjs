@@ -1007,6 +1007,18 @@ try {
                                 { title: 'You keep up to 80%', badge: 'in testing', body: 'The reward lands in your activity.' },
                             ],
                         })
+                    ),
+                    // PackageCard's tiles, white, ink and orange, as ochk.app's /apps sets them.
+                    h(
+                        C.Section,
+                        { 'data-tiles': '', space: 'sm' },
+                        h(
+                            'div',
+                            { className: 'grid grid-cols-1 gap-3 lg:grid-cols-[1.45fr_1fr]' },
+                            h(C.PackageCard, { tone: 'ink', icon: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor' }, h('path', { d: 'M4 12h16' })), label: '01 · @orangecheck/me-client', title: 'Sign-in that keeps bots out', note: 'A sign-in button, and session checks for Next.js, Express and Hono that hold accounts to your bar.' }, h(C.CodeBlock, { lang: 'sh', code: 'yarn add @orangecheck/me-client' })),
+                            h(C.PackageCard, { tone: 'brand', icon: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor' }, h('path', { d: 'M4 12h16' })), label: '02 · @orangecheck/me-client', title: 'Pay your users, when you choose', note: 'Report the events you value.' }),
+                            h(C.PackageCard, { tone: 'card', icon: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor' }, h('path', { d: 'M4 12h16' })), label: '03 · @orangecheck/gate', title: 'A drop-in gate', note: 'Middleware for Express, Next, Fastify, Hono and Workers.', className: 'lg:col-span-2' })
+                        )
                     )
                 )
             )
@@ -2412,6 +2424,66 @@ try {
                             check(Math.abs(s.left) <= 0.5 && Math.abs(s.right - s.width) <= 0.5 && (i === 0 || s.top > line[i - 1].top), `[${w}] StepGrid line, step ${i + 1}: below 768 its rule does not span the column, under the last: ${JSON.stringify(s)}`);
                         }
                     }
+                    // PackageCard tiles: square, padded 24 (32 from 768), each on its tone's ground with its title and
+                    // note readable there, the 40px icon at the top left and the label at the top right inside that
+                    // padding; the first two side by side from 1024, stacked below it.
+                    const tiles = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const cv = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+                        const rgb = (color) => {
+                            cv.clearRect(0, 0, 1, 1);
+                            cv.fillStyle = color;
+                            cv.fillRect(0, 0, 1, 1);
+                            return [...cv.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+                        };
+                        const lum = (c) => {
+                            const [x, y, z] = c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+                            return 0.2126 * x + 0.7152 * y + 0.0722 * z;
+                        };
+                        const ratio = (a, b) => {
+                            const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+                            return Math.round(((x + 0.05) / (y + 0.05)) * 100) / 100;
+                        };
+                        const probe = (cls) => {
+                            const el = document.createElement('div');
+                            el.className = cls;
+                            document.querySelector('[data-tiles]').append(el);
+                            const bg = getComputedStyle(el).backgroundColor;
+                            el.remove();
+                            return rgb(bg);
+                        };
+                        const want = { ink: probe('oca-band-ink'), brand: probe('oca-band-brand'), card: probe('bg-card') };
+                        return [...document.querySelectorAll('[data-oca-package-tile]')].map((t) => {
+                            const cs = getComputedStyle(t);
+                            const tr = r(t);
+                            const bg = rgb(cs.backgroundColor);
+                            const svg = r(t.querySelector('svg'));
+                            const label = r(t.querySelector('.oca-label'));
+                            const tone = t.dataset.ocaPackageTile;
+                            return {
+                                tone,
+                                radius: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].join(' '),
+                                pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map(parseFloat),
+                                ground: bg.join() === want[tone].join(),
+                                title: ratio(rgb(getComputedStyle(t.querySelector('h3')).color), bg),
+                                note: ratio(rgb(getComputedStyle(t.querySelector('p')).color), bg),
+                                icon: [Math.round(svg.left - tr.left), Math.round(svg.top - tr.top), Math.round(svg.width), Math.round(svg.height)],
+                                label: [Math.round(tr.right - label.right), Math.round(label.top - tr.top)],
+                                box: [Math.round(tr.left), Math.round(tr.top), Math.round(tr.width)],
+                            };
+                        });
+                    });
+                    const pad = w < 768 ? 24 : 32;
+                    check(tiles.length === 3, `[${w}] PackageCard tiles: ${tiles.length} drawn, not 3`);
+                    for (const t of tiles) {
+                        check(t.radius === '0px 0px 0px 0px' && t.pad.every((p) => p === pad) && t.ground, `[${w}] PackageCard tile (${t.tone}): not square, padded ${pad} and on its tone's ground: ${JSON.stringify(t)}`);
+                        check(t.title >= 4.5 && t.note >= 4.5, `[${w}] PackageCard tile (${t.tone}): its title (${t.title}:1) or note (${t.note}:1) under 4.5:1 on its ground`);
+                        // The ink band draws a hairline at its top, so its content sits 1px lower.
+                        const top = pad + (t.tone === 'ink' ? 1 : 0);
+                        check(t.icon[0] === pad && Math.abs(t.icon[1] - top) <= 1 && t.icon[2] === 40 && t.icon[3] === 40 && t.label[0] === pad && Math.abs(t.label[1] - top) <= 1, `[${w}] PackageCard tile (${t.tone}): its icon is not 40px at the top left, or its label not at the top right, inside the padding: ${JSON.stringify(t)}`);
+                    }
+                    const [t1, t2] = tiles;
+                    if (t1 && t2) check(w >= 1024 ? t1.box[1] === t2.box[1] && t2.box[0] > t1.box[0] + t1.box[2] : t2.box[1] > t1.box[1] && t1.box[0] === t2.box[0], `[${w}] PackageCard tiles: the first two are not ${w >= 1024 ? 'side by side' : 'stacked'}: ${JSON.stringify([t1.box, t2.box])}`);
                     await c.close();
                 }
             }

@@ -879,6 +879,37 @@ const html = (el) => renderToStaticMarkup(el);
     check(cls(cards).includes(' md:gap-5 ') && !cards.querySelector('[data-oca-step-rule]'), 'StepGrid: the default look is no longer cards');
 }
 
+// PackageCard: without a tone, the dark panel of packages exactly as 2.4.0 drew it; with one, a square tile in
+// that tone, its icon and label across its top, its title and note, then what it holds.
+{
+    const { JSDOM } = require('jsdom');
+    const { createHash } = require('node:crypto');
+    const sha = (s) => createHash('sha256').update(s).digest('hex');
+    const items = [
+        { title: 'A drop-in gate', code: '@orangecheck/gate', note: 'Middleware.' },
+        { title: 'Sign in', code: '<OcSignInButton />', kind: 'tag', href: '/signin' },
+        { title: 'Open', code: 'MIT', kind: 'link', note: 'Fork it.' },
+    ];
+    // The panel's markup from 2.4.0, for these items with the default heading and with h4 and a class.
+    check(sha(html(h(C.PackageCard, { items }))) === 'c36d5c93153f906e514f08611aa6838ac2cdfcf827ec4dcb3c2246d8cd539a65', 'PackageCard: the panel no longer draws as 2.4.0 did');
+    check(sha(html(h(C.PackageCard, { items, as: 'h4', className: 'rounded-none' }))) === 'cc0948f97d28e7d1268e0cce94cb6480a930dc82d5c6fea9ad1c31a85f05f86a', 'PackageCard: the panel with a heading level and a class no longer draws as 2.4.0 did');
+    const GROUND = { card: ' bg-card ', ink: ' oca-band-ink ', brand: ' oca-band-brand ' };
+    const cls = (el) => ` ${el?.getAttribute('class') ?? ''} `;
+    for (const tone of ['card', 'ink', 'brand']) {
+        const d = new JSDOM(html(h(C.PackageCard, { tone, icon: h(Terminal), label: '01 · @orangecheck/me-client', title: 'Sign-in that keeps bots out', note: 'A sign-in button.' }, h('pre', { 'data-held': '' }, 'yarn add')))).window.document;
+        const tile = d.body.firstElementChild;
+        const [head, words, held] = tile ? [...tile.children] : [];
+        check(tile?.tagName === 'ARTICLE' && tile.getAttribute('data-oca-package-tile') === tone && cls(tile).includes(GROUND[tone]) && cls(tile).includes(' p-6 ') && cls(tile).includes(' md:p-8 ') && !/rounded|bg-oca-ink-card/.test(cls(tile)), `PackageCard tile (${tone}): not a square panel in its tone: ${cls(tile)}`);
+        const icon = head?.firstElementChild;
+        check(icon?.getAttribute('aria-hidden') === 'true' && icon.querySelector('svg') && cls(icon).includes(' [&_svg]:size-10 ') && cls(icon).includes(' text-oca-accent-display ') === (tone === 'ink'), `PackageCard tile (${tone}): its icon is not a 40px mark, orange on ink only: ${cls(icon)}`);
+        check(head?.lastElementChild?.textContent === '01 · @orangecheck/me-client' && cls(head.lastElementChild).includes(' oca-label ') && cls(head.lastElementChild).includes(' normal-case '), `PackageCard tile (${tone}): its label is not the mono line at the top right`);
+        check(words?.querySelector('h3')?.textContent === 'Sign-in that keeps bots out' && cls(words.querySelector('h3')).includes(' font-light ') && words.querySelector('p.text-muted-foreground')?.textContent === 'A sign-in button.', `PackageCard tile (${tone}): its title and note are not under its top`);
+        check(held?.matches('pre[data-held]') && tile.children.length === 3, `PackageCard tile (${tone}): what it holds is not last`);
+    }
+    const bare = new JSDOM(html(h(C.PackageCard, { tone: 'card', as: 'h2', title: 'A drop-in gate' }))).window.document.body.firstElementChild;
+    check(bare.children.length === 1 && bare.querySelector('h2')?.textContent === 'A drop-in gate', 'PackageCard tile: with no icon or label it draws an empty top row, or ignores its heading level');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

@@ -9,7 +9,7 @@ export type { SectionProps } from './section';
 export { StepGrid } from './steps';
 export type { StepGridProps, StepItem } from './steps';
 export { PackageCard } from './code-card';
-export type { PackageItem } from './code-card';
+export type { PackageCardProps, PackageItem, PackageTileProps } from './code-card';
 export { CodeBlock, CodeTabs, InstallTabs, languageName } from './code-block';
 export type { CodeBlockProps, CodeTab } from './code-block';
 export { SplitBar } from './split-bar';
