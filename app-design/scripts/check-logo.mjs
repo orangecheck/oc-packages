@@ -100,6 +100,13 @@ let logoScript;
                 `Lockup ${variant} ${size}: cells not whole square pixels (${JSON.stringify({ svgs, g: g?.slice(1) })})`
             );
         }
+    // The small wordmark's strokes are one cell: at 1px a cell it is never drawn, at any lockup size.
+    const small = /viewBox="0 -?\d+ (\d+) /.exec(renderToStaticMarkup(h(B.PixelWordmark, { grid: 'small', cell: 1 })))[1];
+    for (let size = 12; size <= 48; size++)
+        for (const variant of ['flat', 'icon']) {
+            const word = /<svg[^>]*?viewBox="0 -?\d+ (\d+) [^"]*"[^>]*?width="([\d.]+)"[^>]*?aria-label="orangecheck"/.exec(renderToStaticMarkup(h(B.Lockup, { size, variant, logo: 'pixel' })));
+            check(word && !(word[1] === small && Number(word[2]) === Number(small)), `Lockup ${variant} ${size}: the small wordmark at 1px a cell (${word?.slice(1)})`);
+        }
     // A fixed logo draws that one alone, unmarked: what an OG card or a story asks for.
     const fixed = renderToStaticMarkup(h(B.Lockup, { size: 30, variant: 'flat', logo: 'pixel' }));
     check(!/data-oca-logo/.test(fixed) && /aria-label="orangecheck"/.test(fixed), 'Lockup logo="pixel": not the pixel lockup alone');
@@ -164,9 +171,11 @@ const served = spawnSync(process.execPath, [join(dir, 'server.cjs')], { encoding
 if (served.status !== 0) throw new Error(`logo: the server render failed\n${served.stderr}`);
 // The head as a site's _document has it: the switch first. A probe at the top of the body reads the root's
 // attribute before anything under it is parsed; one after the page's HTML reads which logo shows before the
-// page's script runs (what the first paint shows).
-const doc = (body, script = '') =>
-    `<!doctype html><html lang="en" data-oc-app="ochk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>${logoScript()}</script><link rel="stylesheet" href="out.css"></head><body>${body}${script}</body></html>`;
+// page's script runs (what the first paint shows). The empty icon keeps Chrome from asking each host for
+// /favicon.ico, so every console error a visit counts is the page's own. `nested` puts the scope on a
+// wrapper, not the root, for the rules that read it on an ancestor.
+const doc = (body, script = '', nested = false) =>
+    `<!doctype html><html lang="en"${nested ? '' : ' data-oc-app="ochk"'}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><script>${logoScript()}</script><link rel="stylesheet" href="out.css"></head><body>${nested ? '<div data-oc-app="ochk">' : ''}${body}${nested ? '</div>' : ''}${script}</body></html>`;
 const shown = `(el) => Boolean(el && el.getClientRects().length)`;
 writeFileSync(
     join(dir, 'page.html'),
@@ -177,6 +186,7 @@ writeFileSync(
     )
 );
 writeFileSync(join(dir, 'grounds.html'), doc('<div id="root"></div>', `<script>${COLOUR_KIT}</script><script src="grounds.js"></script>`));
+writeFileSync(join(dir, 'grounds-nested.html'), doc('<div id="root"></div>', `<script>${COLOUR_KIT}</script><script src="grounds.js"></script>`, true));
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2' };
 const server = createServer((req, res) => {
@@ -201,8 +211,9 @@ try {
     {
         const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
         const p = await ctx.newPage();
+        for (const [page, scope] of [['grounds.html', ''], ['grounds-nested.html', ', the scope nested']])
         for (const choice of [null, 'pixel', 'classic']) {
-            await p.goto(at('stamp.ochk.io', `grounds.html${choice ? `?logo=${choice}` : ''}`));
+            await p.goto(at('stamp.ochk.io', `${page}${choice ? `?logo=${choice}` : ''}`));
             await p.waitForSelector('[data-ground]');
             await p.evaluate(() => document.fonts.ready);
             const rows = await p.evaluate((s) => {
@@ -225,14 +236,14 @@ try {
             }, shown);
             const want = choice ?? 'classic';
             for (const r of rows) {
-                const where = `${r.ground}${choice ? ` (?logo=${choice})` : ''}`;
+                const where = `${r.ground}${choice ? ` (?logo=${choice})` : ''}${scope}`;
                 check(r.classic === (want === 'classic') && r.pixel === (want === 'pixel'), `${where}: shows ${r.classic ? 'classic' : ''}${r.pixel ? ' pixel' : ''}, not ${want} alone`);
                 if (!choice) {
-                    check(r.sameInk, `${r.ground}: the pixel wordmark is not drawn in the ground's text colour`);
-                    check(r.contrast >= 4.5, `${r.ground}: the pixel wordmark is ${r.contrast.toFixed(2)}:1 on its ground`);
+                    check(r.sameInk, `${where}: the pixel wordmark is not drawn in the ground's text colour`);
+                    check(r.contrast >= 4.5, `${where}: the pixel wordmark is ${r.contrast.toFixed(2)}:1 on its ground`);
                 }
             }
-            check(rows.length === 10, `grounds: ${rows.length} grounds, not 10`);
+            check(rows.length === 10, `${page}: ${rows.length} grounds, not 10`);
         }
         await ctx.close();
     }
@@ -280,8 +291,10 @@ try {
         check(!/oc_logo=/.test(cleared.cookie), `?logo=classic left the cookie (${cleared.cookie})`);
         await visit('stamp.ochk.io', '', 'classic', 'cleared on every *.ochk.io host');
         await visit(OUTSIDE, '?logo=classic', 'classic', 'its own cleared');
-        // A value that is not a logo is ignored.
+        // A value that is not a logo is ignored, in the URL and in the cookie.
         await visit('stamp.ochk.io', '?logo=neon', 'classic', 'an unknown value');
+        await ctx.addCookies([{ name: 'oc_logo', value: 'neon', domain: '.ochk.io', path: '/' }]);
+        await visit('docs.ochk.io', '', 'classic', 'an unknown value in the cookie');
         await ctx.close();
     }
 
