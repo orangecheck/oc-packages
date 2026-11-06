@@ -31,13 +31,17 @@ One long page, as ochk.app draws its own.
   Its links work before any script. `useActiveEntry` and `activeIndex`
   pick the entry being read, measured at most once a frame and idle at
   rest.
+- `ContentsNav` is that column and fold around a `list` of your own (a
+  changelog by month), and `ContentsLink` is one of its links, marked
+  when `here`. `Toc` is the two over a numbered list.
 - `DocLayout` with `toc` draws through them on a Frame, its `header` at
   the top of the text. Without `toc` it draws as before.
 - `LegalDocument` opens with PageHero's S10 header, the title's last word
   set back and the site's `art` at its foot, puts its dates on a bar, and
   marks each numbered section "§ NN" over its heading.
 - check-render holds the entry being read to ochk.app's cases and each
-  part's markup, and DocLayout without contents to its old markup;
+  part's markup, a list of your own in both places, and DocLayout without
+  contents to its old markup;
   check-idle holds the contents to no frame at rest and one per burst of
   scrolls, marking as the page scrolls; check-focus reaches them from the
   keyboard on a desk and through the fold on a phone; check-layout holds

@@ -87,23 +87,20 @@ export function DocColumns({ nav, children, className }: { nav: ReactNode; child
     );
 }
 
-export interface TocProps {
-    entries: readonly TocItem[];
+export interface ContentsNavProps {
+    /** The id of the entry being read; its link is kept in view when the sticky list scrolls inside itself. */
+    active?: string;
+    /** The contents, drawn twice: in the sticky column and in the phone's fold. Build its links with ContentsLink. */
+    list: ReactNode;
     /** Under the list in the sticky column, from 900px: a note, a link, a status. */
     aside?: ReactNode;
-    /** The reading line, in px from the top of the screen. Default 140. */
-    top?: number;
-    /** The reading line as a share of the screen's height, in place of `top`. */
-    share?: number;
 }
 
-/** A page's numbered contents for DocColumns' `nav`, linking to its own headings, the one being read marked. */
-export function Toc({ entries, aside, top = 140, share }: TocProps) {
-    const active = useActiveEntry(
-        entries.map((e) => e.id),
-        top,
-        share
-    );
+/**
+ * Contents of your own making for DocColumns' `nav` (grouped by month, say): sticky under the site's bar from
+ * 900px, folded under "On this page" on a phone. Toc is this with a numbered list.
+ */
+export function ContentsNav({ active, list, aside }: ContentsNavProps) {
     // On a short screen the sticky list scrolls inside itself: keep the marked entry in it.
     const sticky = useRef<HTMLElement>(null);
     useEffect(() => {
@@ -115,29 +112,6 @@ export function Toc({ entries, aside, top = 140, share }: TocProps) {
         if (start < nav.scrollTop) nav.scrollTop = start - 16;
         else if (end > nav.scrollTop + nav.clientHeight) nav.scrollTop = end - nav.clientHeight + 16;
     }, [active]);
-    const list = (
-        <ol className="border-l border-border">
-            {entries.map((e) => {
-                const here = active === e.id;
-                return (
-                    <li key={e.id}>
-                        <a
-                            href={`#${e.id}`}
-                            aria-current={here ? 'location' : undefined}
-                            className={cn(
-                                // 44px tall; the mark is this link's own left edge, over the list's rule.
-                                '-ml-px flex min-h-11 items-baseline gap-3 border-l-2 py-2.5 pl-4 pr-1 text-[0.875rem] leading-snug transition-colors',
-                                here ? 'border-oca-accent-display text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
-                            )}
-                        >
-                            <span className="w-5 shrink-0 font-mono text-[0.75rem] tabular-nums text-oca-subtle">{e.num}</span>
-                            <span>{e.label}</span>
-                        </a>
-                    </li>
-                );
-            })}
-        </ol>
-    );
     return (
         <>
             <nav ref={sticky} aria-label="On this page" className={cn('sticky hidden flex-col gap-8 overflow-y-auto pb-10 pl-8 pr-5 pt-12 min-[900px]:flex xl:pl-10', UNDER_HEADER)}>
@@ -161,5 +135,58 @@ export function Toc({ entries, aside, top = 140, share }: TocProps) {
                 </nav>
             </details>
         </>
+    );
+}
+
+/** One link in a page's contents, to the heading `id`: 44px tall, its mark on the list's left rule when `here`. */
+export function ContentsLink({ id, here, children }: { id: string; here: boolean; children: ReactNode }) {
+    return (
+        <a
+            href={`#${id}`}
+            aria-current={here ? 'location' : undefined}
+            className={cn(
+                '-ml-px flex min-h-11 items-baseline gap-3 border-l-2 py-2.5 pl-4 pr-1 text-[0.875rem] leading-snug transition-colors',
+                here ? 'border-oca-accent-display text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+        >
+            {children}
+        </a>
+    );
+}
+
+export interface TocProps {
+    entries: readonly TocItem[];
+    /** Under the list in the sticky column, from 900px: a note, a link, a status. */
+    aside?: ReactNode;
+    /** The reading line, in px from the top of the screen. Default 140. */
+    top?: number;
+    /** The reading line as a share of the screen's height, in place of `top`. */
+    share?: number;
+}
+
+/** A page's numbered contents for DocColumns' `nav`, linking to its own headings, the one being read marked. */
+export function Toc({ entries, aside, top = 140, share }: TocProps) {
+    const active = useActiveEntry(
+        entries.map((e) => e.id),
+        top,
+        share
+    );
+    return (
+        <ContentsNav
+            active={active}
+            aside={aside}
+            list={
+                <ol className="border-l border-border">
+                    {entries.map((e) => (
+                        <li key={e.id}>
+                            <ContentsLink id={e.id} here={active === e.id}>
+                                <span className="w-5 shrink-0 font-mono text-[0.75rem] tabular-nums text-oca-subtle">{e.num}</span>
+                                <span>{e.label}</span>
+                            </ContentsLink>
+                        </li>
+                    ))}
+                </ol>
+            }
+        />
     );
 }
