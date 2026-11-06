@@ -273,7 +273,7 @@ function Verdict({ pass, className, children }: { pass: boolean; className?: str
     return (
         <span
             className={cn(
-                'inline-flex w-fit items-center gap-2 px-2.5 py-1.5 font-mono text-[0.75rem] font-medium uppercase tracking-[0.08em]',
+                'oca-label inline-flex w-fit items-center gap-2 px-2.5 py-1.5 font-medium leading-normal',
                 pass ? 'bg-brand text-brand-foreground' : 'border border-muted-foreground text-foreground',
                 className
             )}

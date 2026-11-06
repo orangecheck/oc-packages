@@ -117,7 +117,7 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
                 className
             )}
         >
-            <span className="font-mono text-[0.75rem] uppercase tracking-[0.08em] leading-snug text-muted-foreground">{label}</span>
+            <span className="oca-label leading-snug">{label}</span>
             {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
             <span
                 className={cn(
@@ -428,7 +428,7 @@ export function DataTable<T>({
                                     scope="col"
                                     style={{ width: c.width, minWidth: c.minWidth }}
                                     className={cn(
-                                        'whitespace-nowrap font-mono text-[0.75rem] uppercase tracking-[0.08em] font-normal text-muted-foreground',
+                                        'oca-label whitespace-nowrap leading-normal',
                                         tight ? 'px-4 py-2.5' : 'px-5 py-3',
                                         right(c) && 'text-right',
                                         c.wide && 'hidden md:table-cell'
@@ -510,7 +510,7 @@ export function DataTable<T>({
                             >
                                 {rest.map((c) => (
                                     <div key={c.key} className="contents">
-                                        <dt className="pt-0.5 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-muted-foreground">{c.header}</dt>
+                                        <dt className="oca-label pt-0.5 leading-normal">{c.header}</dt>
                                         <dd className={cn('min-w-0 break-words', c.numeric && 'oca-tabular')}>
                                             {clickable && c === cardNamed ? opener(r, c.cell(r)) : c.cell(r)}
                                         </dd>

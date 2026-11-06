@@ -109,6 +109,22 @@ const html = (el) => renderToStaticMarkup(el);
             });
     }
     check(small.length === 0, `text under 12px in the source: ${small.join(', ')}`);
+
+    // One label: a class string set uppercase and tracked 0.08em is oca-label (or oca-eyebrow), with any
+    // override after it, never the label's type set by hand.
+    const handLabels = [];
+    for (const f of walk(src, /\.tsx?$/)) {
+        readFileSync(f, 'utf8')
+            .split('\n')
+            .forEach((line, i) => {
+                if (/^\s*(\/\/|\/?\*)/.test(line)) return;
+                for (const m of line.matchAll(/(["'`])([^"'`]*?)\1/g)) {
+                    const cls = m[2];
+                    if (/(?<![\w-])uppercase(?![\w-])/.test(cls) && /(?<![\w-])tracking-\[0?\.08em\]/.test(cls) && !/(?<![\w-])oca-(label|eyebrow)(?![\w-])/.test(cls)) handLabels.push(`${f.slice(src.length + 1)}:${i + 1}`);
+                }
+            });
+    }
+    check(handLabels.length === 0, `a label set by hand, not oca-label: ${handLabels.join(', ')}`);
 }
 
 // One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square
@@ -155,6 +171,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(out.includes('class="oca-k">const<'), 'CodeBlock: code is not highlighted in the server markup');
     check(/data-mark="">[^\n]*verify/.test(out) && !/data-mark="">const/.test(out), 'CodeBlock: the wrong line is marked');
     check(out.includes('>TypeScript<'), 'CodeBlock: the caption does not default to the language');
+    check(/<span class="oca-label[^"]*text-oca-ink-subtle[^"]*">TypeScript<\/span>/.test(out), 'CodeBlock: the caption is not oca-label, in the code surface\'s ink');
     const diff = html(h(C.CodeBlock, { code: '-old();\n+next();', lang: 'ts', diff: true }));
     check(diff.includes('data-diff="remove"') && diff.includes('data-diff="add"'), 'CodeBlock: diff lines are not marked');
     check(!diff.includes('>+') && !diff.includes('>-old'), 'CodeBlock: the diff sign is in the text');
@@ -295,6 +312,8 @@ const html = (el) => renderToStaticMarkup(el);
     check((linked.match(/href="\/people\/a1"/g) ?? []).length === 2, 'DataTable rowHref: the phone card has no link');
     check(/<button type="button"(?=[^>]*class="[^"]*after:inset-0)[^>]*>Ada<\/button>/.test(html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, onRowSelect: () => {} }))), 'DataTable onRowSelect: no row button');
     check(!html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id })).includes('after:inset-0'), 'DataTable: a plain table grew row links');
+    // Its heads, in the table and the phone card, are the one label.
+    check(/<th scope="col" class="oca-label[^"]*">Name<\/th>/.test(linked) && /<dt class="oca-label[^"]*">Id<\/dt>/.test(linked), 'DataTable: a column head or the phone card\'s term is not oca-label');
     // ComparisonTable: a last row of actions; Closing: small print.
     const cmp = html(h(C.ComparisonTable, { label: 'x', columns: [{ key: 'oc', label: 'OC Stamp', highlight: true, action: h('a', { href: '/stamp' }, 'Use OC Stamp') }, { key: 'pgp', label: 'PGP' }], rows: [{ label: 'Anchored', values: { oc: 'Yes', pgp: 'No' } }] }));
     check(cmp.includes('>Use OC Stamp</a>') && (cmp.match(/<li/g) ?? []).length === 3, 'ComparisonTable: no action row');
@@ -451,6 +470,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(stat({ value: 2.4, suffix: '%' }).includes('text-success') && stat({ value: 2.4, suffix: '%' }).includes('+2.4%'), 'StatCard: a rise is not green and signed');
     check(stat({ value: -1.2, suffix: '%' }).includes('text-destructive') && stat({ value: -1.2, suffix: '%' }).includes('−1.2%'), 'StatCard: a fall is not red and signed');
     check(stat({ value: -3, good: 'down' }).includes('text-success'), 'StatCard: good: down does not make a fall green');
+    check(/<span class="oca-label[^"]*">Price<\/span>/.test(stat()), 'StatCard: its label is not oca-label');
 }
 
 // A context set in one entry reaches a reader in another (each entry is bundled on its own).
