@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.6.0] — 2026-11-06
+
 A depiction keeps the page's colours on every band.
 
 - A depiction is the product shown as an object: BrowserFrame, PhoneFrame,
@@ -74,6 +76,8 @@ A dithered picture as a section's ground.
 - `DitherGround` from `./blocks` draws a baked 1-bit picture (ink on
   clear) behind a section at a whole number of CSS px a cell, never
   stretched, so a phone sees its middle at the grain a desk sees all of it.
+- `DitherImage` draws its still pixelated, so a picture baked one pixel a
+  cell keeps a square grain at every device pixel ratio.
 
 ## [2.5.0] — 2026-11-06
 
