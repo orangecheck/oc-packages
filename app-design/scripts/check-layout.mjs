@@ -994,7 +994,20 @@ try {
                     h(C.Section, { space: 'sm' }, h(P.Card, { 'data-box': 'card' }, bar('card'), h('p', { 'data-axis': 'card' }, 'The card says one thing.'))),
                     // The section shell: a Section's own bar, contained and framed, its body under it.
                     h(C.Section, { 'data-shell': 'contained', bar: { start: 'Shell contained', end: '07 / 08' } }, h(C.SectionHeading, { layout: 'split', reveal: false, title: 'Ten kinds of entry.', lead: 'Each entry is encrypted on its own.' })),
-                    h(C.Section, { 'data-shell': 'framed', framed: true, bar: { start: 'Shell framed', end: '08 / 08' } }, h(C.SectionHeading, { layout: 'split', reveal: false, eyebrow: 'Data', title: 'What we store, and what can move funds', lead: 'Every field, and what it is for.' }))
+                    h(C.Section, { 'data-shell': 'framed', framed: true, bar: { start: 'Shell framed', end: '08 / 08' } }, h(C.SectionHeading, { layout: 'split', reveal: false, eyebrow: 'Data', title: 'What we store, and what can move funds', lead: 'Every field, and what it is for.' })),
+                    // StepGrid's line: one rule across the steps, a square node on it at each.
+                    h(
+                        C.Section,
+                        { 'data-steps': 'line', space: 'sm' },
+                        h(C.StepGrid, {
+                            look: 'line',
+                            items: [
+                                { title: 'An app decides to pay', body: 'Always, only in promos, or never.' },
+                                { title: 'You do something real', body: 'Join an app, take an action, or spend time there. Sessions and actions count, never clicks.' },
+                                { title: 'You keep up to 80%', badge: 'in testing', body: 'The reward lands in your activity.' },
+                            ],
+                        })
+                    )
                 )
             )
         )
@@ -2365,6 +2378,40 @@ try {
                         else check(s.leadTop >= 19 && s.leadTop <= 21, `[${w}] SectionHeading split (${s.k}): the lead is not 20px under the title (${s.leadTop}px)`);
                     }
                     check(shell.length === 2, `[${w}] Section bar: ${shell.length} shells drawn, not 2`);
+                    // StepGrid line: from 768 the steps' rules meet as one across the grid, on one line; below it each
+                    // step's rule spans the column. Each step's node is a 10px square on its rule at the step's left,
+                    // its numeral above the rule and its title under the node.
+                    const line = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const ol = document.querySelector('[data-steps="line"] ol');
+                        const o = r(ol);
+                        const x = (v) => Math.round((v - o.left) * 10) / 10;
+                        return [...ol.children].map((li) => {
+                            const rule = li.querySelector('[data-oca-step-rule]');
+                            const a = r(rule);
+                            const n = r(rule.firstElementChild);
+                            return {
+                                left: x(a.left),
+                                right: x(a.right),
+                                top: Math.round(a.top * 10) / 10,
+                                h: a.height,
+                                li: x(r(li).left),
+                                node: [Math.round((n.left - a.left) * 10) / 10, Math.round(((n.top + n.bottom) / 2 - (a.top + a.bottom) / 2) * 10) / 10, n.width, n.height],
+                                order: r(li.querySelector('.oca-label')).bottom <= a.top && r(li.querySelector('h3')).top >= n.bottom,
+                                width: Math.round(o.width * 10) / 10,
+                            };
+                        });
+                    });
+                    check(line.length === 3, `[${w}] StepGrid line: ${line.length} steps drawn, not 3`);
+                    for (const [i, s] of line.entries()) {
+                        check(s.h === 1 && Math.abs(s.node[0]) <= 0.5 && Math.abs(s.node[1]) <= 0.5 && s.node[2] === 10 && s.node[3] === 10 && s.order, `[${w}] StepGrid line, step ${i + 1}: its rule, node or order is off (a 1px rule; a 10px node at its left, on it; numeral, rule, title): ${JSON.stringify(s)}`);
+                        if (w >= 768) {
+                            const next = line[i + 1];
+                            check(Math.abs(s.top - line[0].top) <= 0.5 && Math.abs(s.left - s.li) <= 0.5 && (next ? Math.abs(s.right - next.left) <= 0.5 : Math.abs(s.right - s.width) <= 0.5), `[${w}] StepGrid line, step ${i + 1}: its rule does not meet the next as one line: ${JSON.stringify(s)}${next ? ` then ${JSON.stringify(next)}` : ''}`);
+                        } else {
+                            check(Math.abs(s.left) <= 0.5 && Math.abs(s.right - s.width) <= 0.5 && (i === 0 || s.top > line[i - 1].top), `[${w}] StepGrid line, step ${i + 1}: below 768 its rule does not span the column, under the last: ${JSON.stringify(s)}`);
+                        }
+                    }
                     await c.close();
                 }
             }

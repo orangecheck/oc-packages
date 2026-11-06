@@ -850,6 +850,35 @@ const html = (el) => renderToStaticMarkup(el);
     check(/max-w-3xl/.test(stack.className) && /flex-col/.test(stack.className), 'SectionHeading: the default layout is no longer one column');
 }
 
+// StepGrid's line: per step its numeral, then its rule with a square node, then its title; from md the steps
+// touch and each rule runs into the step's padding, so the rules meet as one.
+{
+    const { JSDOM } = require('jsdom');
+    const items = [
+        { title: 'An app decides to pay', body: 'Always, only in promos, or never.' },
+        { title: 'You do something real', body: 'Sessions and actions count.' },
+        { title: 'You keep up to 80%', badge: 'in testing', body: 'The reward lands in your activity.' },
+    ];
+    const d = new JSDOM(html(h(C.StepGrid, { look: 'line', items }))).window.document;
+    const ol = d.querySelector('ol');
+    const cls = (el) => ` ${el?.getAttribute('class') ?? ''} `;
+    check(ol && cls(ol).includes(' md:gap-x-0 ') && cls(ol).includes(' md:grid-cols-3 ') && !cls(ol).includes(' md:gap-5 '), `StepGrid line: the steps do not touch from md: ${cls(ol)}`);
+    const steps = ol ? [...ol.children] : [];
+    check(steps.length === 3, `StepGrid line: ${steps.length} steps, not 3`);
+    for (const [i, li] of steps.entries()) {
+        const rule = li.querySelector('[data-oca-step-rule]');
+        const node = rule?.firstElementChild;
+        const label = li.querySelector('.oca-label');
+        const title = li.querySelector('h3');
+        check(cls(li).includes(' md:pr-10 ') && rule && cls(rule).includes(' md:-mr-10 ') && cls(rule).includes(' h-px ') && cls(rule).includes(' bg-foreground ') && rule.getAttribute('aria-hidden') === 'true', `StepGrid line, step ${i + 1}: its rule does not run into its padding as a hairline: ${rule?.outerHTML.slice(0, 160)}`);
+        check(node && cls(node).includes(' size-2.5 ') && cls(node).includes(' bg-oca-accent-display ') && cls(node).includes(' absolute '), `StepGrid line, step ${i + 1}: no square node on its rule`);
+        check(label?.textContent === String(i + 1).padStart(2, '0') && label.compareDocumentPosition(rule) & 4 && title && rule.compareDocumentPosition(title) & 4, `StepGrid line, step ${i + 1}: not its numeral, its rule, then its title`);
+    }
+    check(steps[2]?.querySelector('h3')?.textContent.includes('in testing'), 'StepGrid line: a badge is not drawn beside its title');
+    const cards = new JSDOM(html(h(C.StepGrid, { items }))).window.document.querySelector('ol');
+    check(cls(cards).includes(' md:gap-5 ') && !cards.querySelector('[data-oca-step-rule]'), 'StepGrid: the default look is no longer cards');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);
