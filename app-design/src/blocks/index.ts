@@ -14,5 +14,7 @@ export { StepPath } from './step-path';
 export type { PathStep, StepPathProps } from './step-path';
 export { DitherMark } from './dither-mark';
 export type { DitherMarkProps } from './dither-mark';
+export { DitherGround } from './dither-ground';
+export type { DitherGroundProps } from './dither-ground';
 export { Slider } from '../primitives/slider';
 export type { SliderMark, SliderProps } from '../primitives/slider';

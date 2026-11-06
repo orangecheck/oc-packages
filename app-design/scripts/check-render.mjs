@@ -626,6 +626,20 @@ const html = (el) => renderToStaticMarkup(el);
     check(own.includes('href="/terms"') && own.includes('href="/privacy"') && !own.includes('https://ochk.io/terms'), 'SiteFooter legal: a self-hosting site does not link its own terms');
     check(own.includes('href="https://ochk.io/trademark"'), 'SiteFooter legal: trademarks are not on ochk.io');
     check(!html(h(Ch.SiteFooter, {})).includes('aria-label="Legal"'), 'SiteFooter: a legal row without legal');
+    // The footer's two hands: inlined 1-bit pictures, decoration, drawn pixelated; none without the signature, none in a tool's footer.
+    const hands = [...html(h(Ch.SiteFooter, { legal: true })).matchAll(/<img [^>]*data-oca-hand="(left|right)"[^>]*>/g)];
+    check(
+        hands.map((m) => m[1]).join() === 'left,right' && hands.every(([tag]) => tag.includes('src="data:image/png;base64,iVBORw0KGgo') && tag.includes('alt=""') && tag.includes('image-rendering:pixelated')),
+        `SiteFooter: the two hands, inlined, as decoration, pixelated (${hands.length} drawn)`
+    );
+    check(html(h(Ch.SiteFooter, {})).includes('data-oca-hands="" aria-hidden="true"'), 'SiteFooter: the hands are not hidden from a screen reader');
+    check(!html(h(Ch.SiteFooter, { signature: false })).includes('data-oca-hand') && !html(h(Ch.SiteFooter, { compact: true })).includes('data-oca-hand'), 'SiteFooter: hands without the signature, or in a tool\'s footer');
+    // A dither ground keeps its cells whole: drawn at its cell size, never stretched to the section.
+    {
+        const B = require(join(here, '../dist/blocks.js'));
+        const g = html(h(B.DitherGround, { src: '/a.png', width: 300, height: 120, cell: 2, at: '70% 50%' }));
+        check(g.includes('aria-hidden="true"') && g.includes('background-size:600px 240px') && g.includes('background-position:70% 50%') && g.includes('image-rendering:pixelated'), `DitherGround: a whole-cell, still, hidden ground: ${g}`);
+    }
 }
 
 // The parts a signed-in page repeats.

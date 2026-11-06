@@ -21,7 +21,7 @@ import { mountScene, type Mounted } from './scene';
  */
 
 export interface DitherImageProps {
-    /** The still: a baked two-tone image at display size (app-design's ./art, or a site's own). */
+    /** The still: a baked two-tone image, at display size or one pixel a cell; drawn pixelated (app-design's ./art, or a site's own). */
     src: string;
     srcSet?: string;
     sizes?: string;
@@ -112,7 +112,7 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
     return (
         <span ref={box} className={cn('oca-dither relative block overflow-hidden', className)} style={{ aspectRatio: `${width} / ${height}`, ...style }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- the still is the picture; the canvas only lives under the pointer */}
-            <img src={src} srcSet={srcSet} sizes={sizes} width={width} height={height} alt={alt} loading="lazy" decoding="async" className="block size-full" />
+            <img src={src} srcSet={srcSet} sizes={sizes} width={width} height={height} alt={alt} loading="lazy" decoding="async" className="block size-full [image-rendering:pixelated]" />
             <canvas ref={canvas} aria-hidden className="oca-dither-live" />
         </span>
     );

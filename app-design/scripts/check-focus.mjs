@@ -195,6 +195,7 @@ try {
         entryPoints: [join(dir, 'familyhydrate-server.jsx')],
         outfile: join(dir, 'familyhydrate-server.cjs'),
         bundle: true,
+        loader: { '.png': 'base64' },
         platform: 'node',
         format: 'cjs',
         jsx: 'automatic',

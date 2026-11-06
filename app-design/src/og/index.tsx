@@ -22,6 +22,7 @@ import inter300Ext from './fonts/inter-latin-ext-300-normal.woff';
 import inter400Ext from './fonts/inter-latin-ext-400-normal.woff';
 import mono400 from './fonts/jetbrains-mono-og-400-normal.woff';
 import { MONO_CHARS } from './mono-chars';
+import { png } from '../lib/png';
 
 /*
  * The family's share images, for next/og's ImageResponse: `OgCard`, one page's
@@ -172,8 +173,6 @@ export interface OgImage {
     height: number;
 }
 
-// The build inlines each PNG as base64; a bundler that resolves it to a URL instead (Storybook) passes the URL.
-const png = (v: string) => (v.startsWith('iVBORw0KGgo') ? `data:image/png;base64,${v}` : v);
 
 /** Baked art as PNG data URIs, for an OG route (satori draws PNG, not AVIF). Sites import ./art/* for pages. */
 export const ogArt = {
