@@ -97,8 +97,33 @@ export const DEFAULT_RELAYS: string[] = [
  */
 export const FANOUT_DEADLINE_MS = 4000;
 
-/** The default relays each declare a NIP-11 page of 500 (measured 2026-11-06): no fetch asks them. */
-const DECLARED_RELAYS: ReadonlySet<string> = new Set(DEFAULT_RELAYS);
+/** The default relays each declare a NIP-11 page of 500 (measured 2026-11-06): no fetch asks them, in any spelling. */
+const DECLARED_RELAYS: ReadonlySet<string> = new Set(DEFAULT_RELAYS.map((u) => new URL(u).href));
+
+/** Each relay's NIP-11 page size as asked within one call, a GET that failed included, so it is asked once a call. */
+export type DeclaredLimits = Map<string, Promise<number | undefined>>;
+
+/** The NIP-11 page size of a relay the socket took, asked only of an absolute URL the caller named. */
+function declaredLimit(
+    relayUrl: string,
+    deadlineAt: number,
+    asked: DeclaredLimits
+): Promise<number | undefined> | undefined {
+    let href: string;
+    try {
+        href = new URL(relayUrl).href;
+    } catch {
+        return undefined;
+    }
+    if (DECLARED_RELAYS.has(href)) return undefined;
+    let read = asked.get(relayUrl);
+    if (!read) {
+        read = relayMaxLimit(relayUrl, budgetFor(deadlineAt));
+        asked.set(relayUrl, read);
+    }
+    return read;
+}
+
 const QUERY_TIMEOUT_MS = 10000;
 
 /** Remaining budget for a relay, given the fan-out's shared deadline. */
@@ -486,7 +511,8 @@ function socketPages(
 export async function readSubject(
     filter: Record<string, unknown>,
     relays: string[],
-    label: string
+    label: string,
+    asked: DeclaredLimits = new Map()
 ): Promise<SubjectRead> {
     const events: NostrEvent[] = [];
     const deadlineAt = Date.now() + FANOUT_DEADLINE_MS;
@@ -495,11 +521,9 @@ export async function readSubject(
         relays.map(async (relayUrl): Promise<SubjectReadState> => {
             let ws: WebSocket | null = null;
             try {
-                // A relay the caller names is asked its NIP-11 page alongside the first REQ, within the time left.
-                const declared = DECLARED_RELAYS.has(relayUrl)
-                    ? undefined
-                    : relayMaxLimit(relayUrl, budgetFor(deadlineAt));
                 ws = new WebSocket(relayUrl);
+                // A relay the caller names is asked its NIP-11 page alongside the first REQ, within the time left.
+                const declared = declaredLimit(relayUrl, deadlineAt, asked);
                 const pages = socketPages(ws, relayUrl, label, deadlineAt, filter, events);
                 const read = await readPages(pages, filter as Filter, declared ? { maxLimit: () => declared } : {});
                 return read.relayStatus?.[0]?.state ?? 'no_answer';
@@ -531,10 +555,11 @@ export async function queryByAttestationId(
 /** queryByAttestationId, with how each relay's read ended (see readByAddress). */
 export async function readByAttestationId(
     attestationId: string,
-    relays: string[] = DEFAULT_RELAYS
+    relays: string[] = DEFAULT_RELAYS,
+    asked?: DeclaredLimits
 ): Promise<SubjectRead> {
     log.info({ attestationId, relayCount: relays.length }, 'Querying relays for attestation');
-    return readSubject({ kinds: [30078], '#d': [attestationId] }, relays, 'id');
+    return readSubject({ kinds: [30078], '#d': [attestationId] }, relays, 'id', asked);
 }
 
 /**
@@ -554,10 +579,11 @@ export async function queryByAddress(
  */
 export async function readByAddress(
     address: string,
-    relays: string[] = DEFAULT_RELAYS
+    relays: string[] = DEFAULT_RELAYS,
+    asked?: DeclaredLimits
 ): Promise<SubjectRead> {
     log.info({ address, relayCount: relays.length }, 'Querying relays for address');
-    return readSubject({ kinds: [30078], '#t': [address] }, relays, 'addr');
+    return readSubject({ kinds: [30078], '#t': [address] }, relays, 'addr', asked);
 }
 
 /**
@@ -575,14 +601,15 @@ export async function queryByIdentity(
 export async function readByIdentity(
     protocol: string,
     identifier: string,
-    relays: string[] = DEFAULT_RELAYS
+    relays: string[] = DEFAULT_RELAYS,
+    asked?: DeclaredLimits
 ): Promise<SubjectRead> {
     const identityTags =
         protocol === 'nostr'
             ? nostrIdentifierForms(identifier).map((f) => `nostr:${f}`)
             : [`${protocol}:${identifier}`];
     log.info({ protocol, identifier, relayCount: relays.length }, 'Querying relays for identity');
-    return readSubject({ kinds: [30078], '#i': identityTags }, relays, 'identity');
+    return readSubject({ kinds: [30078], '#i': identityTags }, relays, 'identity', asked);
 }
 
 /**

@@ -22,6 +22,7 @@ import {
     readByIdentity,
     signedEnvelope,
     subjectReadComplete,
+    type DeclaredLimits,
     type SubjectRead,
 } from './nostr';
 import { nostrPubkeyToHex } from './nostr-pubkey';
@@ -124,11 +125,13 @@ export async function check(params: CheckParams): Promise<CheckResult> {
         return { ok: false, sats: 0, days: 0, score: 0, reasons: ['bad_request'] };
     }
 
+    // A named relay's NIP-11 is asked once for both of the call's reads, a failed GET included.
+    const asked: DeclaredLimits = new Map();
     const read: SubjectRead = id
-        ? await readByAttestationId(id, relays)
+        ? await readByAttestationId(id, relays, asked)
         : addr
-          ? await readByAddress(addr, relays)
-          : await readByIdentity(identity!.protocol, identity!.identifier, relays);
+          ? await readByAddress(addr, relays, asked)
+          : await readByIdentity(identity!.protocol, identity!.identifier, relays, asked);
     const found: AttestationEnvelope[] = await envelopesFromEvents(read.events);
 
     // Every field used, ordered by or returned comes from the signed message.
@@ -220,7 +223,7 @@ export async function check(params: CheckParams): Promise<CheckResult> {
     // paged read. "Not shared" rests on no such attestation being there, so it
     // needs a read of the address a flood could not cut off; else it is unread.
     if (outcome.ok && reasons.length === 0 && identity) {
-        const stake = await backsOtherIdentity(env, identity, relays, sigs);
+        const stake = await backsOtherIdentity(env, identity, relays, sigs, asked);
         if (stake === 'shared') reasons.push('stake_shared');
         if (stake === 'unread') reasons.push('stake_unread');
     }
@@ -333,11 +336,12 @@ async function backsOtherIdentity(
     env: AttestationEnvelope,
     identity: Identity,
     relays: string[],
-    sigs: ReturnType<typeof signatureChecks>
+    sigs: ReturnType<typeof signatureChecks>,
+    asked: DeclaredLimits
 ): Promise<'shared' | 'not_shared' | 'unread'> {
     const want = identityKey(identity);
     const protocol = identity.protocol.trim().toLowerCase();
-    const read = await readByAddress(env.address, relays);
+    const read = await readByAddress(env.address, relays, asked);
     const siblings = await envelopesFromEvents(read.events);
     let unchecked = false;
     for (const e of [env, ...siblings]) {
