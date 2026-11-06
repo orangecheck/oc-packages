@@ -29,6 +29,7 @@ import {
     fetchBallotEvents,
     fetchPollEvents,
     fetchRevealEvents,
+    relayMaxLimit,
 } from '../nostr.js';
 import { ballotsToCount, findPoll, requireComplete, selectReveal } from '../select.js';
 import { buildLookup, mempoolSource } from '../utxos.js';
@@ -173,21 +174,23 @@ export async function runTally(opts: TallyOptions): Promise<void> {
         throw new Error('poll id must be 64 hex chars');
     }
     const relays = opts.relays ?? DEFAULT_RELAYS;
+    // Relays the caller named are asked their NIP-11 page; the default set declares 500.
+    const maxLimit = opts.relays ? relayMaxLimit : undefined;
 
     const verify = opts.verify !== false ? bip322Verify : null;
     // The ballot read starts with the poll's; the reveal is read only once the
     // poll is known to be secret, so junk under a public poll's reveal tag
     // cannot hold its count up.
-    const ballotRead = fetchBallotEvents(pid, relays);
+    const ballotRead = fetchBallotEvents(pid, relays, undefined, maxLimit);
     ballotRead.catch(() => undefined);
-    const selected = await findPoll(await fetchPollEvents(pid, relays), pid, verify ?? bip322Verify);
+    const selected = await findPoll(await fetchPollEvents(pid, relays, undefined, maxLimit), pid, verify ?? bip322Verify);
     if (verify && !selected.signatureValid) {
         throw new Error('poll signature does not verify against its creator (SPEC §10.1)');
     }
     const poll = selected.poll;
     const [ballotFetch, revealFetch] = await Promise.all([
         ballotRead,
-        poll.mode === 'secret' ? fetchRevealEvents(pid, relays) : null,
+        poll.mode === 'secret' ? fetchRevealEvents(pid, relays, undefined, maxLimit) : null,
     ]);
 
     // Every copy: the tally verifies each before it picks one ballot per voter.
@@ -200,6 +203,7 @@ export async function runTally(opts: TallyOptions): Promise<void> {
     const chain = await anchoredChain(poll, ballots.map(ballotId), {
         ballotRelays: ballotFetch.relays,
         relays,
+        ...(maxLimit ? { maxLimit } : {}),
         ...(opts.mempoolBase ? { mempoolBase: opts.mempoolBase } : {}),
     });
 

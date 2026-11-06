@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { fetchBallotEvents, reachedEose, readFloor, type NostrEvent, type QueryFn } from './nostr.js';
+import { fetchBallotEvents, fetchPollEvents, reachedEose, readFloor, type NostrEvent, type QueryFn } from './nostr.js';
 import { ballotsToCount, findPoll, requireComplete } from './select.js';
 
 const st = (ok: boolean, eose: boolean, reason?: string) => ({
@@ -52,17 +52,19 @@ describe('findPoll / requireComplete', () => {
 });
 
 /**
- * Relays that answer like strfry: newest first, `until` and `limit` honoured,
- * at most 500 per REQ, then EOSE. A relay in `silent` never sends EOSE.
+ * Relays that answer like strfry: newest first, `since`, `until` and `limit`
+ * honoured, at most `cap` (500) per REQ, then EOSE. A relay in `silent` never
+ * sends EOSE.
  */
-const strfry = (byRelay: Record<string, NostrEvent[]>, silent: string[] = []): QueryFn =>
+const strfry = (byRelay: Record<string, NostrEvent[]>, silent: string[] = [], cap = 500): QueryFn =>
     (async (filter, relays) => {
         const relay = relays[0]!;
         if (silent.includes(relay)) return { events: [], relayStatus: [{ relay, ok: false, eose: false, events: 0, rejected: 0 }] };
         const events = (byRelay[relay] ?? [])
             .filter((e) => filter.until === undefined || e.created_at <= filter.until)
+            .filter((e) => filter.since === undefined || e.created_at >= filter.since)
             .sort((a, b) => b.created_at - a.created_at)
-            .slice(0, Math.min(filter.limit ?? 500, 500));
+            .slice(0, Math.min(filter.limit ?? 500, cap));
         return { events, relayStatus: [{ relay, ok: true, eose: true, events: events.length, rejected: 0 }] };
     }) as QueryFn;
 let n = 0;
@@ -70,14 +72,61 @@ const at = (created_at: number) => ({ id: `e${n++}`, created_at, kind: 30081, ta
 const FIVE = ['wss://a', 'wss://b', 'wss://c', 'wss://d', 'wss://e'];
 const ballots = () => [at(100), at(200), at(300)];
 
+describe('the poll read: paged, and "not found" only on a read no relay was cut off on', () => {
+    const poll = () => ({ id: `p${n++}`, created_at: 50, kind: 30080, tags: [['d', `oc-vote:poll:${PID}`]], content: '{}' }) as unknown as NostrEvent;
+    const junk = (count: number) => Array.from({ length: count }, (_, i) => at(10_000 + i));
+
+    it('a poll behind 600 newer events under its d-tag is read', async () => {
+        const p = poll();
+        const r = await fetchPollEvents(PID, ['wss://a'], strfry({ 'wss://a': [p, ...junk(600)] }));
+        expect(r.events).toContain(p);
+        expect(r.complete).toBe(true);
+    });
+
+    it('the two relays holding it cut off, three read to the end without it: incomplete, and the cut is named', async () => {
+        const held = [poll(), ...junk(2_100)];
+        const r = await fetchPollEvents(PID, FIVE, strfry({ 'wss://a': held, 'wss://b': held }));
+        expect(r.complete).toBe(false);
+        await expect(findPoll(r, PID, verify)).rejects.toThrow(/^the poll lookup was cut short on wss:\/\/a, wss:\/\/b, so the poll may be missing/);
+    });
+
+    it('no relay holds it and every relay read to the end: not found', async () => {
+        const r = await fetchPollEvents(PID, FIVE, strfry({}));
+        expect(r.complete).toBe(true);
+        await expect(findPoll(r, PID, verify)).rejects.toThrow(/^poll not found on relays$/);
+    });
+
+    it('no relay answered: not found is never said', async () => {
+        const r = await fetchPollEvents(PID, FIVE, strfry({}, FIVE));
+        expect(r.complete).toBe(false);
+        await expect(findPoll(r, PID, verify)).rejects.toThrow(/^no relay finished answering the poll query/);
+    });
+});
+
 describe('a paged ballot read: cut off is no answer, and a count needs the floor', () => {
     it('the floor is all but one relay: 4 of 5', () => {
         expect([5, 4, 3, 2, 1, 0].map(readFloor)).toEqual([4, 3, 2, 1, 1, 1]);
     });
 
-    it('a relay whose page is all one second is cut off, not answered, and the read is incomplete', async () => {
-        const flooded = [...ballots(), ...Array.from({ length: 100 }, () => at(5_000))];
+    it('a relay that sends at most 300 a page is read to its end', async () => {
+        const held = [...ballots(), ...Array.from({ length: 600 }, (_, i) => at(10_000 + i))];
+        const r = await fetchBallotEvents(PID, ['wss://a'], strfry({ 'wss://a': held }, [], 300));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: true, truncated: false }]);
+        expect(r.events).toHaveLength(603);
+    });
+
+    it('1,800 newer events are paged past within the 20 REQs a read takes', async () => {
+        const held = [...ballots(), ...Array.from({ length: 1_800 }, (_, i) => at(10_000 + i))];
+        const r = await fetchBallotEvents(PID, ['wss://a'], strfry({ 'wss://a': held }));
+        expect(r.relays).toEqual([{ relay: 'wss://a', answered: true, truncated: false }]);
+        expect(r.events).toHaveLength(1_803);
+    });
+
+    it('a page all at one second is stepped past: the ballots below it are read, the relay is cut off, and the read is incomplete', async () => {
+        const below = ballots();
+        const flooded = [...below, ...Array.from({ length: 100 }, () => at(5_000))];
         const r = await fetchBallotEvents(PID, ['wss://a'], strfry({ 'wss://a': flooded }));
+        expect(r.events).toEqual(expect.arrayContaining(below));
         expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
         expect(r.complete).toBe(false);
         expect(() => requireComplete(r, 'ballot')).toThrow(/^can't count: the ballot lookup was cut short on wss:\/\/a, so ballots may be missing/);
@@ -96,6 +145,26 @@ describe('a paged ballot read: cut off is no answer, and a count needs the floor
         const r = await fetchBallotEvents(PID, FIVE, strfry(byRelay));
         expect(r.complete).toBe(false);
         expect(() => requireComplete(r, 'ballot')).toThrow(/cut short on wss:\/\/e,/);
+    });
+
+    it('with the NIP-11 reader, a relay that declares a page under 100 and sent ballots is cut off', async () => {
+        const held = { 'wss://a': ballots(), 'wss://b': ballots(), 'wss://c': [] };
+        const declares: Record<string, number> = { 'wss://a': 50, 'wss://b': 500, 'wss://c': 50 };
+        const asked: string[] = [];
+        const maxLimit = async (relay: string) => {
+            asked.push(relay);
+            return declares[relay];
+        };
+        const r = await fetchBallotEvents(PID, ['wss://a', 'wss://b', 'wss://c'], strfry(held), maxLimit);
+        expect(r.relays).toEqual([
+            { relay: 'wss://a', answered: false, truncated: true },
+            { relay: 'wss://b', answered: true, truncated: false },
+            // Sent nothing: what it declares cannot hide anything.
+            { relay: 'wss://c', answered: true, truncated: false },
+        ]);
+        expect(asked.sort()).toEqual(['wss://a', 'wss://b', 'wss://c']);
+        const without = await fetchBallotEvents(PID, ['wss://a'], strfry(held));
+        expect(without.relays).toEqual([{ relay: 'wss://a', answered: true, truncated: false }]);
     });
 
     it('3 of 5 finishing is below the floor; 4 of 5 meets it', async () => {
@@ -232,6 +301,7 @@ describe('a full page counts every event the relay sent, rejected ones too', () 
         const stub = relayStub(Array.from({ length: 100 }, (_, i) => at(10_000 + i)), { ignoreUntil: true });
         const r = await fetchBallotEvents(PID, ['wss://a'], stub.fn);
         expect(r.relays).toEqual([{ relay: 'wss://a', answered: false, truncated: true }]);
-        expect(stub.pages()).toBe(2);
+        // Page 2 adds nothing below its boundary second; page 3, past that second, still sends the same page.
+        expect(stub.pages()).toBe(3);
     });
 });

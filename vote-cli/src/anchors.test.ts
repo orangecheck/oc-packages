@@ -169,7 +169,14 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
 
     async function run(
         tip: number,
-        opts: { junk?: number; sameSecondJunk?: number; silent?: string[]; ballotRelays?: RelayRead[]; relays?: string[] } = {}
+        opts: {
+            junk?: number;
+            sameSecondJunk?: number;
+            silent?: string[];
+            ballotRelays?: RelayRead[];
+            relays?: string[];
+            maxLimit?: (relay: string) => Promise<number | undefined>;
+        } = {}
     ) {
         const headers = new Headers();
         const s = await anchoredStamp(early, CLOSE - 3, headers);
@@ -187,6 +194,7 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
             blockTimes: blockTimes(tip),
             headers,
             queryFn: relaysHolding(events, opts.silent),
+            ...(opts.maxLimit ? { maxLimit: opts.maxLimit } : {}),
         });
         const result = await computeTally({
             poll,
@@ -273,6 +281,19 @@ describe('anchoredChain and the tally (SPEC §4.6, §8)', () => {
         const { chain, result } = await run(CLOSE + 36 + 6, { sameSecondJunk: 100 });
         expect(chain?.finalBlocked).toBe('the stamp lookup did not finish on wss://a, wss://b');
         expect(result.state).toBe('provisional');
+    });
+
+    it('holds the count short of final when a relay the caller named declares a page under 100 (NIP-11)', async () => {
+        const maxLimit = async (relay: string) => (relay === 'wss://b' ? 50 : 500);
+        const { chain, result } = await run(CLOSE + 36 + 6, { maxLimit });
+        expect(chain?.finalBlocked).toBe('the stamp lookup did not finish on wss://b');
+        expect(result.state).toBe('provisional');
+    });
+
+    it('is final when every relay the caller named declares a full page', async () => {
+        const { chain, result } = await run(CLOSE + 36 + 6, { maxLimit: async () => 500 });
+        expect(chain?.finalBlocked).toBeNull();
+        expect(result).toMatchObject({ state: 'tallied', counted: [ballotId(early)] });
     });
 
     it('refuses to count when no relay answered the stamp query', async () => {

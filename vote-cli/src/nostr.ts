@@ -4,12 +4,13 @@
 import {
     DEFAULT_RELAYS,
     queryEvents,
+    readPages,
     type Filter,
     type NostrEvent,
     type QueryResult,
 } from '@orangecheck/nostr-core';
 
-export { DEFAULT_RELAYS, publishEvent } from '@orangecheck/nostr-core';
+export { DEFAULT_RELAYS, publishEvent, relayMaxLimit } from '@orangecheck/nostr-core';
 export type { NostrEvent, PublishResult } from '@orangecheck/nostr-core';
 
 const QUERY_TIMEOUT_MS = 8000;
@@ -36,12 +37,23 @@ export async function query(filter: Filter, relays?: readonly string[]): Promise
 }
 
 /**
- * Every event under the poll's d-tag, newest first. Not `limit: 1`: anyone
- * can publish under any d-tag with any created_at, so callers choose by
- * content and signature (see select.ts).
+ * Every event under the poll's d-tag, newest first, paged per relay like the
+ * ballots (`queryPaged`). Not `limit: 1`: anyone can publish under any d-tag
+ * with any created_at, so callers choose by content and signature (see
+ * select.ts). `complete` when a relay read to its end and none was cut off:
+ * what a cut-off relay did not send may be the poll.
  */
-export function fetchPollEvents(pollId: string, relays?: readonly string[]) {
-    return query({ kinds: [30080], '#d': [`oc-vote:poll:${pollId}`] }, relays);
+export async function fetchPollEvents(
+    pollId: string,
+    relays?: readonly string[],
+    queryFn?: QueryFn,
+    maxLimit?: MaxLimit
+): Promise<PagedFetch> {
+    const read = await queryPaged({ kinds: [30080], '#d': [`oc-vote:poll:${pollId}`] }, relays, queryFn, maxLimit);
+    return {
+        ...read,
+        complete: !read.relays.some((r) => r.truncated) && read.relays.some((r) => r.answered),
+    };
 }
 
 /**
@@ -49,17 +61,25 @@ export function fetchPollEvents(pollId: string, relays?: readonly string[]) {
  * tags only). Callers must still check each parsed ballot's `poll_id`: `t` is
  * shared by poll id, family marker and voter address.
  */
-export function fetchBallotEvents(pollId: string, relays?: readonly string[], queryFn?: QueryFn) {
-    return queryPaged({ kinds: [30081], '#t': [pollId] }, relays, queryFn);
+export function fetchBallotEvents(
+    pollId: string,
+    relays?: readonly string[],
+    queryFn?: QueryFn,
+    maxLimit?: MaxLimit
+) {
+    return queryPaged({ kinds: [30081], '#t': [pollId] }, relays, queryFn, maxLimit);
 }
 
 // A relay answers a REQ with at most its own cap of events, newest first, so
 // junk under a tag can push older events out of an answer. Reads a count
-// depends on page each relay with `until` until a short page.
+// depends on page each relay alone with nostr-core's `readPages`, to the end
+// of what it holds; a relay that may hold more is cut off, never answered. A
+// page wholly at one second is stepped past, so what lies below it is read,
+// while that relay stays cut off.
 
-/** Events per page: below every reference relay's cap, so a short page means the end. */
+/** Events per page: a page shorter than this (nostr-core's MIN_PAGE) ends a relay's read. */
 export const PAGE_SIZE = 100;
-/** Pages per relay before the read is cut off. */
+/** REQs per relay before the read is cut off. */
 export const MAX_PAGES = 20;
 
 /**
@@ -83,8 +103,8 @@ export interface RelayRead {
     relay: string;
     /** Finished: EOSE for every page, down to a short page. */
     answered: boolean;
-    /** Cut off: it sent events but not to the end (a full page from one second,
-     *  MAX_PAGES, or it stopped answering). Not an answer. */
+    /** Cut off: it sent events but may hold more (a full page from one second,
+     *  MAX_PAGES, a NIP-11 page under 100, or it stopped answering). Not an answer. */
     truncated: boolean;
 }
 
@@ -110,49 +130,35 @@ export interface PagedFetch extends EventsFetch {
 
 export type QueryFn = (filter: Filter, relays: readonly string[], timeoutMs?: number) => Promise<QueryResult>;
 
+/** The page a relay's NIP-11 document declares (nostr-core `relayMaxLimit`). */
+export type MaxLimit = (relay: string) => Promise<number | undefined>;
+
 /**
- * Every event one relay holds for `filter`, that relay asked alone, page by page
- * under one deadline for the whole read.
+ * Every event one relay holds for `filter`, that relay asked alone, paged by
+ * nostr-core's `readPages` under one deadline for the whole read. With
+ * `maxLimit`, a relay that declares a page under 100 and sent anything is cut off.
  */
-export async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn) {
-    const byId = new Map<string, NostrEvent>();
-    const done = (answered: boolean, truncated = false) => ({
-        events: [...byId.values()],
-        read: { relay, answered, truncated },
-    });
-    let until: number | undefined;
+export async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn, maxLimit?: MaxLimit) {
     // One deadline for the whole read, not a fresh timeout per page: a relay that
     // answers every page slowly would otherwise hold the read for MAX_PAGES of them.
     const deadlineAt = Date.now() + PAGED_READ_DEADLINE_MS;
-    for (let page = 0; page < MAX_PAGES; page++) {
-        const budget = Math.min(QUERY_TIMEOUT_MS, deadlineAt - Date.now());
-        // Out of time after a full page: cut off.
-        if (budget <= 0) return done(false, true);
-        const { events, relayStatus } = await queryFn(
-            { ...filter, limit: PAGE_SIZE, ...(until !== undefined ? { until } : {}) },
-            [relay],
-            budget
-        );
-        const status = relayStatus.find((s) => s.relay === relay) ?? relayStatus[0];
-        // Everything the relay sent on this page, what nostr-core rejected included.
-        const sent = (status?.events ?? 0) + (status?.rejected ?? 0);
-        const known = byId.size;
-        // A page that stopped short still counts what it sent.
-        for (const e of events) byId.set(e.id, e);
-        // A relay that sent anything and then stopped is cut off, not silent: the
-        // rest of its answer may be what decides the count.
-        if (!status?.eose) return done(false, page > 0 || sent > 0);
-        // Short only by the relay's count: rejected events fill a page as much as any.
-        if (sent < PAGE_SIZE) return done(true);
-        // A full page that adds no verified event cannot be paged past.
-        if (byId.size === known) return done(false, true);
-        const oldest = Math.min(...events.map((e) => e.created_at));
-        // A whole page from one second cannot be paged past with `until`.
-        if (events.every((e) => e.created_at === oldest)) return done(false, true);
-        // Inclusive: the boundary second is read again, so none of it is skipped.
-        until = oldest;
-    }
-    return done(false, true);
+    const read = await readPages(
+        async (f) => {
+            const budget = Math.min(QUERY_TIMEOUT_MS, deadlineAt - Date.now());
+            // Out of time: cut off once it has sent anything.
+            if (budget <= 0) return { events: [], relayStatus: [{ relay, eose: false }] };
+            const { events, relayStatus } = await queryFn(f, [relay], budget);
+            const status = relayStatus.find((s) => s.relay === relay) ?? relayStatus[0];
+            // Everything the relay sent on this page, what nostr-core rejected included.
+            const sent = (status?.events ?? 0) + (status?.rejected ?? 0);
+            const rejected = Math.max(0, sent - events.length);
+            return { events, relayStatus: [{ relay, eose: !!status?.eose, events: events.length, rejected }] };
+        },
+        filter,
+        { limit: PAGE_SIZE, maxPages: MAX_PAGES, ...(maxLimit ? { maxLimit } : {}) }
+    );
+    const state = read.relayStatus?.[0]?.state ?? 'no_answer';
+    return { events: read.events, read: { relay, answered: state === 'complete', truncated: state === 'cut_off' } };
 }
 
 /**
@@ -162,9 +168,10 @@ export async function pageRelay(filter: Filter, relay: string, queryFn: QueryFn)
 export async function queryPaged(
     filter: Filter,
     relays: readonly string[] = DEFAULT_RELAYS,
-    queryFn: QueryFn = queryEvents
+    queryFn: QueryFn = queryEvents,
+    maxLimit?: MaxLimit
 ): Promise<PagedFetch> {
-    const results = await Promise.all(relays.map((r) => pageRelay(filter, r, queryFn)));
+    const results = await Promise.all(relays.map((r) => pageRelay(filter, r, queryFn, maxLimit)));
     const byId = new Map<string, NostrEvent>();
     for (const r of results) for (const e of r.events) byId.set(e.id, e);
     return {
@@ -180,8 +187,13 @@ export async function queryPaged(
  * after the reveal pushes it out of a single read; "no reveal" stands only on
  * a read that is `complete` (`readShortfall`).
  */
-export function fetchRevealEvents(pollId: string, relays?: readonly string[], queryFn?: QueryFn) {
-    return queryPaged({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays, queryFn);
+export function fetchRevealEvents(
+    pollId: string,
+    relays?: readonly string[],
+    queryFn?: QueryFn,
+    maxLimit?: MaxLimit
+) {
+    return queryPaged({ kinds: [30082], '#d': [`oc-vote:reveal:${pollId}`] }, relays, queryFn, maxLimit);
 }
 
 // `oc-vote-poll` marker: kind 30080 is shared with other Nostr applications.

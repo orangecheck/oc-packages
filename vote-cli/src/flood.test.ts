@@ -20,7 +20,9 @@ import { ballotId, pollId, revealId, type Ballot, type Poll, type Reveal } from 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 
+import { runShow } from './commands/show.js';
 import { runTally } from './commands/tally.js';
+import { runVerify } from './commands/verify.js';
 import { buildBallotEvent, buildPollEvent, buildRevealEvent } from './events.js';
 import type { NostrEvent } from './nostr.js';
 
@@ -164,11 +166,13 @@ type Stop = 'hang' | 'drop' | 'closed';
 /** A relay's events, 'hang' (never answers), 'down' (refuses), or events it stops answering for on a ballot page. */
 type RelaySpec = NostrEvent[] | 'down' | 'hang' | { events: NostrEvent[]; stopOnBallotPage: number; partial: number; stop: Stop };
 const closers: Array<() => Promise<void>> = [];
+/** Relays that declare a page under 100: bound until the end, so no later relay takes a port whose NIP-11 answer nostr-core keeps. */
+const lasting: Array<() => Promise<void>> = [];
 /** REQs for reveals (kind 30082) the relays were sent this run. */
 let revealReqs = 0;
 
-/** A relay at 127.0.0.1, as `spec` says. */
-async function relay(spec: RelaySpec): Promise<string> {
+/** A relay at 127.0.0.1, as `spec` says; with `declares`, its NIP-11 document gives that `max_limit`. */
+async function relay(spec: RelaySpec, declares?: number): Promise<string> {
     if (spec === 'down') {
         const s = createNetServer();
         await new Promise<void>((r) => s.listen(0, '127.0.0.1', r));
@@ -179,8 +183,13 @@ async function relay(spec: RelaySpec): Promise<string> {
     const stop = spec !== 'hang' && !Array.isArray(spec) ? spec : null;
     const events = spec === 'hang' ? [] : held(Array.isArray(spec) ? spec : spec.events);
     let ballotPages = 0;
-    const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
-    await new Promise((r) => wss.once('listening', r));
+    const http = createServer((req, res) => {
+        if (declares === undefined || req.headers.accept !== 'application/nostr+json') return void res.writeHead(404).end();
+        res.setHeader('content-type', 'application/nostr+json');
+        res.end(JSON.stringify({ limitation: { max_limit: declares } }));
+    });
+    await new Promise<void>((r) => http.listen(0, '127.0.0.1', r));
+    const wss = new WebSocketServer({ server: http });
     wss.on('connection', (ws) => {
         ws.on('message', (raw) => {
             const msg = JSON.parse(String(raw)) as unknown[];
@@ -206,14 +215,14 @@ async function relay(spec: RelaySpec): Promise<string> {
             ws.send(JSON.stringify(['EOSE', sub]));
         });
     });
-    closers.push(
+    (declares !== undefined && declares < 100 ? lasting : closers).push(
         () =>
             new Promise<void>((r) => {
                 for (const c of wss.clients) c.terminate();
-                wss.close(() => r());
+                wss.close(() => http.close(() => r()));
             })
     );
-    return `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`;
+    return `ws://127.0.0.1:${(http.address() as AddressInfo).port}`;
 }
 
 let mempool: Server;
@@ -259,14 +268,15 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+    await Promise.all(lasting.splice(0).map((c) => c()));
     vi.unstubAllGlobals();
     await new Promise((r) => mempool.close(r));
     expect(outside).toEqual([]);
 });
 
 /** `oc-vote tally --json` over these relays: what it counted, or the error it stopped on. */
-async function tallyOver(specs: RelaySpec[]) {
-    const relays = await Promise.all(specs.map(relay));
+async function tallyOver(specs: RelaySpec[], declares: (number | undefined)[] = []) {
+    const relays = await Promise.all(specs.map((s, i) => relay(s, declares[i])));
     const out: string[] = [];
     const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
         out.push(String(chunk));
@@ -338,6 +348,15 @@ describe('oc-vote tally over strfry-like relays (clock-dated poll)', { timeout: 
         });
     });
 
+    it("a relay the caller named whose NIP-11 document declares a page of 50 holds the count", async () => {
+        const r = await tallyOver([honest(), honest(), honest(), honest(), honest()], [500, 500, 500, 500, 50]);
+        expect(r).toEqual({
+            error: expect.stringMatching(/^can't count: the ballot lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so ballots/),
+            stdout: '',
+        });
+        expect(await tallyOver([honest(), honest(), honest(), honest(), honest()], [500, 500, 500, 500, 500])).toEqual(TRUTH);
+    });
+
     it("below the floor, one relay timing out and one refusing, it can't count", async () => {
         // The re-vote reached only the two that do not answer.
         const r = await tallyOver([withoutRevote(), withoutRevote(), withoutRevote(), 'hang', 'down']);
@@ -373,14 +392,20 @@ const reveal: Reveal = {
 reveal.sig.value = signMessage(CREATOR, revealId(reveal), kCreator);
 const secretPollEvent = buildPollEvent(secretPoll);
 const revealEvent = signAt(buildRevealEvent(reveal), T0 + 12 * DAY);
-/** n events under the reveal's d-tag, each from its own key, all in one second after the reveal. */
-const revealJunk = (n: number) =>
-    Array.from({ length: n }, () =>
-        signAt({ kind: 30082, tags: [['d', `oc-vote:reveal:${spid}`], ['t', spid]], content: '{}' }, FLOOD_AT)
+/** n events under the reveal's d-tag, each from its own key, after the reveal: in one second, or a second apart. */
+const revealJunk = (n: number, apart = false) =>
+    Array.from({ length: n }, (_, i) =>
+        signAt({ kind: 30082, tags: [['d', `oc-vote:reveal:${spid}`], ['t', spid]], content: '{}' }, FLOOD_AT + (apart ? i : 0))
     );
 
-async function secretTallyOver(specs: RelaySpec[]) {
-    const relays = await Promise.all(specs.map(relay));
+/** n events under the poll's d-tag, each from its own key, a second apart, after the poll. */
+const pollJunk = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+        signAt({ kind: 30080, tags: [['d', `oc-vote:poll:${pid}`], ['t', pid]], content: '{}' }, FLOOD_AT + i)
+    );
+
+async function secretTallyOver(specs: RelaySpec[], declares: (number | undefined)[] = []) {
+    const relays = await Promise.all(specs.map((s, i) => relay(s, declares[i])));
     const out: string[] = [];
     const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
         out.push(String(chunk));
@@ -397,6 +422,39 @@ async function secretTallyOver(specs: RelaySpec[]) {
     }
 }
 
+describe('oc-vote show and verify read the ballots as tally does', { timeout: 60_000 }, () => {
+    for (const [name, run] of [['show', runShow], ['verify', runVerify]] as const) {
+        /** `run` over relays holding `held`, each declaring its page; 'read', or the error it stopped on. */
+        const over = async (declares: number[], held: () => NostrEvent[] = honest) => {
+            const relays = await Promise.all(declares.map((d) => relay(held(), d)));
+            const spy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+            try {
+                return await run({ pollId: pid, relays, json: true }).then(
+                    () => 'read',
+                    (e: Error) => e.message
+                );
+            } finally {
+                spy.mockRestore();
+            }
+        };
+
+        it(`${name}: no poll yet, and a relay the caller named declares a page of 50: never 'poll not found' on that read`, async () => {
+            const junk = pollJunk(10);
+            expect(await over([500, 500, 500, 500, 50], () => [...junk])).toMatch(
+                /^the poll lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so the poll may be missing/
+            );
+            expect(await over([500, 500, 500, 500, 500], () => [...junk])).toBe('poll not found on relays');
+        });
+
+        it(`${name}: a relay the caller named that declares a page of 50 holds the ballot read`, async () => {
+            expect(await over([500, 500, 500, 500, 50])).toMatch(
+                /^can't count: the ballot lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so ballots/
+            );
+            expect(await over([500, 500, 500, 500, 500])).toBe('read');
+        });
+    }
+});
+
 describe('oc-vote tally reads the reveal only for a secret poll', { timeout: 60_000 }, () => {
     it('a public poll sends no reveal read, so junk under its reveal tag cannot slow its count', async () => {
         revealReqs = 0;
@@ -411,9 +469,49 @@ describe('oc-vote tally reads the reveal in full, or says it cannot count', { ti
         expect(r).toEqual({ state: 'tallied', reveal_present: true });
     });
 
-    it("500 junk events in one second after the reveal, on every relay: can't count, never awaiting reveal", async () => {
+    it('500 junk events in one second after the reveal, on every relay: the read steps past that second and counts', async () => {
         const junk = revealJunk(500);
         const r = await secretTallyOver(Array.from({ length: 5 }, () => [secretPollEvent, revealEvent, ...junk]));
+        expect(r).toEqual({ state: 'tallied', reveal_present: true });
+    });
+
+    it("2,100 junk events a second apart after the reveal, on every relay: can't count, never awaiting reveal", async () => {
+        const junk = revealJunk(2_100, true);
+        const r = await secretTallyOver(Array.from({ length: 5 }, () => [secretPollEvent, revealEvent, ...junk]));
         expect(r).toEqual({ error: expect.stringMatching(/^can't count: the reveal lookup was cut short on /) });
+    });
+
+    it('no reveal yet, and a relay the caller named declares a page of 50: never awaiting reveal on that read', async () => {
+        const junk = revealJunk(10, true);
+        const specs = () => Array.from({ length: 5 }, () => [secretPollEvent, ...junk]);
+        expect(await secretTallyOver(specs(), [500, 500, 500, 500, 50])).toEqual({
+            error: expect.stringMatching(/^can't count: the reveal lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so reveals/),
+        });
+        expect(await secretTallyOver(specs(), [500, 500, 500, 500, 500])).toEqual({ state: 'awaiting_reveal', reveal_present: false });
+    });
+});
+
+describe('oc-vote tally reads the poll paged, or says it cannot', { timeout: 60_000 }, () => {
+    const junk = pollJunk(2_100);
+
+    it('600 junk events under the poll d-tag, after it, on every relay: the poll is read and counted', async () => {
+        expect(await tallyOver(Array.from({ length: 5 }, () => [...genuine, ...junk.slice(0, 600)]))).toEqual(TRUTH);
+    });
+
+    it("no poll yet, and a relay the caller named declares a page of 50: never 'poll not found' on that read", async () => {
+        const few = pollJunk(10);
+        const specs = () => Array.from({ length: 5 }, () => [...few]);
+        expect(await tallyOver(specs(), [500, 500, 500, 500, 50])).toEqual({
+            error: expect.stringMatching(/^the poll lookup was cut short on ws:\/\/127\.0\.0\.1:\d+, so the poll may be missing/),
+            stdout: '',
+        });
+        expect(await tallyOver(specs(), [500, 500, 500, 500, 500])).toEqual({ error: 'poll not found on relays', stdout: '' });
+    });
+
+    it("2,100 of them on every relay: the poll lookup was cut short, never 'poll not found'", async () => {
+        expect(await tallyOver(Array.from({ length: 5 }, () => [...genuine, ...junk]))).toEqual({
+            error: expect.stringMatching(/^the poll lookup was cut short on (ws:\/\/127\.0\.0\.1:\d+(, )?){5}, so the poll may be missing/),
+            stdout: '',
+        });
     });
 });

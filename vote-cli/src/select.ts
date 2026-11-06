@@ -40,19 +40,23 @@ export async function selectPoll(
 
 /**
  * selectPoll over a relay answer, distinguishing "no relay has it" from "no
- * relay finished answering" — only the first is "not found".
+ * relay finished answering" and from a read cut short — only the first is
+ * "not found".
  */
 export async function findPoll(
-    fetched: EventsFetch,
+    fetched: EventsFetch | PagedFetch,
     pid: string,
     verify: SignatureVerifier
 ): Promise<{ poll: Poll; signatureValid: boolean }> {
     const selected = await selectPoll(fetched.events, pid, verify);
     if (selected) return selected;
+    const cut = 'relays' in fetched ? fetched.relays.filter((r) => r.truncated).map((r) => r.relay) : [];
     throw new Error(
-        fetched.complete
-            ? 'poll not found on relays'
-            : 'no relay finished answering the poll query; try again'
+        cut.length > 0
+            ? `the poll lookup was cut short on ${cut.join(', ')}, so the poll may be missing; try again`
+            : fetched.complete
+              ? 'poll not found on relays'
+              : 'no relay finished answering the poll query; try again'
     );
 }
 

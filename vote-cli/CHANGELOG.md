@@ -9,6 +9,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- The poll, ballots, the reveal and ballot stamps are read through
+  nostr-core's `readPages`, per relay, at 100 a page and up to 20 REQs. A
+  relay counts as read in full only when a page comes back with fewer than the
+  100 events asked for.
+- A poll is "not found on relays" only on a read a relay finished and no relay
+  was cut off on. A poll read cut short on any relay is an error that names
+  those relays and says the poll may be missing.
+- A page whose events all share one second is stepped past (`until` one
+  second lower). A relay that sends anything below it stopped short at that
+  second, and its read counts as cut short. One that sends nothing is asked
+  for a page of the kinds alone, and is read in full only if it serves more
+  than it sent at that second.
+- `tally`, `show` and `verify` with `--relay` ask each named relay its NIP-11
+  `limitation.max_limit` for every read they make. A relay declaring a page
+  under 100 that sent events counts as cut short. The default relays are not
+  asked: each declares a page of 500. A relay that serves under 100 a page and
+  declares nothing is not told apart.
+- Requires `@orangecheck/nostr-core` ^0.8.2, whose `DEFAULT_RELAYS` carry
+  `wss://nostr.mom` in place of `wss://relay.damus.io`.
+
 ## [0.8.0] — 2026-11-05
 
 ### Added
