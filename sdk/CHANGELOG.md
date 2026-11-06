@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-11-06
+
 ### Changed
 
 - Each relay's read of a subject (`readByAttestationId`, `readByAddress`,
