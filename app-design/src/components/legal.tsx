@@ -1,14 +1,16 @@
 import { Fragment, type ReactNode } from 'react';
 
-import { DocHeader, DocLayout } from './hero';
+import { DocColumns, Toc } from './contents';
 import { Notice } from './data';
+import { Frame, SectionBar } from './frame';
+import { PageHero } from './hero';
 import { TextLink } from './text-link';
 import { Prose } from './typography';
 
 /*
  * A document from @orangecheck/legal, the one source every site renders, set
- * in this system's Prose: sentence-case headings, its contents beside it on a
- * desk. The shapes below are @orangecheck/legal's, written out so a LegalDoc
+ * in this system's Prose: sentence-case headings, its numbered contents beside
+ * it. The shapes below are @orangecheck/legal's, written out so a LegalDoc
  * passes straight in without this package depending on that one.
  */
 
@@ -156,43 +158,58 @@ function BlockView({ block }: { block: LegalBlock }): ReactNode {
     }
 }
 
-/** A legal document as a page: its header, its contents, its sections, and the one-line summary. */
-export function LegalDocument({ doc, className }: { doc: LegalSource; className?: string }) {
+/**
+ * A legal document as a page: S10's header (its title's last word set back, the site's `art` at its
+ * foot), its dates on a bar, its numbered contents beside its sections, each under its "§ NN", and
+ * the one-line summary. The page's art is the site's: this entry draws none of its own.
+ */
+export function LegalDocument({ doc, art, className }: { doc: LegalSource; art?: ReactNode; className?: string }) {
+    const at = doc.title.lastIndexOf(' ');
+    const title =
+        at > 0 ? (
+            <>
+                <span className="block">{doc.title.slice(0, at)}</span> <span className="block text-oca-subtle">{doc.title.slice(at + 1)}</span>
+            </>
+        ) : (
+            doc.title
+        );
     return (
-        <DocLayout
-            className={className}
-            header={
-                <DocHeader
-                    eyebrow={headingCase(doc.eyebrow)}
-                    title={doc.title}
-                    lead={doc.description}
-                    meta={`Effective ${doc.effective} · last updated ${doc.updated}`}
+        <>
+            <PageHero layout="s10" size="xl" eyebrow={headingCase(doc.eyebrow)} title={title} lead={doc.description} art={art} />
+            <Frame padded={false} className={className}>
+                <SectionBar
+                    start={
+                        // One run of text: the label lays its children out side by side.
+                        <span>
+                            Effective <span className="whitespace-nowrap">{doc.effective}</span> · last updated <span className="whitespace-nowrap">{doc.updated}</span>
+                        </span>
+                    }
                 />
-            }
-            toc={doc.sections.map((s) => ({ id: s.id, label: headingCase(s.heading) }))}
-        >
-            <article className="min-w-0">
-                <Prose>
-                    {doc.preamble?.map((b, i) => <BlockView key={i} block={b} />)}
-                    {doc.sections.map((s) => (
-                        <section key={s.id}>
-                            <h2 id={s.id} className="scroll-mt-24">
-                                {s.num ? <span className="oca-tabular text-muted-foreground">{s.num} </span> : null}
-                                {headingCase(s.heading)}
-                            </h2>
-                            {s.hint ? <p className="text-[0.9375rem]">{headingCase(s.hint)}</p> : null}
-                            {s.blocks.map((b, i) => (
-                                <BlockView key={i} block={b} />
+                <DocColumns nav={<Toc entries={doc.sections.map((s) => ({ id: s.id, num: s.num, label: headingCase(s.heading) }))} />}>
+                    <article className="min-w-0">
+                        <Prose>
+                            {doc.preamble?.map((b, i) => <BlockView key={i} block={b} />)}
+                            {doc.sections.map((s) => (
+                                <section key={s.id}>
+                                    <h2 id={s.id} className="scroll-mt-24">
+                                        {s.num ? <span className="mb-3 block font-mono text-[0.75rem] font-normal leading-[1.4] tracking-[0.08em] text-oca-accent-ink">§ {s.num}</span> : null}
+                                        {headingCase(s.heading)}
+                                    </h2>
+                                    {s.hint ? <p className="text-[0.9375rem]">{headingCase(s.hint)}</p> : null}
+                                    {s.blocks.map((b, i) => (
+                                        <BlockView key={i} block={b} />
+                                    ))}
+                                </section>
                             ))}
-                        </section>
-                    ))}
-                    {doc.summary ? (
-                        <p className="mt-14 border-t border-border pt-6 text-[0.9375rem]">
-                            <strong>In short.</strong> {sentencesCase(doc.summary.replace(/^summary:\s*/i, ''))}
-                        </p>
-                    ) : null}
-                </Prose>
-            </article>
-        </DocLayout>
+                            {doc.summary ? (
+                                <p className="mt-14 border-t border-border pt-6 text-[0.9375rem]">
+                                    <strong>In short.</strong> {sentencesCase(doc.summary.replace(/^summary:\s*/i, ''))}
+                                </p>
+                            ) : null}
+                        </Prose>
+                    </article>
+                </DocColumns>
+            </Frame>
+        </>
     );
 }

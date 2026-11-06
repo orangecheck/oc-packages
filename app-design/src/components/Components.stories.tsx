@@ -10,9 +10,11 @@ import {
     ActivityList,
     CodeBlock,
     DataTable,
+    DocColumns,
     DocHeader,
     DocLayout,
     EmptyState,
+    Frame,
     HashChip,
     KeyValueList,
     LoadError,
@@ -30,6 +32,7 @@ import {
     StatCard,
     StatGrid,
     StepGrid,
+    Toc,
     TruthTable,
     UsdApprox,
 } from './index';
@@ -287,9 +290,9 @@ export const Heroes: StoryObj = {
                     />
                 }
                 toc={[
-                    { id: 'what', label: 'What we store' },
-                    { id: 'why', label: 'Why we store it' },
-                    { id: 'how-long', label: 'How long we keep it' },
+                    { id: 'what', num: '01', label: 'What we store' },
+                    { id: 'why', num: '02', label: 'Why we store it' },
+                    { id: 'how-long', num: '03', label: 'How long we keep it' },
                 ]}
             >
                 <Prose>
@@ -306,6 +309,45 @@ export const Heroes: StoryObj = {
                 </Prose>
             </DocLayout>
         </div>
+    ),
+};
+
+const CONTENTS = [
+    ['scope', 'What this covers'],
+    ['report', 'How to report a problem'],
+    ['keys', 'Which keys we hold'],
+    ['relays', 'Which relays we read'],
+    ['changes', 'When this page changes'],
+] as const;
+
+export const Contents: StoryObj = {
+    name: 'Long page: contents beside the text',
+    parameters: { fullBleed: true },
+    // A page that keeps its own sections (ochk.app's /security) sets them in DocColumns with a Toc.
+    render: () => (
+        <Frame padded={false}>
+            <DocColumns
+                nav={
+                    <Toc
+                        entries={CONTENTS.map(([id, label], i) => ({ id, num: String(i + 1).padStart(2, '0'), label }))}
+                        aside={<p className="text-[0.8125rem] leading-snug text-muted-foreground">We aim to reply to every report within 30 days. We can't promise a time to a fix yet.</p>}
+                    />
+                }
+            >
+                <Prose>
+                    {CONTENTS.map(([id, label]) => (
+                        <section key={id}>
+                            <h2 id={id}>{label}</h2>
+                            <p>
+                                A paragraph of the page, set at a readable measure, long enough to wrap across a few
+                                lines so the contents have something to follow as the page scrolls.
+                            </p>
+                            <p>Another paragraph, so each section is taller than the reading line.</p>
+                        </section>
+                    ))}
+                </Prose>
+            </DocColumns>
+        </Frame>
     ),
 };
 

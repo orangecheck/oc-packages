@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
-import { HIT_LINK } from '../lib/hit';
 import { visibleObserver } from '../lib/viewport';
-import { MonoLabel } from './frame';
+import { DocColumns, Toc } from './contents';
+import { Frame, MonoLabel } from './frame';
 import { Section } from './section';
 
 /*
@@ -165,6 +165,8 @@ export interface TocItem {
     label: ReactNode;
     /** 3 for a sub-heading, set in under its h2. */
     level?: 2 | 3;
+    /** The entry's number ("01"), set before its label; an entry without one lines up with the rest. */
+    num?: string;
 }
 
 /** The id of the heading being read: the topmost one in the upper third of the screen. */
@@ -193,10 +195,11 @@ export function useActiveHeading(ids: string[]): string | undefined {
 }
 
 /**
- * A readable column for a long document, with its table of contents: a sticky
- * list beside it on desktop, a folded "On this page" above it on a phone. The
- * ids are the ids of the document's h2s. Pass the title as `header` (a
- * DocHeader) so it sits on the same column as the text.
+ * A long document beside its contents. With `toc`, S34's columns on a Frame: the numbered contents
+ * in a column ruled off to the frame, sticky under the site's bar from 900px, the entry being read
+ * marked in ember, folded above the text on a phone; the text in the other column, `header` (a
+ * DocHeader) at its top. Without `toc`, one readable column. The ids are the ids of the document's
+ * h2s.
  */
 export function DocLayout({
     toc,
@@ -209,57 +212,21 @@ export function DocLayout({
     children: ReactNode;
     className?: string;
 }) {
-    const active = useActiveHeading(toc?.map((t) => t.id) ?? []);
-    const links = () =>
-        toc?.map((t) => (
-            <li key={t.id}>
-                <a
-                    href={`#${t.id}`}
-                    aria-current={active === t.id ? 'location' : undefined}
-                    className={cn(
-                        // 31px to a mouse; 44 to a thumb, the label centred in it.
-                        'block border-l py-1.5 pl-4 text-[0.875rem] leading-snug transition-colors pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center',
-                        active === t.id
-                            ? 'border-foreground text-foreground'
-                            : 'border-border text-muted-foreground hover:text-foreground'
-                    )}
-                >
-                    {t.label}
-                </a>
-            </li>
-        ));
-    const hasToc = !!toc && toc.length > 0;
+    if (toc && toc.length > 0) {
+        return (
+            <Frame padded={false} className={className}>
+                <DocColumns nav={<Toc entries={toc} />}>
+                    {header ? <div className="pb-10 md:pb-14">{header}</div> : null}
+                    {children}
+                </DocColumns>
+            </Frame>
+        );
+    }
     return (
         <div className={cn('oca-container pb-24', header ? 'pt-12 md:pt-20' : null, className)}>
-            <div
-                className={cn(
-                    'mx-auto grid grid-cols-1 gap-8',
-                    hasToc
-                        ? 'max-w-[42rem] lg:max-w-[64rem] lg:grid-cols-[13rem_minmax(0,42rem)] lg:gap-x-16 lg:gap-y-10'
-                        : 'max-w-[42rem]'
-                )}
-            >
-                {header ? <div className={cn(hasToc && 'lg:col-start-2', 'pb-4')}>{header}</div> : null}
-                {hasToc ? (
-                    <>
-                        <nav
-                            aria-label="On this page"
-                            className={cn('sticky top-24 hidden self-start lg:block', header && 'lg:row-start-2')}
-                        >
-                            <p className="mb-3 text-[0.875rem] font-medium">On this page</p>
-                            <ul>{links()}</ul>
-                        </nav>
-                        <details className="group rounded-none border border-border bg-card px-4 py-3 lg:hidden">
-                            <summary className={cn('cursor-pointer list-none text-[0.9375rem] font-medium marker:hidden', HIT_LINK)}>
-                                On this page
-                            </summary>
-                            <ul className="mt-3">{links()}</ul>
-                        </details>
-                    </>
-                ) : null}
-                <div className={cn('min-w-0', hasToc && 'lg:col-start-2', hasToc && header && 'lg:row-start-2')}>
-                    {children}
-                </div>
+            <div className="mx-auto grid grid-cols-1 gap-8 max-w-[42rem]">
+                {header ? <div className="pb-4">{header}</div> : null}
+                <div className="min-w-0">{children}</div>
             </div>
         </div>
     );

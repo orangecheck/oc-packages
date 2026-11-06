@@ -9,6 +9,9 @@
  * - A Diagram fetches mermaid only once it comes within a screen of view,
  *   and its placeholder holds the height it will draw: exactly with a
  *   `size`, from a guess at the source without one.
+ * - A long page's contents (DocLayout's Toc) ask for no frame at rest, one
+ *   frame for a burst of scroll events, and mark the entry being read as the
+ *   page scrolls: the heading past the reading line, the last at the foot.
  *
  * Run after `yarn build`.
  */
@@ -82,8 +85,14 @@ try {
             `createRoot(document.getElementById('root')).render(<div className="mx-auto max-w-[46rem] px-4">` +
             `{['wide', 'scaled', 'narrow'].map((k) => <div key={k} data-k={k}><Diagram chart={'graph ' + k} load={load} size={drawn[k]} /></div>)}` +
             `<div data-k="guessed"><Diagram chart={ATTEST} load={load} /></div></div>);\n`,
+        // A long page: six sections beside their contents.
+        toc:
+            `import { createRoot } from 'react-dom/client';\n` +
+            `import { DocLayout } from '${src('components/hero.tsx')}';\n` +
+            `const L = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];\n` +
+            `createRoot(document.getElementById('root')).render(<DocLayout toc={L.map((label, i) => ({ id: 's' + (i + 1), num: '0' + (i + 1), label }))}>{L.map((label, i) => <section key={label}><h2 id={'s' + (i + 1)}>{label}</h2><p style={{ height: 700 }}>Text.</p></section>)}</DocLayout>);\n`,
     });
-    compileCss(dir, ['halftone', 'diagram', 'hold']);
+    compileCss(dir, ['halftone', 'diagram', 'hold', 'toc']);
     // Every draw starts with a clear: count them. And count the page's frames, so a quiet canvas is told from a stalled page.
     const counter =
         `<script>window.__draws = 0; const clear = CanvasRenderingContext2D.prototype.clearRect; CanvasRenderingContext2D.prototype.clearRect = function (...a) { window.__draws++; return clear.apply(this, a); };` +
@@ -91,6 +100,11 @@ try {
     const halftone = writePage(dir, 'halftone', '<div id="root"></div>', { head: counter, script: '<script src="halftone.js"></script>' });
     const diagram = writePage(dir, 'diagram', '<div id="root"></div>', { script: '<script src="diagram.js"></script>' });
     const hold = writePage(dir, 'hold', '<div id="root"></div>', { script: '<script src="hold.js"></script>' });
+    // Every frame a script asks for, counted; the page's own frames run on the browser's, uncounted.
+    const rafs =
+        `<script>const raf = window.requestAnimationFrame.bind(window); window.__rafs = 0; window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
+        `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
+    const toc = writePage(dir, 'toc', '<div id="root"></div>', { head: rafs, script: '<script src="toc.js"></script>' });
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -166,6 +180,46 @@ try {
             check(after.loads === 1 && after.drawn, `Diagram: within a screen of view, fetched ${after.loads} time(s), drawn ${after.drawn}`);
             await p.close();
         }
+        // A long page's contents: no frame at rest, one for a burst of scrolls, the entry being read marked.
+        {
+            const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+            await p.goto(toc);
+            await p.waitForSelector('[aria-current="location"]');
+            const asked = (ms) =>
+                p.evaluate(async (ms) => {
+                    const [a, t] = [window.__rafs, window.__ticks];
+                    await new Promise((r) => setTimeout(r, ms));
+                    while (window.__ticks - t < 10) await new Promise((r) => setTimeout(r, 100));
+                    return window.__rafs - a;
+                }, ms);
+            const marked = () => p.evaluate(() => document.querySelector('nav[aria-label="On this page"]:not(details nav) [aria-current="location"]')?.getAttribute('href'));
+            const to = async (y) => {
+                await p.evaluate((y) => window.scrollTo(0, y), y);
+                await p.waitForTimeout(250);
+            };
+            await p.waitForTimeout(400);
+            const rest = await asked(600);
+            const burst = await p.evaluate(() => {
+                const a = window.__rafs;
+                for (let i = 0; i < 20; i++) window.dispatchEvent(new Event('scroll'));
+                return window.__rafs - a;
+            });
+            const first = await marked();
+            const y4 = await p.evaluate(() => document.getElementById('s4').getBoundingClientRect().top + scrollY - 100);
+            await to(y4);
+            const fourth = await marked();
+            await to(y4 + 60);
+            const past = await marked();
+            await to(1e6);
+            const foot = await marked();
+            await to(0);
+            const top = await marked();
+            const after = await asked(600);
+            check(rest === 0 && after === 0, `Toc: it asks for ${rest} frame(s) at rest after load and ${after} after scrolling, not none`);
+            check(burst === 1, `Toc: twenty scroll events in one frame asked for ${burst} frames, not one`);
+            check(first === '#s1' && fourth === '#s4' && past === '#s4' && foot === '#s6' && top === '#s1', `Toc: marks ${JSON.stringify({ first, fourth, past, foot, top })}, not s1, then s4 at the line and past it, s6 at the foot, s1 at the top`);
+            await p.close();
+        }
         // The placeholder holds the drawn height: given a size, exactly, at a phone's width and a desk's.
         for (const [width, height] of [
             [390, 844],
@@ -200,4 +254,4 @@ if (failures) {
     console.error(`\n${failures} idle failure(s)`);
     process.exit(1);
 }
-console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view, a diagram's height held`);
+console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view, a diagram's height held; a long page's contents ask for no frame at rest and mark the entry being read`);
