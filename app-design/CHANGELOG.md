@@ -63,6 +63,15 @@ letters up to 1000.
   them. Docs and About stay, in the bar from 1180px and in the menu below.
   Before, About was on no part of the page there. check-header holds a rail
   page.
+- The layout census decides what a trigger showed once it has shut. Each
+  target read behind a trigger is held until then. One still shown after it
+  shuts, outside a fixed layer, was not the trigger's: a demo's last screen,
+  in the trigger's own story or another. It is read where it is, by the page
+  pass. One in a fixed layer on its way out stays the trigger's, and so does
+  one its trigger hid again. Before, a target the trigger's own story showed
+  by itself meanwhile was read as the trigger's. Six plants in four stories
+  of the census hold each case, and a link let go once is read behind no
+  later trigger.
 
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
