@@ -34,6 +34,10 @@ The checks hold what 2.3.0 left unread.
   from 480, in the phone menu below 900.
 - check-header holds the tool you are on, marked in the bar and in the phone
   menu, and the docs' On this page column flush under the bar from xl.
+- The layout census names a target it let go when its trigger shut and that
+  was gone by the page pass: no pass read it, and a real one fails. Two more
+  plants hold a panel its trigger hides again in place, by aria-hidden and
+  by inert: it stays the trigger's.
 
 ## [2.3.0] — 2026-11-05
 
