@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
 
 `createOgHandler` takes `home`, the tiles of app-design's `OgBento`, and draws
 that bento at `?page=home`, so a site's home page can share a designed image
