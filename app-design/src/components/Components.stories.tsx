@@ -63,6 +63,14 @@ export const Steps: StoryObj = {
                     ]}
                 />
             </div>
+            <StepGrid
+                look="line"
+                items={[
+                    { title: 'An app decides to pay', body: 'Always, only in promos, or never. Each app sets what each event earns you.' },
+                    { title: 'You do something real', body: 'Join an app, take an action, or spend time there. Sessions and actions count, never clicks.' },
+                    { title: 'You keep up to 80%', badge: 'in testing', body: 'The reward lands in your activity, with a receipt signed and timestamped on Bitcoin.' },
+                ]}
+            />
         </div>
     ),
 };
