@@ -3,7 +3,9 @@ import { useId, useState } from 'react';
 
 import { Mark } from '../brand/mark';
 import { Section } from '../components/section';
-import { BentoGrid, BentoTile, CostDemo, DitherMark, ReceiptCard, SignInDemo, Slider, StepPath } from './index';
+import ditherField from '../../art/dither-field.png';
+import { png } from '../lib/png';
+import { BentoGrid, BentoTile, CostDemo, DitherGround, DitherMark, ReceiptCard, SignInDemo, Slider, StepPath } from './index';
 
 /*
  * The interactive blocks, with made-up apps (Lumen Notes, Halfway Books) and
@@ -228,6 +230,19 @@ export const Dither: StoryObj = {
                 <span className="bg-brand p-4 sm:p-8">
                     <DitherMark size="md" ground="brand" />
                 </span>
+            </div>
+        </div>
+    ),
+};
+
+export const Ground: StoryObj = {
+    name: 'Dither ground',
+    render: () => (
+        // A section's ground: still, one size at every width, so a phone sees its middle at the desk's grain.
+        <div className="oca-band-burnt relative overflow-hidden">
+            <DitherGround src={png(ditherField)} width={1200} height={320} cell={1} />
+            <div className="relative px-6 py-24 md:px-16">
+                <p className="max-w-md text-[1.5rem]">A card or a sentence sits on it; the band shows where the picture is clear.</p>
             </div>
         </div>
     ),

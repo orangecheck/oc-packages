@@ -1,4 +1,5 @@
 import { cn } from '../lib/cn';
+import { png } from '../lib/png';
 import mark240 from '../../art/dither-mark-240.png';
 import mark480 from '../../art/dither-mark-480.png';
 import mark960 from '../../art/dither-mark-960.png';
@@ -20,8 +21,6 @@ import brand960 from '../../art/dither-mark-brand-960.png';
  * crisp.
  */
 
-// The build inlines each PNG as base64; a bundler that resolves it to a URL instead (Storybook) passes the URL.
-const png = (v: string) => (v.startsWith('iVBORw0KGgo') ? `data:image/png;base64,${v}` : v);
 
 // Which art a ground takes: the ink top face on a light ground (paper, white), the peach one on a dark one, and
 // ink alone on brand orange, where the mark's orange sides would vanish.

@@ -10,8 +10,8 @@
  *   node scripts/art/bake.mjs --check   fail if ./art differs from a fresh bake,
  *                                       or holds an AVIF bigger than its PNG
  *
- * Everything here is drawn from geometry and a seeded noise, never from a
- * photograph (PLAN §6), so a bake is the same bytes every time. The one
+ * Everything here is drawn from geometry, a seeded noise or a source in
+ * scripts/art, so a bake is the same bytes every time. The one
  * picture of a person in ./art, portrait-halftone-*.webp, is written and
  * checked by scripts/portrait/build.mjs from its own source; this bake
  * leaves it alone:
@@ -24,6 +24,8 @@
  *     for burnt bands;
  *   - halftone-field: a dot screen that fades from the left edge, for the
  *     "up to 80%" tile.
+ *   - footer-hand-{left,right}: the footer's two hands, dithered from
+ *     scripts/art/hand-*.png, white on clear at one pixel a cell.
  * Each texture comes at display size and at -2x; the mark's widths pair up as
  * 1x/2x (240/480, 480/960). Every file stays under about 14 KB, what a static
  * 1-bit dither image costs (design2/forensics/SUMMARY-subpages.md).
@@ -221,6 +223,29 @@ function halftoneField(width, height, pitch, fade) {
     return { data, width, height };
 }
 
+/**
+ * A photograph (scripts/art) in the same ordered dither: one ink where its
+ * light falls, clear where it is dark or clear. Its levels are stretched
+ * between lo and hi first, so a grey photograph still reaches both ends.
+ */
+async function ditherPhoto(file, width, ink, lo = 0.15, hi = 0.85) {
+    const { data, info } = await sharp(join(pkg, 'scripts', 'art', file))
+        .resize({ width, kernel: 'lanczos3' })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+    const { width: w, height: h } = info;
+    const out = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const l = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+            const v = Math.min(1, Math.max(0, (l - lo) / (hi - lo))) * (data[i + 3] / 255);
+            if (v > BAYER[y & 7][x & 7]) (out[i] = ink[0]), (out[i + 1] = ink[1]), (out[i + 2] = ink[2]), (out[i + 3] = 255);
+        }
+    return { data: out, width: w, height: h };
+}
+
 /** An image at twice its pixels, each one doubled: nearest neighbour, so no colour is added. */
 function doubled({ data, width, height }) {
     const out = Buffer.alloc(width * height * 16);
@@ -245,6 +270,10 @@ pieces.push(['dither-field-2x', ditherField(2400, 640, 7, 2)]);
 // The halftone is for burnt grounds only: its AVIF may be flattened on burnt to fit the budget.
 pieces.push(['halftone-field', halftoneField(320, 320, 8, 0.6), BURNT]);
 pieces.push(['halftone-field-2x', halftoneField(640, 640, 16, 0.6), BURNT]);
+
+// The footer's two hands, white on clear, one pixel a dither cell: the footer draws them pixelated at 1 or 2 CSS px a cell.
+pieces.push(['footer-hand-left', await ditherPhoto('hand-left.png', 230, [0xff, 0xff, 0xff])]);
+pieces.push(['footer-hand-right', await ditherPhoto('hand-right.png', 230, [0xff, 0xff, 0xff])]);
 
 // Files in ./art this bake does not make, and must neither flag nor remove.
 const theirs = (f) => f === 'README.md' || /^portrait-halftone-\d+\.webp$/.test(f);

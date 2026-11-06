@@ -321,6 +321,7 @@ try {
         entryPoints: [join(dir, 'scrollnames.jsx')],
         outfile: join(dir, 'scrollnames.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -333,6 +334,7 @@ try {
         entryPoints: [join(dir, 'portrait.jsx')],
         outfile: join(dir, 'portrait.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -343,6 +345,7 @@ try {
         entryPoints: [join(dir, 'dialogclose.jsx')],
         outfile: join(dir, 'dialogclose.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -353,6 +356,7 @@ try {
         entryPoints: [join(dir, 'coderegion.jsx')],
         outfile: join(dir, 'coderegion.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -365,6 +369,7 @@ try {
         entryPoints: [join(dir, 'loaderr.jsx')],
         outfile: join(dir, 'loaderr.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -377,6 +382,7 @@ try {
         entryPoints: [join(dir, 'toolmenu.jsx')],
         outfile: join(dir, 'toolmenu.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -390,6 +396,7 @@ try {
         entryPoints: [join(dir, 'menu.jsx')],
         outfile: join(dir, 'menu.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -400,6 +407,7 @@ try {
         entryPoints: [join(dir, 'client.jsx')],
         outfile: join(dir, 'client.js'),
         bundle: true,
+        loader: { '.png': 'base64' },
         format: 'iife',
         jsx: 'automatic',
         nodePaths: [join(pkg, 'node_modules')],
@@ -1576,6 +1584,13 @@ try {
                     deskLinks,
                 };
             });
+            // The footer's hands: none on a phone; on a desk both drawn, whole cells, in the window, apart.
+            const hands = await p.evaluate(() =>
+                // Laid out, not as drawn: until the footer is seen each hand waits off its edge.
+                [...document.querySelectorAll('footer [data-oca-hand]')].filter((i) => i.getClientRects().length > 0).map((i) => ({ l: i.offsetLeft, r: i.offsetLeft + i.offsetWidth, w: i.offsetWidth }))
+            );
+            if (width < 768) check(hands.length === 0, `[${width}] a phone's footer draws ${hands.length} hands`);
+            else check(hands.length === 2 && hands[0].l >= 0 && hands[1].r <= width && hands[0].r < hands[1].l && hands.every((x) => x.w > 0 && x.w % 230 === 0), `[${width}] the footer's hands: ${JSON.stringify(hands)}`);
             if (width < 768) {
                 const inter = await p.evaluate(async () => {
                     await document.fonts.ready;
