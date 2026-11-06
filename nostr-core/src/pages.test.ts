@@ -554,7 +554,7 @@ describe("relayMaxLimit: the page size a relay's NIP-11 document declares", () =
     });
     vi.stubGlobal("fetch", fetch);
     const urls = [
-      "WSS://nip11-upper.example/nostr",
+      "WSS://nip11-upper.example/Nostr",
       "Wss://nip11-mixed.example",
       "WS://nip11-plain.example:7777",
       " wss://nip11-space.example/nostr",
@@ -564,7 +564,7 @@ describe("relayMaxLimit: the page size a relay's NIP-11 document declares", () =
     for (const url of urls) limits.push(await relayMaxLimit(url));
     expect(limits).toEqual([50, 50, 50, 50, 50]);
     expect(fetch.mock.calls.map((c) => c[0])).toEqual([
-      "https://nip11-upper.example/nostr",
+      "https://nip11-upper.example/Nostr",
       "https://nip11-mixed.example",
       "http://nip11-plain.example:7777",
       "https://nip11-space.example/nostr",
