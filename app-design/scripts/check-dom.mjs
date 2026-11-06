@@ -709,6 +709,26 @@ for (const mode of ['dark', 'light']) {
         check(backHref(host) === '/' && host.querySelector('main header a:last-of-type')?.textContent === 'Back to home', 'SignInPage: back="home" is not the frame\'s Back to home');
         await unmount();
     }
+    // 4. A provider sign-in goes through ochk.io, so it carries this site's own address back, not a bare path that
+    // would resolve against ochk.io: a site's own copy prefixed its origin for that, and OcSignIn does it for the page.
+    {
+        const signedOut = globalThis.fetch;
+        globalThis.fetch = window.fetch = async (url) =>
+            String(url).endsWith('/api/auth/providers') ? new Response(JSON.stringify({ providers: [{ id: 'google', label: 'Google' }] }), { status: 200 }) : signedOut(url);
+        for (const [query, want] of [
+            ['', `${window.location.origin}/start`],
+            ['?return_to=%2Fdeals%3Fid%3D7', `${window.location.origin}/deals?id=7`],
+            ['?return_to=https%3A%2F%2Fvote.ochk.io%2Fp%2Fx', 'https://vote.ochk.io/p/x'],
+        ]) {
+            window.history.replaceState(null, '', `/signin${query}`);
+            const m = await mount(h(OcSessionProvider, null, h(SignInPage, { product: 'cosign', home: '/', audience: 'https://cosign.ochk.io', defaultReturnTo: '/start', back: 'home', signIn: { providersFirst: true } })));
+            for (let i = 0; i < 10; i++) await settle();
+            const href = m.host.querySelector('[data-oc-signin-provider="google"]')?.getAttribute('href') ?? null;
+            const back = href && new URL(href).searchParams.get('return_to');
+            check(href?.startsWith('https://ochk.io/api/auth/google/start?') && back === want, `SignInPage: with ${show(query)} the Google sign-in returns to ${show(back)}, not ${show(want)} (${show(href)})`);
+            await m.unmount();
+        }
+    }
     globalThis.fetch = window.fetch = realFetch;
     window.history.replaceState(null, '', '/');
 }
