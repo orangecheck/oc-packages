@@ -1,5 +1,10 @@
 export { AppIcon, Lockup, Mark, MARK_FACES } from './mark';
 export type { AppIconProps, LockupProps, MarkProps } from './mark';
+export { LOGO_COOKIE, LOGO_DEFAULT, LOGOS, logoAttrs, logoScript } from './logo';
+export type { Logo } from './logo';
+export { LogoScript } from './logo-script';
+export { PixelMark, PixelWordmark } from './pixel';
+export type { PixelGrid, PixelMarkProps, PixelWordmarkProps } from './pixel';
 export { HalftoneSphere, SPHERE_GRADIENT } from './sphere';
 export type { HalftoneSphereProps } from './sphere';
 export { IsoCheck } from './iso-check';

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 import portrait from '../../art/portrait-halftone-600.webp';
 import { OgCard } from '../og';
-import { AppIcon, Crowd, HalftoneSphere, IsoCheck, Lockup, Mark } from './index';
+import { AppIcon, Crowd, HalftoneSphere, IsoCheck, Lockup, Mark, PixelMark, PixelWordmark } from './index';
 
 const meta: Meta = { title: 'Brand' };
 export default meta;
@@ -29,6 +29,30 @@ export const Lockups: StoryObj = {
             <Lockup size={22} />
             <div className="w-fit rounded-2xl bg-oca-ink p-6 text-white">
                 <Lockup size={28} />
+            </div>
+        </div>
+    ),
+};
+
+/**
+ * The pixel logo, drawn alone (`logo="pixel"`). On a site every lockup draws both and `?logo=pixel` shows this one
+ * in place of the classic, on every *.ochk.io site at once; `?logo=classic` goes back.
+ */
+export const PixelLogo: StoryObj = {
+    name: 'Pixel logo',
+    render: () => (
+        <div className="flex flex-col gap-8">
+            {/* A header's lockup on the small grid at 2px a cell, then the smaller ones on the medium grid at 1px. */}
+            <Lockup size={30} variant="flat" logo="pixel" />
+            <Lockup size={22} variant="flat" logo="pixel" />
+            <Lockup size={28} logo="pixel" />
+            <div className="flex flex-wrap items-end gap-8">
+                <PixelMark grid="art" size={256} title="orangecheck" />
+                <PixelMark grid="medium" cell={2} />
+                <PixelMark cell={2} />
+            </div>
+            <div className="oca-band-footer w-fit p-6">
+                <PixelWordmark grid="medium" cell={2} />
             </div>
         </div>
     ),
@@ -78,6 +102,8 @@ export const ShareCard: StoryObj = {
             {(
                 [
                     { tone: 'ink', product: 'stamp', eyebrow: 'OC Stamp', title: 'Prove who signed it, and when.', host: 'stamp.ochk.io' },
+                    // The pixel logo, as a site gets it by passing `logo` (a crawler sends no cookie, so the switch cannot reach it).
+                    { tone: 'burnt', product: 'stamp', eyebrow: 'OC Stamp', title: 'Prove who signed it, and when.', host: 'stamp.ochk.io', logo: 'pixel' },
                     { tone: 'paper', product: 'vault', eyebrow: 'Vault', title: 'Secrets your heirs can open, sealed to Bitcoin keys.', host: 'vault.ochk.io' },
                     // A badge whose owner left the mark out: the title takes the width.
                     { tone: 'ink', eyebrow: 'Verified on orangecheck', title: 'bc1q9h7g…5e3w7t holds 0.5 BTC, unspent for 412 days', host: 'ochk.io', mark: false },

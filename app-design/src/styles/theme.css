@@ -585,6 +585,18 @@
     }
 }
 
+/* The logo. Every place the package draws the brand draws both (brand/logo.ts) and one shows: the one the
+   page chose, data-oc-logo on the root (set from ?logo= or the cookie before the body paints), else the
+   default, the one marked data-oca-logo-default. Unlayered, so a display utility on either cannot show it. */
+:root[data-oc-app='ochk']:not([data-oc-logo]) [data-oca-logo]:not([data-oca-logo-default]),
+:root:not([data-oc-logo]) [data-oc-app='ochk'] [data-oca-logo]:not([data-oca-logo-default]),
+:root[data-oc-app='ochk'][data-oc-logo='pixel'] [data-oca-logo='classic'],
+:root[data-oc-logo='pixel'] [data-oc-app='ochk'] [data-oca-logo='classic'],
+:root[data-oc-app='ochk'][data-oc-logo='classic'] [data-oca-logo='pixel'],
+:root[data-oc-logo='classic'] [data-oc-app='ochk'] [data-oca-logo='pixel'] {
+    display: none;
+}
+
 /* A field in focus: a 2px edge in the ring colour (3.56:1 on the light card, 6.17:1 on the
    dark) and the soft halo outside it. Keyed on [data-oca-field], so a field styled inline
    (the sign-in ceremony) wears the same look; important, so its inline border cannot hide it.

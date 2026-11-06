@@ -173,7 +173,8 @@ for (const [name, props] of drawer) {
     const html = render({ nav: [{ items: PAGES.map(([href, label, Icon]) => ({ href, label, icon: h(Icon) })) }] });
     const homes = html.match(/<a[^>]*href="\/"[^>]*>[\s\S]*?<\/a>/g) ?? [];
     check(homes.length === 2, `the shell has two lockup links, phone and desk (got ${homes.length})`);
-    check(homes.every((a) => !/aria-label=/.test(a) && /<span class="sr-only"> home<\/span><\/a>$/.test(a)), 'each lockup link is named by its lockup, then "home", not by an aria-label');
+    // The link carries no label of its own; inside it, the pixel wordmark is an image named "orangecheck".
+    check(homes.every((a) => !/^<a[^>]*aria-label=/.test(a) && /<span class="sr-only"> home<\/span><\/a>$/.test(a)), 'each lockup link is named by its lockup, then "home", not by an aria-label');
     check(/<header data-oca-sticky="app-bar"/.test(html), 'the phone bar is a header landmark');
     check((html.match(/<header data-oca-sticky="app-bar"/g) ?? []).length === 2, "the phone and desk bars both say they are the shell's");
     const { Pagination } = require(join(here, '../dist/primitives.js'));

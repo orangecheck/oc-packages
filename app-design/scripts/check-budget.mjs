@@ -47,7 +47,9 @@ const CEILING = {
     '.': 173_500,
     './tokens': 1_500,
     './primitives': 95_000,
-    './brand': 23_500,
+    // 24,940 bytes on 2026-11-06: the pixel logo beside the classic one, its baked paths and its switch (2.3 KB). The
+    // ceiling 15% over.
+    './brand': 28_700,
     './components': 121_000,
     './chrome': 76_000,
     './family': 2_000,
@@ -55,8 +57,9 @@ const CEILING = {
     './format': 1_500,
     './mdx': 47_000,
     './session': 61_000,
-    // 13.9 KB on 2026-11-04 (2.1.0's SignInPage: the frame, Notice and the lockup; auth-client is a peer, outside).
-    './signin': 16_400,
+    // 13.9 KB on 2026-11-04 (2.1.0's SignInPage: the frame, Notice and the lockup; auth-client is a peer, outside);
+    // 16,314 bytes on 2026-11-06 with the pixel lockup beside the classic one (1.9 KB). The ceiling 15% over.
+    './signin': 18_800,
     './acknowledgement': 11_000,
     // 945 bytes on 2026-11-06 (2.4.0's squarePage beside the preset; a site's tests load it, never a page), 15% over.
     './vitest': 1_100,
@@ -64,7 +67,8 @@ const CEILING = {
     // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
     // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
     './og': 202_000,
-    './fonts': 500,
+    // 635 bytes on 2026-11-06: FontPreloads renders the logo switch's script, first in a site's head. The ceiling 15% over.
+    './fonts': 730,
     './motion': 49_500,
     // 35,948 bytes on 2026-11-04 (whole entry; Radix's slider rides in it), the ceiling 15% over. DitherMark's nine baked
     // PNGs, inlined, are 6.0 KB of that gzipped: 3.5 KB in a chunk it shares with ./og (the 240 and 480 bakes of the

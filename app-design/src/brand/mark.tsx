@@ -3,6 +3,9 @@ import type { SVGProps } from 'react';
 import { MARK_FACES, MARK_POINTS } from '@orangecheck/mark';
 
 import { cn } from '../lib/cn';
+import { logoAttrs, type Logo } from './logo';
+import { PixelAppIcon, PixelMark, PixelWordmark } from './pixel';
+import { pixelFit } from './pixel-fit';
 
 /*
  * The isometric check, measured from the ochk.app design (iteration 2, slide 9) onto a 16×8 grid:
@@ -45,9 +48,9 @@ export function Mark({ title, size, className, ...rest }: MarkProps) {
  * The mark drawn in hairlines only: the check where a check is missing (an
  * error page). Decoration; the stroke stays the same width at any size.
  */
-export function MarkOutline({ className }: { className?: string }) {
+export function MarkOutline({ className, ...rest }: Omit<SVGProps<SVGSVGElement>, 'children'>) {
     return (
-        <svg viewBox="-0.2 -0.2 16.4 8.4" aria-hidden className={cn('shrink-0 overflow-visible', className)}>
+        <svg viewBox="-0.2 -0.2 16.4 8.4" aria-hidden className={cn('shrink-0 overflow-visible', className)} {...rest}>
             {[TOP, LEFT, RIGHT].map((points) => (
                 <polygon
                     key={points}
@@ -111,13 +114,31 @@ export interface LockupProps {
     className?: string;
     /** Classes for the word alone (ProductLockup hides it on a narrow phone, keeping it for screen readers). */
     nameClassName?: string;
+    /**
+     * Draw one logo only. Without it both are drawn and the page's switch
+     * shows one (brand/logo.ts): the default, or what `?logo=` chose.
+     */
+    logo?: Logo;
 }
 
-/** Icon and wordmark, lowercase, as the deck sets it. */
-export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', className, nameClassName }: LockupProps) {
+/** Icon and wordmark, lowercase, as the deck sets it; the classic and the pixel logo, one shown. */
+export function Lockup({ logo, ...props }: LockupProps) {
+    if (logo) return logo === 'pixel' ? <PixelLockup {...props} /> : <ClassicLockup {...props} />;
+    return (
+        <>
+            <ClassicLockup {...props} attrs={logoAttrs('classic')} />
+            <PixelLockup {...props} attrs={logoAttrs('pixel')} />
+        </>
+    );
+}
+
+type Drawn = Omit<LockupProps, 'logo'> & { attrs?: ReturnType<typeof logoAttrs> };
+
+function ClassicLockup({ name = 'orangecheck', size = 28, variant = 'icon', className, nameClassName, attrs }: Drawn) {
     if (variant === 'flat') {
         return (
             <span
+                {...attrs}
                 className={cn('inline-flex items-center font-normal tracking-[-0.024em]', className)}
                 style={{ gap: size / 3, fontSize: size * 0.7 }}
             >
@@ -128,11 +149,39 @@ export function Lockup({ name = 'orangecheck', size = 28, variant = 'icon', clas
     }
     return (
         <span
+            {...attrs}
             className={cn('inline-flex items-center font-medium tracking-[-0.01em]', className)}
             style={{ gap: size * 0.32, fontSize: size * 0.56 }}
         >
             <AppIcon size={size} />
             <span className={nameClassName}>{name}</span>
+        </span>
+    );
+}
+
+/**
+ * The pixel lockup at the classic one's size: the word on the grid whose
+ * x-height comes nearest Inter's (a header's 30px lockup draws the small grid
+ * at 2px a cell, the smaller ones the medium grid at 1px), the flat check on
+ * the same grid and cell. Any word other than "orangecheck" stays in type
+ * beside the pixel check.
+ */
+function PixelLockup({ name = 'orangecheck', size = 28, variant = 'icon', className, nameClassName, attrs }: Drawn) {
+    const flat = variant === 'flat';
+    const fontSize = size * (flat ? 0.7 : 0.56);
+    const fit = pixelFit(fontSize);
+    const word =
+        name === 'orangecheck' ? (
+            <PixelWordmark {...fit} className={nameClassName} />
+        ) : (
+            <span className={cn(flat ? 'font-normal' : 'font-medium', nameClassName)} style={{ fontSize }}>
+                {name}
+            </span>
+        );
+    return (
+        <span {...attrs} className={cn('inline-flex items-center', className)} style={{ gap: Math.round(flat ? size / 3 : size * 0.32) }}>
+            {flat ? <PixelMark {...fit} /> : <PixelAppIcon size={size} />}
+            {word}
         </span>
     );
 }
