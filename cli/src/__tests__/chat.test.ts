@@ -688,7 +688,7 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(r.relays).toMatchObject({ asked: 4, answered: 2, floors_missed: ['3 of 4'] });
         expect(r.relays.below_floor).toBeGreaterThan(0);
         const why = r.not_checked.join('\n');
-        expect(why).toMatch(/\d+ of \d+ reads had fewer relays answering in full than their floor \(3 of 4\)/);
+        expect(why).toMatch(/\d+ of \d+ reads fell below their floor \(3 of 4\): fewer relays answered in full, or a relay was cut off/);
         expect(why).toMatch(/relay wss:\/\/c\.example did not answer \d+ of \d+ reads/);
         expect(why).toMatch(/relay wss:\/\/d\.example did not answer/);
         stdout = '';
@@ -807,8 +807,20 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         const base = [version, founder.record, post];
         const recordsMissed = () => missedBy([B, C], base, {}, 30078);
         const versionsMissed = () => missedBy([B, C], base);
-        // A flood cuts the open read at its bound, so the founder's key reads decide, and B and C miss those.
+        // A flood cuts the open read at its bound, and B and C miss its REQs: chat-core's floorMet stops the resolution.
         const keyReadsMissed = () => missedBy([B, C], [...base, ...flood]);
+        // The directory relay sends one event that is no claim, and an audit relay sends nothing: the walk
+        // answers un-listed, and that answer rests on the audit read that was missed.
+        const auditMissed = () => {
+            const junk = { id: 'c'.repeat(64), pubkey: 'f'.repeat(64), created_at: 1780000500, kind: 30114, tags: [['d', 'x']], content: 'junk', sig: '0'.repeat(128) };
+            const raw: RawQuery = async (filter, relays) => {
+                const dir = relays.every((r) => DIRECTORY_RELAYS.includes(r));
+                const sent = dir && (filter.kinds as number[]).includes(30114);
+                return { events: sent ? [junk] : [], relayStatus: relays.map((relay) => ({ relay, eose: dir, events: sent ? 1 : 0, rejected: 0 })) };
+            };
+            vi.stubGlobal('fetch', (async (url: string) => (String(url).endsWith('/blocks/tip/height') ? json(930000) : json({ keys: [HOST] }))) as unknown as typeof fetch);
+            return liveNet(['wss://a.example'], 'https://esplora.test/api', raw);
+        };
         const keysRefused = () => ({ ...chainNet(answers({ jwks: refused })), ...pick(net([version, founder.record])) });
         const silent = Object.fromEntries(FOUR.map((r) => [r, null]));
 
@@ -820,21 +832,22 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(await notRead({ file: file(version) }, keysRefused())).toEqual({ path: 'threw', shape: v });
         // Below the floor chat-core's version read stops the resolution (floorMet).
         expect(await notRead({ file: file(version) }, versionsMissed())).toEqual({ path: 'threw', shape: v });
-        expect(await notRead({ file: file(version) }, keyReadsMissed())).toEqual({ path: 'rested', shape: v });
+        expect(await notRead({ file: file(version) }, keyReadsMissed())).toEqual({ path: 'threw', shape: v });
 
         const p = { subject: 'channel post', detail: { post_id: postId(postContent), resolves: null, channel: null } };
         expect(await notRead({ file: file(post) }, recordsMissed())).toEqual({ path: 'threw', shape: p });
         expect(await notRead({ file: file(post) }, versionsMissed())).toEqual({ path: 'threw', shape: p });
-        expect(await notRead({ file: file(post) }, keyReadsMissed())).toEqual({ path: 'rested', shape: p });
+        expect(await notRead({ file: file(post) }, keyReadsMissed())).toEqual({ path: 'threw', shape: p });
 
         const c = { subject: 'channel', detail: { resolves: null, channel: null } };
         expect(await notRead({ channel: genesis.channel_id }, recordsMissed())).toEqual({ path: 'threw', shape: c });
         expect(await notRead({ channel: genesis.channel_id }, versionsMissed())).toEqual({ path: 'threw', shape: c });
         expect(await notRead({ channel: genesis.channel_id }, four([founder.record], {}, [C, D]))).toEqual({ path: 'threw', shape: c });
-        expect(await notRead({ channel: genesis.channel_id }, keyReadsMissed())).toEqual({ path: 'rested', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, keyReadsMissed())).toEqual({ path: 'threw', shape: c });
 
         const nulls = { result: null, holder: null, claim_id: null, anchor: null, coin: null, tip: null };
         expect(await notRead({ handle: 'alice' }, over(silent))).toEqual({ path: 'threw', shape: { subject: 'directory listing', detail: nulls } });
+        expect(await notRead({ handle: 'alice' }, auditMissed())).toEqual({ path: 'rested', shape: { subject: 'directory listing', detail: nulls } });
         expect(await notRead({ handle: 'alice', channelHandle: true }, over(silent))).toEqual({
             path: 'threw',
             shape: { subject: 'channel listing', detail: nulls },
@@ -878,7 +891,7 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         expect(await run({ file: file(version), json: true }, versionsOn4([D, E]))).toBe(2);
         const r = JSON.parse(stdout);
         expect(r.relays.floors_missed).toEqual(['4 of 5']);
-        expect(r.not_checked.join('\n')).toMatch(/fewer relays answering in full than their floor \(4 of 5\)/);
+        expect(r.not_checked.join('\n')).toMatch(/reads fell below their floor \(4 of 5\)/);
     });
 
     it('one relay asked: its answer is the floor, and its silence is NOT READ', async () => {
@@ -1000,6 +1013,13 @@ describe('oc chat verify: a version read cut off at its bound is not an answer (
                 expect(JSON.parse(stdout).verdict).toBe('verified');
             });
         }
+    });
+
+    it("a flood with the founder named and no version of the channel held: can't tell, NOT READ, exit 2, never FAILED", async () => {
+        // The founder's keys are read in full and the read meets its floor, but a read stopped at its bound proves nothing about a channel it did not find.
+        expect(await run({ channel: genesis.channel_id, founder: FOUNDER }, limitedNet([founder.record, ...flood]))).toBe(2);
+        expect(stdout).toContain("can't tell: the read of this channel's versions stopped at its bound, so the channel may exist though it did not resolve");
+        expect(stdout).not.toContain('FAILED');
     });
 
     it('the same flood with the founder named: the founder’s keys were read in full, so the answer stands', async () => {
@@ -1135,14 +1155,19 @@ describe('oc chat verify: device records are read to each relay\'s end, whatever
         expect(JSON.parse(stdout).relays).toMatchObject({ asked: 4, answered: 4, below_floor: 0, floors_missed: [] });
     });
 
-    it('a relay that stops partway through the records read is cut off, so the key is not read as live: NOT READ, exit 2', async () => {
+    it('a relay that stops partway through the records read is cut off, so the key is not read as live: NOT READ, exit 2, the relay named as cut off', async () => {
         for (const stops of [[D], [C, D]]) {
             stdout = '';
             expect(await run({ file: file(version), json: true }, capped(300, [version, founder.record, ...filler(400)], {}, stops)), `${stops}`).toBe(2);
             const r = JSON.parse(stdout);
             expect(r.verdict).toBe('unread');
             expect(r.relays.below_floor).toBeGreaterThan(0);
-            expect(r.relays.silent.map((s: { relay: string }) => s.relay)).toEqual(stops);
+            expect(r.relays.silent).toEqual([]);
+            expect(r.relays.cut_off).toEqual(stops.map((relay) => ({ relay, reads: 1 })));
+            expect(r.relays.answered).toBe(4);
+            const why = r.not_checked.join('\n');
+            for (const relay of stops) expect(why).toContain(`relay ${relay} was cut off before the end of what it holds in 1 of `);
+            expect(why).not.toMatch(/did not answer/);
         }
     });
 
@@ -1151,7 +1176,9 @@ describe('oc chat verify: device records are read to each relay\'s end, whatever
         const r = JSON.parse(stdout);
         expect(r.verdict).toBe('unread');
         expect(r.relays.floors_missed).toContain('3 of 4');
-        expect(r.not_checked.join('\n')).toMatch(/reads had fewer relays answering in full than their floor \(3 of 4\)/);
+        expect(r.not_checked.join('\n')).toMatch(/reads fell below their floor \(3 of 4\)/);
+        expect(r.relays.cut_off.map((c: { relay: string }) => c.relay)).toEqual(FOUR);
+        expect(r.relays.silent).toEqual([]);
     });
 
     it("a full page chat-core pages past is not cut off: the versions read over 500 filler events is VERIFIED", async () => {

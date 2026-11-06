@@ -35,6 +35,7 @@ import {
     postId,
     readChannelVersions,
     readFloor,
+    readState,
     readVersionBinding,
     recordReads,
     resolveChannelChain,
@@ -48,6 +49,7 @@ import {
     type NostrEvent,
     type Query,
     type RecordLookup,
+    type RelayReadState,
     type ResolvedChannel,
     type VerifyOnChain,
     type WalkDeps,
@@ -156,9 +158,9 @@ const verifyBip322 = ({ address, message, signature }: { address: string; messag
     }
 };
 
-/** One relay's answer: whether it finished answering (EOSE) and, as nostr-core counts them,
- *  the events it sent that were kept and that were dropped. */
-type RelayStatus = { relay: string; eose: boolean; events?: number; rejected?: number };
+/** One relay's answer: whether it finished answering (EOSE), how a paged read of it ended
+ *  (`state`), and, as nostr-core counts them, the events it sent that were kept and dropped. */
+type RelayStatus = { relay: string; eose: boolean; state?: RelayReadState; events?: number; rejected?: number };
 
 /** One REQ to some relays, answered within `timeoutMs`: the events, and how each relay answered. */
 export type RawQuery = (
@@ -167,8 +169,8 @@ export type RawQuery = (
     timeoutMs?: number
 ) => Promise<{ events: NostrEvent[]; relayStatus: readonly RelayStatus[] }>;
 
-/** How the relays answered over one run: how many there were, which missed a read, and how
- *  many reads fell below the read floor (chat-core `readFloor`, SPEC §8.7). */
+/** How the relays answered over one run: how many there were, which missed a read or were
+ *  cut off in one, and how many reads fell below the read floor (chat-core `readFloor`, SPEC §8.7). */
 export interface RelayReport {
     asked: number;
     answered: number;
@@ -176,12 +178,16 @@ export interface RelayReport {
     /** Each floor the reads below it needed, as "4 of 5": `readFloor` of the relays that read asked. */
     floors_missed: string[];
     below_floor: number;
+    /** Relays that sent nothing to a read. */
     silent: { relay: string; missed: number }[];
+    /** Relays that answered a read and were cut off before the end of what they hold there. */
+    cut_off: { relay: string; reads: number }[];
 }
 
-/** Counts, per relay, the reads it did not finish answering, and the reads below the floor. */
+/** Counts, per relay, the reads it sent nothing to and the reads it was cut off in, and the reads below the floor. */
 export function relayTally() {
     const missed = new Map<string, number>();
+    const cut = new Map<string, number>();
     let reads = 0;
     let below = 0;
     const floorsMissed = new Set<string>();
@@ -193,7 +199,11 @@ export function relayTally() {
                 below++;
                 floorsMissed.add(`${readFloor(status.length)} of ${status.length}`);
             }
-            for (const s of status) missed.set(s.relay, (missed.get(s.relay) ?? 0) + (s.eose ? 0 : 1));
+            for (const s of status) {
+                const state = readState(s, page);
+                missed.set(s.relay, (missed.get(s.relay) ?? 0) + (state === 'no_answer' ? 1 : 0));
+                if (state === 'cut_off') cut.set(s.relay, (cut.get(s.relay) ?? 0) + 1);
+            }
         },
         report(): RelayReport {
             const silent = [...missed].filter(([, n]) => n > 0).map(([relay, n]) => ({ relay, missed: n }));
@@ -204,6 +214,7 @@ export function relayTally() {
                 floors_missed: [...floorsMissed],
                 below_floor: below,
                 silent,
+                cut_off: [...cut].map(([relay, n]) => ({ relay, reads: n })),
             };
         },
     };
@@ -333,10 +344,10 @@ async function resolveChannel(cid: string, net: ChatNet, founder?: string, given
         hostKeys: net.hostKeys,
         verifyBip322,
     });
-    // A cut-off read is not an answer (SPEC §8.3.1): anyone can fill the bound. It
-    // proves nothing about a channel it did not find and, unless the founder's and
-    // role holders' keys were read in full, nothing about a version newer than the
-    // one it found.
+    // A read stopped at its bound is not an answer (SPEC §8.3.1): anyone can fill the
+    // bound. It proves nothing about a channel it did not find and, unless the
+    // founder's and role holders' keys were read in full, nothing about a version
+    // newer than the one it found.
     if (read.truncated && (!resolved || read.incomplete)) {
         throw new UnansweredReadError(
             resolved
@@ -344,14 +355,13 @@ async function resolveChannel(cid: string, net: ChatNet, founder?: string, given
                 : "can't tell: the read of this channel's versions stopped at its bound, so the channel may exist though it did not resolve"
         );
     }
-    // Below the read floor (§8.7) what was not read may be on a relay that did not answer
-    // to the end: one that stopped partway is cut off, though it answered the REQs that met
-    // their floor. A read cut off at its bound is judged above, by its role holders' keys.
-    if (!read.truncated && !read.floorMet) {
+    // Below the read floor (§8.7), as chat-core judges each read, what was not read may be
+    // on a relay that did not answer to the end or was cut off partway.
+    if (!read.floorMet) {
         throw new UnansweredReadError(
             resolved
-                ? "can't tell: fewer relays than the read floor read this channel's versions to the end, so a newer version may exist"
-                : "can't tell: fewer relays than the read floor read this channel's versions to the end, so the channel may exist though it did not resolve"
+                ? "can't tell: fewer relays than the read floor read this channel's versions to the end, or a relay was cut off partway, so a newer version may exist"
+                : "can't tell: fewer relays than the read floor read this channel's versions to the end, or a relay was cut off partway, so the channel may exist though it did not resolve"
         );
     }
     return { resolved, read };
@@ -568,8 +578,9 @@ export function render(r: Report): string {
     }
     // Relays that missed reads the floor did not need: named, but nothing rests on them.
     if (r.relays && r.relays.below_floor === 0) {
+        const met = r.verdict === 'unread' ? '' : '; every read met the floor';
         for (const s of r.relays.silent) {
-            lines.push(`  relay  ${s.relay} did not answer ${s.missed} of ${r.relays.reads} reads; every read met the floor`);
+            lines.push(`  relay  ${s.relay} did not answer ${s.missed} of ${r.relays.reads} reads${met}`);
         }
     }
     const answered = r.relays
@@ -630,9 +641,12 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
         r.relays = tally;
         if (tally.below_floor > 0) {
             r.not_checked.push(
-                `${tally.below_floor} of ${tally.reads} reads had fewer relays answering in full than their floor (${tally.floors_missed.join(', ')}): a revocation, newer version or record may not have been seen`
+                `${tally.below_floor} of ${tally.reads} reads fell below their floor (${tally.floors_missed.join(', ')}): fewer relays answered in full, or a relay was cut off, so a revocation, newer version or record may not have been seen`
             );
             for (const s of tally.silent) r.not_checked.push(`relay ${s.relay} did not answer ${s.missed} of ${tally.reads} reads`);
+            for (const c of tally.cut_off) {
+                r.not_checked.push(`relay ${c.relay} was cut off before the end of what it holds in ${c.reads} of ${tally.reads} reads`);
+            }
         }
         const failed = r.checks.filter((c) => !c.ok);
         const restsOnAbsence =

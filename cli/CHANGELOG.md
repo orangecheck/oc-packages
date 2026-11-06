@@ -7,6 +7,20 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+- Requires `@orangecheck/chat-core` ^0.2.6, which judges a channel's version
+  read against the read floor itself (`floorMet`): a read anyone can publish
+  into that stopped at its bound meets it when each REQ it made did, and every
+  other read, each read under a role holder's key included, on the relays read
+  to its end. `oc chat verify` reads that judgment. A version read below the
+  floor is NOT READ, exit 2, whether or not it stopped at its bound.
+- The relay report names a relay that answered a read and was cut off before
+  the end of what it holds under `cut_off` (`{ relay, reads }`), apart from the
+  relays that sent nothing (`silent`). Below the floor, the run lists each
+  relay that sent nothing and each that was cut off.
+- A directory relay cut off partway leaves a handle NOT READ, exit 2.
+
 ## [0.5.4] — 2026-11-06
 
 - Requires `@orangecheck/chat-core` ^0.2.5 and `@orangecheck/nostr-core`
