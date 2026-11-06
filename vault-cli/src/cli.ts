@@ -16,7 +16,7 @@ import { spawn } from 'node:child_process';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { VaultClient } from '@orangecheck/vault-core';
+import { BlobsUnread, VaultClient, type FetchedBlob } from '@orangecheck/vault-core';
 import { Command } from 'commander';
 
 import { parseEnvFile, readCache, scanRefs, writeCache, type VaultCache } from './config';
@@ -49,9 +49,9 @@ function makeClient(baseUrl: string, token?: string, cookie?: string): VaultClie
 
 /**
  * Fetch the escrow + every ciphertext blob and assemble a fresh cache, or say
- * why not. vault-core 0.4's fetchBlobs leaves out a blob it couldn't read, so
- * fewer blobs than were listed is a pull that came up short: `failed` says so,
- * and the caller writes nothing, rather than a cache missing those entries.
+ * why not. fetchBlobs throws BlobsUnread when any listed blob couldn't be
+ * read: `failed` says how many, and the caller writes nothing, rather than a
+ * cache missing those entries. A blob deleted since the listing is left out.
  */
 async function pullCache(
     client: VaultClient,
@@ -63,9 +63,12 @@ async function pullCache(
     if (!escrow) fail('no vault is set up for this identity — create one at vault.ochk.io');
     const identity = await client.fetchIdentity();
     const refs = await client.listBlobs();
-    const blobs = await client.fetchBlobs(refs);
-    if (blobs.length < refs.length) {
-        failed(`${refs.length - blobs.length} of ${refs.length} entries couldn't be fetched`);
+    let blobs: FetchedBlob[];
+    try {
+        blobs = await client.fetchBlobs(refs);
+    } catch (err) {
+        if (!(err instanceof BlobsUnread)) throw err;
+        failed(`${err.failed.length} of ${err.listed} entries couldn't be fetched`);
     }
     return {
         baseUrl,

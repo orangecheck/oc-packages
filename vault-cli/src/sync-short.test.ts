@@ -18,6 +18,8 @@ const run = promisify(execFile);
 
 const IDS = ['a', 'b', 'c'];
 let failing: string | null = null;
+let gone: string | null = null;
+let failStatus = 500;
 let server: Server;
 let base: string;
 
@@ -36,9 +38,9 @@ beforeAll(async () => {
             });
         }
         const id = url.split('/api/blobs/')[1];
-        if (id && IDS.includes(id)) {
+        if (id && IDS.includes(id) && id !== gone) {
             return id === failing
-                ? send(500, { ok: false, reason: 'storage down' })
+                ? send(failStatus, { ok: false, reason: 'storage down' })
                 : send(200, { ok: true, ciphertext: `ct-${id}` });
         }
         send(404, { ok: false });
@@ -88,6 +90,29 @@ describe('oc-vault, a pull that comes up short', () => {
         const login = await cli(home, 'login', '--token', 'ocvt_test', '--url', base);
         expect(login.code).toBe(1);
         expect(login.stderr).toContain("1 of 3 entries couldn't be fetched, so nothing was cached");
+        expect(existsSync(cachePath(home))).toBe(false);
+    });
+
+    it('a blob deleted since the listing is left out, and the rest is cached', async () => {
+        const home = mkdtempSync(join(tmpdir(), 'oc-vault-gone-'));
+        failing = null;
+        gone = 'a';
+        const login = await cli(home, 'login', '--token', 'ocvt_test', '--url', base);
+        gone = null;
+        expect(login.code, login.stderr).toBe(0);
+        expect(login.stdout).toContain('2 entries cached');
+        expect([...cached(home).blobs].sort()).toEqual(['ct-b', 'ct-c']);
+    });
+
+    it('a session that ends partway is said as itself, and nothing is cached', async () => {
+        const home = mkdtempSync(join(tmpdir(), 'oc-vault-401-'));
+        failing = 'b';
+        failStatus = 401;
+        const login = await cli(home, 'login', '--token', 'ocvt_test', '--url', base);
+        failStatus = 500;
+        expect(login.code).toBe(1);
+        expect(login.stderr).toContain('not signed in to vault.ochk.io');
+        expect(login.stderr).not.toContain("couldn't be fetched");
         expect(existsSync(cachePath(home))).toBe(false);
     });
 });
