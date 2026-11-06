@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+The footer carries two hands.
+
+- SiteFooter, with its signature, draws two dithered hands reaching in from
+  the page's edges above the giant wordmark. They are baked one pixel a
+  cell into ./art (`footer-hand-left`, `footer-hand-right`, about 1.3 KB
+  each), inlined, and drawn pixelated at 1 CSS px a cell from md and 2 from
+  lg, so every cell stays square at any DPR and the two never meet. They
+  slide in from the edges the first time the footer is seen, and stay put
+  under reduced motion. A phone's footer, one screen, and a tool's compact
+  footer have none.
+
+A dithered picture as a section's ground.
+
+- `DitherGround` from `./blocks` draws a baked 1-bit picture (ink on
+  clear) behind a section at a whole number of CSS px a cell, never
+  stretched, so a phone sees its middle at the grain a desk sees all of it.
+
 ## [2.5.0] — 2026-11-06
 
 A second logo, pixel, can be switched on to test.

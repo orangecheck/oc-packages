@@ -219,6 +219,7 @@ try {
         stdin: { contents: SSR, loader: 'jsx', resolveDir: pkg },
         outfile: join(dir, 'ssr.cjs'),
         bundle: true,
+        loader: { '.png': 'base64' },
         platform: 'node',
         format: 'cjs',
         jsx: 'automatic',

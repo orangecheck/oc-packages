@@ -8,6 +8,7 @@ import { PIXEL_SIGNATURE } from '../brand/pixel.data';
 import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
+import { png } from '../lib/png';
 import { HIT_LINK, HIT_LINKS } from '../lib/hit';
 import type { FooterColumn, NavItem } from '../lib/nav';
 import { AccountSlotContext, AccountTakenContext, type AccountSlot } from '../lib/account-slot';
@@ -18,6 +19,8 @@ import { ThemeToggle } from './app-shell';
 import { CTA_BLOCK, CTA_LINK, CtaLabel, CtaPlus } from './cta';
 import { FamilyList, FamilyMenu } from './family-menu';
 import { ProductLockup } from './product-lockup';
+import handLeft from '../../art/footer-hand-left.png';
+import handRight from '../../art/footer-hand-right.png';
 
 export type { FooterColumn, NavItem } from '../lib/nav';
 
@@ -542,6 +545,39 @@ const FOOTER_GROUND = 'oca-band-footer';
 const FRAME_X = 'mx-auto w-full max-w-[var(--oca-frame-max)] px-[calc(var(--oca-frame-rule)+var(--oca-frame-gutter))]';
 
 
+// Baked one pixel a dither cell (./art): drawn pixelated at 1 CSS px a cell from md and 2 from lg, so the two never meet.
+// No call at module level, so an entry that takes only SkipLink from here (./signin) leaves the art out.
+const HANDS = [
+    { side: 'left', src: handLeft, cells: [230, 151], at: 'bottom-0 left-0 h-[151px] w-[230px] lg:h-[302px] lg:w-[460px]' },
+    { side: 'right', src: handRight, cells: [230, 109], at: 'right-0 top-0 h-[109px] w-[230px] lg:h-[218px] lg:w-[460px]' },
+] as const;
+
+/**
+ * Two hands reach in from the page's edges above the wordmark, and slide in the first time it is seen.
+ * Not on a phone: there the footer is one screen, and the hands would make it two.
+ */
+function FooterHands() {
+    return (
+        <Reveal className="pointer-events-none relative hidden h-[151px] select-none overflow-hidden md:block lg:h-[302px]">
+            <div data-oca-hands="" aria-hidden className="absolute inset-0">
+                {HANDS.map((h) => (
+                    // eslint-disable-next-line @next/next/no-img-element -- inlined 1-bit art, scaled pixelated
+                    <img
+                        key={h.side}
+                        data-oca-hand={h.side}
+                        src={png(h.src)}
+                        alt=""
+                        width={h.cells[0] * 2}
+                        height={h.cells[1] * 2}
+                        decoding="async"
+                        className={cn('absolute max-w-none [image-rendering:pixelated]', h.at)}
+                    />
+                ))}
+            </div>
+        </Reveal>
+    );
+}
+
 /**
  * The footer, in 2.0's register: the deep orange ground, a line of fine print,
  * columns of links, the family when it is on, the giant wordmark and the
@@ -664,6 +700,7 @@ export function SiteFooter({
                     </div>
                 ))}
             </div>
+            {signature ? <FooterHands /> : null}
             {signature ? (
                 <div aria-hidden className={cn(FRAME_X, 'select-none pb-1 md:pb-12')}>
                     {/* One word, Inter 400, lowercase, sized to fill the frame's content width: its natural

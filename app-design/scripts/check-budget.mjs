@@ -128,7 +128,7 @@ async function shipped(entry, outside = new Set()) {
         metafile: true,
         outdir: join(root, '.budget'),
         external: peers,
-        loader: { '.woff': 'base64', '.woff2': 'base64' },
+        loader: { '.woff': 'base64', '.woff2': 'base64', '.png': 'base64' },
         logLevel: 'silent',
         plugins: [
             {
