@@ -112,8 +112,9 @@ export function AccountMenu({
                     className={
                         block || app
                             ? // One line cut at any letter, with an ellipsis, so the name can give way to a letter's width;
-                              // 17em holds about 32 of an email's characters.
-                              'line-clamp-1 min-w-0 max-w-[17em] break-all'
+                              // 17em holds about 32 of an email's characters. Set from the left: centred, as a button
+                              // sets its text, the line moved over by its slack and pushed the ellipsis's last dot out.
+                              'line-clamp-1 min-w-0 max-w-[17em] break-all text-left'
                             : cn('max-w-[14rem] truncate', nameFrom === 'lg' ? 'max-lg:hidden' : 'max-sm:hidden')
                     }
                 >
