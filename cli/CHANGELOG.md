@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.5.5] — 2026-11-06
+
 - Requires `@orangecheck/chat-core` ^0.2.6, which judges a channel's version
   read against the read floor itself (`floorMet`): a read anyone can publish
   into that stopped at its bound meets it when each REQ it made did, and every
