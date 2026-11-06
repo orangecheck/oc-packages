@@ -2,7 +2,7 @@
 
 import { ballotCopiesFromEvents, ballotVerdicts } from '../ballots.js';
 import { bip322Verify } from '../bip322.js';
-import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvents } from '../nostr.js';
+import { DEFAULT_RELAYS, fetchBallotEvents, fetchPollEvents, relayMaxLimit } from '../nostr.js';
 import { findPoll, requireComplete } from '../select.js';
 
 export interface VerifyOptions {
@@ -18,9 +18,11 @@ export async function runVerify(opts: VerifyOptions): Promise<void> {
     }
     const relays = opts.relays ?? DEFAULT_RELAYS;
 
+    // Relays the caller named are asked their NIP-11 page; the default set declares 500.
+    const maxLimit = opts.relays ? relayMaxLimit : undefined;
     const [pollFetch, ballotFetch] = await Promise.all([
-        fetchPollEvents(pid, relays),
-        fetchBallotEvents(pid, relays),
+        fetchPollEvents(pid, relays, undefined, maxLimit),
+        fetchBallotEvents(pid, relays, undefined, maxLimit),
     ]);
     const selected = await findPoll(pollFetch, pid, bip322Verify);
     const ballotEvents = requireComplete(ballotFetch, 'ballot');

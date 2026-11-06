@@ -20,7 +20,7 @@ import {
 } from '@orangecheck/vote-core';
 import type { Ballot, BlockTimeSource, Poll } from '@orangecheck/vote-core';
 
-import { DEFAULT_RELAYS, queryPaged, readShortfall, type QueryFn, type RelayRead } from './nostr.js';
+import { DEFAULT_RELAYS, queryPaged, readShortfall, type MaxLimit, type QueryFn, type RelayRead } from './nostr.js';
 
 export const STAMP_KIND = 30083;
 /** Ballot ids per REQ: fewer per filter, so one ballot's flood pages alone. */
@@ -89,14 +89,20 @@ export function stampAnchorVerifier(headers: BlockHeaderSource) {
 export async function fetchBallotStamps(
     ballotIds: readonly string[],
     relays: readonly string[] = DEFAULT_RELAYS,
-    queryFn?: QueryFn
+    queryFn?: QueryFn,
+    maxLimit?: MaxLimit
 ): Promise<{ stamps: Map<string, unknown[]>; relays: RelayRead[] }> {
     const ids = [...new Set(ballotIds)];
     const stamps = new Map<string, unknown[]>(ids.map((id) => [id, []]));
     const reads = new Map<string, RelayRead>(relays.map((relay) => [relay, { relay, answered: true, truncated: false }]));
     for (let i = 0; i < ids.length; i += IDS_PER_QUERY) {
         const chunk = ids.slice(i, i + IDS_PER_QUERY);
-        const r = await queryPaged({ kinds: [STAMP_KIND], '#t': chunk.map((id) => `sha256:${id}`) }, relays, queryFn);
+        const r = await queryPaged(
+            { kinds: [STAMP_KIND], '#t': chunk.map((id) => `sha256:${id}`) },
+            relays,
+            queryFn,
+            maxLimit
+        );
         for (const read of r.relays) {
             const sum = reads.get(read.relay)!;
             reads.set(read.relay, {
@@ -135,6 +141,8 @@ export async function anchoredChain(
         headers?: BlockHeaderSource;
         mempoolBase?: string;
         queryFn?: QueryFn;
+        /** The NIP-11 page reader, for relays the caller named (see `pageRelay`). */
+        maxLimit?: MaxLimit;
     }
 ): Promise<AnchoredChain | null> {
     if (!isAnchoredPoll(poll)) return null;
@@ -143,7 +151,7 @@ export async function anchoredChain(
         opts.blockTimes ?? mempoolBlockTimeSource(opts.mempoolBase ? { base: opts.mempoolBase } : {})
     );
     if (!close.ok) throw new Error(`the block at the deadline could not be read (${close.code}): ${close.reason}`);
-    const read = await fetchBallotStamps(ballotIds, opts.relays ?? DEFAULT_RELAYS, opts.queryFn);
+    const read = await fetchBallotStamps(ballotIds, opts.relays ?? DEFAULT_RELAYS, opts.queryFn, opts.maxLimit);
     // A stamp lookup cut short holds the count below; only a lookup no relay answered at all refuses it.
     if (!read.relays.some((r) => r.answered || r.truncated)) {
         throw new Error('no relay finished answering the stamp query; try again');
