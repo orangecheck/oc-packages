@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-11-06
+
 ### Fixed
 
 - `relayMaxLimit(url)` reads the scheme of `url` as the URL parser (and so a
