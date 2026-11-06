@@ -643,6 +643,45 @@ try {
             check(a.g2 === '120x80 over 240px', `dither grain, 120 cells at 2px a cell: the live dither is ${a.g2}, not 120x80 over 240px`);
             check(a.g3 === '160x107 over 480px', `dither grain, a 480px still of 160 cells: the live dither is ${a.g3}, not 160x107 over 480px`);
             check(a.g4 === '240x160 over 480px', `dither grain, pixel 2 on 480px: the live dither is ${a.g4}, not 240x160 over 480px`);
+            // The trail lands under the pointer at the still's grain: once the passes above have faded, the pointer
+            // rests at one point, and the lit live pixels centre on it within one trail cell (8px), at 1 and 2 px a cell.
+            await p.waitForTimeout(1500);
+            for (const [id, grain] of [
+                ['g1', 1],
+                ['g2', 2],
+            ]) {
+                const box = await p.locator(`#${id} .oca-dither`).boundingBox();
+                const want = { x: box.width * 0.7, y: box.height * 0.5 };
+                for (let i = 0; i < 8; i++) await p.mouse.move(box.x + want.x + (i % 2), box.y + want.y, { steps: 1 });
+                const lit = await p
+                    .waitForFunction(
+                        (sel) => {
+                            const c = document.querySelector(sel);
+                            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                            const s = c.getBoundingClientRect().width / c.width;
+                            let n = 0, sx = 0, sy = 0;
+                            for (let y = 0; y < c.height; y++)
+                                for (let x = 0; x < c.width; x++)
+                                    if (d[(y * c.width + x) * 4 + 3]) {
+                                        n++;
+                                        sx += x + 0.5;
+                                        sy += y + 0.5;
+                                    }
+                            return n > 20 && { n, x: (sx / n) * s, y: (sy / n) * s };
+                        },
+                        `#${id} canvas`,
+                        { timeout: 3000, polling: 'raf' }
+                    )
+                    .then((h) => h.jsonValue(), () => null);
+                const off = lit ? Math.hypot(lit.x - want.x, lit.y - want.y) : Infinity;
+                check(
+                    off <= 8,
+                    `dither trail at ${grain}px a cell: the pointer rests at ${Math.round(want.x)},${Math.round(want.y)} and the lit live pixels centre on ${lit ? `${Math.round(lit.x)},${Math.round(lit.y)}` : 'nothing'}`
+                );
+                // Off to the side of the column, over no picture, until the trail has faded.
+                await p.mouse.move(1200, 10);
+                await p.waitForTimeout(1500);
+            }
             // The drawn size swaps, as a hero's --cell does at xl: each still keeps its cells, the fixed pixel does not.
             await p.evaluate(() => {
                 document.querySelector('#g1 .oca-dither').style.width = '240px';
