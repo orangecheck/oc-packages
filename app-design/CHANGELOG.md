@@ -35,6 +35,16 @@ One section shell, so a site stops drawing its own.
   (96px from 768) and the split's feet level from 1024, at 320, 390 and
   1440.
 
+A fourth StepGrid look, `line`.
+
+- `look="line"` draws each step as its numeral, a hairline with a square
+  node on it, then its title and body, as ochk.app's /earn draws its
+  steps by hand. From md the steps' rules meet as one line across the
+  grid; below md each step has its own. check-render reads each step's
+  order and the rule running into its padding; check-layout holds the
+  rules to one line from 768, the 10px node on each at its step's left,
+  at 320, 390 and 1440.
+
 ## [2.5.0] — 2026-11-06
 
 A second logo, pixel, can be switched on to test.

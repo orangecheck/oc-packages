@@ -17,10 +17,12 @@ export interface StepGridProps {
     items: StepItem[];
     /**
      * `cards` (white cards, "Sign in. Earn. Own."), `plain` (open columns,
-     * "Ask for something a bot can't fake cheaply.") or `ink` (dark cards,
-     * "Why partner now"). Numerals are dropped on `ink`, as the deck does.
+     * "Ask for something a bot can't fake cheaply."), `ink` (dark cards,
+     * "Why partner now") or `line` (one rule across the steps, a square node
+     * on it at each, "From signing in to getting paid."). Numerals are
+     * dropped on `ink`, as the deck does.
      */
-    look?: 'cards' | 'plain' | 'ink';
+    look?: 'cards' | 'plain' | 'ink' | 'line';
     className?: string;
 }
 
@@ -29,9 +31,24 @@ const pad = (n: number) => String(n + 1).padStart(2, '0');
 export function StepGrid({ items, look = 'cards', className }: StepGridProps) {
     const cols = items.length >= 3 ? 'md:grid-cols-3' : items.length === 2 ? 'md:grid-cols-2' : '';
     return (
-        <ol className={cn('grid gap-4 md:gap-5', cols, className)}>
+        // On `line` the steps touch from md, so their rules meet as one; each keeps its gap as padding.
+        <ol className={cn('grid', look === 'line' ? 'gap-y-14 md:gap-x-0' : 'gap-4 md:gap-5', cols, className)}>
             {items.map((it, i) =>
-                look === 'plain' ? (
+                look === 'line' ? (
+                    <li key={i} className="flex flex-col gap-4 md:pr-10">
+                        <div className="flex flex-col gap-2.5">
+                            <span className="oca-label">{it.numeral ?? pad(i)}</span>
+                            <span aria-hidden data-oca-step-rule="" className="relative block h-px bg-foreground md:-mr-10">
+                                <span className="absolute left-0 top-1/2 size-2.5 -translate-y-1/2 bg-oca-accent-display" />
+                            </span>
+                        </div>
+                        <CardTitle>
+                            {it.title}
+                            {it.badge ? <Badge>{it.badge}</Badge> : null}
+                        </CardTitle>
+                        <div className="oca-body text-[0.9375rem]">{it.body}</div>
+                    </li>
+                ) : look === 'plain' ? (
                     <li key={i} className="flex flex-col gap-3 pr-4">
                         <CardNumeral>{it.numeral ?? pad(i)}</CardNumeral>
                         <CardTitle className="oca-title-sm">
