@@ -55,7 +55,8 @@ const html = (el) => renderToStaticMarkup(el);
     const ALLOWED = /^(none|depict|tile|\[inherit\])$/;
     const rounded = [];
     for (const f of walk(src, /\.tsx?$/)) {
-        if (ROUND_BY_MEANING.test(f)) continue;
+        // ./vitest is a site's test helper: it names radius classes to find them, and draws none.
+        if (ROUND_BY_MEANING.test(f) || /[\\/]vitest[\\/]/.test(f)) continue;
         readFileSync(f, 'utf8')
             .split('\n')
             .forEach((line, i) => {
