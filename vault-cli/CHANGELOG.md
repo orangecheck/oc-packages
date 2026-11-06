@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.5
+
+- Runs on vault-core 0.6.0, which tells a blob that couldn't be read from
+  one deleted since the listing. `sync` and `login` still write nothing when
+  any listed entry couldn't be fetched, and say how many. A blob deleted
+  since the listing is now left out, and the rest is cached, instead of
+  failing the pull.
+- A session that ends or sync that stops being paid partway through a pull
+  is said as itself (`not signed in to vault.ochk.io`), not as entries that
+  couldn't be fetched. Nothing is cached.
+
 ## 0.3.4
 
 - `sync` and `login` write the cache only when every listed entry was
