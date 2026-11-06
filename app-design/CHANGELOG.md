@@ -11,6 +11,10 @@
   by itself meanwhile was read as the trigger's. Six plants in four stories
   of the census hold each case, and a link let go once is read behind no
   later trigger.
+- check-dom holds where `SignInPage`'s Google sign-in comes back to: this
+  site's own address with the return path, as a site's own sign-in page
+  prefixed it, or a family address as given. OcSignIn adds the page's origin
+  to a bare path, so a site such as cosign needs no prefix of its own.
 
 ## [2.3.0] — 2026-11-05
 
