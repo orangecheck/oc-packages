@@ -1074,3 +1074,74 @@ describe('oc chat verify: a page of device records a relay filled is cut off (ch
         expect(r.relays).toMatchObject({ below_floor: 0, floors_missed: [] });
     });
 });
+
+describe("oc chat verify: a role holder's key read a relay filled leaves the version walk incomplete (chat-core 0.2.4)", () => {
+    afterEach(() => vi.unstubAllGlobals());
+    // The founder's edit of the genesis, the channel's newest version.
+    const editContent: DescriptorContent = { ...genesis, title: 'Town, edited', created_at: genesis.created_at + 50, supersedes: did };
+    const edit = signNostrEvent(
+        {
+            pubkey: founder.nostrPk,
+            kind: 30110,
+            created_at: editContent.created_at,
+            content: JSON.stringify(editContent),
+            tags: [
+                ['d', versionDtag(descriptorId(editContent))],
+                ['t', genesis.channel_id],
+                ['s', did],
+                ['binding', JSON.stringify(founder.record)],
+            ],
+        },
+        founder.nostrSk
+    );
+    // Events the founder's own key signs under the channel's tag after the edit, which no check takes for a version.
+    const founderSigned = Array.from({ length: 500 }, (_, i) =>
+        signNostrEvent({ pubkey: founder.nostrPk, kind: 30110, created_at: editContent.created_at + 1 + i, content: 'filler', tags: [['t', genesis.channel_id]] }, founder.nostrSk)
+    );
+    // Four relays hold `held` and answer newest first, up to the page asked for, `until` inclusive.
+    const relays = (held: NostrEvent[]) => {
+        const raw: RawQuery = async (filter, to) => {
+            const until = typeof filter.until === 'number' ? filter.until : Infinity;
+            const page = held
+                .filter((e) => matchFilter(e, filter as never) && e.created_at <= until)
+                .sort((x, y) => y.created_at - x.created_at)
+                .slice(0, typeof filter.limit === 'number' ? filter.limit : undefined);
+            return { events: page, relayStatus: to.map((relay) => ({ relay, eose: true, events: page.length, rejected: 0 })) };
+        };
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        return liveNet(['wss://a.example', 'wss://b.example', 'wss://c.example', 'wss://d.example'], 'https://esplora.test/api', raw);
+    };
+    const verify = async (held: NostrEvent[]) => {
+        const code = await run({ file: file(version), founder: FOUNDER, json: true }, relays([version, edit, founder.record, ...held]));
+        return { code, r: JSON.parse(stdout) };
+    };
+
+    it("the founder's key fills its read over the edit and the open read is cut off: can't tell, NOT READ, exit 2, never the tip", async () => {
+        const { code, r } = await verify([...founderSigned, ...flood.slice(0, 1600)]);
+        expect(code).toBe(2);
+        expect(r.verdict).toBe('unread');
+        expect(r.detail?.is_tip ?? null).toBeNull();
+        expect(r.not_checked.join('\n')).toMatch(/can't tell/);
+    });
+
+    it("400 of the founder's own leave its read short: the edit is read, so the genesis is VERIFIED and not the tip", async () => {
+        const { code, r } = await verify([...founderSigned.slice(0, 400), ...flood.slice(0, 1700)]);
+        expect(code).toBe(0);
+        expect(r.verdict).toBe('verified');
+        expect(r.detail.is_tip).toBe(false);
+    });
+
+    it('a filled key read after an open read that was not cut off: every version was read, VERIFIED and not the tip', async () => {
+        const { code, r } = await verify(founderSigned);
+        expect(code).toBe(0);
+        expect(r.verdict).toBe('verified');
+        expect(r.detail.is_tip).toBe(false);
+    });
+
+    it("another key's flood alone cuts off the open read, and the founder's keys read in full: VERIFIED and not the tip", async () => {
+        const { code, r } = await verify(flood.slice(0, 2100));
+        expect(code).toBe(0);
+        expect(r.verdict).toBe('verified');
+        expect(r.detail.is_tip).toBe(false);
+    });
+});

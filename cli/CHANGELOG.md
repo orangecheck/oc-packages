@@ -7,6 +7,18 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+- Requires `@orangecheck/chat-core` ^0.2.4 (it was ^0.2.3). With `--founder`,
+  `oc chat verify` judges a channel version whose version read was cut off at
+  its bound only when every role holder's key was read in full, and chat-core
+  0.2.4 counts a key read that a relay filled to its page of 500 as not read
+  in full: more versions that key signed may lie behind the page. Such a
+  version is NOT READ, exit 2, never the tip. A key read that comes back short
+  of its page, or an open read that was not cut off, gives a verdict on the
+  versions read, so a flood of the open read by another key alone leaves the
+  version VERIFIED or FAILED.
+
 ## [0.5.2] — 2026-11-05
 
 - Requires `@orangecheck/chat-core` ^0.2.3 (it was ^0.1.1). `oc chat verify`
