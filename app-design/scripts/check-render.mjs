@@ -924,6 +924,97 @@ const html = (el) => renderToStaticMarkup(el);
     check(bare.children.length === 1 && bare.querySelector('h2')?.textContent === 'A drop-in gate', 'PackageCard tile: with no icon or label it draws an empty top row, or ignores its heading level');
 }
 
+// The long page (S34): the entry being read, as ochk.app's scroll-spy tests pinned it; the numbered contents, sticky
+// from 900px and folded on a phone; the columns ruled at 900px on the frame's gutter; DocLayout drawing through them
+// with contents and as 2.5.0 did without; LegalDocument's S10 header, its dates on a bar and its "§ NN" marks.
+{
+    const { JSDOM } = require('jsdom');
+    const { createHash } = require('node:crypto');
+    const sha = (s) => createHash('sha256').update(s).digest('hex');
+    const dom = (el) => new JSDOM(html(el)).window.document;
+    const cls = (el) => ` ${el?.getAttribute('class') ?? ''} `;
+    const ai = C.activeIndex;
+    check(ai([400, 1200, 2000], 140, false, 900) === 0, 'activeIndex: before any heading reaches the line, not the first entry');
+    check(ai([-900, -100, 140, 600], 140, false, 900) === 2 && ai([-900, -100, 141, 600], 140, false, 900) === 1, 'activeIndex: not the last heading at or above the line');
+    check(ai([-1400, -600, 300, 700], 140, true, 900) === 3, 'activeIndex: at the foot of the page, the last heading in view is not marked');
+    check(ai([-1400, -600, 100, 1200], 140, true, 900) === 2, 'activeIndex: at the foot of the page, a last heading still below the fold is marked');
+    check(ai([-300, Infinity, 500], 140, false, 900) === 0, 'activeIndex: a heading not on the page is marked');
+    check(ai([], 140, false, 900) === -1, 'activeIndex: a page with no headings marks an entry');
+
+    const entries = [
+        { id: 'a', num: '01', label: 'Alpha' },
+        { id: 'b', num: '02', label: 'Beta' },
+        { id: 'c', label: 'Gamma' },
+    ];
+    const toc = dom(h(C.Toc, { entries, aside: h('p', { 'data-aside': '' }, 'Aside') }));
+    const [sticky, folded] = toc.querySelectorAll('nav[aria-label="On this page"]');
+    const details = toc.querySelector('details');
+    check(sticky && [' sticky ', ' hidden ', ' min-[900px]:flex ', ' top-[calc(4.5rem+1px+2.5rem)] ', ' overflow-y-auto '].every((c) => cls(sticky).includes(c)) && sticky.querySelector('[data-aside]'), `Toc: the contents are not sticky under the site's bar from 900px with the aside: ${cls(sticky)}`);
+    check(details && cls(details).includes(' min-[900px]:hidden ') && details.contains(folded) && !details.querySelector('[data-aside]') && details.querySelector('summary')?.textContent === 'On this page+' && details.querySelector('summary span[aria-hidden]')?.textContent === '+', 'Toc: the phone fold is not "On this page" and its + over the list');
+    for (const [name, nav] of [['sticky', sticky], ['folded', folded]]) {
+        const links = [...(nav?.querySelectorAll('ol.border-l > li > a') ?? [])];
+        check(links.map((a) => a.getAttribute('href')).join() === '#a,#b,#c' && links.map((a) => a.firstElementChild?.textContent).join() === '01,02,' && links.map((a) => a.lastElementChild?.textContent).join() === 'Alpha,Beta,Gamma', `Toc (${name}): its entries are not numbered links to their headings`);
+        check(links[0]?.getAttribute('aria-current') === 'location' && cls(links[0]).includes(' border-oca-accent-display ') && links.slice(1).every((a) => !a.hasAttribute('aria-current') && cls(a).includes(' border-transparent ')), `Toc (${name}): the first entry is not marked in ember on the rule before any scroll`);
+        check(links.every((a) => cls(a).includes(' min-h-11 ') && cls(a).includes(' border-l-2 ') && cls(a).includes(' -ml-px ')), `Toc (${name}): an entry is not 44px tall with its mark over the rule`);
+    }
+
+    // Contents of a site's own making (ochk.app's changelog, grouped by month): the same column and fold, its list as given.
+    const grouped = h('div', { 'data-list': '' }, h('p', null, 'November'), h('ol', { className: 'border-l border-border' }, ...['v2', 'v1'].map((id) => h('li', { key: id }, h(C.ContentsLink, { id, here: id === 'v1' }, id)))));
+    const own = dom(h(C.ContentsNav, { active: 'v1', list: grouped, aside: h('p', { 'data-aside': '' }, 'Aside') }));
+    const ownNavs = [...own.querySelectorAll('nav[aria-label="On this page"]')];
+    check(ownNavs.length === 2 && cls(ownNavs[0]).includes(' sticky ') && ownNavs[0].querySelector('[data-aside]') && own.querySelector('details')?.contains(ownNavs[1]) && !own.querySelector('details [data-aside]'), 'ContentsNav: not the sticky column with its aside and the phone fold without it');
+    for (const nav of ownNavs) {
+        const links = [...nav.querySelectorAll('[data-list] ol > li > a')];
+        check(nav.querySelector('[data-list] > p')?.textContent === 'November' && links.map((a) => a.getAttribute('href')).join() === '#v2,#v1', 'ContentsNav: the list is not drawn as given, in each place');
+        check(links[1]?.getAttribute('aria-current') === 'location' && cls(links[1]).includes(' border-oca-accent-display ') && !links[0]?.hasAttribute('aria-current') && cls(links[0]).includes(' border-transparent ') && links.every((a) => cls(a).includes(' min-h-11 ')), 'ContentsLink: the entry here is not the one marked, or an entry is not 44px tall');
+    }
+    check(html(h(C.Toc, { entries })) === html(h(C.ContentsNav, { active: 'a', list: h('ol', { className: 'border-l border-border' }, entries.map((e) => h('li', { key: e.id }, h(C.ContentsLink, { id: e.id, here: e.id === 'a' }, h('span', { className: 'w-5 shrink-0 font-mono text-[0.75rem] tabular-nums text-oca-subtle' }, e.num), h('span', null, e.label))))) })), 'Toc: not ContentsNav over a numbered list of ContentsLinks');
+
+    const cols = dom(h(C.DocColumns, { nav: h('nav', null, 'N') }, h('p', { 'data-text': '' }, 'T'))).body.firstElementChild;
+    const [navCell, textCell] = cols ? [...cols.children] : [];
+    check(cls(cols).includes(' min-[900px]:grid-cols-[15.5rem_minmax(0,1fr)] ') && cls(cols).includes(' xl:grid-cols-[18.5rem_minmax(0,1fr)] '), `DocColumns: not 15.5rem then 18.5rem of contents beside the text: ${cls(cols)}`);
+    check(cls(navCell).includes(' min-[900px]:border-r ') && cls(navCell).includes(' border-b ') && cls(navCell).includes(' min-[900px]:border-b-0 '), `DocColumns: the contents are not ruled off, under the fold on a phone and beside the text from 900px: ${cls(navCell)}`);
+    check(cls(textCell).includes(' px-[var(--oca-frame-gutter)] ') && !/clamp\(/.test(html(h(C.DocColumns, { nav: null }, 'x'))) && textCell.querySelector('[data-text]'), `DocColumns: the text is not on the frame's gutter: ${cls(textCell)}`);
+
+    const withToc = dom(h(C.DocLayout, { toc: entries, header: h(C.DocHeader, { title: 'Security' }) }, h('p', { 'data-text': '' }, 'T')));
+    const frame = withToc.querySelector('[data-oca-frame]');
+    const columns = frame?.querySelector(':scope > [data-oca-doc-columns]');
+    const text = columns?.children[1];
+    check(frame && !/oca-container/.test(html(h(C.DocLayout, { toc: entries }, 'x'))) && columns && columns.querySelectorAll('nav[aria-label="On this page"] a[href="#b"]').length === 2, 'DocLayout with contents: not DocColumns on a Frame with the numbered contents');
+    check(text?.firstElementChild?.querySelector('h1')?.textContent === 'Security' && text.lastElementChild?.matches('p[data-text]'), 'DocLayout with contents: its header is not at the top of the text column');
+    // Without contents, the markup 2.5.0 drew.
+    check(sha(html(h(C.DocLayout, null, h('p', null, 'Body')))) === 'd16b1c4df347861c5339f77dd02bfb09a53e69cb34450e2d3be99f8b4bdbd964', 'DocLayout without contents no longer draws as 2.5.0 did');
+    check(sha(html(h(C.DocLayout, { header: h(C.DocHeader, { title: 'Security', lead: 'How to tell us.' }), className: 'x' }, h('p', null, 'Body')))) === '2748b5ab7cb9ebfcfceed04893d00583f0dc587436f97300eb55566d288f732b', 'DocLayout without contents, with a header, no longer draws as 2.5.0 did');
+    check(html(h(C.DocLayout, { toc: [] }, h('p', null, 'Body'))) === html(h(C.DocLayout, null, h('p', null, 'Body'))), 'DocLayout: an empty toc draws the columns, not the page without contents');
+
+    const doc = {
+        eyebrow: 'legal',
+        title: 'Privacy policy',
+        description: 'What we keep.',
+        effective: '1 January 2026',
+        updated: '4 November 2026',
+        sections: [
+            { id: 's1', num: '01', heading: 'what we store', blocks: [{ kind: 'para', text: 'One.' }] },
+            { id: 's2', heading: 'more', blocks: [{ kind: 'para', text: 'Two.' }] },
+        ],
+    };
+    const legal = dom(h(C.LegalDocument, { doc, art: h('svg', { 'data-art': '' }) }));
+    const hero = legal.querySelector('section[data-ground="paper"]');
+    const h1 = hero?.querySelector('h1');
+    check(h1 && [...h1.children].map((x) => x.textContent).join('|') === 'Privacy|policy' && cls(h1.lastElementChild).includes(' text-oca-subtle ') && hero.querySelector('[data-art]') && /min-\[900px\]:min-h-/.test(hero.getAttribute('class')), `LegalDocument: its header is not S10 with the title's last word set back and the site's art: ${h1?.outerHTML.slice(0, 160)}`);
+    check(legal.querySelector('[data-oca-frame] > [data-oca-section-bar]')?.textContent === 'Effective 1 January 2026 · last updated 4 November 2026', 'LegalDocument: its dates are not on a bar under the header');
+    const legalLinks = [...legal.querySelectorAll('[data-oca-doc-columns] nav ol a')].slice(0, 2);
+    check(legalLinks.map((a) => a.textContent).join('|') === '01What we store|More', `LegalDocument: its contents are not its numbered sections: ${legalLinks.map((a) => a.textContent).join('|')}`);
+    const mark = legal.querySelector('h2#s1 > span');
+    check(mark?.textContent === '§ 01' && cls(mark).includes(' text-oca-accent-ink ') && cls(mark).includes(' block ') && legal.querySelector('h2#s1')?.textContent === '§ 01What we store' && !legal.querySelector('h2#s2 > span'), 'LegalDocument: a numbered section has no "§ NN" mark over its heading, or an unnumbered one has one');
+    check(!dom(h(C.LegalDocument, { doc })).querySelector('svg, [data-art]'), 'LegalDocument: draws art of its own');
+    // The last word alone is set back, however many come before it; a one-word title is drawn whole.
+    const terms = dom(h(C.LegalDocument, { doc: { ...doc, title: 'Terms of service' } })).querySelector('h1');
+    check([...terms.children].map((x) => x.textContent).join('|') === 'Terms of|service' && cls(terms.lastElementChild).includes(' text-oca-subtle ') && !cls(terms.firstElementChild).includes(' text-oca-subtle '), `LegalDocument: "Terms of service" does not set "service" alone back: ${terms.outerHTML.slice(0, 200)}`);
+    const one = dom(h(C.LegalDocument, { doc: { ...doc, title: 'Privacy' } })).querySelector('h1');
+    check(one.children.length === 0 && one.textContent === 'Privacy', `LegalDocument: a one-word title is split: ${one.outerHTML.slice(0, 160)}`);
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

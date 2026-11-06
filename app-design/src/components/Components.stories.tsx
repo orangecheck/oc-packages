@@ -9,10 +9,14 @@ import { useEffect, useState } from 'react';
 import {
     ActivityList,
     CodeBlock,
+    ContentsLink,
+    ContentsNav,
     DataTable,
+    DocColumns,
     DocHeader,
     DocLayout,
     EmptyState,
+    Frame,
     HashChip,
     KeyValueList,
     LoadError,
@@ -30,8 +34,10 @@ import {
     StatCard,
     StatGrid,
     StepGrid,
+    Toc,
     TruthTable,
     UsdApprox,
+    useActiveEntry,
 } from './index';
 
 const meta: Meta = { title: 'Components' };
@@ -287,9 +293,9 @@ export const Heroes: StoryObj = {
                     />
                 }
                 toc={[
-                    { id: 'what', label: 'What we store' },
-                    { id: 'why', label: 'Why we store it' },
-                    { id: 'how-long', label: 'How long we keep it' },
+                    { id: 'what', num: '01', label: 'What we store' },
+                    { id: 'why', num: '02', label: 'Why we store it' },
+                    { id: 'how-long', num: '03', label: 'How long we keep it' },
                 ]}
             >
                 <Prose>
@@ -306,6 +312,102 @@ export const Heroes: StoryObj = {
                 </Prose>
             </DocLayout>
         </div>
+    ),
+};
+
+const CONTENTS = [
+    ['scope', 'What this covers'],
+    ['report', 'How to report a problem'],
+    ['keys', 'Which keys we hold'],
+    ['relays', 'Which relays we read'],
+    ['changes', 'When this page changes'],
+] as const;
+
+export const Contents: StoryObj = {
+    name: 'Long page: contents beside the text',
+    parameters: { fullBleed: true },
+    // A page that keeps its own sections (ochk.app's /security) sets them in DocColumns with a Toc.
+    render: () => (
+        <Frame padded={false}>
+            <DocColumns
+                nav={
+                    <Toc
+                        entries={CONTENTS.map(([id, label], i) => ({ id, num: String(i + 1).padStart(2, '0'), label }))}
+                        aside={<p className="text-[0.8125rem] leading-snug text-muted-foreground">We aim to reply to every report within 30 days. We can't promise a time to a fix yet.</p>}
+                    />
+                }
+            >
+                <Prose>
+                    {CONTENTS.map(([id, label]) => (
+                        <section key={id}>
+                            <h2 id={id}>{label}</h2>
+                            <p>
+                                A paragraph of the page, set at a readable measure, long enough to wrap across a few
+                                lines so the contents have something to follow as the page scrolls.
+                            </p>
+                            <p>Another paragraph, so each section is taller than the reading line.</p>
+                        </section>
+                    ))}
+                </Prose>
+            </DocColumns>
+        </Frame>
+    ),
+};
+
+const RELEASES: [month: string, list: [id: string, day: string, version: string][]][] = [
+    ['November', [['v2-3', '6', 'v2.3'], ['v2-2', '2', 'v2.2']]],
+    ['October', [['v2-1', '28', 'v2.1'], ['v2-0', '14', 'v2.0']]],
+];
+
+function OwnContents() {
+    const active = useActiveEntry(RELEASES.flatMap(([, list]) => list.map(([id]) => id)), 0, 0.35);
+    return (
+        <ContentsNav
+            active={active}
+            list={
+                <div className="flex flex-col gap-5">
+                    {RELEASES.map(([month, list]) => (
+                        <div key={month} className="flex flex-col gap-2">
+                            <p className="oca-label border-t border-border pt-3">{month}</p>
+                            <ol className="border-l border-border">
+                                {list.map(([id, day, version]) => (
+                                    <li key={id}>
+                                        <ContentsLink id={id} here={active === id}>
+                                            <span className="w-5 shrink-0 font-mono text-[0.75rem] tabular-nums text-oca-subtle">{day}</span>
+                                            <span>{version}</span>
+                                        </ContentsLink>
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    ))}
+                </div>
+            }
+        />
+    );
+}
+
+export const ContentsOfYourOwn: StoryObj = {
+    name: 'Long page: contents of your own',
+    parameters: { fullBleed: true },
+    // Contents a numbered list cannot hold (ochk.app's changelog, by month): ContentsNav over ContentsLinks.
+    render: () => (
+        <Frame padded={false}>
+            <DocColumns nav={<OwnContents />}>
+                <Prose>
+                    {RELEASES.flatMap(([, list]) => list).map(([id, , version]) => (
+                        <section key={id}>
+                            <h2 id={id}>{version}</h2>
+                            <p>
+                                What changed in this release, said for the person it changed for, long enough to wrap
+                                across a few lines so the contents have something to follow as the page scrolls.
+                            </p>
+                            <p>Another paragraph, so each release is taller than the reading line.</p>
+                        </section>
+                    ))}
+                </Prose>
+            </DocColumns>
+        </Frame>
     ),
 };
 
