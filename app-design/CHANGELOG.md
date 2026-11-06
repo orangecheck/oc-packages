@@ -20,6 +20,30 @@ DitherImage's live dither takes the still's own grain.
   centre within 3px of it, under half a trail cell on either axis.
 - `Ticker` is deprecated: no family site renders it. It goes in 3.0.
 
+One long page, as ochk.app draws its own.
+
+- `DocColumns` sets the text beside its contents: a column ruled off by
+  a hairline down the frame, 15.5rem and 18.5rem from xl, from 900px;
+  above the text on a phone. The text sits on the frame's gutter.
+- `Toc` is that column's numbered contents (`TocItem` takes `num`): sticky
+  under the site's bar, the entry being read marked in ember on the rule,
+  an `aside` under it; on a phone, folded under "On this page" and its +.
+  Its links work before any script. `useActiveEntry` and `activeIndex`
+  pick the entry being read, measured at most once a frame and idle at
+  rest.
+- `DocLayout` with `toc` draws through them on a Frame, its `header` at
+  the top of the text. Without `toc` it draws as before.
+- `LegalDocument` opens with PageHero's S10 header, the title's last word
+  set back and the site's `art` at its foot, puts its dates on a bar, and
+  marks each numbered section "§ NN" over its heading.
+- check-render holds the entry being read to ochk.app's cases and each
+  part's markup, and DocLayout without contents to its old markup;
+  check-idle holds the contents to no frame at rest and one per burst of
+  scrolls, marking as the page scrolls; check-focus reaches them from the
+  keyboard on a desk and through the fold on a phone; check-layout holds
+  the columns, the rule, the sticky top and the gutter at 390, 900 and
+  1440.
+
 ## [2.6.0] — 2026-11-06
 
 A depiction keeps the page's colours on every band.

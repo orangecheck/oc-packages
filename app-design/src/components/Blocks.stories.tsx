@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Anchor, Code2, FileCheck2, UserX } from 'lucide-react';
 
 import { Acknowledgement } from '../acknowledgement';
+import { DitherMark } from '../blocks';
 import { Button } from '../primitives';
 import {
     Accent,
@@ -228,5 +229,6 @@ const PRIVACY: LegalSource = {
 
 export const Legal: StoryObj = {
     name: 'Legal document',
-    render: () => <LegalDocument doc={PRIVACY} />,
+    // The art is the site's: ochk.app, vault and ochk.io pass their mark.
+    render: () => <LegalDocument doc={PRIVACY} art={<DitherMark size="sm" />} />,
 };
