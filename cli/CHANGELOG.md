@@ -7,6 +7,30 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [0.5.4] — 2026-11-06
+
+- Requires `@orangecheck/chat-core` ^0.2.5 and `@orangecheck/nostr-core`
+  ^0.8.2. chat-core pages every channel-version and directory read to each
+  relay's end, whatever page size the relay caps at. nostr-core 0.8.2's
+  `DEFAULT_RELAYS`, the set device records are read from (chat-core
+  `DEVICE_RECORD_RELAYS`), lists nostr.mom in place of relay.damus.io.
+- `oc chat verify` reads device records and revocations with nostr-core's
+  `readRelays`: each relay is paged alone to the end of what it holds under the
+  principal's d tag, 500 asked a page, within 8 s per relay. The read floor
+  counts the relays whose read ended complete. A relay that stops answering
+  partway is cut off, so the key is NOT READ, exit 2, never live or not bound.
+- A channel's version read below the read floor (chat-core `floorMet`) is NOT
+  READ, exit 2, unless the read was cut off at its bound. A read cut off at its
+  bound stands only when the role holders' key reads were complete, so a flood
+  alone does not block a verdict.
+- With `--relays`, each relay's NIP-11 document is asked for its `max_limit`
+  (nostr-core `relayMaxLimit`). A relay that declares under 100 and sent
+  anything is cut off. The reference sets declare 500 and are not asked. A
+  relay that caps a page below 100 without declaring it is not told apart.
+- `RawQuery` takes an optional third argument, the ms a REQ may take;
+  `liveNet` an optional fifth, the NIP-11 reader. `netFor(opts, raw?)` builds
+  the network a run reads.
+
 ## [0.5.3] — 2026-11-05
 
 - Requires `@orangecheck/chat-core` ^0.2.4 (it was ^0.2.3). With `--founder`,
