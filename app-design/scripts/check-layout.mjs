@@ -1038,6 +1038,27 @@ try {
             )
         )
     );
+    // A depiction on the page and on every band: a window, a plain window, a phone, a receipt and the sign-in
+    // demo's stage, with a page part (a Card) beside them on the same ground.
+    const Bl = require(join(pkg, 'dist/blocks.js'));
+    const GROUNDS = ['', 'oca-band-ink', 'oca-band-burnt', 'oca-band-brand', 'oca-band-footer'];
+    const depictions = page(
+        'depictions',
+        GROUNDS.map((g) =>
+            renderToStaticMarkup(
+                h(
+                    'div',
+                    { 'data-g': g || 'page', className: `grid grid-cols-2 gap-6 p-6 ${g}` },
+                    h('div', { 'data-d': 'paper' }, h(C.BrowserFrame, { variant: 'paper', url: 'ochk.app' }, h('p', { className: 'p-4' }, 'Sign in to Lumen Notes'))),
+                    h('div', { 'data-d': 'plain' }, h(C.BrowserFrame, { url: 'ochk.app' }, h('p', { className: 'p-4' }, 'A plain window'))),
+                    h('div', { 'data-d': 'phone' }, h(C.PhoneFrame, null, h('p', { className: 'p-8' }, 'A phone'))),
+                    h('div', { 'data-d': 'receipt' }, h(Bl.ReceiptCard, { title: 'Receipt', rows: [{ label: 'Sign-in', amount: 240 }], unit: 'sats' })),
+                    h('div', { 'data-d': 'demo' }, h(Bl.SignInDemo, {})),
+                    h(P.Card, { 'data-part': '' }, h('p', { className: 'p-4' }, 'A card on the ground'))
+                )
+            )
+        ).join('')
+    );
     // Every hero shape, its entrance read on the first frame.
     const heroes = page(
         'heroes',
@@ -3227,6 +3248,90 @@ try {
             );
             check(regions.length === 2 && regions.every((r) => r.role === 'region' && r.name), `[390] a code block that scrolls is a tab stop with no region name: ${JSON.stringify(regions)}`);
             check(regions.map((r) => r.name).join('|') === 'A long line|curl', `[390] the code regions are named ${JSON.stringify(regions.map((r) => r.name))}, not by the caption and the tab's label`);
+            await c.close();
+        }
+        // A depiction is the product, so on any band it is drawn in the page's own colours, light and dark: a window
+        // on the burnt band is white in light, as on paper. Its edge is the band's, so it is told from the band at 3:1.
+        // A page part beside it (a Card) still takes the band's colours.
+        {
+            const c = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+            await visit(c, depictions);
+            const lum = (rgb) => {
+                const v = rgb.match(/[\d.]+/g).slice(0, 3).map((n) => Number(n) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+                return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+            };
+            const ratio = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+            for (const dark of [false, true]) {
+                const mode = dark ? 'dark' : 'light';
+                const seen = await c.evaluate((dark) => {
+                    document.documentElement.classList.toggle('dark', dark);
+                    const read = (at, prop, token) => {
+                        const i = document.createElement('i');
+                        i.style[prop] = `var(${token})`;
+                        at.append(i);
+                        const v = getComputedStyle(i)[prop];
+                        i.remove();
+                        return v;
+                    };
+                    const page = Object.fromEntries(
+                        ['--oca-surface', '--card', '--muted', '--background'].map((t) => [t, read(document.body, 'backgroundColor', t)]).concat(['--oca-surface-foreground', '--oca-surface-muted', '--card-foreground', '--muted-foreground'].map((t) => [t, read(document.body, 'color', t)]))
+                    );
+                    const cs = (el) => getComputedStyle(el);
+                    return {
+                        page,
+                        grounds: [...document.querySelectorAll('[data-g]')].map((g) => {
+                            const frame = (d) => g.querySelector(`[data-d="${d}"] [data-frame]`);
+                            const phone = g.querySelector('[data-d="phone"] > div');
+                            const view = g.querySelector('[data-d="demo"] [data-frame] > div:last-child > div');
+                            const stage = g.querySelector('[data-d="demo"] [role="group"] > div');
+                            const pill = [...frame('paper').querySelectorAll('div')].filter((el) => el.textContent === 'ochk.app').pop();
+                            const receipt = g.querySelector('[data-d="receipt"] > div');
+                            return {
+                                g: g.dataset.g,
+                                ground: cs(g).backgroundColor === 'rgba(0, 0, 0, 0)' ? cs(document.documentElement).backgroundColor : cs(g).backgroundColor,
+                                input: read(g, 'color', '--input'),
+                                card: read(g, 'backgroundColor', '--card'),
+                                paper: { fill: cs(frame('paper')).backgroundColor, text: cs(frame('paper').querySelector('p')).color, edge: cs(frame('paper')).borderTopColor },
+                                pill: { fill: cs(pill).backgroundColor, text: cs(pill.querySelector('span')).color },
+                                plain: { fill: cs(frame('plain')).backgroundColor, text: cs(frame('plain').querySelector('p')).color, edge: cs(frame('plain')).borderTopColor },
+                                phone: { fill: cs(phone.firstElementChild).backgroundColor, edge: cs(phone).borderTopColor },
+                                receipt: { fill: cs(receipt).backgroundColor, text: cs(receipt).color },
+                                view: cs(view).backgroundColor,
+                                stageMuted: read(stage, 'color', '--oca-surface-muted'),
+                                part: cs(g.querySelector('[data-part]')).backgroundColor,
+                            };
+                        }),
+                    };
+                }, dark);
+                const P0 = seen.page;
+                check(seen.grounds.length === GROUNDS.length, `[${mode}] depictions: ${seen.grounds.length} grounds drawn, not ${GROUNDS.length}`);
+                for (const s of seen.grounds) {
+                    const at = `[${mode}] a depiction on ${s.g === 'page' ? 'the page' : s.g}`;
+                    const want = [
+                        ['the paper window', s.paper.fill, P0['--oca-surface']],
+                        ["the paper window's words", s.paper.text, P0['--oca-surface-foreground']],
+                        ["the paper window's address", s.pill.fill, P0['--muted']],
+                        ["the address's words", s.pill.text, P0['--muted-foreground']],
+                        ['the plain window', s.plain.fill, P0['--card']],
+                        ["the plain window's words", s.plain.text, P0['--card-foreground']],
+                        ["the phone's screen", s.phone.fill, P0['--background']],
+                        ['the receipt', s.receipt.fill, P0['--oca-surface']],
+                        ["the receipt's words", s.receipt.text, P0['--oca-surface-foreground']],
+                        ["the sign-in demo's screen", s.view, P0['--oca-surface']],
+                        ["the sign-in demo's quiet words (Try again)", s.stageMuted, P0['--oca-surface-muted']],
+                    ];
+                    for (const [what, got, page] of want) check(got === page, `${at}: ${what} is ${got}, not the page's ${page}`);
+                    for (const [what, edge] of [['paper window', s.paper.edge], ['plain window', s.plain.edge], ['phone', s.phone.edge]]) {
+                        check(edge === s.input, `${at}: the ${what}'s edge is ${edge}, not its ground's field edge ${s.input}`);
+                    }
+                    for (const [what, fill, edge] of [['paper window', s.paper.fill, s.paper.edge], ['plain window', s.plain.fill, s.plain.edge]]) {
+                        const r = Math.max(ratio(fill, s.ground), ratio(edge, s.ground));
+                        check(r >= 3, `${at}: the ${what} is told from its ground at ${r.toFixed(2)}:1 by its fill or its edge, under 3:1`);
+                    }
+                    check(s.part === s.card, `${at}: a Card beside it is ${s.part}, not the ground's card ${s.card}`);
+                    if (s.g !== 'page') check(s.card !== P0['--card'], `${at}: the band leaves the card at the page's ${s.card}, so the Card proves nothing`);
+                }
+            }
             await c.close();
         }
         check(small.size === 0, `text under 12px: ${[...small.keys()].slice(0, 8).join('; ')}`);
