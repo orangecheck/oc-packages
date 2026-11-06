@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-11-05
+
 A signed-in docs bar gives the name its room. At 390px it showed "ana…"
 beside the wordmark and search, and at 1024 two letters beside the links and
 the search field.
