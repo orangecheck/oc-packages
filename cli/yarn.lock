@@ -203,10 +203,10 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
-"@orangecheck/chat-core@^0.2.5":
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.2.5.tgz#0349b97bd8e73db2c9adddbc47e622afd5c6f71c"
-  integrity sha512-sNgt74ldlLLXjIrcoi9G7HB6og/QWY4VfyhelDFhwqd9n6LJz4gBlGiIZ7L5AHFZjyO27ohe7hc8NjrohPGR8g==
+"@orangecheck/chat-core@^0.2.6":
+  version "0.2.6"
+  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.2.6.tgz#a7d64d9d85ddeb3286590bdbb2e790c212ff0d81"
+  integrity sha512-ZOvf4w6OkwBWAupSyiuiZujqcwSS4oKZGwK/oD+KDnP43RdUlpbGPRfBYc2VZnRuLJtfMwTurP5sgV/h0GaWbw==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
