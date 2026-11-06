@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { Button } from '../primitives';
-import { Display, Faq, Lead, MonoLabel, PageHero, Section, SectionBar, StatRow } from './index';
+import { Display, Faq, Lead, MonoLabel, PageFrame, PageHero, Section, SectionBar, SectionHeading, StatRow } from './index';
 
 const meta: Meta = { title: 'Components/Frame (2.0)' };
 export default meta;
@@ -31,6 +31,27 @@ export const FramedColumn: StoryObj = {
                     ]}
                 />
         </Section>
+    ),
+};
+
+/**
+ * The section shell: a Section's own bar across its frame, the body under it, and a heading with its
+ * lead beside the title from lg. Contained in a PageFrame, then framed on the ink band.
+ */
+export const SectionShell: StoryObj = {
+    render: () => (
+        <PageFrame as="div">
+            <Section rule bar={{ start: 'What you can store', end: '01 / 02' }}>
+                <SectionHeading
+                    layout="split"
+                    title="Ten kinds of entry. Every secret you actually have."
+                    lead="Each entry is encrypted on its own with AES-256-GCM under your vault key. Mix and match."
+                />
+            </Section>
+            <Section framed tone="ink" bar={{ start: 'Data and funds', end: '02 / 02' }}>
+                <SectionHeading layout="split" eyebrow="What we store" title="What we store, and what can move funds" lead="Every field, and what happens if we disappear." />
+            </Section>
+        </PageFrame>
     ),
 };
 
