@@ -273,6 +273,21 @@ try {
     // A long tool page: every control further down than the window, under a sticky bar.
     const tall = ssr('tall', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
     const tallDocs = ssr('tall-docs', h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }], current: '/docs', toc: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
+    // A long page's contents, as the server renders them: plain links, no script.
+    const LONG = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+    const longPage = ssr(
+        'long',
+        h(
+            'div',
+            null,
+            h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+            h(
+                C.DocLayout,
+                { toc: LONG.map((label, i) => ({ id: `s${i + 1}`, num: String(i + 1).padStart(2, '0'), label })) },
+                h(C.Prose, null, ...LONG.map((label, i) => h('section', { key: label }, h('h2', { id: `s${i + 1}` }, label), h('p', { style: { height: 600 } }, 'Text.'))))
+            )
+        )
+    );
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -619,6 +634,40 @@ try {
             }
             const moved = await q.evaluate(() => scrollY);
             check(hidden.length === 0 && moved < scrolled, `${name} at ${vw}: a focused control scrolled in under the sticky bar (${JSON.stringify(hidden.slice(0, 2))}; the page scrolled from ${scrolled} to ${moved})`);
+            await q.close();
+        }
+
+        // A long page's contents from the keyboard: on a desk, Tab reaches the sticky list's first entry with a ring and
+        // Enter brings its heading up under the site's bar; on a phone, Tab reaches the fold, Enter opens it and the
+        // next Tab is its first entry.
+        for (const vw of [1280, 390]) {
+            const q = await browser.newPage({ viewport: { width: vw, height: 800 } });
+            await q.goto(longPage);
+            const want = vw >= 900 ? 'nav[aria-label="On this page"]:not(details nav) a[href="#s1"]' : 'details > summary';
+            let reached = false;
+            for (let i = 0; i < 24 && !reached; i++) {
+                await q.keyboard.press('Tab');
+                reached = await q.evaluate((sel) => document.activeElement?.matches(sel) ?? false, want);
+            }
+            const ring = await q.evaluate(() => {
+                const cs = getComputedStyle(document.activeElement);
+                return (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2) || (cs.boxShadow !== 'none' && cs.boxShadow !== '');
+            });
+            check(reached && ring, `[${vw}] Toc: Tab does not reach ${vw >= 900 ? 'the contents' : 'the folded contents'} with a ring (reached ${reached}, ring ${ring})`);
+            if (vw >= 900) {
+                await q.keyboard.press('Enter');
+                await q.waitForTimeout(300);
+                const r = await q.evaluate(() => {
+                    const bar = document.querySelector('[data-oca-sticky="site"]')?.getBoundingClientRect().bottom ?? 0;
+                    return { hash: location.hash, top: Math.round(document.getElementById('s1').getBoundingClientRect().top), bar: Math.round(bar) };
+                });
+                check(r.hash === '#s1' && r.top >= r.bar && r.top <= r.bar + 120, `[${vw}] Toc: Enter on the first entry does not bring its heading up under the site's bar: ${JSON.stringify(r)}`);
+            } else {
+                await q.keyboard.press('Enter');
+                await q.keyboard.press('Tab');
+                const r = await q.evaluate(() => ({ open: document.querySelector('details').open, at: document.activeElement?.getAttribute('href') }));
+                check(r.open && r.at === '#s1', `[${vw}] Toc: Enter does not open the fold with Tab going on to its first entry: ${JSON.stringify(r)}`);
+            }
             await q.close();
         }
 
