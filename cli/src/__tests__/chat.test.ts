@@ -1095,6 +1095,27 @@ describe('oc chat verify: a directory page is full by what the relay sent (chat-
         expect(await run({ handle: 'alice', json: true }, walkNet(onePage(50, 50)))).toBe(2);
         expect(JSON.parse(stdout).verdict).toBe('unread');
     });
+
+    it('a directory relay cut off partway, the audit relays read: the handle is not settled, NOT READ, exit 2, never "un-listed"', async () => {
+        // The directory relay sends 100 at one second and is cut off; every audit relay sends the same event
+        // in a page under 100. What the directory relay holds past its cut may be an earlier claim.
+        const cutDirectory: RawQuery = async (filter, relays) => {
+            const dir = relays.every((r) => DIRECTORY_RELAYS.includes(r));
+            const sent = (filter.kinds as number[]).includes(30114) && (typeof filter.until !== 'number' || filter.until >= junk.created_at);
+            return {
+                events: sent ? [junk] : [],
+                relayStatus: relays.map((relay) => ({ relay, eose: true, events: sent ? (dir ? 50 : 1) : 0, rejected: sent && dir ? 50 : 0 })),
+            };
+        };
+        for (const ns of [{}, { channelHandle: true }]) {
+            stdout = '';
+            expect(await run({ handle: 'alice', ...ns, json: true }, walkNet(cutDirectory)), JSON.stringify(ns)).toBe(2);
+            const r = JSON.parse(stdout);
+            expect(r.verdict).toBe('unread');
+            expect(r.checks).toEqual([]);
+            expect(r.detail.result).toBeNull();
+        }
+    });
 });
 
 describe('oc chat verify: device records are read to each relay\'s end, whatever page it caps at', () => {
