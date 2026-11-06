@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.2] — 2026-11-05
+
 Every label in the package is oca-label.
 
 - StatCard's label, DataTable's column heads and the terms of its phone
