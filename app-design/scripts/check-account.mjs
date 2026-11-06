@@ -127,9 +127,9 @@ const WORD = { cta: 'vault', tool: 'agent', app: 'vault' };
 const INLINE = new Set(['old']);
 const STATES = ['out', 'checking', 'unknown', 'in', 'in-did', 'in-long'];
 // 440: between the wordmark's 420 and the bar's 480, where a signed-in lockup drops its wordmark. 900: where the
-// links come into the bar, its most crowded width; 1179 and 1180, the last width of a band and where a tool bar's Docs
-// and About join its links.
-const WIDTHS = [320, 360, 390, 440, 768, 900, 1024, 1179, 1180, 1440];
+// links come into the bar, its most crowded width; 1180, where a tool bar's Docs and About join its links. 389, 419,
+// 479 and 1179: the last width of each band, which belongs to it.
+const WIDTHS = [320, 360, 389, 390, 419, 440, 479, 768, 900, 1024, 1179, 1180, 1440];
 
 // In the page: the words the bar's lockup draws ("orangecheck", "stamp"), not those only read aloud (nameRoom reads
 // them the same way: a page function carries nothing in with it).

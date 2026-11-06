@@ -21,17 +21,17 @@ export function ProductLockup({ size, product, compact = false }: { size: number
                 variant="flat"
                 nameClassName={
                     cn(
-                        product && 'max-[419px]:sr-only',
-                        compact && 'max-[479px]:group-has-[[data-oca-account=in]]/bar:sr-only'
+                        product && 'max-[420px]:sr-only',
+                        compact && 'max-[480px]:group-has-[[data-oca-account=in]]/bar:sr-only'
                     ) || undefined
                 }
             />
             {product ? (
                 <>
-                    <span aria-hidden className={cn('mx-3 h-5 w-px shrink-0 bg-oca-hairline-strong', compact && 'max-[389px]:group-has-[[data-oca-account=in]]/bar:hidden')} />
+                    <span aria-hidden className={cn('mx-3 h-5 w-px shrink-0 bg-oca-hairline-strong', compact && 'max-[390px]:group-has-[[data-oca-account=in]]/bar:hidden')} />
                     {/* In a crowded bar the word gives way, with an ellipsis; the mark and the rule keep their size. */}
                     <span
-                        className={cn('min-w-0 truncate font-medium tracking-[-0.01em]', compact && 'max-[389px]:group-has-[[data-oca-account=in]]/bar:sr-only')}
+                        className={cn('min-w-0 truncate font-medium tracking-[-0.01em]', compact && 'max-[390px]:group-has-[[data-oca-account=in]]/bar:sr-only')}
                         style={{ fontSize: size * 0.7 }}
                     >
                         {product}
