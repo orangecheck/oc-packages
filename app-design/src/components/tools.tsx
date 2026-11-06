@@ -95,6 +95,7 @@ export function ArtifactView({
                                 <button
                                     key={v}
                                     type="button"
+                                    data-ui="toggle"
                                     aria-pressed={view === v}
                                     onClick={() => setView(v)}
                                     className={cn(
@@ -793,6 +794,7 @@ export function FilterChips<T extends string | number>({
                     <button
                         key={o.value}
                         type="button"
+                        data-ui="chip"
                         aria-pressed={on}
                         aria-disabled={o.disabled || undefined}
                         onClick={() => (o.disabled ? undefined : press(o.value))}

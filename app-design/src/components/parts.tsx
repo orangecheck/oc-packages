@@ -401,6 +401,7 @@ export function ChoiceCard({
         <RadioGroupPrimitive.Item
             value={value}
             disabled={disabled}
+            data-ui="choice"
             className={cn(
                 'group flex w-full min-w-0 items-start gap-3 border text-left outline-none transition-colors',
                 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',

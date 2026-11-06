@@ -70,6 +70,7 @@ export const TabsTrigger = forwardRef<
     return (
         <TabsPrimitive.Trigger
             ref={ref}
+            data-ui="tab"
             /*
              * Radix focuses the tab from script on mousedown, which Chrome can
              * take for keyboard focus and ring. A press marks the tab; a key clears it.
