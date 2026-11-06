@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+`createOgHandler` takes `home`, the tiles of app-design's `OgBento`, and draws
+that bento at `?page=home`, so a site's home page can share a designed image
+from the same route as its cards instead of a static file. It has one URL like
+every card: any other query on it gets the 308, kept a day. Without `home`,
+`?page=home` is an unknown card as before. A `cards` map that names `home`
+beside a `home` bento is refused when the handler is made.
+
 ## 0.8.3
 
 The day cap on a not-found redirect now reaches every directive that takes a

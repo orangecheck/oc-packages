@@ -1,4 +1,4 @@
-import { OG_SIZE, OgCard, ogFonts } from '@orangecheck/app-design/og';
+import { OG_SIZE, OgBento, OgCard, ogArt, ogFonts } from '@orangecheck/app-design/og';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { ImageResponse } from 'next/og.js';
 import type { ComponentProps } from 'react';
@@ -222,6 +222,40 @@ describe('createOgHandler resolve', () => {
     it('refuses a lookup named page, the query of `cards`', () => {
         const page = async (): Promise<OgLookup> => ({ card: null, cacheControl: SHORT });
         expect(() => createOgHandler({ ...KEYED, resolve: { page } })).toThrow(TypeError);
+    });
+});
+
+const HOME_BENTO = {
+    hero: { tone: 'paper', title: 'Sign anything with a bitcoin address.', lockup: true, art: { ...ogArt.ditherMarkInk, place: 'right' } },
+    top: [
+        { tone: 'brand', numeral: '0', body: 'accounts to make' },
+        { tone: 'ink', numeral: '1', body: 'address' },
+    ],
+    wide: { tone: 'burnt', title: 'Anchored to a bitcoin block.', footer: 'stamp.ochk.io' },
+} as const satisfies OgCardOptions['home'];
+
+describe('createOgHandler home', () => {
+    it("draws the site's bento at ?page=home, kept a day, and its cards as before", async () => {
+        const home = await handled({ ...KEYED, home: HOME_BENTO }, '/api/og?page=home');
+        expect([home.status, home.headers['cache-control']]).toEqual([200, DAY]);
+        const want = Buffer.from(await new ImageResponse(<OgBento {...HOME_BENTO} />, { ...OG_SIZE, fonts: ogFonts() }).arrayBuffer());
+        expect((home.body as Buffer).equals(want)).toBe(true);
+        const create = await handled({ ...KEYED, home: HOME_BENTO }, '/api/og?page=create');
+        expect((create.body as Buffer).equals(await card({ ...DEFAULT_CARD, title: 'Create a stamp' }))).toBe(true);
+    }, 60_000);
+
+    it('sends any other query on the home URL to it, and ?page=home to the default card where there is no bento', async () => {
+        for (const url of ['/api/og?page=home&title=x', '/api/og?title=x&page=home', '/api/og?page=home&page=home']) {
+            const out = await handled({ ...KEYED, home: HOME_BENTO }, url);
+            expect([out.status, out.headers.location, out.body], url).toEqual([308, '/api/og?page=home', undefined]);
+        }
+        const none = await handled(KEYED, '/api/og?page=home');
+        expect([none.status, none.headers.location]).toEqual([308, '/api/og']);
+    });
+
+    it('refuses cards that name home beside a home bento', () => {
+        expect(() => createOgHandler({ ...STAMP, cards: { home: 'Home' }, home: HOME_BENTO })).toThrow(TypeError);
+        expect(() => createOgHandler({ ...STAMP, cards: { home: 'Home' } })).not.toThrow();
     });
 });
 

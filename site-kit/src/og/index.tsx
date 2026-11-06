@@ -1,8 +1,8 @@
-import { OG_SIZE, OgCard, ogFonts } from '@orangecheck/app-design/og';
+import { OG_SIZE, OgBento, OgCard, ogFonts, type OgBentoProps } from '@orangecheck/app-design/og';
 import type { NextApiRequest, NextApiResponse } from 'next';
 // The .js suffix: next has no exports map, so Node's ESM loader needs the file name.
 import { ImageResponse } from 'next/og.js';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { cardHeadline, type OgCardEntry } from '../seo/meta';
 
@@ -40,6 +40,11 @@ export interface OgCardOptions {
      * a 308 puts it back on the URL it sends a request to. Default: none.
      */
     basePath?: string;
+    /**
+     * The landing's share image: app-design's `OgBento` at 1200×630, drawn at
+     * `?page=home`, the URL a site's home page shares. `cards` cannot name `home` then.
+     */
+    home?: Omit<OgBentoProps, 'size' | 'row'>;
     /** A card headline longer than this is cut. Default 200. */
     maxTitleLength?: number;
     /** e.g. `oc·stamp`: gives `product` and `eyebrow` when they are not set. */
@@ -100,6 +105,9 @@ function ogCardProps(opts: OgCardOptions, title: string, asked?: string) {
     return { title, product, eyebrow, host: opts.host.toLowerCase(), tone: opts.tone ?? 'ink' } as const;
 }
 
+/** The `?page=` key of a site's `home` bento. */
+const HOME = 'home';
+
 /** A card is the same for a whole deployment: kept a day by the browser and the edge. */
 const CARD_CACHE = 'public, max-age=86400, s-maxage=86400';
 
@@ -131,7 +139,7 @@ function atMostADay(cacheControl: string): string {
  */
 function canonical(url: URL, opts: OgCardOptions): { query: string; lookup?: readonly [string, string] } {
     const key = url.searchParams.get('page');
-    if (opts.cards && key !== null && Object.prototype.hasOwnProperty.call(opts.cards, key)) {
+    if ((opts.home && key === HOME) || (opts.cards && key !== null && Object.prototype.hasOwnProperty.call(opts.cards, key))) {
         return { query: `?page=${encodeURIComponent(key)}` };
     }
     for (const name of Object.keys(opts.resolve ?? {})) {
@@ -159,6 +167,9 @@ export function createOgHandler(opts: OgCardOptions) {
     if (opts.resolve && Object.prototype.hasOwnProperty.call(opts.resolve, 'page')) {
         throw new TypeError('site-kit: resolve cannot name `page`, the query of `cards`');
     }
+    if (opts.home && opts.cards && Object.prototype.hasOwnProperty.call(opts.cards, HOME)) {
+        throw new TypeError('site-kit: cards cannot name `home` when the site draws a `home` bento');
+    }
     // Segments of name characters, none of them `.` or `..`, which a browser would resolve away.
     if (opts.basePath !== undefined && !/^(\/(?!\.\.?(?:\/|$))[\w.~-]+)+$/.test(opts.basePath)) {
         throw new TypeError(`site-kit: basePath must be a path such as /docs, got ${JSON.stringify(opts.basePath)}`);
@@ -171,8 +182,16 @@ export function createOgHandler(opts: OgCardOptions) {
             res.setHeader('Location', `${opts.basePath ?? ''}${url.pathname.replace(/^\/+/, '/')}${query}`);
             res.status(status).end();
         };
+        const draw = async (element: ReactElement, cacheControl: string) => {
+            const image = new ImageResponse(element, { ...OG_SIZE, fonts: ogFonts() });
+            const body = Buffer.from(await image.arrayBuffer());
+            image.headers.forEach((value, key) => res.setHeader(key, value));
+            res.setHeader('Cache-Control', cacheControl);
+            res.status(image.status).send(body);
+        };
         const { query, lookup } = canonical(url, opts);
         if (url.search !== query) return sendTo(query, CARD_CACHE);
+        if (opts.home && query === `?page=${HOME}`) return draw(<OgBento {...opts.home} />, CARD_CACHE);
         let drawn = issued(req.url, opts.cards);
         let cache = CARD_CACHE;
         if (lookup) {
@@ -188,10 +207,6 @@ export function createOgHandler(opts: OgCardOptions) {
             }
         }
         const card = ogCardProps(opts, cut(drawn?.title ?? opts.defaultTitle, opts.maxTitleLength), drawn?.eyebrow);
-        const image = new ImageResponse(<OgCard {...card} />, { ...OG_SIZE, fonts: ogFonts() });
-        const body = Buffer.from(await image.arrayBuffer());
-        image.headers.forEach((value, key) => res.setHeader(key, value));
-        res.setHeader('Cache-Control', cache);
-        res.status(image.status).send(body);
+        return draw(<OgCard {...card} />, cache);
     };
 }
