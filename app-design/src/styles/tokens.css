@@ -6,6 +6,9 @@
  * fails contrast. Everything is scoped to
  * [data-oc-app='ochk'], so a family site that never sets the attribute never
  * sees a value from here. The :root form outranks a family skin's bare :root.
+ * A depiction inside it ([data-oca-depict]: a window, a phone, a receipt) takes
+ * the same values again, so on a band, which re-points these for its own ground,
+ * it is still drawn in the page's colours, as the product it shows is.
  *
  * The semantic names (--background, --primary, --muted-foreground…) match the
  * family bridge on purpose: bg-background and text-foreground mean the same
@@ -17,7 +20,8 @@
  */
 
 :root[data-oc-app='ochk'],
-[data-oc-app='ochk'] {
+[data-oc-app='ochk'],
+[data-oc-app='ochk'] [data-oca-depict] {
     color-scheme: light;
 
     /* Surfaces */
@@ -265,14 +269,17 @@
 /* To a thumb the wallet buttons are 44px, as this design's own are; a mouse keeps 36. */
 @media (pointer: coarse) {
     :root[data-oc-app='ochk'],
-    [data-oc-app='ochk'] {
+    [data-oc-app='ochk'],
+    [data-oc-app='ochk'] [data-oca-depict] {
         --oc-wallet-min-height: 2.75rem;
     }
 }
 
 :root.dark[data-oc-app='ochk'],
 .dark[data-oc-app='ochk'],
-.dark [data-oc-app='ochk'] {
+.dark [data-oc-app='ochk'],
+.dark[data-oc-app='ochk'] [data-oca-depict],
+.dark [data-oc-app='ochk'] [data-oca-depict] {
     color-scheme: dark;
 
     --background: #0e0c0b;

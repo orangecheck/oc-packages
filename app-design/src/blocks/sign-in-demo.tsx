@@ -257,7 +257,8 @@ export function SignInDemo({
             onKeyDownCapture={takeOver}
             onFocusCapture={takeOver}
         >
-            <div ref={stageRef} className={cn('relative', phoneCopy && 'lg:col-start-1 lg:row-start-1')} onClick={onStageClick}>
+            {/* The stage is a depiction, Try again included: it sits on the window, so it reads the page's colours too. */}
+            <div ref={stageRef} data-oca-depict="" className={cn('relative', phoneCopy && 'lg:col-start-1 lg:row-start-1')} onClick={onStageClick}>
                 <BrowserFrame variant="paper" glow url={url}>
                     <div ref={viewRef} aria-hidden className="flex h-[25rem] items-center justify-center bg-oca-surface px-4 pb-10 text-oca-surface-foreground md:h-[27rem]">
                         {screen}
