@@ -546,6 +546,32 @@ describe("relayMaxLimit: the page size a relay's NIP-11 document declares", () =
     expect(await relayMaxLimit("wss://nip11-c.example")).toBeUndefined();
   });
 
+  it("a relay URL a WebSocket takes is read over http or https, its scheme in any case", async () => {
+    // As fetch does: a scheme other than http or https is refused.
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
+      if (!["http:", "https:"].includes(new URL(url).protocol)) throw new TypeError(`fetch refuses ${url}`);
+      return { ok: true, status: 200, json: async () => ({ limitation: { max_limit: 50 } }) };
+    });
+    vi.stubGlobal("fetch", fetch);
+    const urls = [
+      "WSS://nip11-upper.example/nostr",
+      "Wss://nip11-mixed.example",
+      "WS://nip11-plain.example:7777",
+      " wss://nip11-space.example/nostr",
+      "https://nip11-https.example",
+    ];
+    const limits: (number | undefined)[] = [];
+    for (const url of urls) limits.push(await relayMaxLimit(url));
+    expect(limits).toEqual([50, 50, 50, 50, 50]);
+    expect(fetch.mock.calls.map((c) => c[0])).toEqual([
+      "https://nip11-upper.example/nostr",
+      "https://nip11-mixed.example",
+      "http://nip11-plain.example:7777",
+      "https://nip11-space.example/nostr",
+      "https://nip11-https.example",
+    ]);
+  });
+
   it("a document that cannot be read is undefined, and read again next time", async () => {
     const down = vi.fn(async () => {
       throw new Error("down");
