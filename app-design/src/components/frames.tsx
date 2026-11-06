@@ -5,16 +5,19 @@ import { cn } from '../lib/cn';
 /*
  * The product shown as an object: a phone, a browser window, a card floating
  * beside them. They hold real-looking UI drawn from the system's own parts, so
- * a page shows what a person will see instead of describing it.
+ * a page shows what a person will see instead of describing it. A phone and a
+ * window are depictions (data-oca-depict): on any band they keep the page's own
+ * colours, as the product does, and only their edge is the band's.
  */
 
 /** A phone with an ink bezel and a rounded screen. Children are the screen. */
 export function PhoneFrame({ className, style, children }: { className?: string; style?: CSSProperties; children: ReactNode }) {
     return (
         <div
+            data-oca-depict=""
             className={cn(
-                // A lighter bezel in dark mode, and the field edge around it, or the phone dissolves into a dark ground.
-                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] border border-input bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
+                // A lighter bezel in dark mode, and the ground's field edge around it, or the phone dissolves into a dark ground.
+                'relative w-[17.5rem] shrink-0 rounded-[2.9rem] border border-oca-depict-edge bg-[#0b0b0c] p-[0.6rem] dark:bg-[#2a2a2d]',
                 'shadow-[0_50px_100px_-40px_rgb(10_10_10/0.55),0_0_0_1px_rgb(255_255_255/0.06)_inset]',
                 className
             )}
@@ -53,13 +56,14 @@ export function BrowserFrame({
     const frame = (
         <div
             data-frame={variant}
+            data-oca-depict=""
             className={cn(
                 'relative overflow-hidden',
-                // 2.0's depiction shadow (tokens.css), drawn tight to the window, and the field edge around it:
-                // a window is told from its page by a line at 3:1, not by its fill (white on paper) or a shadow.
+                // 2.0's depiction shadow (tokens.css), drawn tight to the window, and its ground's field edge around it:
+                // a window is told from its ground by a line at 3:1, not by its fill (white on paper) or a shadow.
                 paper
-                    ? 'rounded-depict border border-input bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
-                    : 'rounded-depict border border-input bg-card shadow-[var(--oca-shadow-depict)]',
+                    ? 'rounded-depict border border-oca-depict-edge bg-oca-surface text-oca-surface-foreground shadow-[var(--oca-shadow-depict)]'
+                    : 'rounded-depict border border-oca-depict-edge bg-card text-card-foreground shadow-[var(--oca-shadow-depict)]',
                 !glow && className
             )}
             style={glow ? undefined : style}
