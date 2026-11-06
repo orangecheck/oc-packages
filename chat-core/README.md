@@ -33,9 +33,17 @@ const channel = await resolveChannelChain(events, channelId, { ...reads, hostKey
 
 `lookupDeviceRecords(principal)` returns the kind-30078 records under the
 principal's d-tag (`deviceDtag(principal)`) and, per relay asked, whether it
-finished answering (`relayStatus`). `query(filter)` makes one relay request. A
+finished answering (`relayStatus`). `query(filter)` makes one relay request,
+the filter sent as given (`since` and `until` included). A
 read that got no answer throws `UnansweredReadError`; a verifier never reads
 silence as "no".
+
+Each read is paged with `until` to its end on every relay (nostr-core
+`readPages`), so a relay that caps a page below the 500 asked is read past its
+cap; one stopped by a bound, or by a second holding more events than it sends in
+a page, leaves the floor unmet. Pass `maxLimit: relayMaxLimit` (from
+`@orangecheck/nostr-core`) to count a relay whose NIP-11 document declares a
+page under 100 as cut off.
 
 ### Relay floor and write quorum (SPEC §8.7)
 

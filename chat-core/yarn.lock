@@ -221,10 +221,10 @@
     "@noble/curves" "^1.6.0"
     "@orangecheck/lock-crypto" "^0.1.0"
 
-"@orangecheck/nostr-core@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.0.tgz#acd0fccf711ba2a045537ce3a6486e3772e2da66"
-  integrity sha512-BMybBOD1JFq9L0hOwM0vySSV2dprLWSS3CYuT5SXqlwFiIheL5DOtfQZEl9KRp65PN++d4E74cVvbPspbjDbXQ==
+"@orangecheck/nostr-core@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.2.tgz#a0be7dd4fb4e492866c00074aca698c1bf189701"
+  integrity sha512-USJBT1js3CH5/5Tb6SIJnmWGRYNgYGmYPeuuEGATDKavBZ/i6ZpWqkhdeZGkaAX4urFoe4DYBoiPiilfBR54lg==
   dependencies:
     "@noble/curves" "^1.9.0"
     "@noble/hashes" "^1.8.0"

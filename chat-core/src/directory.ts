@@ -22,6 +22,7 @@ import {
 } from '@orangecheck/lock-core/directory';
 import { hexDecode } from '@orangecheck/lock-crypto';
 import type { NostrEvent } from '@orangecheck/lock-device';
+import { readPages, type Filter, type PageQuery } from '@orangecheck/nostr-core';
 import {
     base64Decode,
     bitcoinAnchors,
@@ -54,16 +55,27 @@ const HEADER_BUDGET = 128;
  * (EOSE), and `sent`, how many events the relay sent, the ones the reader dropped
  * (a bad signature) included. A page is full by what the relay sent, not by what
  * was kept: a relay that pads a page with junk has more behind it. Without
- * `sent`, the events kept are the count.
+ * `sent`, the events kept are the count. Send the filter as given, `since`
+ * included.
  */
 export type PageRead = (
     relay: string,
-    filter: { kinds: number[]; '#d': string[]; limit: number; until?: number }
+    filter: { kinds: number[]; '#d': string[]; limit: number; until?: number; since?: number }
 ) => Promise<{ events: NostrEvent[]; complete: boolean; sent?: number }>;
 
-/** How many events a page's relay sent: `sent`, or the events kept when it is not given. */
-const sentOn = (got: { events: NostrEvent[]; sent?: number }) =>
-    Math.max(got.sent ?? 0, got.events.length);
+/**
+ * One relay's REQs as the pager asks them, with what it sent and the reader
+ * dropped. Every REQ stays under the d tag, so a relay whose read stepped past
+ * its oldest second is cut off: what it sends a page is not asked of other tags.
+ */
+const onRelay =
+    (page: PageRead, relay: string, d: string): PageQuery =>
+    async (filter) => {
+        const got = await page(relay, { ...filter, '#d': [d] } as Parameters<PageRead>[1]);
+        const events = got.events as Awaited<ReturnType<PageQuery>>['events'];
+        const rejected = Math.max(0, (got.sent ?? 0) - got.events.length);
+        return { events, relayStatus: [{ relay, eose: got.complete, events: events.length, rejected }] };
+    };
 
 export interface WalkDeps {
     page: PageRead;
@@ -80,6 +92,9 @@ export interface WalkDeps {
     auditRelays?: readonly string[];
     /** §8.2.8 claims a deployment anchored for v1 listings; the reference deployment's by default. */
     legacy?: readonly LegacyClaim[];
+    /** The page size a relay's NIP-11 document declares (nostr-core relayMaxLimit). A directory
+     *  relay declaring one under 100 that sent anything is not read completely. Not asked when absent. */
+    maxLimit?: (relay: string) => Promise<number | undefined>;
 }
 
 /** A claim as a listing carries it (§8.2.1, §8.2.9). */
@@ -132,66 +147,47 @@ export const REFERENCE_LEGACY_CLAIMS: readonly LegacyClaim[] = referenceLegacy a
 const legacyIndex = (entries: readonly LegacyClaim[]) =>
     new Map(entries.map((e) => [e.listing_event_id, e]));
 
-/** Every event a relay holds under one d tag, paged by `until`; null when the read is not complete. */
+/** The kind-30114 events under one d tag, `PAGE` asked a page. */
+const underTag = (d: string): Filter => ({ kinds: [30114], '#d': [d] });
+
+/**
+ * Every event a relay holds under one d tag, paged to its end (nostr-core
+ * readPages); null when the read is not complete.
+ */
 async function readAll(
     page: PageRead,
     relay: string,
     d: string,
-    maxPages: number
+    maxPages: number,
+    maxLimit?: (relay: string) => Promise<number | undefined>
 ): Promise<NostrEvent[] | null> {
-    const seen = new Map<string, NostrEvent>();
-    let until: number | undefined;
-    for (let i = 0; i < maxPages; i++) {
-        const got = await page(relay, {
-            kinds: [30114],
-            '#d': [d],
-            limit: PAGE,
-            ...(until === undefined ? {} : { until }),
-        });
-        if (!got.complete) return null;
-        let added = 0;
-        for (const ev of got.events) {
-            if (!seen.has(ev.id)) {
-                seen.set(ev.id, ev);
-                added++;
-            }
-            until = until === undefined ? ev.created_at : Math.min(until, ev.created_at);
-        }
-        // A short page is the end; a full page that adds nothing is a stalled read.
-        if (sentOn(got) < PAGE) return [...seen.values()];
-        if (added === 0) return null;
-    }
-    return null;
+    const read = await readPages(onRelay(page, relay, d), underTag(d), {
+        limit: PAGE,
+        maxPages,
+        maxEvents: PAGE * maxPages,
+        ...(maxLimit ? { maxLimit } : {}),
+    });
+    return read.relayStatus?.[0]?.state === 'complete' ? (read.events as NostrEvent[]) : null;
 }
 
-/** Up to `pages` pages of what an audit relay holds; whatever it answered, or nothing. */
+/** Up to `pages` REQs of what an audit relay holds; whatever it answered, or nothing. */
 async function readSome(
     page: PageRead,
     relay: string,
     d: string,
     pages: number
 ): Promise<NostrEvent[]> {
-    const seen = new Map<string, NostrEvent>();
-    let until: number | undefined;
-    for (let i = 0; i < pages; i++) {
-        let got: Awaited<ReturnType<PageRead>>;
-        try {
-            got = await page(relay, {
-                kinds: [30114],
-                '#d': [d],
-                limit: PAGE,
-                ...(until === undefined ? {} : { until }),
-            });
-        } catch {
-            break;
-        }
-        for (const ev of got.events) {
-            seen.set(ev.id, ev);
-            until = until === undefined ? ev.created_at : Math.min(until, ev.created_at);
-        }
-        if (!got.complete || sentOn(got) < PAGE) break;
-    }
-    return [...seen.values()];
+    const ask = onRelay(page, relay, d);
+    const read = await readPages(
+        (f) =>
+            ask(f).catch(() => ({
+                events: [],
+                relayStatus: [{ relay, eose: false, events: 0, rejected: 0 }],
+            })),
+        underTag(d),
+        { limit: PAGE, maxPages: pages, maxEvents: PAGE * pages }
+    );
+    return read.events as NostrEvent[];
 }
 
 /** A header source that reads each height once and stops reading past the budget (a read without an answer). */
@@ -301,7 +297,7 @@ async function collect(
     const [directoryReads, auditReads, tip] = await Promise.all([
         Promise.all(
             (deps.directoryRelays ?? DIRECTORY_RELAYS).map((r) =>
-                readAll(deps.page, r, d, MAX_DIRECTORY_PAGES).catch(() => null)
+                readAll(deps.page, r, d, MAX_DIRECTORY_PAGES, deps.maxLimit).catch(() => null)
             )
         ),
         Promise.all(

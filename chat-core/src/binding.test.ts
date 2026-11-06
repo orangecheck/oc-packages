@@ -11,6 +11,7 @@ import {
     generateDeviceKey,
     signNostrEvent,
 } from '@orangecheck/lock-device';
+import { matchFilter } from '@orangecheck/nostr-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -373,7 +374,10 @@ describe('readChannelVersions: a relay counts toward the floor only when it answ
         let page = 0;
         return async (f: Record<string, unknown>) => {
             if (!f['#t'] || Array.isArray(f.authors)) {
-                const events = Array.isArray(f.authors) && f.authors.includes(ev.pubkey) ? [ev] : [];
+                const events =
+                    Array.isArray(f.authors) && f.authors.includes(ev.pubkey)
+                        ? [ev].filter((e) => f.until === undefined || e.created_at <= (f.until as number))
+                        : [];
                 return { events, relayStatus: RELAYS.map((relay) => ({ relay, eose: true, events: events.length, rejected: 0 })) };
             }
             const all = [...junk, ev]
@@ -423,74 +427,244 @@ describe('readChannelVersions: a relay counts toward the floor only when it answ
     });
 });
 
-describe('readChannelVersions: a role holder\'s key read a relay fills to its page leaves the walk incomplete (§8.3.1)', () => {
-    const ev = version(founderKey, genesis);
-    const RELAYS = ['wss://a', 'wss://b', 'wss://c', 'wss://d'];
-    const keys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
-    const many = (n: number) => Array.from({ length: n }, (_, i) => ({ ...ev, id: `${ev.id.slice(0, 50)}${String(i).padStart(14, '0')}` }));
-    /** Each relay's answer: `sent` and `dropped` per relay, or no counts at all when `sent` is null. */
-    const answer = (events: NostrEvent[], sent: number | null, dropped = 0) => ({
-        events,
-        relayStatus: RELAYS.map((relay) =>
-            sent === null ? { relay, eose: true } : { relay, eose: true, events: sent, rejected: dropped }
-        ),
-    });
-    /** The genesis on every read; the key read under `tag` answers `full` instead. */
-    const query =
-        (tag: '#t' | '#s', full: ReturnType<typeof answer>) => async (f: Record<string, unknown>) =>
-            Array.isArray(f.authors) && f[tag] ? full : answer([ev], 1);
-    const read = (q: (f: Record<string, unknown>) => Promise<ReturnType<typeof answer>>) =>
-        readChannelVersions(genesis.channel_id, { query: q, everBoundKeys: keys }, FOUNDER);
+/** `n` kind-30110 events by `pubkey` under `tags`, the i-th at `at(i)`; ids unique per `salt`. */
+const junk = (n: number, pubkey: string, tags: string[][], at: (i: number) => number, salt: string): NostrEvent[] =>
+    Array.from({ length: n }, (_, i) => ({
+        id: `${salt}${i.toString(16).padStart(8, '0')}`.padEnd(64, '0'),
+        pubkey,
+        sig: '0'.repeat(128),
+        kind: 30110,
+        created_at: at(i),
+        content: 'x',
+        tags,
+    }));
 
-    it('the founder\'s keys read under the tag, 500 from each relay: incomplete', async () => {
-        const r = await read(query('#t', answer([ev], 500)));
-        expect(r.events.map((e) => e.id)).toEqual([ev.id]);
+/** One planted relay: what it holds, the most it sends a page whatever is asked, how many events
+ *  the reader drops it puts in a page (each takes a place), and whether it answers a REQ. */
+interface Planted {
+    relay: string;
+    held: readonly NostrEvent[];
+    cap?: number;
+    pad?: (f: Record<string, unknown>) => number;
+    answers?: (f: Record<string, unknown>) => boolean;
+}
+
+/** A query over planted relays as nostr-core answers one: each relay newest first, `since` and
+ *  `until` inclusive, at most its cap; per relay the events kept and dropped; events de-duplicated. */
+function planted(relays: readonly Planted[], calls: Record<string, unknown>[] = []) {
+    return async (f: Record<string, unknown>) => {
+        calls.push(f);
+        const byId = new Map<string, NostrEvent>();
+        const relayStatus = relays.map((r) => {
+            if (r.answers && !r.answers(f)) return { relay: r.relay, eose: false, events: 0, rejected: 0 };
+            const room = Math.min((f.limit as number | undefined) ?? Infinity, r.cap ?? Infinity);
+            const pad = Math.min(r.pad?.(f) ?? 0, room);
+            const page = r.held
+                .filter((e) => matchFilter(e as never, f as never))
+                .sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1))
+                .slice(0, room - pad);
+            for (const e of page) byId.set(e.id, e);
+            return { relay: r.relay, eose: true, events: page.length, rejected: pad };
+        });
+        return { events: [...byId.values()], relayStatus };
+    };
+}
+
+const FOUR = ['wss://a', 'wss://b', 'wss://c', 'wss://d'];
+const T: string[][] = [['t', genesis.channel_id]];
+const S: string[][] = [['s', descriptorId(genesis)]];
+const OTHER = 'ab'.repeat(32);
+const g1 = version(founderKey, genesis);
+const v2 = version(founderKey, next(genesis, 'Town, edited', genesis.created_at + 50));
+const founderKeys = async () => ({ keys: [founderKey.nostrPk], answered: true, floor: true });
+const readOver = (relays: readonly Planted[], founder?: string, calls?: Record<string, unknown>[]) =>
+    readChannelVersions(genesis.channel_id, { query: planted(relays, calls), everBoundKeys: founderKeys }, founder);
+const every = (held: NostrEvent[], cap?: number): Planted[] => FOUR.map((relay) => ({ relay, held, cap }));
+const ids = (r: { events: NostrEvent[] }) => r.events.map((e) => e.id);
+/** Newer than both versions, one second apart from genesis + 1000, or all in that one second. */
+const newer = (n: number, pubkey: string, tags: string[][], salt: string, oneSecond = false) =>
+    junk(n, pubkey, tags, (i) => genesis.created_at + 1000 + (oneSecond ? 0 : i), salt);
+
+describe("readChannelVersions: a role holder's key read is read to its end; one a bound stops leaves the walk incomplete (§8.3.1)", () => {
+    // Only the key read under `s` by the founder's key returns this one: older than everything.
+    const hidden = junk(1, founderKey.nostrPk, S, () => genesis.created_at - 10, 'h0')[0]!;
+
+    it("600 of the founder's events under the tag, relays capping at 500: its key read pages past them", async () => {
+        const r = await readOver(every([g1, v2, ...newer(600, founderKey.nostrPk, T, 'f')], 500), FOUNDER);
+        expect(ids(r)).toContain(v2.id);
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+
+    it("2,600 of the founder's events under the tag: the key read stops at its bound, so the walk is incomplete", async () => {
+        const r = await readOver(every([g1, v2, ...newer(2600, founderKey.nostrPk, T, 'f')], 500), FOUNDER);
         expect(r.incomplete).toBe(true);
-        expect(r.truncated).toBe(false);
+        expect(r.floorMet).toBe(false);
     });
 
-    it('the walk forward by s, 500 from each relay: incomplete', async () => {
-        const r = await read(query('#s', answer([ev], 500)));
-        expect(r.incomplete).toBe(true);
+    it('the walk forward by s: read to its end below the bound, incomplete past it', async () => {
+        const r = await readOver(every([g1, v2, hidden, ...newer(600, founderKey.nostrPk, S, 's')], 500), FOUNDER);
+        expect(ids(r)).toContain(hidden.id);
+        expect(r).toMatchObject({ incomplete: false, floorMet: true });
+        const past = await readOver(every([g1, v2, ...newer(2600, founderKey.nostrPk, S, 's')], 500), FOUNDER);
+        expect(past.incomplete).toBe(true);
     });
 
-    it('a page is full by what the relay sent: 499 kept and 1 dropped fill it', async () => {
-        expect((await read(query('#t', answer([ev], 499, 1)))).incomplete).toBe(true);
-    });
-
-    it('499 from each relay is a whole answer: complete, and the floor met', async () => {
-        for (const tag of ['#t', '#s'] as const) {
-            const r = await read(query(tag, answer([ev], 499)));
-            expect(r.incomplete).toBe(false);
-            expect(r.floorMet).toBe(true);
-        }
-    });
-
-    it('one relay of four filling the page is enough: what it holds back no other relay may have', async () => {
-        const one = {
-            events: [ev],
-            relayStatus: RELAYS.map((relay, i) => ({ relay, eose: true, events: i === 0 ? 500 : 2, rejected: 0 })),
-        };
-        expect((await read(query('#t', one))).incomplete).toBe(true);
-    });
-
-    it('relays that each sent less than a page are whole, however many events they read back together', async () => {
-        const r = await read(query('#t', answer([ev, ...many(600)], 499)));
+    it('a page is what the relay sent: later pages padded with events the reader drops are not short, so the read goes on', async () => {
+        const held = [g1, v2, hidden, ...newer(1300, founderKey.nostrPk, S, 's')];
+        // Pages after the first of each key read under `s` carry 100 the reader drops.
+        const pad = (f: Record<string, unknown>) => (f.until === undefined || !f['#s'] ? 0 : 100);
+        const relays = FOUR.map((relay) => ({ relay, held, cap: 500, pad }));
+        const r = await readOver(relays, FOUNDER);
+        expect(ids(r)).toContain(hidden.id);
         expect(r.incomplete).toBe(false);
     });
 
-    it('with no counts, 500 events read back fill the page, and 499 do not', async () => {
-        expect((await read(query('#t', answer([ev, ...many(499)], null)))).incomplete).toBe(true);
-        expect((await read(query('#t', answer([ev, ...many(498)], null)))).incomplete).toBe(false);
+    it('one relay of four whose key read stops at the bound: incomplete, and the floor unmet', async () => {
+        const relays = every([g1, v2], 500);
+        relays[0] = { ...relays[0]!, held: [g1, v2, ...newer(2600, founderKey.nostrPk, S, 's')] };
+        const r = await readOver(relays, FOUNDER);
+        expect(r.incomplete).toBe(true);
+        expect(r.floorMet).toBe(false);
     });
 
-    it('a flood of the open read alone is truncated, not incomplete: the key reads came back short', async () => {
-        const flood = many(500).map((e) => ({ ...e, created_at: ev.created_at + 86400 }));
-        const q = async (f: Record<string, unknown>) =>
-            !Array.isArray(f.authors) && f['#t'] ? answer(flood, 500) : answer([ev], 1);
-        const r = await read(q);
+    it('relays that hold different parts are each read to the end of their own', async () => {
+        const own = newer(900, founderKey.nostrPk, S, 's');
+        const relays = FOUR.map((relay, i) => ({
+            relay,
+            held: [g1, v2, hidden, ...own.filter((_, j) => j % 4 === i)],
+            cap: 300,
+        }));
+        const r = await readOver(relays, FOUNDER);
+        expect(ids(r)).toEqual(expect.arrayContaining([hidden.id, ...own.map((e) => e.id)]));
+        expect(r).toMatchObject({ incomplete: false, floorMet: true });
+    });
+
+    it('with no counts, the events read back are the page: read until one comes back shorter', async () => {
+        const counted = planted(every([g1, v2, hidden, ...newer(600, founderKey.nostrPk, S, 's')], 300));
+        const query = async (f: Record<string, unknown>) => {
+            const res = await counted(f);
+            return { events: res.events, relayStatus: res.relayStatus.map(({ relay, eose }) => ({ relay, eose })) };
+        };
+        const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: founderKeys }, FOUNDER);
+        expect(ids(r)).toContain(hidden.id);
+        expect(r.incomplete).toBe(false);
+    });
+
+    it('a flood of the open read alone is truncated, not incomplete: the key reads were read in full', async () => {
+        const r = await readOver(every([g1, v2, ...newer(2500, OTHER, T, 'o')], 500), FOUNDER);
+        expect(ids(r)).toContain(v2.id);
         expect(r.truncated).toBe(true);
         expect(r.incomplete).toBe(false);
+    });
+});
+
+describe('readChannelVersions: relays that cap a page below the 500 asked for are read past their cap (§8.3.1)', () => {
+    it("four relays capping at 300, another key's 300 events newer than v2, no founder named: both versions read, in full", async () => {
+        const r = await readOver(every([g1, v2, ...newer(300, OTHER, T, 'o')], 300));
+        expect(ids(r)).toEqual(expect.arrayContaining([g1.id, v2.id]));
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+
+    it("the founder's key: four relays capping at 300, 300 of its events newer than v2, the founder named: v2 read, the walk complete", async () => {
+        const r = await readOver(every([g1, v2, ...newer(300, founderKey.nostrPk, T, 'f')], 300), FOUNDER);
+        expect(ids(r)).toContain(v2.id);
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+
+    it('a mix: two relays at 300 hold both versions under newer events, two at 500 hold older events that page the union past them; both read, every relay in full', async () => {
+        const older = junk(600, OTHER, T, (i) => genesis.created_at - 1000 + i, 'q');
+        const relays: Planted[] = [
+            { relay: 'wss://a', held: [g1, v2, ...newer(300, OTHER, T, 'o')], cap: 300 },
+            { relay: 'wss://b', held: [g1, v2, ...newer(300, OTHER, T, 'o')], cap: 300 },
+            { relay: 'wss://c', held: older, cap: 500 },
+            { relay: 'wss://d', held: older, cap: 500 },
+        ];
+        const r = await readOver(relays);
+        expect(ids(r)).toEqual(expect.arrayContaining([g1.id, v2.id]));
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+
+    it('a mix where the 500 relays hold the genesis under older events: v2 read, every relay in full', async () => {
+        const older = junk(499, OTHER, T, (i) => genesis.created_at + 1 + (i % 49), 'q');
+        const relays: Planted[] = [
+            { relay: 'wss://a', held: [g1, v2, ...newer(300, OTHER, T, 'o')], cap: 300 },
+            { relay: 'wss://b', held: [g1, v2, ...newer(300, OTHER, T, 'o')], cap: 300 },
+            { relay: 'wss://c', held: [g1, ...older], cap: 500 },
+            { relay: 'wss://d', held: [g1, ...older], cap: 500 },
+        ];
+        const r = await readOver(relays);
+        expect(ids(r)).toEqual(expect.arrayContaining([g1.id, v2.id]));
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+
+    it('a mix holding the same events, two relays at 300 and two at 500: v2 read, every relay in full', async () => {
+        const held = [g1, v2, ...newer(450, OTHER, T, 'o')];
+        const r = await readOver(FOUR.map((relay, i) => ({ relay, held, cap: i < 2 ? 300 : 500 })));
+        expect(ids(r)).toContain(v2.id);
+        expect(r).toMatchObject({ truncated: false, floorMet: true });
+    });
+
+    it('300 events in one second newer than v2, relays capping at 300: the read steps past that second, reads v2, and is cut off there', async () => {
+        const r = await readOver(every([g1, v2, ...newer(300, OTHER, T, 'o', true)], 300));
+        expect(ids(r)).toEqual(expect.arrayContaining([g1.id, v2.id]));
+        expect(r.truncated).toBe(true);
+        expect(r.floorMet).toBe(false);
+        // The founder was found below the flood, and its keys read in full.
+        expect(r.incomplete).toBe(false);
+    });
+
+    it('a relay that stops answering partway stays cut off, though every other relay is read in full', async () => {
+        const relays = every([g1, v2, ...newer(300, OTHER, T, 'o')], 300);
+        relays[3] = { ...relays[3]!, answers: (f) => f.until === undefined };
+        const r = await readOver(relays);
+        expect(ids(r)).toContain(v2.id);
+        expect(r.floorMet).toBe(false);
+    });
+
+    it('a relay that never stops sending events it has not sent before is cut off at the bound, not read forever', async () => {
+        const calls: Record<string, unknown>[] = [];
+        const base = planted(FOUR.slice(0, 3).map((relay) => ({ relay, held: [g1, v2], cap: 300 })), calls);
+        let made = 0;
+        const query = async (f: Record<string, unknown>) => {
+            const res = await base(f);
+            const open = Array.isArray(f['#t']) && !f.authors;
+            const top = (f.until as number | undefined) ?? genesis.created_at + 100_000;
+            const fresh = open ? junk(300, OTHER, T, (i) => top - i, `n${(made++).toString(16)}x`) : [];
+            return {
+                events: [...res.events, ...fresh],
+                relayStatus: [
+                    ...res.relayStatus,
+                    { relay: 'wss://endless', eose: true, events: fresh.length, rejected: 0 },
+                ],
+            };
+        };
+        const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: founderKeys }, FOUNDER);
+        expect(r.truncated).toBe(true);
+        expect(r.floorMet).toBe(false);
+        expect(calls.filter((f) => Array.isArray(f['#t']) && !f.authors).length).toBeLessThanOrEqual(16);
+    });
+
+    it("the walk back to a parent a version names: 2,600 events under the parent's d-tag stop it at its bound, truncated", async () => {
+        const parent: string[][] = [['d', versionDtag(descriptorId(genesis))]];
+        const flood = junk(2600, OTHER, parent, (i) => genesis.created_at + 1000 + i, 'w');
+        expect((await readOver(every([v2], 300), FOUNDER)).truncated).toBe(false);
+        expect((await readOver(every([v2, ...flood], 300), FOUNDER)).truncated).toBe(true);
+    });
+
+    it('a relay whose NIP-11 document declares a page under 100 and that sent anything is cut off, when the reads ask', async () => {
+        const reads = { query: planted(every([g1, v2], 500)), everBoundKeys: founderKeys };
+        expect((await readChannelVersions(genesis.channel_id, reads, FOUNDER)).floorMet).toBe(true);
+        const maxLimit = async (relay: string) => (relay === 'wss://a' ? 50 : 500);
+        const r = await readChannelVersions(genesis.channel_id, { ...reads, maxLimit }, FOUNDER);
+        expect(ids(r)).toContain(v2.id);
+        expect(r.floorMet).toBe(false);
+    });
+
+    it('one relay holding a newer event the others lack does not leave them cut off', async () => {
+        const relays = every([g1, v2], 500);
+        relays[0] = { ...relays[0]!, held: [g1, v2, ...newer(1, OTHER, T, 'o')] };
+        const r = await readOver(relays);
+        expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
     });
 });
 

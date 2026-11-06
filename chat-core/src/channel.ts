@@ -25,6 +25,7 @@
 
 import { sha256 } from '@noble/hashes/sha256';
 import { hexEncode, utf8Encode } from '@orangecheck/lock-crypto';
+import { readPages, type Filter, type PageBounds, type PagedRead } from '@orangecheck/nostr-core';
 
 import { isValidAttachment, type Attachment } from './attachment';
 import { b64urlNoPad, canonicalBytes } from './canonical';
@@ -32,11 +33,9 @@ import { signedBy, verifyNostrEvent, type NostrEvent } from './event';
 import {
     answeredEvents,
     meetsReadFloor,
-    readState,
     UnansweredReadError,
     type Query,
     type RelayAnswer,
-    type RelayReadState,
     type VerifyBip322,
 } from './read';
 import type { AuthHostKey } from './session';
@@ -918,28 +917,23 @@ export interface VersionReads {
     /** Every key a principal's device records have bound, revoked ones too (§8.3.1); whether a
      *  relay answered; and whether the read met the floor (§8.7), so that no key is missing. */
     everBoundKeys: (principal: string) => Promise<{ keys: string[]; answered: boolean; floor: boolean }>;
+    /** The page size a relay's NIP-11 document declares (nostr-core relayMaxLimit). A relay
+     *  declaring one under 100 that sent anything is cut off. Not asked when absent. */
+    maxLimit?: (relay: string) => Promise<number | undefined>;
 }
 
-/** Events asked for per page: relays commonly cap one REQ at 500. */
-const VERSION_PAGE_LIMIT = 500;
-/** Pages read for one channel's `t` tag: up to 2,000 events, as attest reads a subject. */
-const VERSION_MAX_PAGES = 4;
+/** Every read of a channel's versions: 500 asked per page, read to 2,000 events or 16 pages (§8.3.1). */
+const VERSION_READ: PageBounds = { limit: 500, maxEvents: 2000, maxPages: 16 };
 /** Rounds of walking forward by `s` or back by exact d-tag past what the pages read. */
 const VERSION_WALK_ROUNDS = 64;
 /** Exact d-tags asked for per round of the walk back, so a REQ stays small. */
 const VERSION_BACK_IDS = 100;
 /** Keys read per principal: past this, one principal's rotations cannot fan the reader out. */
 const VERSION_MAX_KEYS = 32;
-/** REQs the founder's-keys read and the walk by `s` make in all. */
+/** Key reads the founder's-keys read and the walk by `s` make in all. */
 const VERSION_MAX_ROLE_REQS = 256;
-
-/** A relay sent a whole page (the events it sent that the reader dropped count); with no
- *  counts, the events read back fill it. */
-function pageFilled(res: { events?: NostrEvent[]; relayStatus?: readonly RelayAnswer[] }, limit: number): boolean {
-    const status = res.relayStatus ?? [];
-    if (status.some((r) => (r.events ?? 0) + (r.rejected ?? 0) >= limit)) return true;
-    return status.every((r) => r.events === undefined) && (res.events ?? []).length >= limit;
-}
+/** Pages those key reads ask in all. */
+const VERSION_MAX_ROLE_PAGES = 512;
 
 /** The founder a version names, when its founder and slug derive `cid`. */
 function founderFrom(e: NostrEvent, cid: string): string | null {
@@ -950,116 +944,67 @@ function founderFrom(e: NostrEvent, cid: string): string | null {
 }
 
 /**
- * Every version of a channel a reader can find (§8.3.1, 0.3.0), whether the open
- * read under its `t` tag stopped at the page bound, and whether the reads by
- * role holders' keys stopped short (an unanswered key lookup, a page a relay
- * filled, or a bound).
- * Anyone can publish under that tag, so besides the paged open read and the
+ * Every version of a channel a reader can find (§8.3.1, 0.3.0), whether a read
+ * anyone can publish into stopped at a bound, and whether the reads by role
+ * holders' keys stopped short (an unanswered key lookup, or a bound).
+ * Anyone can publish under the channel's tag, so besides the open read and the
  * legacy d-tag it reads where a flood cannot reach: the versions the founder's
  * keys signed, then forward by `s` from each of those, by the keys of the role
  * holders that version names. Then back by exact d-tag to any version a
- * `supersedes` names, the parents role holders named first. Every copy is
- * kept. Throws UnansweredReadError when no read was answered. `floorMet` is
- * false when any read, of versions or of a role holder's keys, fell below the
- * read floor (§8.7), so a newer version may exist.
+ * `supersedes` names, the parents role holders named first. Every read is paged
+ * to its end (readPages), so a relay that caps a page below the page asked for
+ * is read past its cap. Every copy is kept. `truncated`: the open read, the
+ * legacy read or the walk back stopped at a bound. Throws UnansweredReadError
+ * when no read was answered. `floorMet` is false when any read, of versions or
+ * of a role holder's keys, fell below the read floor (§8.7), so a newer version
+ * may exist.
  */
 export async function readChannelVersions(
     cid: string,
     reads: VersionReads,
     founderHint?: string
 ): Promise<{ events: NostrEvent[]; truncated: boolean; incomplete: boolean; floorMet: boolean }> {
-    const queryEvents = reads.query;
     const merged = new Map<string, NostrEvent>();
-    const status: { eose: boolean }[] = [];
+    const status: RelayAnswer[] = [];
     // A read without relay statuses is taken as it is, as answeredEvents takes it.
     let floorMet = true;
+    let truncated = false;
     // Versions a role holder's key signed: the only ones the walk goes forward from.
     const walkable = new Set<string>();
     const roleKeys = new Set<string>();
-    // One query's answer. Its floor counts each relay that answered it in full
-    // (`limit`: the page asked for, so a full page is not a full answer); the open
-    // read's pages are counted per relay across the pages instead (`paged`).
-    const add = (
-        res: { events?: NostrEvent[]; relayStatus?: readonly RelayAnswer[] },
-        byRole = false,
-        limit?: number,
-        paged = false
-    ) => {
+    const page = (filter: Record<string, unknown>, bounds: PageBounds = VERSION_READ) =>
+        readPages(
+            (f) => reads.query(f as Record<string, unknown>),
+            { kinds: [CHANNEL_DESCRIPTOR_KIND], ...filter } as Filter,
+            reads.maxLimit ? { ...bounds, maxLimit: reads.maxLimit } : bounds
+        );
+    // One paged read's answer. Its floor counts each relay whose read ended complete.
+    const add = (res: PagedRead, byRole = false) => {
         status.push(...(res.relayStatus ?? []));
-        if (!paged && res.relayStatus && !meetsReadFloor(res.relayStatus, limit)) floorMet = false;
-        let fresh = 0;
-        for (const e of res.events ?? []) {
+        if (res.relayStatus && !meetsReadFloor(res.relayStatus)) floorMet = false;
+        for (const e of res.events) {
             if (byRole) walkable.add(e.id);
-            if (merged.has(e.id)) continue;
-            merged.set(e.id, e);
-            fresh++;
+            if (!merged.has(e.id)) merged.set(e.id, e);
         }
-        return fresh;
     };
-    const legacy = queryEvents({
-        kinds: [CHANNEL_DESCRIPTOR_KIND],
-        '#d': [descriptorDtag(cid)],
-        limit: VERSION_PAGE_LIMIT,
-    });
-
-    // The open read, paged with `until` (inclusive; events already read are skipped).
-    // Each relay is asked every page, and answered in full only if it answered
-    // every page it was asked for and its last page came back short. An EOSE on
-    // some page of the union is not that: a relay can answer page 1 and stop.
-    let until: number | undefined;
-    let truncated = false;
-    const openRead = new Map<string, { stopped: boolean; sent: boolean; last: RelayAnswer }>();
-    for (let page = 0; page < VERSION_MAX_PAGES; page++) {
-        const res = await queryEvents({
-            kinds: [CHANNEL_DESCRIPTOR_KIND],
-            '#t': [cid],
-            limit: VERSION_PAGE_LIMIT,
-            ...(until !== undefined ? { until } : {}),
-        });
-        const fresh = add(res, false, VERSION_PAGE_LIMIT, true);
-        (res.relayStatus ?? []).forEach((r, i) => {
-            const key = r.relay ?? `#${i}`;
-            const was = openRead.get(key) ?? { stopped: false, sent: false, last: r };
-            // Unknown counts with an EOSE may have sent something: the safe reading.
-            const sentHere =
-                r.events === undefined ? r.eose : r.events + (r.rejected ?? 0) > 0;
-            openRead.set(key, {
-                stopped: was.stopped || (r.state ? r.state === 'no_answer' : !r.eose),
-                sent: was.sent || sentHere,
-                last: r,
-            });
-        });
-        for (const e of res.events ?? []) until = Math.min(until ?? Infinity, e.created_at);
-        // A full page may have more behind it. One that brought nothing new is
-        // stuck on a second it cannot page past: the read stops there, cut off.
-        if ((res.events ?? []).length < VERSION_PAGE_LIMIT) break;
-        if (fresh === 0 || page === VERSION_MAX_PAGES - 1) {
-            truncated = true;
-            break;
-        }
+    // The open read and the legacy d-tag: anyone can publish into either.
+    const [open, legacy] = await Promise.all([
+        page({ '#t': [cid] }),
+        page({ '#d': [descriptorDtag(cid)] }),
+    ]);
+    for (const res of [open, legacy]) {
+        add(res);
+        if (res.truncated) truncated = true;
     }
-    if (openRead.size > 0) {
-        // A relay that missed any page stopped: cut off if it had sent anything,
-        // else no answer. One that answered every page ends as its last page did.
-        const answers: RelayAnswer[] = [...openRead.values()].map((r) => {
-            const state: RelayReadState = r.stopped
-                ? r.sent
-                    ? 'cut_off'
-                    : 'no_answer'
-                : readState(r.last, VERSION_PAGE_LIMIT);
-            return { eose: state === 'complete', state };
-        });
-        if (!meetsReadFloor(answers)) floorMet = false;
-    }
-    add(await legacy, false, VERSION_PAGE_LIMIT);
 
     // The founder's keys first, then forward from each version by `s`, from the
     // keys of the founder and the admins that version names. Every key their
     // records have bound counts, revoked ones too: an earlier version stands on
-    // its binding whatever became of the key since. One REQ per key, so what one
+    // its binding whatever became of the key since. One read per key, so what one
     // key floods its own reads with hides only that key's own versions.
     let incomplete = false;
     let reqs = 0;
+    const budget = { left: VERSION_MAX_ROLE_PAGES };
     const founder =
         founderHint ?? [...merged.values()].map((e) => founderFrom(e, cid)).find(Boolean) ?? null;
     if (!founder) incomplete = true;
@@ -1087,18 +1032,11 @@ export async function readChannelVersions(
             if (fresh.length < keys.length) incomplete = true;
             reqs += fresh.length;
             for (const res of await Promise.all(
-                fresh.map((k) =>
-                    queryEvents({
-                        kinds: [CHANNEL_DESCRIPTOR_KIND],
-                        ...filter,
-                        authors: [k],
-                        limit: VERSION_PAGE_LIMIT,
-                    })
-                )
+                fresh.map((k) => page({ ...filter, authors: [k] }, { ...VERSION_READ, budget }))
             )) {
-                add(res, true, VERSION_PAGE_LIMIT);
-                // A key's page a relay filled may hold back more versions that key signed.
-                if (pageFilled(res, VERSION_PAGE_LIMIT)) incomplete = true;
+                add(res, true);
+                // A key's read a bound stopped may hold back more versions that key signed.
+                if (res.truncated) incomplete = true;
             }
         };
         await read({ '#t': [cid] }, await keysOf(founder));
@@ -1146,15 +1084,9 @@ export async function readChannelVersions(
             .map(([id]) => id);
         if (missing.length === 0) break;
         for (const id of missing) asked.add(id);
-        add(
-            await queryEvents({
-                kinds: [CHANNEL_DESCRIPTOR_KIND],
-                '#d': missing.map(versionDtag),
-                limit: VERSION_PAGE_LIMIT,
-            }),
-            false,
-            VERSION_PAGE_LIMIT
-        );
+        const back = await page({ '#d': missing.map(versionDtag) });
+        add(back);
+        if (back.truncated) truncated = true;
     }
     return {
         events: answeredEvents({ events: [...merged.values()], relayStatus: status }),

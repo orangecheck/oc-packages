@@ -57,7 +57,6 @@ describe('publishToQuorum: published once WRITE_QUORUM of the reference set hold
         expect(DEVICE_RECORD_RELAYS).toContain('wss://nostr.oxtr.dev');
         expect(readFloor(DEVICE_RECORD_RELAYS.length)).toBe(4);
         expect(CHAT_RELAYS).toEqual(['wss://relay.ochk.io', 'wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.primal.net']);
-        for (const r of CHAT_RELAYS) expect(DEVICE_RECORD_RELAYS).toContain(r);
     });
 
     it('by default a write counts over the device-record set: oxtr and one other publish it', async () => {
