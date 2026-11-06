@@ -8,6 +8,8 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
 
 ## [Unreleased]
 
+## [0.2.6] — 2026-11-06
+
 ### Changed
 
 - `readChannelVersions`' `floorMet` judges a read anyone can publish into (the
@@ -19,11 +21,12 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
   when the key reads were read in full; a relay that stops partway through a
   key read leaves it false. A caller judges a channel's versions on `floorMet`,
   and a read cut off at its bound also on `incomplete`.
-- `recordReads`: `liveness` returns `'unknown'` only when no relay answered in
-  full. Below the floor with no revocation seen it throws
-  `UnansweredReadError`, which `resolveChannelChain` passes on. That error and
-  `isBound`'s say how the read fell short: how many relays answered in full,
-  and how many were cut off or the floor they fell short of.
+- `recordReads`: `liveness` returns `'unknown'` when no relay answered in full,
+  and, as before, for a session binding whose host lists no keys. Below the
+  floor with no revocation seen it throws `UnansweredReadError`, which
+  `resolveChannelChain` passes on. That error and `isBound`'s say how the read
+  fell short: how many relays answered in full, and how many were cut off or the
+  floor they fell short of.
 - `resolveDirectoryHandle`, `resolveWithState` and `readAddressState`: a
   directory relay that answered and could not be read to its end (it stopped
   partway, reached its 25-REQ bound, sent a capped second or declared a page
