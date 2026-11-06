@@ -18,6 +18,15 @@ An overlay Button, for a control over a scene.
   edge to 3:1 on the page in both modes, the page standing for the scene,
   and check-layout holds one placed absolutely to a 44px target.
 
+The square-page rule ships once.
+
+- `squarePage` from `./vitest` reads a site's source directory and names
+  each radius off the zero scale (a literal, a variable, xs, depict, tile,
+  an arbitrary border-radius or an inline borderRadius) and each
+  rounded-full that is not a dot (on a control, or on a box that is not
+  size-N). chat and globe each held a copy of this rule as a test; a site
+  now calls it and expects both lists empty. check-square plants each case.
+
 ## [2.3.2] — 2026-11-05
 
 Every label in the package is oca-label.

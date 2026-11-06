@@ -58,7 +58,8 @@ const CEILING = {
     // 13.9 KB on 2026-11-04 (2.1.0's SignInPage: the frame, Notice and the lockup; auth-client is a peer, outside).
     './signin': 16_400,
     './acknowledgement': 11_000,
-    './vitest': 500,
+    // 945 bytes on 2026-11-06 (2.4.0's squarePage beside the preset; a site's tests load it, never a page), 15% over.
+    './vitest': 1_100,
     // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
     // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
     // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
