@@ -409,7 +409,10 @@ try {
 
     // The package's CSS, compiled the way a site compiles it, with the client bundles' classes and the
     // fonts beside it, as a site serves them: measured in Inter, not in whatever the machine falls back to.
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait']);
+    // A site's own rounded steps, in its source as a site writes them: the theme squares every one.
+    const RADII = ['rounded', 'rounded-xs', 'rounded-sm', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rounded-4xl'];
+    writeFileSync(join(dir, 'radii.js'), `export const radii = ${JSON.stringify(RADII.join(' '))};\n`);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait', 'radii']);
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');
@@ -1241,6 +1244,7 @@ try {
         '<div class="p-4 text-foreground"><div data-b="bare" class="border p-2">a</div><div data-b="bottom" class="border-b p-2">b</div>' +
             '<div class="divide-y"><p class="p-2">c</p><p data-b="divide" class="p-2">d</p></div><div data-b="utility" class="border border-foreground p-2">e</div></div>'
     );
+    const radii = page('radii', `<div class="flex gap-2 p-4">${RADII.map((c) => `<div data-r="${c}" class="${c} size-12 border">${c.slice(8) || 'r'}</div>`).join('')}</div>`);
     const menu = page('menu', '<div id="root" class="p-4"></div>', '<script src="menu.js"></script>');
     const toolMenu = page('toolmenu', '<div id="root"></div>', '<script src="toolmenu.js"></script>');
     const loadErr = page('loaderr', '<div id="root"></div>', '<script src="loaderr.js"></script>');
@@ -1848,6 +1852,11 @@ try {
                 for (const k of ['bare', 'bottom', 'divide']) check(seen[k] === seen.token, `[${width} ${mode}] a bare ${k === 'bare' ? 'border' : k === 'bottom' ? 'border-b' : 'divide-y'} is ${seen[k]}, not the hairline ${seen.token}`);
                 check(seen.utility === seen.fg, `[${width} ${mode}] border-foreground lost to the base rule (${seen.utility})`);
             }
+            // A site's own rounded-xs to rounded-4xl draw square under the theme: 2.0's radius is 0, and every step
+            // follows it, xs too (Tailwind's own xs is 2px).
+            await visit(p, radii);
+            const corners = await p.$$eval('[data-r]', (els) => els.map((el) => [el.dataset.r, getComputedStyle(el).borderTopLeftRadius]));
+            check(corners.length === RADII.length && corners.every(([, r]) => r === '0px'), `[${width}] a site's own rounded steps are not square: ${corners.filter(([, r]) => r !== '0px').map(([c, r]) => `${c} ${r}`).join(', ') || `${corners.length} of ${RADII.length} drawn`}`);
             // Panel header: the actions on the first row, at the right, beside two lines of description.
             await visit(p, header);
             const rows = await p.$$eval('section', (secs) =>

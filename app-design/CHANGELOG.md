@@ -21,6 +21,13 @@ A control that picks a value carries a mark.
   from a control drawn by hand. The layout census refuses a control that
   picks a value with no mark, on the page and behind each trigger.
 
+A site's own rounded steps are square.
+
+- The theme sets `--radius-xs` as it sets sm to 4xl, and a bare `rounded`
+  follows `--radius`, so a site's own rounded-xs and rounded draw square
+  under 2.0, not Tailwind's 2px and 4px. No site's source uses either today.
+  check-layout draws a site's rounded to rounded-4xl and holds each at 0.
+
 ## [2.3.1] — 2026-11-05
 
 - The layout census decides what a trigger showed once it has shut. Each
