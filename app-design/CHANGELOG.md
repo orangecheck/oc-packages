@@ -41,6 +41,11 @@ since 2.2.1. Below lg, vault and ochk.app showed an initial alone.
   `SearchButton`'s icon band ended at 1178px, and at 899 the family menu
   stayed in the bar beside the menu button. check-account reads 1179, and
   check-header refuses the family menu beside the menu button.
+- The other bands end where the next starts too: 480, 420 and 390. At
+  exactly 479, signed out, the bar's way in and the menu's both showed, and
+  signed in the lockup kept its wordmark; at 419 and 389 it kept a word.
+  check-account reads 389, 419 and 479, and check-header pins the links'
+  spacing: 28px, as ochk.app's, and 24 on a tool bar below 1180.
 
 A tool bar holds a site's real tools. attest, vote, pledge and agent put four
 tools beside Docs and About. With agent's (Create, Inspect, Delegations,

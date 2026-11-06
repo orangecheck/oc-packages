@@ -264,7 +264,7 @@ export function SiteHeader({
                     framed && 'mx-auto max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
                     headerCta || account
                         ? // The CTA leaves the bar below 480px; the menu button then keeps the gutter.
-                          'max-[479px]:pr-[var(--oca-frame-gutter)]'
+                          'max-[480px]:pr-[var(--oca-frame-gutter)]'
                         : 'pr-[var(--oca-frame-gutter)]'
                 )}
             >
@@ -381,7 +381,7 @@ export function SiteHeader({
                     {headerCta ? (
                         headerCta.pending ? (
                             // The session check is running: the block holds its place, says nothing, takes no focus.
-                            <span data-oca-cta="pending" aria-hidden className={cn(CTA_BLOCK, 'max-[479px]:hidden')}>
+                            <span data-oca-cta="pending" aria-hidden className={cn(CTA_BLOCK, 'max-[480px]:hidden')}>
                                 <CtaLabel label={headerCta.label} reserve={headerCta.reserve} hidden />
                                 <span className="invisible">
                                     <CtaPlus />
@@ -395,7 +395,7 @@ export function SiteHeader({
                                     CTA_BLOCK,
                                     // Below 480px the bar keeps the brand, the actions and the menu: the CTA
                                     // is the menu's full-width button there, so nothing overlaps.
-                                    'max-[479px]:hidden',
+                                    'max-[480px]:hidden',
                                     CTA_LINK
                                 )}
                             >

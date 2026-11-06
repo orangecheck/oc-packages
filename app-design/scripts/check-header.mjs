@@ -114,6 +114,8 @@ function measure() {
         menu: Boolean(header.querySelector('button[aria-label="Open menu"]')?.getClientRects().length),
         family: Boolean(familyShown),
         links: shownLinks.map((a) => a.textContent.trim()),
+        // The space between one link and the next, each distinct value once.
+        gaps: [...new Set(shownLinks.slice(1).map((a, i) => Math.round(a.getBoundingClientRect().left - shownLinks[i].getBoundingClientRect().right)))],
         wrapped: shownLinks.filter((a) => lines(a) > 1).map((a) => a.textContent.trim()),
         // The lockup's words shown, each as wide as its content (a word cut to nothing reads 0 of its width); a word
         // the lockup hides on purpose is visually hidden (absolute, 1px), not cut.
@@ -178,6 +180,11 @@ try {
                 check(got.wrapped.length === 0, `${at}: ${got.wrapped.join(', ')} wraps onto two lines`);
                 check(got.cut.length === 0, `${at}: the lockup's word is cut: ${got.cut.join(', ')}`);
                 check(!got.over, `${at}: the bar overflows`);
+                // ochk.app's links 28px apart; a tool bar's close up to 24 where its menu holds Docs and About.
+                if (TOOLS.has(place) && got.gaps.length) {
+                    const gap = width < 1180 ? 24 : 28;
+                    check(JSON.stringify(got.gaps) === JSON.stringify([gap]) && (!want.gaps.length || JSON.stringify(want.gaps) === '[28]'), `${at}: the links are ${JSON.stringify(got.gaps)}px apart, not ${gap} (ochk.app's ${JSON.stringify(want.gaps)})`);
+                }
                 if (TOOLS.has(place)) {
                     const wantLinks = width < 900 ? [] : [...(place === 'toolrail' && width >= 1024 ? [] : ['Create', 'Inspect', 'Delegations', 'Playground']), ...(width >= 1180 ? ['Docs', `About ${place === 'toolapp' ? 'attest' : 'agent'}`] : [])];
                     check(JSON.stringify(got.links) === JSON.stringify(wantLinks), `${at}: the bar's links are ${JSON.stringify(got.links)}, not ${JSON.stringify(wantLinks)}`);

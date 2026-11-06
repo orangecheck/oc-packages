@@ -88,7 +88,7 @@ export function AccountMenu({
                           // It gives way first, by far the most, so the name is cut before the bar's brand or links are;
                           // on a phone it reaches 8px into the gutter, so its chevron ends on the gutter's line and at 320
                           // a letter and the ellipsis still fit whole.
-                          'min-w-11 shrink-[1000000] gap-2 self-stretch px-2 hover:bg-accent max-[479px]:-mr-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-accent min-[480px]:border-l min-[480px]:border-border min-[480px]:px-3 min-[900px]:gap-2.5 min-[900px]:px-5'
+                          'min-w-11 shrink-[1000000] gap-2 self-stretch px-2 hover:bg-accent max-[480px]:-mr-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-accent min-[480px]:border-l min-[480px]:border-border min-[480px]:px-3 min-[900px]:gap-2.5 min-[900px]:px-5'
                         : cn(
                               'h-11 gap-2 rounded-none border border-border bg-card pl-1.5 pr-2.5 hover:border-oca-hairline-strong focus-visible:ring-2 focus-visible:ring-ring',
                               // In AppShell's bar it gives way first too, down to 44px; on a phone the initial's room is the name's.
@@ -318,7 +318,7 @@ export function SessionAccountView({
                     data-oca-account="out"
                     href={href}
                     // Below 480px the bar keeps the brand and the menu: the way in is the menu's full-width button.
-                    className={cn(CTA_BLOCK, CTA_LINK, 'max-[479px]:hidden')}
+                    className={cn(CTA_BLOCK, CTA_LINK, 'max-[480px]:hidden')}
                 >
                     <CtaLabel label={signInLabel} />
                     <CtaPlus />
@@ -331,7 +331,7 @@ export function SessionAccountView({
             <span
                 data-oca-account={state === 'checking' ? 'pending' : 'unknown'}
                 aria-hidden
-                className={cn(CTA_BLOCK, 'max-[479px]:hidden', state === 'unknown' && 'bg-transparent')}
+                className={cn(CTA_BLOCK, 'max-[480px]:hidden', state === 'unknown' && 'bg-transparent')}
             >
                 <CtaLabel label={signInLabel} hidden />
                 <span className="invisible">
