@@ -8,8 +8,8 @@ import { cn } from '../lib/cn';
  * amounts lined up on the decimal point, the split of the total as one bar,
  * and a place for the action that checks it. The rows are the caller's; the
  * example rows in the story add up (240 = 192 + 48, 80/20). It is drawn on
- * the product surface in the surface's own colours, so it reads the same on
- * paper and inside an ink or burnt band.
+ * the product surface in the surface's own colours, a depiction, so it reads
+ * the same on paper and on every band.
  */
 
 export interface ReceiptRow {
@@ -69,7 +69,7 @@ export function ReceiptCard({ label, title, facts, rows, unit, caption, split, f
     // Every fraction gets the widest one's room, so the points stack.
     const frac = Math.max(0, ...amounts.map(([, f]) => f.length));
     return (
-        <div {...aria} className={cn('flex flex-col gap-6 border border-oca-surface-foreground/10 bg-oca-surface p-6 text-oca-surface-foreground md:p-8', className)}>
+        <div {...aria} data-oca-depict="" className={cn('flex flex-col gap-6 border border-oca-surface-foreground/10 bg-oca-surface p-6 text-oca-surface-foreground md:p-8', className)}>
             {label || title ? (
                 <div className="flex flex-col gap-3">
                     {label ? <MonoLabel as="span" className={QUIET}>{label}</MonoLabel> : null}

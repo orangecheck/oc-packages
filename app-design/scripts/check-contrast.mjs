@@ -408,7 +408,8 @@ const census = { strings: 0, pairs: 0 };
     const { readdirSync, statSync } = await import('node:fs');
     // Without its comments, so a brace in one cannot end an @utility block early.
     const theme = readFileSync(join(here, '../src/styles/theme.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-    const colorVar = Object.fromEntries([...theme.matchAll(/--color-([a-z0-9-]+):\s*var\(--([a-z0-9-]+)\)/g)].map((m) => [m[1], m[2]]));
+    // A colour may name a fallback (oca-depict-edge falls back to --input); the token is the first name.
+    const colorVar = Object.fromEntries([...theme.matchAll(/--color-([a-z0-9-]+):\s*var\(--([a-z0-9-]+)(?:,\s*var\(--[a-z0-9-]+\))?\)/g)].map((m) => [m[1], m[2]]));
     const FIXED = { white: '#ffffff', black: '#000000' };
     const files = [];
     (function walk(d) {
@@ -682,9 +683,17 @@ export const all = (
             ['light', light],
             ['dark', dark],
         ]) {
-            const value = (t) => vars[set[t] ?? t];
-            const paint = (x, under) => {
-                const c = x.hex ?? (x.mix ? mixLab(value(x.mix[0]), x.mix[1], value(x.mix[2])) : value(x.token));
+            // A depiction's edge is its ground's field edge: a band's --oca-depict-edge names --input, which the
+            // band re-points in turn; off a band it falls back to --input.
+            const edgeToken = () => {
+                const t = set['oca-depict-edge'] ?? 'input';
+                return set[t] ?? t;
+            };
+            const value = (t) => vars[t === 'oca-depict-edge' ? edgeToken() : (set[t] ?? t)];
+            // Inside a depiction the tokens are the page's own (tokens.css [data-oca-depict]), on any band.
+            const pageValue = (t) => vars[t];
+            const paint = (x, under, val = value) => {
+                const c = x.hex ?? (x.mix ? mixLab(val(x.mix[0]), x.mix[1], val(x.mix[2])) : val(x.token));
                 return c && x.alpha < 1 ? over(c, x.alpha, under) : c;
             };
             const around = [base, set.card ?? 'card'].map((g) => [`--${g}`, value(g)]);
@@ -712,10 +721,11 @@ export const all = (
             for (const u of units) {
                 // A depicted window or device against the page it is drawn on (1.4.11, by the lead's ruling on
                 // depictions): its fill reads 3:1 on that ground, or an edge in a token does. A paper window was
-                // white on paper with only a shadow; the default one a hairline at 1.3:1.
+                // white on paper with only a shadow; the default one a hairline at 1.3:1. Its fill is the page's
+                // on any band, and only its edge is the band's.
                 if (u.depiction) {
                     for (const [name, under] of around) {
-                        const fill = u.grounds.filter((g) => g.variant === '' || (g.variant === 'dark' && mode === 'dark')).map((g) => paint(g, under)).at(-1);
+                        const fill = u.grounds.filter((g) => g.variant === '' || (g.variant === 'dark' && mode === 'dark')).map((g) => paint(g, under, pageValue)).at(-1);
                         if (!fill || !under) continue;
                         census.pairs++;
                         if (ratio(fill, under) >= 3) continue;

@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+A depiction keeps the page's colours on every band.
+
+- A depiction is the product shown as an object: BrowserFrame, PhoneFrame,
+  ReceiptCard and SignInDemo's stage carry `data-oca-depict`, and inside one
+  the tokens take the page's values again. On the ink, burnt, orange or
+  footer band a window is white in light, as on paper, and `#1c1916` in
+  dark, as the product is, where it took the band's card before. Its words,
+  its address and the fields drawn in it follow. Only its edge is the
+  band's: each band sets `--oca-depict-edge` to its field edge, and a
+  window or phone draws `border-oca-depict-edge`. A page part on a band (a
+  Card, a label, a rule) still takes the band's colours. check-layout reads
+  each depiction on the page and on every band in light and dark, and
+  holds its edge to the band's and a window to 3:1 on its ground;
+  check-contrast reads a depiction's fill as the page's and its edge as
+  the band's.
+
 ## [2.4.0] — 2026-11-06
 
 The theme emits no custom property that refers to itself.
