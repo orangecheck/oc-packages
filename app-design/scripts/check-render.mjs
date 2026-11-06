@@ -985,6 +985,7 @@ const html = (el) => renderToStaticMarkup(el);
     // Without contents, the markup 2.5.0 drew.
     check(sha(html(h(C.DocLayout, null, h('p', null, 'Body')))) === 'd16b1c4df347861c5339f77dd02bfb09a53e69cb34450e2d3be99f8b4bdbd964', 'DocLayout without contents no longer draws as 2.5.0 did');
     check(sha(html(h(C.DocLayout, { header: h(C.DocHeader, { title: 'Security', lead: 'How to tell us.' }), className: 'x' }, h('p', null, 'Body')))) === '2748b5ab7cb9ebfcfceed04893d00583f0dc587436f97300eb55566d288f732b', 'DocLayout without contents, with a header, no longer draws as 2.5.0 did');
+    check(html(h(C.DocLayout, { toc: [] }, h('p', null, 'Body'))) === html(h(C.DocLayout, null, h('p', null, 'Body'))), 'DocLayout: an empty toc draws the columns, not the page without contents');
 
     const doc = {
         eyebrow: 'legal',
@@ -1007,6 +1008,11 @@ const html = (el) => renderToStaticMarkup(el);
     const mark = legal.querySelector('h2#s1 > span');
     check(mark?.textContent === '§ 01' && cls(mark).includes(' text-oca-accent-ink ') && cls(mark).includes(' block ') && legal.querySelector('h2#s1')?.textContent === '§ 01What we store' && !legal.querySelector('h2#s2 > span'), 'LegalDocument: a numbered section has no "§ NN" mark over its heading, or an unnumbered one has one');
     check(!dom(h(C.LegalDocument, { doc })).querySelector('svg, [data-art]'), 'LegalDocument: draws art of its own');
+    // The last word alone is set back, however many come before it; a one-word title is drawn whole.
+    const terms = dom(h(C.LegalDocument, { doc: { ...doc, title: 'Terms of service' } })).querySelector('h1');
+    check([...terms.children].map((x) => x.textContent).join('|') === 'Terms of|service' && cls(terms.lastElementChild).includes(' text-oca-subtle ') && !cls(terms.firstElementChild).includes(' text-oca-subtle '), `LegalDocument: "Terms of service" does not set "service" alone back: ${terms.outerHTML.slice(0, 200)}`);
+    const one = dom(h(C.LegalDocument, { doc: { ...doc, title: 'Privacy' } })).querySelector('h1');
+    check(one.children.length === 0 && one.textContent === 'Privacy', `LegalDocument: a one-word title is split: ${one.outerHTML.slice(0, 160)}`);
 }
 
 if (failures) {
