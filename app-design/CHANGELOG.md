@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- The layout census decides what a trigger showed once it has shut. Each
+  target read behind a trigger is held until then. One still shown after it
+  shuts, outside a fixed layer, was not the trigger's: a demo's last screen,
+  in the trigger's own story or another. It is read where it is, by the page
+  pass. One in a fixed layer on its way out stays the trigger's, and so does
+  one its trigger hid again. Before, a target the trigger's own story showed
+  by itself meanwhile was read as the trigger's. Six plants in four stories
+  of the census hold each case, and a link let go once is read behind no
+  later trigger.
+
 ## [2.3.0] — 2026-11-05
 
 A signed-in docs bar gives the name its room. At 390px it showed "ana…"
