@@ -12,6 +12,9 @@
  * - A long page's contents (DocLayout's Toc) ask for no frame at rest, one
  *   frame for a burst of scroll events, and mark the entry being read as the
  *   page scrolls: the heading past the reading line, the last at the foot.
+ *   On a short screen the list fits under the site's bar and scrolls inside
+ *   itself, the marked entry kept in it; the foot of the page is its last
+ *   2px, and a resize marks again.
  *
  * Run after `yarn build`.
  */
@@ -91,8 +94,14 @@ try {
             `import { DocLayout } from '${src('components/hero.tsx')}';\n` +
             `const L = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];\n` +
             `createRoot(document.getElementById('root')).render(<DocLayout toc={L.map((label, i) => ({ id: 's' + (i + 1), num: '0' + (i + 1), label }))}>{L.map((label, i) => <section key={label}><h2 id={'s' + (i + 1)}>{label}</h2><p style={{ height: 700 }}>Text.</p></section>)}</DocLayout>);\n`,
+        // Sixteen sections, more than a short screen's list holds; the last one short.
+        long:
+            `import { createRoot } from 'react-dom/client';\n` +
+            `import { DocLayout } from '${src('components/hero.tsx')}';\n` +
+            `const L = Array.from({ length: 16 }, (_, i) => 'Section ' + (i + 1));\n` +
+            `createRoot(document.getElementById('root')).render(<DocLayout toc={L.map((label, i) => ({ id: 's' + (i + 1), num: String(i + 1).padStart(2, '0'), label }))}>{L.map((label, i) => <section key={label}><h2 id={'s' + (i + 1)}>{label}</h2><p style={{ height: i === 15 ? 150 : 700 }}>Text.</p></section>)}</DocLayout>);\n`,
     });
-    compileCss(dir, ['halftone', 'diagram', 'hold', 'toc']);
+    compileCss(dir, ['halftone', 'diagram', 'hold', 'toc', 'long']);
     // Every draw starts with a clear: count them. And count the page's frames, so a quiet canvas is told from a stalled page.
     const counter =
         `<script>window.__draws = 0; const clear = CanvasRenderingContext2D.prototype.clearRect; CanvasRenderingContext2D.prototype.clearRect = function (...a) { window.__draws++; return clear.apply(this, a); };` +
@@ -105,6 +114,7 @@ try {
         `<script>const raf = window.requestAnimationFrame.bind(window); window.__rafs = 0; window.requestAnimationFrame = (cb) => { window.__rafs++; return raf(cb); };` +
         `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
     const toc = writePage(dir, 'toc', '<div id="root"></div>', { head: rafs, script: '<script src="toc.js"></script>' });
+    const long = writePage(dir, 'long', '<div id="root"></div>', { script: '<script src="long.js"></script>' });
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -220,6 +230,38 @@ try {
             check(first === '#s1' && fourth === '#s4' && past === '#s4' && foot === '#s6' && top === '#s1', `Toc: marks ${JSON.stringify({ first, fourth, past, foot, top })}, not s1, then s4 at the line and past it, s6 at the foot, s1 at the top`);
             await p.close();
         }
+        // A short screen: the list is taller than the room under the site's bar, so it ends at the screen's foot and
+        // scrolls inside itself, the marked entry kept in it. 100px above the foot the heading past the line is
+        // marked, at the foot the last; shrinking the window then lifts the page off its foot with no scroll.
+        {
+            const p = await browser.newPage({ viewport: { width: 1280, height: 600 } });
+            await p.goto(long);
+            await p.waitForSelector('[aria-current="location"]');
+            const read = () =>
+                p.evaluate(() => {
+                    const nav = document.querySelector('nav[aria-label="On this page"]:not(details nav)');
+                    const link = nav.querySelector('[aria-current="location"]');
+                    const [n, l] = [nav.getBoundingClientRect(), link.getBoundingClientRect()];
+                    return { marked: link.getAttribute('href'), seen: l.top >= n.top - 0.5 && l.bottom <= n.bottom + 0.5, top: Math.round(n.top), bottom: Math.round(n.bottom), vh: innerHeight, scrolls: nav.scrollHeight > nav.clientHeight + 1 };
+                });
+            const to = async (y) => {
+                await p.evaluate((y) => window.scrollTo(0, y), y);
+                await p.waitForTimeout(250);
+            };
+            const max = await p.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+            await to(max - 100);
+            const near = await read();
+            await to(max);
+            const foot = await read();
+            await p.setViewportSize({ width: 1280, height: 500 });
+            await p.waitForTimeout(250);
+            const shrunk = await read();
+            for (const [when, x] of Object.entries({ near, foot, shrunk })) {
+                check(x.top === 113 && x.bottom === x.vh && x.scrolls && x.seen, `Toc on a short screen (${when}): the list does not end at the screen's foot and scroll inside itself, the marked entry in view: ${JSON.stringify(x)}`);
+            }
+            check(near.marked === '#s15' && foot.marked === '#s16' && shrunk.marked === '#s15', `Toc on a short screen: marks ${JSON.stringify([near.marked, foot.marked, shrunk.marked])}, not s15 100px above the foot, s16 at it, s15 once a shorter window lifts the page off it`);
+            await p.close();
+        }
         // The placeholder holds the drawn height: given a size, exactly, at a phone's width and a desk's.
         for (const [width, height] of [
             [390, 844],
@@ -254,4 +296,4 @@ if (failures) {
     console.error(`\n${failures} idle failure(s)`);
     process.exit(1);
 }
-console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view, a diagram's height held; a long page's contents ask for no frame at rest and mark the entry being read`);
+console.log(`✓ idle: ${checks} checks in Chrome; the halftone draws only while something moves, once under reduced motion, never offscreen; mermaid only near view, a diagram's height held; a long page's contents ask for no frame at rest and mark the entry being read, kept in view on a short screen`);

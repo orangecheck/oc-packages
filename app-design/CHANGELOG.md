@@ -40,13 +40,16 @@ One long page, as ochk.app draws its own.
   set back and the site's `art` at its foot, puts its dates on a bar, and
   marks each numbered section "§ NN" over its heading.
 - check-render holds the entry being read to ochk.app's cases and each
-  part's markup, a list of your own in both places, and DocLayout without
-  contents to its old markup;
+  part's markup, a list of your own in both places, DocLayout without
+  contents (or with an empty list) to its old markup, and a title's last
+  word alone set back;
   check-idle holds the contents to no frame at rest and one per burst of
-  scrolls, marking as the page scrolls; check-focus reaches them from the
+  scrolls, marking as the page scrolls and as the window resizes, and on a
+  short screen to a list that ends at the screen's foot and scrolls inside
+  itself, the marked entry in view; check-focus reaches them from the
   keyboard on a desk and through the fold on a phone; check-layout holds
   the columns, the rule, the sticky top and the gutter at 390, 900 and
-  1440.
+  1440, for LegalDocument and for DocLayout with contents.
 
 ## [2.6.0] — 2026-11-06
 

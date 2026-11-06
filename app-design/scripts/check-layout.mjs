@@ -869,6 +869,23 @@ try {
             )
         )
     );
+    // DocLayout with contents, as ochk.io's security and trust pages and vault's security page draw it: a DocHeader at
+    // the top of the text, the same six tall sections.
+    const docS34 = page(
+        'doc-s34',
+        renderToStaticMarkup(
+            h(
+                'div',
+                null,
+                h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                h(
+                    C.DocLayout,
+                    { toc: S34.map((label, i) => ({ id: `p${i + 1}`, num: String(i + 1).padStart(2, '0'), label })), header: h(C.DocHeader, { title: 'Security', lead: 'How to tell us.' }) },
+                    S34.map((heading, i) => h('section', { key: heading }, h('h2', { id: `p${i + 1}` }, heading), h('p', null, 'A paragraph of the page. '.repeat(90))))
+                )
+            )
+        )
+    );
     // A generated SDK README in DocsShell, from the MDX map as docs.ochk.io draws it: links that are one identifier
     // each (me-client's ran 79px past 320), beside a fence and a table whose long words must still scroll sideways.
     const LONG_NAME = 'FederationMigrationCancelledWebhookPayload';
@@ -2959,12 +2976,17 @@ try {
         // hidden; the text 4rem from the rule and the frame's gutter from its edge. Below 900px the fold sits over the
         // text with a rule under it, the list hidden, the text on the gutter at both sides. The dates' bar meets the
         // columns; the title's last word is set back; a section's mark is mono in accent ink.
-        for (const w of [390, 900, 1440]) {
+        // DocLayout with contents is held to the same columns, rule, sticky top and gutter.
+        const s34 = [
+            ['S34', legalS34, true],
+            ['DocLayout', docS34, false],
+        ];
+        for (const [name, url, legal, w] of s34.flatMap(([n, u, l]) => [390, 900, 1440].map((w) => [n, u, l, w]))) {
             const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: w < 768, hasTouch: w < 768 });
-            await visit(c, legalS34);
+            await visit(c, url);
             await c.evaluate(() => document.fonts.ready);
             const read = () =>
-                c.evaluate(() => {
+                c.evaluate((legal) => {
                     const r = (el) => el.getBoundingClientRect();
                     const cols = document.querySelector('[data-oca-doc-columns]');
                     const [navCell, text] = cols.children;
@@ -2979,7 +3001,7 @@ try {
                         cols: [Math.round(r(cols).left - r(frame).left - frame.clientLeft), Math.round(r(frame).left + frame.clientLeft + frame.clientWidth - r(cols).right)],
                         nav: [Math.round(r(navCell).width * 10) / 10, ns.borderRightWidth, ns.borderBottomWidth, Math.round(r(navCell).top - r(cols).top), Math.round(r(cols).bottom - r(navCell).bottom)],
                         side: Math.round(r(navCell).top - r(text).top),
-                        bar: Math.round((r(cols).top - r(document.querySelector('[data-oca-frame] > [data-oca-section-bar]')).bottom) * 10) / 10,
+                        bar: legal ? Math.round((r(cols).top - r(document.querySelector('[data-oca-frame] > [data-oca-section-bar]')).bottom) * 10) / 10 : Math.round(r(cols).top - r(frame).top),
                         shown: [getComputedStyle(sticky).display, getComputedStyle(details).display],
                         stickyTop: Math.round(r(sticky).top * 10) / 10,
                         pad: [parseFloat(ts.paddingLeft), parseFloat(ts.paddingRight)],
@@ -2991,25 +3013,25 @@ try {
                             probe.remove();
                             return px;
                         })(),
-                        subtle: getComputedStyle(h1.lastElementChild).color !== getComputedStyle(h1.firstElementChild).color && h1.children.length === 2,
-                        mark: [getComputedStyle(mark).fontFamily.toLowerCase().includes('mono'), getComputedStyle(mark).display],
+                        subtle: legal && getComputedStyle(h1.lastElementChild).color !== getComputedStyle(h1.firstElementChild).color && h1.children.length === 2,
+                        mark: legal ? [getComputedStyle(mark).fontFamily.toLowerCase().includes('mono'), getComputedStyle(mark).display] : null,
                         over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                     };
-                });
+                }, legal);
             const a = await read();
-            check(Math.abs(a.cols[0]) <= 0.5 && Math.abs(a.cols[1]) <= 0.5 && Math.abs(a.bar) <= 0.5 && a.over === 0, `[${w}] S34: the columns do not span the frame under the dates' bar, or the page scrolls sideways: ${JSON.stringify(a)}`);
-            check(a.subtle && a.mark[0] && a.mark[1] === 'block', `[${w}] S34: the title's last word is not set back, or a section's mark is not a mono line: ${JSON.stringify(a)}`);
+            check(Math.abs(a.cols[0]) <= 0.5 && Math.abs(a.cols[1]) <= 0.5 && Math.abs(a.bar) <= 0.5 && a.over === 0, `[${w}] ${name}: the columns do not span the frame from the dates' bar (S34) or its top, or the page scrolls sideways: ${JSON.stringify(a)}`);
+            if (legal) check(a.subtle && a.mark[0] && a.mark[1] === 'block', `[${w}] S34: the title's last word is not set back, or a section's mark is not a mono line: ${JSON.stringify(a)}`);
             if (w >= 900) {
                 const navW = w >= 1280 ? 296 : 248;
-                check(Math.abs(a.nav[0] - navW) <= 0.5 && a.nav[1] === '1px' && a.nav[2] === '0px' && a.nav[3] === 0 && a.nav[4] === 0 && a.side === 0, `[${w}] S34: the contents are not a ${navW}px column ruled off down the frame beside the text: ${JSON.stringify(a)}`);
-                check(a.shown[0] === 'flex' && a.shown[1] === 'none' && a.pad[0] === 64 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] S34: the list or the fold shows wrong, or the text is not 4rem from the rule and on the gutter: ${JSON.stringify(a)}`);
+                check(Math.abs(a.nav[0] - navW) <= 0.5 && a.nav[1] === '1px' && a.nav[2] === '0px' && a.nav[3] === 0 && a.nav[4] === 0 && a.side === 0, `[${w}] ${name}: the contents are not a ${navW}px column ruled off down the frame beside the text: ${JSON.stringify(a)}`);
+                check(a.shown[0] === 'flex' && a.shown[1] === 'none' && a.pad[0] === 64 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] ${name}: the list or the fold shows wrong, or the text is not 4rem from the rule and on the gutter: ${JSON.stringify(a)}`);
                 await c.evaluate(() => window.scrollTo(0, document.getElementById('p3').getBoundingClientRect().top + scrollY - 200));
                 await c.waitForTimeout(100);
                 const b = await read();
-                check(Math.abs(b.stickyTop - 113) <= 0.5, `[${w}] S34: scrolled, the contents sit ${b.stickyTop}px down, not 113 (under the site's bar)`);
+                check(Math.abs(b.stickyTop - 113) <= 0.5, `[${w}] ${name}: scrolled, the contents sit ${b.stickyTop}px down, not 113 (under the site's bar)`);
             } else {
-                check(a.nav[1] === '0px' && a.nav[2] === '1px' && a.side < 0 && a.shown[0] === 'none' && a.shown[1] === 'block', `[${w}] S34: the fold is not over the text with a rule under it, the list hidden: ${JSON.stringify(a)}`);
-                check(Math.abs(a.pad[0] - a.gutter) <= 0.5 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] S34: the text is not on the frame's gutter at both sides: ${JSON.stringify(a)}`);
+                check(a.nav[1] === '0px' && a.nav[2] === '1px' && a.side < 0 && a.shown[0] === 'none' && a.shown[1] === 'block', `[${w}] ${name}: the fold is not over the text with a rule under it, the list hidden: ${JSON.stringify(a)}`);
+                check(Math.abs(a.pad[0] - a.gutter) <= 0.5 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] ${name}: the text is not on the frame's gutter at both sides: ${JSON.stringify(a)}`);
             }
             await c.close();
         }
