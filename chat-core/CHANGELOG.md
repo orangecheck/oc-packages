@@ -6,6 +6,32 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [Unreleased]
+
+### Changed
+
+- `readChannelVersions`' `floorMet` judges a read anyone can publish into (the
+  open read, the legacy d-tag, the walk back) that a bound or a capped second
+  stopped on each REQ it made: it meets the read floor when each REQ did, by the
+  relays that sent EOSE. Every other read, each role holder's key read
+  included, meets it only on the relays read to its end, and each lookup of a
+  role holder's keys on its own floor. A flood alone leaves `floorMet` true
+  when the key reads were read in full; a relay that stops partway through a
+  key read leaves it false. A caller judges a channel's versions on `floorMet`,
+  and a read cut off at its bound also on `incomplete`.
+- `recordReads`: `liveness` returns `'unknown'` only when no relay answered in
+  full. Below the floor with no revocation seen it throws
+  `UnansweredReadError`, which `resolveChannelChain` passes on. That error and
+  `isBound`'s say how the read fell short: how many relays answered in full,
+  and how many were cut off or the floor they fell short of.
+- `resolveDirectoryHandle`, `resolveWithState` and `readAddressState`: a
+  directory relay that answered and could not be read to its end (it stopped
+  partway, reached its 25-REQ bound, sent a capped second or declared a page
+  under 100) leaves the handle `E_DIR_UNRESOLVED`, its state `unresolved`.
+  Only a directory relay that sent nothing is not answering, and only then is
+  the public read the walk (§8.2.6). A page read that throws is a REQ the relay
+  did not answer.
+
 ## [0.2.5] — 2026-11-06
 
 ### Changed

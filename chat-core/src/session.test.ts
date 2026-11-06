@@ -251,7 +251,7 @@ describe('recordReads below the read floor (§8.7): what rests on a record not b
 
     it('"bound now" and "not bound" are not read with 2 of 4 relays answering: a silent one may hold a revocation or a bind', async () => {
         const d = device();
-        await expect(reads([d.record], TWO_SILENT).isBound(d.nostrPk, DID)).rejects.toThrow('fewer than 3 of 4 relays answered');
+        await expect(reads([d.record], TWO_SILENT).isBound(d.nostrPk, DID)).rejects.toThrow('2 of 4 relays answered in full, fewer than the read floor of 3');
         await expect(reads([], TWO_SILENT).isBound(d.nostrPk, DID)).rejects.toBeInstanceOf(UnansweredReadError);
         expect(await reads([d.record], TWO_SILENT).boundKeys(DID)).toBe('no-answer');
     });
@@ -283,8 +283,9 @@ describe('recordReads below the read floor (§8.7): what rests on a record not b
         for (const holders of pairs) {
             for (const silent of subsets) {
                 const reads = over(holders, silent);
-                const live = await reads.liveness(binding(d));
+                const live = await reads.liveness(binding(d)).catch((e) => e);
                 expect(live, `holders ${holders} silent ${[...silent]}`).not.toBe('live');
+                if (live !== 'revoked' && live !== 'unknown') expect(live).toBeInstanceOf(UnansweredReadError);
                 // At the floor the revocation is always among what answered.
                 if (R.length - silent.size >= 3) expect(live).toBe('revoked');
                 const bound = await reads.isBound(d.nostrPk, DID).catch((e) => e);
@@ -294,13 +295,13 @@ describe('recordReads below the read floor (§8.7): what rests on a record not b
         // Held by one relay only (a write the quorum never reached): when it is silent and the
         // other three answer, the key reads live. That is why the writer reports it not yet published.
         expect(await over(['r0'], new Set(['r0'])).liveness(binding(d))).toBe('live');
-        expect(await over(['r0'], new Set(['r0', 'r1'])).liveness(binding(d))).toBe('unknown');
+        await expect(over(['r0'], new Set(['r0', 'r1'])).liveness(binding(d))).rejects.toThrow('2 of 4 relays answered in full, fewer than the read floor of 3');
     });
 
     it('liveness: a revocation seen is revoked on any answer; live needs the floor', async () => {
         const d = device();
         expect(await reads([d.record, ownRevocation(d)], [true, false, false, false]).liveness(binding(d))).toBe('revoked');
-        expect(await reads([d.record], TWO_SILENT).liveness(binding(d))).toBe('unknown');
+        await expect(reads([d.record], TWO_SILENT).liveness(binding(d))).rejects.toThrow('2 of 4 relays answered in full, fewer than the read floor of 3');
         expect(await reads([d.record], ONE_SILENT).liveness(binding(d))).toBe('live');
         expect(await reads([d.record], [false, false, false, false]).liveness(binding(d))).toBe('unknown');
     });

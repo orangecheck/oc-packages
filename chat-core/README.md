@@ -40,10 +40,20 @@ silence as "no".
 
 Each read is paged with `until` to its end on every relay (nostr-core
 `readPages`), so a relay that caps a page below the 500 asked is read past its
-cap; one stopped by a bound, or by a second holding more events than it sends in
-a page, leaves the floor unmet. Pass `maxLimit: relayMaxLimit` (from
-`@orangecheck/nostr-core`) to count a relay whose NIP-11 document declares a
-page under 100 as cut off.
+cap. Pass `maxLimit: relayMaxLimit` (from `@orangecheck/nostr-core`) to count a
+relay whose NIP-11 document declares a page under 100 as cut off.
+
+`floorMet` says whether every read met the read floor (§8.7 below). A read
+anyone can publish into (the open read, the legacy d-tag, the walk back) that a
+bound or a second holding more than a page stopped is `truncated`, and meets
+the floor when each REQ it made did: the role holders' key reads find what it
+did not reach, and `incomplete` says when one of those stopped at its bound.
+Every other read meets the floor only on the relays read to its end, so a relay
+that stops partway through a role holder's key read leaves it unmet.
+
+A directory relay that answered and was cut off leaves a handle
+`E_DIR_UNRESOLVED`. Only one that sent nothing is not answering, and only then is
+the public read the walk itself (§8.2.6).
 
 ### Relay floor and write quorum (SPEC §8.7)
 

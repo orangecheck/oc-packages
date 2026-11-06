@@ -19,7 +19,7 @@ import {
 } from './__fixtures__/directory-world';
 import ochkroot from './__fixtures__/ochkroot-v1-listing.json';
 
-import { AUDIT_RELAYS, resolveDirectoryHandle } from './directory';
+import { AUDIT_RELAYS, resolveDirectoryHandle, resolveWithState } from './directory';
 
 const ALICE = 'bc1qmr7qn2t0ahj56ztpdswt54kn2r863ukd8wadj8';
 const BOB = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
@@ -409,6 +409,69 @@ describe('resolveDirectoryHandle', () => {
             r === 'wss://relay.ochk.io' && filter.until !== undefined
                 ? { events: [], complete: false }
                 : real(r, filter);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+    });
+
+    it.each([
+        ['stops answering', 'stop'],
+        ['throws', 'throw'],
+    ] as const)('a directory relay that %s after its first page answered: the walk never falls back to the audit alone, so its later claim never holds', async (_, how) => {
+        const { w, deps, anchorAt } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        const b = claim('alice', BOB, TIP - 50, 'bob');
+        anchorAt(a, ALICE);
+        anchorAt(b, BOB);
+        w.bound.set(ALICE, [pk(1)]);
+        w.bound.set(BOB, [pk(2)]);
+        w.relays.set('wss://relay.ochk.io', [listing(1, 'alice', ALICE, a, {}, 1_790_000_000), ...filler(150)]);
+        w.relays.set('wss://nos.lol', [listing(2, 'alice', BOB, b)]);
+        capped(deps, 'wss://relay.ochk.io', 150);
+        const real = deps.page;
+        deps.page = async (r, filter) => {
+            if (r !== 'wss://relay.ochk.io' || filter.until === undefined) return real(r, filter);
+            if (how === 'throw') throw new Error('relay down');
+            return { events: [], complete: false };
+        };
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+        expect(await resolveWithState('alice', 'people', BOB, deps)).toEqual({
+            answer: { result: 'E_DIR_UNRESOLVED' },
+            state: { kind: 'unresolved' },
+        });
+        // Sending nothing, it did not answer: then the public read is the walk itself (§8.2.6).
+        w.incomplete.add('wss://relay.ochk.io');
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: BOB,
+        });
+        deps.page = async (r, filter) => {
+            if (r === 'wss://relay.ochk.io') throw new Error('relay down');
+            return real(r, filter);
+        };
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: BOB,
+        });
+    });
+
+    it('a directory relay stopped at its bound of 25 pages is cut off, whatever the audit holds', async () => {
+        const { w, deps, anchorAt } = world();
+        const b = claim('alice', BOB, TIP - 50, 'bob');
+        anchorAt(b, BOB);
+        w.bound.set(BOB, [pk(2)]);
+        // Unsigned: the pager reads them, and the walk never gets as far as checking one.
+        const [one] = filler(1);
+        const pages = Array.from({ length: 100 * 26 }, (_, i) => ({
+            ...one!,
+            id: i.toString(16).padStart(64, '0'),
+            created_at: 1_790_001_000 + i,
+        }));
+        w.relays.set('wss://relay.ochk.io', pages);
+        w.relays.set('wss://nos.lol', [listing(2, 'alice', BOB, b)]);
+        capped(deps, 'wss://relay.ochk.io', 100);
         expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
             result: 'E_DIR_UNRESOLVED',
         });
