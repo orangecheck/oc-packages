@@ -1109,7 +1109,9 @@ try {
                     h('p', { 'data-t': 'hash-short' }, h(C.HashChip, { value: 'ab12', head: 2, tail: 2, explorer: 'tx', copy: false })),
                     // A link standing alone after a "·" is a 44px target to a thumb; the same link in a sentence is not.
                     h('p', { 'data-t': 'link-alone', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x', standalone: true }, 'Your public record')),
-                    h('p', { 'data-t': 'link-prose', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x' }, 'Your public record'))
+                    h('p', { 'data-t': 'link-prose', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x' }, 'Your public record')),
+                    // An overlay over a scene, placed absolutely as globe places one: bordered, and still a 44px target.
+                    h('div', { className: 'relative h-16 w-56 bg-oca-ink' }, h(P.Button, { size: 'sm', variant: 'overlay', className: 'absolute top-3 left-4', 'data-t': 'sm-o' }, 'Data'))
                 )
             )
     );
@@ -1779,7 +1781,7 @@ try {
                 const t = await ctx.newPage();
                 await visit(t, icons);
                 const reach = await t.evaluate(() =>
-                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', '[data-t="sm-b"]', '[data-t="sm-plus"]', '[data-t="icon-sm-b"]', '[data-t="icon-b"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
+                    ['[data-t="icon-sm"]', '[data-t="sm"]', '[data-t="icon"]', '[data-t="sm-b"]', '[data-t="sm-plus"]', '[data-t="sm-o"]', '[data-t="icon-sm-b"]', '[data-t="icon-b"]', 'button[aria-label="Copy passphrase"]', 'button[aria-label="Open full screen"]', 'button[aria-label^="Theme:"]'].map((sel) => {
                         const el = document.querySelector(sel);
                         const r = el.getBoundingClientRect();
                         const cx = r.left + r.width / 2;
@@ -1790,7 +1792,7 @@ try {
                         return { sel, size: Math.round(r.height), w: Math.round(r.width), reach: lands(cx, cy - 21.5) && lands(cx, cy + 21.5) && (wide || (lands(cx - 21.5, cy) && lands(cx + 21.5, cy))) };
                     })
                 );
-                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 44 };
+                const DRAWN = { '[data-t="sm"]': 36, '[data-t="sm-b"]': 36, '[data-t="sm-plus"]': 36, '[data-t="sm-o"]': 36, '[data-t="icon"]': 40, '[data-t="icon-b"]': 40, 'button[aria-label^="Theme:"]': 44 };
                 for (const r of reach) {
                     const drawn = DRAWN[r.sel] ?? 32;
                     if (width < 768) check(r.reach && r.size === drawn, `[${width} touch] ${r.sel}: drawn ${r.w}×${r.size}px, 44px target ${r.reach}`);

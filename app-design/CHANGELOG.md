@@ -10,6 +10,14 @@ The theme emits no custom property that refers to itself.
   not set it. check-layout refuses compiled CSS in which a custom property
   refers to itself.
 
+An overlay Button, for a control over a scene.
+
+- `variant="overlay"` is the page's own surface at 85%, blurred, with the
+  field's edge, so a control over a globe, a map or a photo reads on
+  whatever the scene draws. It takes every size. check-contrast holds its
+  edge to 3:1 on the page in both modes, the page standing for the scene,
+  and check-layout holds one placed absolutely to a 44px target.
+
 ## [2.3.2] — 2026-11-05
 
 Every label in the package is oca-label.
