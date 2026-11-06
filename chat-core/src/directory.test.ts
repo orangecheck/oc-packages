@@ -353,6 +353,106 @@ describe('resolveDirectoryHandle', () => {
         });
     });
 
+    /** `n` signed events under alice's d tag that hold no listing, newer than any claim here. */
+    const filler = (n: number) =>
+        Array.from({ length: n }, (_, i) =>
+            sign(10 + (i % 50), { v: 2, handle: 'x' + i }, directoryDtag('alice'), 1_790_001_000 + i)
+        );
+    /** A page reader whose `relay` sends at most `cap` events a REQ, whatever was asked. */
+    const capped = (deps: ReturnType<typeof world>['deps'], relay: string, cap: number) => {
+        const real = deps.page;
+        deps.page = async (r, filter) => {
+            const got = await real(r, filter);
+            return r === relay ? { ...got, events: got.events.slice(0, cap) } : got;
+        };
+    };
+
+    it('a directory relay that sends 150 a page is read past them to the claim behind', async () => {
+        const { w, deps, anchorAt } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        anchorAt(a, ALICE);
+        w.bound.set(ALICE, [pk(1)]);
+        w.relays.set('wss://relay.ochk.io', [listing(1, 'alice', ALICE, a, {}, 1_790_000_000), ...filler(150)]);
+        capped(deps, 'wss://relay.ochk.io', 150);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: ALICE,
+        });
+    });
+
+    it('an audit relay that sends 150 a page is read past them, so the earlier claim it holds counts', async () => {
+        const { w, deps, anchorAt, publish } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        const b = claim('alice', BOB, TIP - 50, 'bob');
+        anchorAt(a, ALICE);
+        anchorAt(b, BOB);
+        w.bound.set(ALICE, [pk(1)]);
+        w.bound.set(BOB, [pk(2)]);
+        publish(listing(2, 'alice', BOB, b));
+        w.relays.set('wss://nos.lol', [listing(1, 'alice', ALICE, a, {}, 1_790_000_000), ...filler(150)]);
+        capped(deps, 'wss://nos.lol', 150);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: ALICE,
+        });
+    });
+
+    it('a directory relay whose read stops partway has not been read completely', async () => {
+        const { w, deps, anchorAt } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        anchorAt(a, ALICE);
+        w.bound.set(ALICE, [pk(1)]);
+        w.relays.set('wss://relay.ochk.io', [listing(1, 'alice', ALICE, a, {}, 1_790_000_000), ...filler(150)]);
+        capped(deps, 'wss://relay.ochk.io', 150);
+        const real = deps.page;
+        deps.page = async (r, filter) =>
+            r === 'wss://relay.ochk.io' && filter.until !== undefined
+                ? { events: [], complete: false }
+                : real(r, filter);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+    });
+
+    it('a directory relay whose NIP-11 document declares a page under 100 has not been read completely', async () => {
+        const { w, deps, anchorAt } = world();
+        const a = claim('alice', ALICE, TIP - 100);
+        anchorAt(a, ALICE);
+        w.bound.set(ALICE, [pk(1)]);
+        w.relays.set('wss://relay.ochk.io', [listing(1, 'alice', ALICE, a)]);
+        deps.maxLimit = async (relay) => (relay === 'wss://relay.ochk.io' ? 50 : undefined);
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+        deps.maxLimit = async () => 500;
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toMatchObject({
+            result: 'holds',
+            holder: ALICE,
+        });
+    });
+
+    it('every REQ the read makes of a relay stays under the handle\'s d tag, the stepped-past second\'s check included', async () => {
+        const { w, deps } = world();
+        w.relays.set(
+            'wss://relay.ochk.io',
+            Array.from({ length: 200 }, (_, i) =>
+                sign(10 + (i % 50), { v: 2, handle: 'x' + i }, directoryDtag('alice'), 1_790_000_000)
+            )
+        );
+        const asked: Parameters<typeof deps.page>[1][] = [];
+        const real = deps.page;
+        deps.page = async (relay, filter) => {
+            if (relay === 'wss://relay.ochk.io') asked.push(filter);
+            return real(relay, filter);
+        };
+        expect(await resolveDirectoryHandle('alice', 'people', deps)).toEqual({
+            result: 'E_DIR_UNRESOLVED',
+        });
+        // A page at one second, the step past it, then the check of what the relay sends a page.
+        expect(asked.map((f) => f.until)).toEqual([undefined, 1_789_999_999, undefined]);
+        expect(asked.every((f) => f['#d'].length === 1 && f['#d'][0] === directoryDtag('alice'))).toBe(true);
+    });
+
     it('@ochkroot: exactly the anchored v1 listing carries the shipped legacy claim (§8.2.8)', async () => {
         const { w, deps } = world();
         const ROOT = 'bc1pezn5yjxmz9nuahtqprvhfeya2nv4zdfk49u5amquhqptykx695rs60hqa2';
