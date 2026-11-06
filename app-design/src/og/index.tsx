@@ -1,6 +1,9 @@
 import type { ReactElement, ReactNode } from 'react';
 
+import { LOGO_DEFAULT, type Logo } from '../brand/logo';
 import { MARK_FACES, MARK_POINTS } from '../brand/mark';
+import { pixelFit } from '../brand/pixel-fit';
+import { PIXEL_MARKS, PIXEL_WORDS } from '../brand/pixel.data';
 import { appColors } from '../tokens';
 import ditherMark240 from '../../art/dither-mark-240.png';
 import ditherMark240x2 from '../../art/dither-mark-240-2x.png';
@@ -230,8 +233,38 @@ function MarkSvg({ width, tone }: { width: number; tone: Tone }) {
     );
 }
 
+/**
+ * The pixel lockup: the check and the wordmark in square cells of whole pixels on the grid whose x-height comes
+ * nearest Inter's at `size`, as the page's lockup is drawn. The mark's faces follow the tone as the vector mark's do.
+ */
+function PixelLockup({ tone, size }: { tone: Tone; size: number }) {
+    const { grid, cell } = pixelFit(size);
+    const face = (name: 'left' | 'right' | 'top') =>
+        tone.monoMark ? { fill: INK, fillOpacity: name === 'top' ? 1 : name === 'left' ? 0.6 : 0.3 } : { fill: name === 'top' ? tone.top : MARK_FACES[name] };
+    const m = PIXEL_MARKS[grid];
+    const w = PIXEL_WORDS[grid];
+    return (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+            <svg width={m.width * cell} height={m.height * cell} viewBox={`0 0 ${m.width} ${m.height}`} shapeRendering="crispEdges">
+                <path d={m.left} {...face('left')} />
+                <path d={m.right} {...face('right')} />
+                <path d={m.top} {...face('top')} />
+            </svg>
+            <svg
+                width={w.width * cell}
+                height={(w.rows + 2) * cell}
+                viewBox={`0 -2 ${w.width} ${w.rows + 2}`}
+                shapeRendering="crispEdges"
+                style={{ marginLeft: Math.round((m.width * cell) / 3) }}
+            >
+                <path d={w.d} fill={tone.fg} />
+            </svg>
+        </div>
+    );
+}
+
 /** The lockup: the mark and the lowercase wordmark in Inter 400, then the site's word after a rule. */
-function Lockup({ tone, size, product }: { tone: Tone; size: number; product?: string }) {
+function Lockup({ tone, size, product, logo }: { tone: Tone; size: number; product?: string; logo: Logo }) {
     return (
         <div
             style={{
@@ -242,8 +275,9 @@ function Lockup({ tone, size, product }: { tone: Tone; size: number; product?: s
                 letterSpacing: -size * 0.02,
             }}
         >
-            <MarkSvg width={size * 1.4} tone={tone} />
-            <span style={{ marginLeft: size * 0.4 }}>orangecheck</span>
+            {/* No fragment: each child stands alone for satori. */}
+            {logo === 'pixel' ? <PixelLockup tone={tone} size={size} /> : <MarkSvg width={size * 1.4} tone={tone} />}
+            {logo === 'pixel' ? null : <span style={{ marginLeft: size * 0.4 }}>orangecheck</span>}
             {product ? (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <div
@@ -303,10 +337,15 @@ export interface OgCardProps {
     mark?: boolean;
     /** Baked art in the mark's place (an `ogArt` entry, or the site's own PNG), at the lower right. */
     art?: OgImage;
+    /**
+     * The lockup's logo. The page's switch (brand/logo.ts) cannot reach a share image, which a crawler fetches
+     * with no cookie, so a card draws the default unless told.
+     */
+    logo?: Logo;
 }
 
 /** The 1200×630 card. The card is the image, so it is square: rounding is for tiles laid on a sheet (`OgBento`). */
-export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art: given }: OgCardProps): ReactElement {
+export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = true, art: given, logo = LOGO_DEFAULT }: OgCardProps): ReactElement {
     const t = TONES[tone];
     // With no art of its own, the card draws the tone's dithered mark doubled, 480px, at its own pixels.
     const art = given ?? (mark ? ditherMark(t)[1] : undefined);
@@ -390,7 +429,7 @@ export function OgCard({ title, eyebrow, product, host, tone = 'ink', mark = tru
                 </div>
             </div>
             <div style={{ display: 'flex' }}>
-                <Lockup tone={t} size={30} product={product} />
+                <Lockup tone={t} size={30} product={product} logo={logo} />
             </div>
         </div>
     );
@@ -431,6 +470,8 @@ export interface OgBentoProps {
     wide: OgTile;
     /** `social` only: the row of four along the foot. */
     row?: readonly [OgTile, OgTile, OgTile, OgTile];
+    /** The lockups' logo, the default unless told (as `OgCard`'s). */
+    logo?: Logo;
 }
 
 /**
@@ -474,7 +515,7 @@ function artSize(art: NonNullable<OgTile['art']>, box: { width: number; height: 
     return { width: Math.round(art.width * scale), height: Math.round(art.height * scale) };
 }
 
-function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; height: number; k: number; big?: boolean }) {
+function Tile({ tile, width, height, k, big, logo }: { tile: OgTile; width: number; height: number; k: number; big?: boolean; logo: Logo }) {
     const t = TILE_TONES[tile.tone];
     const pad = 32 * k;
     const body = typeof tile.body === 'string' ? [tile.body] : (tile.body ?? []);
@@ -598,7 +639,7 @@ function Tile({ tile, width, height, k, big }: { tile: OgTile; width: number; he
                         {mono('OgTile footer', tile.footer)}
                     </div>
                 ) : null}
-                {tile.lockup ? <Lockup tone={t} size={26 * k} /> : null}
+                {tile.lockup ? <Lockup tone={t} size={26 * k} logo={logo} /> : null}
             </div>
         </div>
     );
@@ -628,7 +669,7 @@ export function ogBentoGrid(size: 'og' | 'social' = 'og', withRow = size === 'so
  * 48px margin and 16px gutters, as the bento image; at 1200×630 it keeps the
  * first two rows, which is what a 1.91:1 card can carry.
  */
-export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): ReactElement {
+export function OgBento({ size = 'og', hero, top, wide, row, logo = LOGO_DEFAULT }: OgBentoProps): ReactElement {
     const foot = size === 'social' ? row : undefined;
     const { left, top: y0, gap, colW, rowH, k } = ogBentoGrid(size, Boolean(foot));
     return (
@@ -645,16 +686,16 @@ export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): Re
             }}
         >
             <div style={{ display: 'flex' }}>
-                <Tile tile={hero} width={2 * colW + gap} height={2 * rowH + gap} k={k} big />
+                <Tile tile={hero} width={2 * colW + gap} height={2 * rowH + gap} k={k} big logo={logo} />
                 <div style={{ display: 'flex', flexDirection: 'column', marginLeft: gap }}>
                     <div style={{ display: 'flex' }}>
-                        <Tile tile={top[0]} width={colW} height={rowH} k={k} />
+                        <Tile tile={top[0]} width={colW} height={rowH} k={k} logo={logo} />
                         <div style={{ display: 'flex', marginLeft: gap }}>
-                            <Tile tile={top[1]} width={colW} height={rowH} k={k} />
+                            <Tile tile={top[1]} width={colW} height={rowH} k={k} logo={logo} />
                         </div>
                     </div>
                     <div style={{ display: 'flex', marginTop: gap }}>
-                        <Tile tile={wide} width={2 * colW + gap} height={rowH} k={k} />
+                        <Tile tile={wide} width={2 * colW + gap} height={rowH} k={k} logo={logo} />
                     </div>
                 </div>
             </div>
@@ -662,7 +703,7 @@ export function OgBento({ size = 'og', hero, top, wide, row }: OgBentoProps): Re
                 <div style={{ display: 'flex', marginTop: gap }}>
                     {foot.map((tile, i) => (
                         <div key={i} style={{ display: 'flex', marginLeft: i ? gap : 0 }}>
-                            <Tile tile={tile} width={colW} height={rowH} k={k} />
+                            <Tile tile={tile} width={colW} height={rowH} k={k} logo={logo} />
                         </div>
                     ))}
                 </div>

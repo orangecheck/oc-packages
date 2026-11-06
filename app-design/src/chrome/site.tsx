@@ -2,7 +2,9 @@ import { ChevronDown, Menu } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
+import { logoAttrs } from '../brand/logo';
 import { Lockup } from '../brand/mark';
+import { PIXEL_SIGNATURE } from '../brand/pixel.data';
 import { Reveal } from '../components/motion';
 import { familyByGroup, GET_AN_ACCOUNT, LEGAL_LINKS, OCHK_IO, OCHK_IO_FOOTER, PROTOCOLS, type FamilySlug } from '../family';
 import { cn } from '../lib/cn';
@@ -671,11 +673,23 @@ export function SiteFooter({
                     <Reveal className="overflow-hidden [container-type:inline-size]" style={{ '--oca-wordmark-mid': 5 } as CSSProperties}>
                         <div
                             data-oca-wordmark=""
+                            {...logoAttrs('classic')}
                             className="flex whitespace-nowrap pb-[0.24em] text-[calc(100cqi/5.16)] font-normal leading-[0.82] tracking-[-0.055em] [font-family:var(--oc-font-display)] [&>span:last-child]:tracking-normal"
                         >
                             {[...'orangecheck'].map((ch, i) => (
                                 <span key={i} className="inline-block" style={{ '--oca-letter': i } as CSSProperties}>
                                     {ch}
+                                </span>
+                            ))}
+                        </div>
+                        {/* The pixel logo's (brand/logo.ts): the large grid, each letter as wide as its share of the
+                            word, so the cells stay square at any width and the letters rise as the type's do. */}
+                        <div data-oca-wordmark="" {...logoAttrs('pixel')} className="flex pb-[2%]">
+                            {PIXEL_SIGNATURE.letters.map((l, i) => (
+                                <span key={i} className="inline-block" style={{ '--oca-letter': i, width: `${(l.advance / PIXEL_SIGNATURE.width) * 100}%` } as CSSProperties}>
+                                    <svg viewBox={`0 0 ${l.advance} ${PIXEL_SIGNATURE.rows}`} className="block h-auto w-full" fill="currentColor" shapeRendering="crispEdges">
+                                        <path d={l.d} />
+                                    </svg>
                                 </span>
                             ))}
                         </div>

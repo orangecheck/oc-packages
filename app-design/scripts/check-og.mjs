@@ -8,7 +8,8 @@
  * (scripts/og/mono-inventory.mjs), read from its cmap; each caller's real
  * cards draw with no warning; a character outside it draws in Inter with a
  * warning; Latin Extended draws from Inter's own Latin Extended files; and
- * nothing fetches a font. Run after `yarn build`; OG_REVIEW_DIR=<dir> also
+ * nothing fetches a font. A card asked for the pixel logo draws its cells
+ * whole, the word in the card's ink. Run after `yarn build`; OG_REVIEW_DIR=<dir> also
  * writes every image drawn.
  */
 import { createRequire } from 'node:module';
@@ -119,6 +120,28 @@ for (const [tone, [bg, fg]] of Object.entries(grounds)) {
         check(png.type === 'image/png' && png.width === 1200 && png.height === 630, `${tone}: not a 1200×630 PNG`);
     } catch (e) {
         check(false, `${tone}: next/og cannot draw the card (${String(e.message).slice(0, 100)})`);
+    }
+}
+
+// The pixel logo, asked for by `logo`: a lockup of whole-pixel cells in every tone, the word in the tone's ink,
+// drawn by next/og where the classic one is. With no `logo` a card draws the default (crawlers send no cookie).
+for (const [tone, [, fg]] of Object.entries(grounds)) {
+    const props = { title: 'Prove who signed it, and when.', eyebrow: 'OC Stamp', product: 'stamp', host: 'stamp.ochk.io', tone };
+    const tree = walk(h(og.OgCard, { ...props, logo: 'pixel' }));
+    const svgs = tree.filter((e) => e.type === 'svg' && e.props.shapeRendering === 'crispEdges');
+    const whole = svgs.every((e) => {
+        const [, , w, ht] = e.props.viewBox.split(' ').map(Number);
+        return Number.isInteger(e.props.width / w) && e.props.width / w === e.props.height / ht;
+    });
+    check(svgs.length === 2 && whole, `${tone}: logo="pixel" is not the pixel check and word in whole-pixel cells`);
+    check(tree.some((e) => e.type === 'path' && e.props.fill === fg), `${tone}: the pixel word is not in the card's ink`);
+    check(!walk(h(og.OgCard, props)).some((e) => e.props.shapeRendering === 'crispEdges'), `${tone}: with no logo the card does not draw the default, classic`);
+    try {
+        const a = await draw(h(og.OgCard, { ...props, logo: 'pixel' }), og.OG_SIZE, `og-card-${tone}-pixel`);
+        const b = await draw(h(og.OgCard, props), og.OG_SIZE, `og-card-${tone}-classic`);
+        check(a.width === 1200 && a.height === 630 && Buffer.compare(Buffer.from(a.png), Buffer.from(b.png)) !== 0, `${tone}: the pixel card does not draw, or draws as the classic one`);
+    } catch (e) {
+        check(false, `${tone}: next/og cannot draw the pixel card (${String(e.message).slice(0, 100)})`);
     }
 }
 

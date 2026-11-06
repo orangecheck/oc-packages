@@ -1,3 +1,5 @@
+import { LogoScript } from '../brand/logo-script';
+
 /*
  * The fonts the first screen paints in, at the stylesheet's own address.
  * `new URL(…, import.meta.url)` is how a bundler emits a file and gives its
@@ -24,11 +26,13 @@ export const FONT_FILES = {
 } as const;
 
 /**
- * Renders nothing since 1.20.0, and stays so no site's _document breaks. The
+ * The package's tag in a site's head. It preloads no font since 1.20.0: the
  * preload cost first paint 118 to 162 ms on four sites (paired runs, 23 of
- * 23), and without it the font swap shifts nothing: CLS stayed at or under
- * 0.0001 on 28 of 29 pages across the 15 sites that rendered it.
+ * 23), and without it the font swap shifts nothing (CLS at or under 0.0001 on
+ * 28 of 29 pages across the 15 sites that rendered it). It renders the logo
+ * switch's script (`LogoScript`), which has to run before the body paints:
+ * every site's _document renders this tag first in its head.
  */
 export function FontPreloads(_props: { mono?: boolean }) {
-    return null;
+    return <LogoScript />;
 }

@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { logoAttrs } from '../brand/logo';
 import { MarkOutline } from '../brand/mark';
+import { PixelMarkOutline } from '../brand/pixel';
 import { OCHK_IO, protocolSite, type ProtocolSlug } from '../family';
 import { cn } from '../lib/cn';
 import { useInColumn } from '../lib/column';
@@ -85,7 +87,12 @@ export function ErrorPage({
                 </div>
                 {art !== null ? (
                     <div aria-hidden className="oca-enter hidden justify-center md:col-span-5 md:flex [--enter-delay:120ms]">
-                        {art ?? <MarkOutline className="w-full max-w-[20rem] text-oca-hairline-strong" />}
+                        {art ?? (
+                            <>
+                                <MarkOutline className="w-full max-w-[20rem] text-oca-hairline-strong" {...logoAttrs('classic')} />
+                                <PixelMarkOutline className="w-full max-w-[20rem] text-oca-hairline-strong" {...logoAttrs('pixel')} />
+                            </>
+                        )}
                     </div>
                 ) : null}
             </div>

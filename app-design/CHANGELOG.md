@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+A second logo, pixel, can be switched on to test.
+
+- Every place the package draws the brand draws both logos: classic, as
+  before, and pixel, the wordmark and the check in square cells. CSS shows
+  one. With no choice it is `LOGO_DEFAULT`, classic; making pixel the
+  default is that one line in `src/brand/logo.ts`. The places: SiteHeader's
+  and SiteFooter's lockups and the footer's signature, the compact footer,
+  ToolShell, DocsShell, AppShell's bars, SignInFrame, ErrorPage's check,
+  IsoCheck and `Lockup`.
+- `?logo=pixel` on a page chooses pixel and `?logo=classic` the default.
+  The choice is the cookie `oc_logo`, set for `.ochk.io` on an ochk.io host,
+  so one visit switches every *.ochk.io site; any other host keeps its own.
+  `FontPreloads`, first in every site's head, renders `LogoScript`, which
+  reads the choice and sets `data-oc-logo` on `<html>` before the body is
+  parsed. The server's HTML is the same either way, so it hydrates
+  unchanged and nothing flashes. `logoScript()` is the script as a string,
+  for a head that renders no React.
+- The wordmark and the check are drawn by hand on three grids
+  (`scripts/logo/glyphs.mjs`) and baked to SVG paths
+  (`scripts/logo/bake.mjs`; `--check` refuses a stale bake): small for a
+  header's lockup, at 2px a cell; medium for the smaller lockups, at 1px;
+  large for the footer's signature, which fills its frame letter by letter
+  and rises as the classic one does. A lockup's cells are whole pixels, so
+  they stay square at 1x, 2x and 3x. A word other than "orangecheck" stays
+  in type beside the pixel check.
+- `PixelMark` and `PixelWordmark` draw the two alone, and `Lockup` takes
+  `logo` to draw one logo only. `OgCard` and `OgBento` take `logo`, by
+  default `LOGO_DEFAULT`: a crawler sends no cookie, so a card follows the
+  default, not the switch. `LOGOS`, `LOGO_COOKIE` and `logoAttrs` are
+  exported for a site that draws a logo of its own.
+- check-logo holds both logos at every place, the pixel one inked on every
+  ground in light and dark, the switch across hosts before paint with
+  hydration unchanged, the signature's square cells filling its frame at
+  390 and 1440 with motion and without, and whole-pixel cells in every
+  lockup. It runs in `yarn test`.
+
 ## [2.4.0] — 2026-11-06
 
 The theme emits no custom property that refers to itself.

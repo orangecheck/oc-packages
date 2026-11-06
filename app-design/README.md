@@ -46,14 +46,14 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 
 | Entry | What |
 |---|---|
-| `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere` |
+| `/brand` | `Mark`, `AppIcon`, `Lockup`, `IsoCheck`, `HalftoneSphere`; the pixel logo (`PixelMark`, `PixelWordmark`) and its switch (`LOGOS`, `LOGO_DEFAULT`, `LOGO_COOKIE`, `logoAttrs`, `logoScript`, `LogoScript`) |
 | `/primitives` | `Button`, `Badge`, `Card`, form controls (`Input size="sm"` for tools), `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`, `Tabs`, `Toaster`, `DensityProvider`, `useRefusals`, `announce` (a short status through the page's one live region) |
 | `/components` | `Display`, `Eyebrow`, `Section`, `StepGrid`, `PackageCard`, `TruthTable`, `Sats`, `DataTable`, `Notice`, `ProgressSteps`, `ErrorPage`, the public page blocks (`SectionHeading`, `FactBlock`, `ProofStrip`, `Closing`, `LegalDocument` …), the protocol page blocks (`ProtocolGrid`, `AppGrid`, `ProtocolHero`, `SpecCard`, `VerifyBox`, `ComparisonTable`, `VerifyReport`, `SignMessage`), code (`CodeBlock`, `CodeTabs`, `InstallTabs`), the docs blocks (`Breadcrumbs`, `DocsPager`, `OnThisPage`, `Callout`, `Steps`, `LinkCard`, `ApiTable`, `Diagram`, `SearchDialog`) and the tool parts (`ArtifactView`, `DropZone`, `FormSection`, `StateBadge`, `AnchorStatus`, `BlockHeight`, `BlockCountdown`, `Meter`, `FilterChips`, `ToolGrid`), and the parts signed-in pages repeat (`SectionTitle`, `ListCard`, `ListRow`, `ChoiceGroup`, `ChoiceCard`, `Avatar`) |
 | `/chrome` | `SiteHeader`, `SiteFooter`, `FamilyMenu`, `SkipLink`, `SiteBanner`, `SignInFrame`, `AppShell`, `PaneHeader`, `AccountMenu`, `ThemeProvider`, `ThemeToggle`, `useTheme`, `DocsShell`, `DocsNav`, `ToolShell`, `ToolColumn`, `SessionAccountView`, `AccountCta`, `useSignInHref`, `useFamilySignInHref` |
 | `/mdx` | `mdxComponents` and `createMdxComponents({ mermaid })`: markdown in the system's type |
 | `/code` | `rehypeCode` (highlights fences at build time), `highlight`, `highlightToHtml`; no React |
 | `/format` | `explorerUrl`, `shortenMiddle`, `formatBlockHeight`, `blocksToDuration`, `formatUtc`, `formatBytes`, `failureText`, `OFFLINE_TEXT`; no React |
-| `/fonts` | `FONT_FILES`: the fonts the first screen paints in, at the stylesheet's own address. `FontPreloads` renders nothing since 1.20.0 (a preload cost first paint and saved no shift) and stays so no `_document` breaks |
+| `/fonts` | `FONT_FILES`: the fonts the first screen paints in, at the stylesheet's own address. `FontPreloads` preloads nothing since 1.20.0 (a preload cost first paint and saved no shift); it renders the logo switch's script, first in the head |
 | `/og` | `OgCard` (paper, ink, burnt, brand), `OgBento` (tiles on the social sheet, 1200×630 or 1920×1080), `ogArt`, `ogFonts()`, `OG_SIZE`, `SOCIAL_SIZE`: the family's share images for next/og's ImageResponse, Inter 300/400 and JetBrains Mono inline |
 | `/art/*` | Baked art, PNG at display size and `-2x`, with an AVIF beside a PNG only where it is smaller (none is today) (`scripts/art/bake.mjs`): `dither-mark-{240,480,960}`, `-ink-` (ink top, light grounds) and `-brand-` (ink alone, brand grounds), each 240 also as `-240-2x` (every pixel doubled, for an OG route to draw at 1:1); `dither-field`, `halftone-field`, generated from geometry, never from a photograph; and `portrait-halftone-{600,1200}.webp`, the default portrait's dot layer for `HalftoneSphere` (black dots on transparent), written by `scripts/portrait/build.mjs` from a generated portrait of a woman who does not exist (`scripts/portrait/SOURCE.md`) |
 | `/blocks` | `SignInDemo`, `CostDemo`, `Slider`, `BentoGrid`, `BentoTile`, `ReceiptCard`, `StepPath`, `DitherMark`: design 2's interactive blocks, in their own entry so a site that uses none pays nothing |
@@ -63,6 +63,17 @@ transitions for the switch a person makes; a switch of your own takes `useTheme`
 | `/signin` | `SignInPage`, `useSignInReturn`, `signInSeo`: a family site's whole /signin page around auth-client's `OcSignIn` (the same optional peer); a tool site passes its protocol and where to go |
 | `/family` | every public site as data (`FAMILY`, `PROTOCOLS`, `OCHK_IO_NAV`, `LEGAL_LINKS`) and the account phrase (`GET_AN_ACCOUNT`, `SIGN_IN_LABEL`); no React |
 | `/tokens` | the palette as data, for OG images and charts |
+
+Every place the package draws the brand draws two logos, classic and pixel, and
+CSS shows one: `LOGO_DEFAULT` (classic), or the one a person chose. `?logo=pixel`
+on any page chooses pixel and `?logo=classic` the default; the choice is the cookie
+`oc_logo`, set for `.ochk.io` on an ochk.io host, so one visit switches every
+*.ochk.io site, and any other host (ochk.app) keeps its own. `FontPreloads`, first
+in a site's head, sets `data-oc-logo` on `<html>` from it before the body is
+parsed, so the server's HTML hydrates unchanged and nothing flashes. Making pixel
+the default is the one line `LOGO_DEFAULT` in `src/brand/logo.ts`. The pixel
+glyphs are drawn cell by cell in `scripts/logo/glyphs.mjs` and baked to paths by
+`scripts/logo/bake.mjs`.
 
 Docs written in MDX get highlighted code from the build and the system's type:
 
