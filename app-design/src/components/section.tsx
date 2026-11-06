@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
 
 import { cn } from '../lib/cn';
-import { Frame } from './frame';
+import { Frame, SectionBar, type SectionBarProps } from './frame';
 import { Reveal } from './motion';
 
 /*
@@ -18,6 +18,8 @@ import { Reveal } from './motion';
 // A section's vertical space. A framed section puts it inside its Frame, so the Frame's hairlines
 // run the section's full height and meet the next section's.
 const SPACE = { none: '', sm: 'py-12 md:py-16', md: 'oca-section', lg: 'py-24 md:py-40' } as const;
+// Under a bar, the space ochk.app, vault and chat each drew by hand: 4rem, 6rem from md.
+const BAR_SPACE = 'py-16 md:py-24';
 
 export const sectionVariants = cva('relative w-full overflow-x-clip', {
     variants: {
@@ -53,9 +55,24 @@ export interface SectionProps extends HTMLAttributes<HTMLElement>, VariantProps<
     framed?: boolean;
     /** With `framed`: classes for the Frame, which also holds the section's `space`. */
     frameClassName?: string;
+    /**
+     * The title-block bar at the section's top, across its frame or container: a mono label at each
+     * end on a hairline. The section's space is then under the bar, 4rem and 6rem from md unless
+     * `space` says otherwise. `as: 'h2'` when the bar names the section.
+     */
+    bar?: Pick<SectionBarProps, 'start' | 'end' | 'as'>;
 }
 
-export function Section({ tone, space, rule, contained = true, framed = false, frameClassName, className, children, ...props }: SectionProps) {
+export function Section({ tone, space, rule, contained = true, framed = false, frameClassName, bar, className, children, ...props }: SectionProps) {
+    const room = space ? SPACE[space] : bar ? BAR_SPACE : SPACE.md;
+    const body = bar ? (
+        <>
+            <SectionBar {...bar} />
+            <div className={room}>{children}</div>
+        </>
+    ) : (
+        children
+    );
     if (framed) {
         return (
             // A closed box between its hairlines: nothing inside paints across them, a depiction's shadow
@@ -64,13 +81,13 @@ export function Section({ tone, space, rule, contained = true, framed = false, f
             // section's reach there let a glow at the frame's edge widen a frame-wide page (chat's and vault's
             // heroes scrolled 3px from 768, ochk.io /about's mark at 320).
             <section className={cn(sectionVariants({ tone, space: 'none', rule }), 'overflow-clip [overflow-clip-margin:var(--oca-focus-reach)]', className)} {...props}>
-                <Frame className={cn('overflow-x-clip', SPACE[space ?? 'md'], frameClassName)}>{children}</Frame>
+                <Frame className={cn('overflow-x-clip', !bar && room, frameClassName)}>{body}</Frame>
             </section>
         );
     }
     return (
-        <section className={cn(sectionVariants({ tone, space, rule }), className)} {...props}>
-            {contained ? <div className="oca-container">{children}</div> : children}
+        <section className={cn(sectionVariants({ tone, space: bar ? 'none' : space, rule }), className)} {...props}>
+            {contained ? <div className="oca-container">{body}</div> : body}
         </section>
     );
 }

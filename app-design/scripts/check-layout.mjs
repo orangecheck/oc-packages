@@ -991,7 +991,10 @@ try {
                     h(C.Section, { framed: true, space: 'sm' }, bar('padded')),
                     h(C.Frame, { padded: false }, bar('unpadded')),
                     h('section', null, bar('bare')),
-                    h(C.Section, { space: 'sm' }, h(P.Card, { 'data-box': 'card' }, bar('card'), h('p', { 'data-axis': 'card' }, 'The card says one thing.')))
+                    h(C.Section, { space: 'sm' }, h(P.Card, { 'data-box': 'card' }, bar('card'), h('p', { 'data-axis': 'card' }, 'The card says one thing.'))),
+                    // The section shell: a Section's own bar, contained and framed, its body under it.
+                    h(C.Section, { 'data-shell': 'contained', bar: { start: 'Shell contained', end: '07 / 08' } }, h(C.SectionHeading, { layout: 'split', reveal: false, title: 'Ten kinds of entry.', lead: 'Each entry is encrypted on its own.' })),
+                    h(C.Section, { 'data-shell': 'framed', framed: true, bar: { start: 'Shell framed', end: '08 / 08' } }, h(C.SectionHeading, { layout: 'split', reveal: false, eyebrow: 'Data', title: 'What we store, and what can move funds', lead: 'Every field, and what it is for.' }))
                 )
             )
         )
@@ -2326,6 +2329,42 @@ try {
                     const off = b.bars.filter((x) => Math.abs(x.dl) > 1 || Math.abs(x.dr) > 1 || Math.abs(x.axis) > 1);
                     check(b.bars.length === 6 && off.length === 0, `[${w}] SectionBar: a bar does not span its box or sits off its axis (px off left, right, axis): ${JSON.stringify(off)}`);
                     check(b.scroll <= 0, `[${w}] SectionBar: the page scrolls ${b.scroll}px sideways`);
+                    // A Section's own bar: across the frame between its rules, its square on the header's axis,
+                    // flush with the section's top, and the body 4rem under it (6rem from 768). A split heading
+                    // sets its lead beside the title from 1024, their feet level, and under it below.
+                    const shell = await c.evaluate(() => {
+                        const r = (el) => el.getBoundingClientRect();
+                        const fr = r(document.querySelector('[data-box="frame"]'));
+                        const axis = r(document.querySelector('header a[href="/"] svg')).left;
+                        return [...document.querySelectorAll('[data-shell]')].map((sec) => {
+                            const barEl = sec.querySelector('[data-oca-section-bar]');
+                            const square = r(barEl.querySelector('[data-ui="label"] span[aria-hidden]'));
+                            const title = sec.querySelector('h2');
+                            const cell = title.parentElement;
+                            const lead = cell.nextElementSibling;
+                            return {
+                                k: sec.dataset.shell,
+                                dl: Math.round((r(barEl).left - (fr.left + 1)) * 10) / 10,
+                                dr: Math.round((r(barEl).right - (fr.right - 1)) * 10) / 10,
+                                axis: Math.round((square.left - axis) * 10) / 10,
+                                top: Math.round((r(barEl).top - r(sec).top) * 10) / 10,
+                                gap: Math.round((r(cell).top - r(barEl).bottom) * 10) / 10,
+                                titleLeft: Math.round(r(title).left - axis),
+                                leadLeft: Math.round(r(lead).left - r(cell).right),
+                                leadTop: Math.round(r(lead).top - r(cell).bottom),
+                                feet: Math.round(r(cell).bottom - r(lead).bottom),
+                            };
+                        });
+                    });
+                    const room = w < 768 ? 64 : 96;
+                    for (const s of shell) {
+                        check(Math.abs(s.dl) <= 1 && Math.abs(s.dr) <= 1 && Math.abs(s.axis) <= 1, `[${w}] Section bar (${s.k}): does not span the frame or sits off the axis: ${JSON.stringify(s)}`);
+                        check(Math.abs(s.top) <= 0.5 && Math.abs(s.gap - room) <= 1, `[${w}] Section bar (${s.k}): ${s.top}px below the section's top and ${s.gap}px above the body, not flush and ${room}`);
+                        check(Math.abs(s.titleLeft) <= 1, `[${w}] SectionHeading split (${s.k}): its title is ${s.titleLeft}px off the axis`);
+                        if (w >= 1024) check(s.leadLeft >= 63 && Math.abs(s.feet) <= 1, `[${w}] SectionHeading split (${s.k}): the lead is not beside the title (${s.leadLeft}px apart) with its foot level (${s.feet}px)`);
+                        else check(s.leadTop >= 19 && s.leadTop <= 21, `[${w}] SectionHeading split (${s.k}): the lead is not 20px under the title (${s.leadTop}px)`);
+                    }
+                    check(shell.length === 2, `[${w}] Section bar: ${shell.length} shells drawn, not 2`);
                     await c.close();
                 }
             }

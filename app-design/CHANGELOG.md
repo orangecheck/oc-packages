@@ -18,6 +18,23 @@ A depiction keeps the page's colours on every band.
   check-contrast reads a depiction's fill as the page's and its edge as
   the band's.
 
+One section shell, so a site stops drawing its own.
+
+- `Section` takes `bar={{ start, end }}`: the title-block bar at the
+  section's top, across its `oca-container` or, with `framed`, its frame,
+  and the body under it with 4rem of room, 6rem from md, as ochk.app's
+  `FramedSection`, vault's `LandingSection` and chat's `Frame` draw it by
+  hand. `space` still sets that room, and `bar.as` makes the bar the
+  section's heading. A section without a bar draws as it did.
+- `SectionHeading` takes `layout="split"`: the title at the left and the
+  lead at the right from lg, their feet level; below lg the lead sits
+  under the title. `stack` stays the default.
+- check-render reads where the bar and the body go in each shell and the
+  split's two cells; check-layout holds the bar across its frame on the
+  header's axis, flush with the section's top, the body 64px under it
+  (96px from 768) and the split's feet level from 1024, at 320, 390 and
+  1440.
+
 ## [2.5.0] — 2026-11-06
 
 A second logo, pixel, can be switched on to test.
