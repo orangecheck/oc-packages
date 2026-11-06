@@ -27,6 +27,17 @@ import { schnorr } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
+import {
+  readPages,
+  relayMaxLimit,
+  type PageAnswer,
+  type PageBounds,
+  type PageQuery,
+  type PagedReadState,
+} from "./pages";
+
+export * from "./pages";
+
 // ─────────────────────────────────────────────────────────────────────────
 // Build-time invariants + default relay set.
 // ─────────────────────────────────────────────────────────────────────────
@@ -987,6 +998,60 @@ export async function queryEvents(
       (a, b) => b.created_at - a.created_at,
     ),
     relayStatus: status,
+  };
+}
+
+/**
+ * `filter` read on each relay alone with readPages, so one relay's flood or
+ * silence touches only its own read, every page of one relay sharing one
+ * deadline (`timeoutMs`, default 4000). A relay that does not finish by then
+ * is cut off, or no answer if it sent nothing. NIP-11 `max_limit` is read with
+ * relayMaxLimit; with your own `query`, pass `maxLimit` too. `eose` is true
+ * only for a relay whose read is complete.
+ */
+export async function readRelays(
+  filter: Filter,
+  relays: readonly string[] = DEFAULT_RELAYS,
+  opts: Omit<PageBounds, "budget"> & {
+    timeoutMs?: number;
+    query?: (
+      filter: Filter,
+      relays: readonly string[],
+      timeoutMs: number,
+    ) => Promise<{ events: NostrEvent[]; relayStatus?: readonly PageAnswer[] }>;
+  } = {},
+): Promise<{
+  events: NostrEvent[];
+  relayStatus: { relay: string; eose: boolean; state: PagedReadState }[];
+  truncated: boolean;
+}> {
+  const query = opts.query ?? queryEvents;
+  const bounds: PageBounds = {
+    ...opts,
+    maxLimit: opts.maxLimit ?? (opts.query ? undefined : relayMaxLimit),
+  };
+  const reads = await Promise.all(
+    relays.map((relay) => {
+      const deadlineAt = Date.now() + (opts.timeoutMs ?? 4000);
+      const one: PageQuery = async (f) => {
+        const left = deadlineAt - Date.now();
+        if (left <= 0) {
+          return { events: [], relayStatus: [{ relay, eose: false, events: 0, rejected: 0 }] };
+        }
+        return query(f, [relay], left);
+      };
+      return readPages(one, filter, bounds);
+    }),
+  );
+  const byId = new Map<string, NostrEvent>();
+  for (const r of reads) for (const e of r.events) if (!byId.has(e.id)) byId.set(e.id, e);
+  return {
+    events: [...byId.values()].sort((a, b) => b.created_at - a.created_at),
+    relayStatus: relays.map((relay, i) => {
+      const state = reads[i]!.relayStatus?.[0]?.state ?? "no_answer";
+      return { relay, eose: state === "complete", state };
+    }),
+    truncated: reads.some((r) => r.truncated),
   };
 }
 

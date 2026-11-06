@@ -36,6 +36,34 @@ const { events, relayStatus } = await queryEvents(filter);
 console.log(`${events.length} unique events from ${relayStatus.filter(r => r.ok).length} relays`);
 ```
 
+## Reading to the end
+
+A relay answers newest first, up to a page size of its own (`max_limit`, 500 on
+the default relays), so one `queryEvents` shows only a relay's newest events.
+Anyone can publish under a tag, so a read that rests on what is not there pages
+to the end:
+
+```ts
+import { readRelays, readPages, queryEvents } from '@orangecheck/nostr-core';
+
+// Each relay paged alone, its pages sharing one deadline.
+const { events, relayStatus } = await readRelays(filter, relays, { timeoutMs: 4000 });
+// relayStatus[i].state: 'complete' | 'cut_off' | 'no_answer'
+
+// Or over any query, one relay or several at once.
+const read = await readPages((f) => queryEvents(f, relays, 6000), filter);
+```
+
+A relay's read ends on a page that is empty, under `MIN_PAGE` (100), or shorter
+than a page it sent before; anything else is paged with `until`. A second that
+holds more events than a relay sends in a page cannot be paged past: the read
+steps past it and reads that relay as `cut_off`. A relay that sent anything and
+whose NIP-11 document declares a `max_limit` under 100 is `cut_off` (`relayMaxLimit` reads it;
+`readRelays` asks it unless you pass your own `query`). A read stops at 16 REQs
+or 2,000 events (`maxPages`, `maxEvents`), and a relay still open then is
+`cut_off`. Only a `complete` relay says what it does not hold. A relay that
+caps below 100 without declaring it is not told apart.
+
 ## One socket per relay
 
 In a browser, every call on the page shares one WebSocket per relay. Each
