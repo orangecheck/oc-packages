@@ -162,6 +162,8 @@ require('esbuild').buildSync({
     platform: 'node',
     format: 'cjs',
     jsx: 'automatic',
+    // As tsup.config.ts loads it: the footer's art is a PNG import.
+    loader: { '.png': 'base64' },
     nodePaths: [join(pkg, 'node_modules')],
     alias: { 'next/link': join(pkg, 'node_modules/next/link.js') },
     define: { 'process.env.NODE_ENV': '"production"' },
