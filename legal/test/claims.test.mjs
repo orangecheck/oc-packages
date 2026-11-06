@@ -120,6 +120,15 @@ test('ochk.io terms and privacy name the calendars an OC Chat handle claim reach
     }
 });
 
+test('every privacy policy lists the logo cookie beside the other preference cookies', () => {
+    for (const site of ['www', 'me', 'vault']) {
+        const text = DOCS.find(([n]) => n === `${site}/privacy`)[1];
+        assert.match(text, /oc_theme(?: ·|,) oc_skin(?: ·|,) oc_motion(?: ·|,| and) oc_logo/, site);
+        assert.match(text, /oc_logo[^.]*only when you open a page with \?logo= in its address/, site);
+    }
+    assert.match(DOCS.find(([n]) => n === 'me/privacy')[1], /On ochk\.app, up to three cookies of its own[^]*oc_logo — which of our two logos you chose/);
+});
+
 test('vault privacy says the key is stored sealed', () => {
     const text = DOCS.find(([n]) => n === 'vault/privacy')[1];
     assert.match(text, /sealed vault key/i);
@@ -349,8 +358,6 @@ test('each privacy policy opens with a dated note of what changed, newest first'
         },
         me: {
             first: '29 October',
-            // 0.7.29 changed wording only (brand, tense, custody destination), not what is kept.
-            updated: '2026-11-03',
             facts: [
                 'the contact form sends your email address',
                 'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
@@ -369,7 +376,9 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
     };
-    for (const [site, { first, facts, updated = '2026-10-31' }] of Object.entries(notes)) {
+    // 0.7.29 changed ochk.app's wording only; 0.7.30 lists the logo cookie, a preference like oc_theme
+    // that says nothing about you. Neither changed what is kept about you, so neither adds a note.
+    for (const [site, { first, facts, updated = '2026-11-06' }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
         const [lead, list] = doc.preamble ?? [];
         assert.equal(lead?.kind, 'callout', site);

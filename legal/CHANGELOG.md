@@ -8,6 +8,31 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.30] — 2026-11-06
+
+### Changed — every Privacy policy lists the logo cookie
+
+`@orangecheck/app-design` 2.5.0 draws a second logo, which a reader chooses by
+opening a page with `?logo=pixel` in its address. The choice is kept in a
+cookie, `oc_logo`, like the other appearance choices, and the Privacy
+policies of ochk.io, ochk.app and OC Vault now name it. The Terms render
+exactly as before.
+
+- **ochk.io** (the `protocol` profile). The cookie list named `oc_theme ·
+  oc_skin · oc_motion` as your light/dark, appearance and reduced-motion
+  choices. It now names `oc_logo` with them, and says it is set only when you
+  open a page with `?logo=` in its address, is kept for a year, and is deleted
+  by `?logo=classic`.
+- **ochk.app** (the `me` profile). It said ochk.app sets two cookies of its
+  own; it now says up to three and names `oc_logo`, set for ochk.app alone. It
+  said me.ochk.io has four cookies; it now says five, with `oc_logo` among the
+  preference cookies.
+- **OC Vault**. The appearance cookies that apply on vault.ochk.io now include
+  `oc_logo`.
+
+Each Privacy policy is dated 2026-11-06. Their dated notes stay as they were:
+a logo choice says nothing about you, and nothing kept about you changed.
+
 ## [0.7.29] — 2026-11-03
 
 ### Changed — ochk.app's Terms and Privacy policy say what is true today
