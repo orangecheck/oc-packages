@@ -413,6 +413,13 @@ try {
     const RADII = ['rounded', 'rounded-xs', 'rounded-sm', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rounded-4xl'];
     writeFileSync(join(dir, 'radii.js'), `export const radii = ${JSON.stringify(RADII.join(' '))};\n`);
     compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait', 'radii']);
+    // No custom property in the compiled CSS refers to itself: that is a cycle, invalid wherever nothing
+    // overrides it. 2.3.2's theme emitted --radius: var(--radius) for a bare rounded.
+    {
+        const css = readFileSync(join(dir, 'out.css'), 'utf8');
+        const loops = [...css.matchAll(/(--[\w-]+)\s*:([^;{}]*)/g)].filter(([, n, v]) => new RegExp(`var\\(\\s*${n}\\s*[,)]`).test(v)).map(([d]) => d.trim());
+        check(css.includes('border-radius: var(--radius)') && loops.length === 0, `the compiled CSS holds a custom property that refers to itself, or no bare rounded: ${[...new Set(loops)].join('; ') || 'rounded not compiled'}`);
+    }
 
     // The server's markup for the shells and a panel's header.
     const { createElement: h } = require('react');

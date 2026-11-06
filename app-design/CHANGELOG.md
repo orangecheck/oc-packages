@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+The theme emits no custom property that refers to itself.
+
+- A bare `rounded` reads the theme key `--radius` from its own reference
+  block, so the utility is still `var(--radius)` and the theme layer no
+  longer holds `--radius: var(--radius)`, a cycle wherever the tokens do
+  not set it. check-layout refuses compiled CSS in which a custom property
+  refers to itself.
+
 ## [2.3.2] — 2026-11-05
 
 Every label in the package is oca-label.
