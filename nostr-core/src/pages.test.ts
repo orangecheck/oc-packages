@@ -169,6 +169,12 @@ describe("readPages: a relay that caps a page below the page asked is read past 
     expect(states(r)).toEqual(["cut_off"]);
   });
 
+  it("a full page of only events the reader drops leaves nothing to page by: cut off", async () => {
+    const r = await readPages(relays([{ relay: "a", held: events(400, (i) => 1000 + i), cap: 300, pad: () => 300 }]), FILTER);
+    expect(states(r)).toEqual(["cut_off"]);
+    expect(r.truncated).toBe(true);
+  });
+
   it("with no counts, a page is the events read back: read until one comes back shorter", async () => {
     const sought = one(500);
     const held = [sought, ...events(400, (i) => 1000 + i)];
@@ -234,6 +240,16 @@ describe("readPages: a page under MIN_PAGE ends a relay's read", () => {
     expect(states(r)).toEqual(["cut_off", "complete", "complete", "complete"]);
     expect(r.truncated).toBe(true);
     expect(asked.sort()).toEqual(FOUR);
+  });
+
+  it("the declared page is held to the page that ends a read: 100, or limit when smaller", async () => {
+    const held = events(30, (i) => 1000 + i);
+    const read = async (declared: number, limit?: number) =>
+      states(await readPages(relays([{ relay: "a", held }]), FILTER, { maxLimit: async () => declared, ...(limit ? { limit } : {}) }));
+    expect(await read(100)).toEqual(["complete"]);
+    expect(await read(99)).toEqual(["cut_off"]);
+    expect(await read(60, 50)).toEqual(["complete"]);
+    expect(await read(40, 50)).toEqual(["cut_off"]);
   });
 
   it("one that declares so and holds nothing there is complete: an empty answer needs no page size", async () => {
@@ -353,6 +369,12 @@ describe("readPages: a second holding more than a relay sends in a page", () => 
     expect(r.events.every((e) => e.tags[0]![1] === TAG)).toBe(true);
   });
 
+  it("the oldest second's check left unasked by the page bound: cut off", async () => {
+    const r = await readPages(relays([{ relay: "a", held: events(301, () => 2000), cap: 300 }]), FILTER, { maxPages: 2 });
+    expect(r.pages).toBe(2);
+    expect(states(r)).toEqual(["cut_off"]);
+  });
+
   it("MIN_PAGE events at its oldest second, on a relay that sends more than that in a page: complete", async () => {
     const held = [...events(MIN_PAGE, () => 2000), ...events(50, (i) => 3000 + i, OTHER_TAG)];
     const r = await readPages(relays([{ relay: "a", held, cap: 300 }]), FILTER);
@@ -388,6 +410,14 @@ describe("readPages: bounded", () => {
     expect(r.events.length).toBeLessThan(2500);
     expect(states(r)).toEqual(["cut_off"]);
     expect(r.truncated).toBe(true);
+  });
+
+  it("the read stops once it holds maxEvents with a relay still open", async () => {
+    // Pages of 300 overlap by the second they meet at: 300, then 599, then all 600.
+    const held = events(600, (i) => 1000 + i);
+    const at = async (maxEvents: number) => states(await readPages(relays([{ relay: "a", held, cap: 300 }]), FILTER, { maxEvents }));
+    expect(await at(599)).toEqual(["cut_off"]);
+    expect(await at(600)).toEqual(["complete"]);
   });
 
   it("reads that share a budget stop when it is spent", async () => {
@@ -440,6 +470,24 @@ describe("readRelays: each relay read alone", () => {
     expect(asked.every((a) => a.relays.length === 1 && a.timeoutMs <= 4000)).toBe(true);
   });
 
+  it("a flood on any relay, not only the first, truncates the read", async () => {
+    const set = [
+      { relay: "wss://a", held: [one(500)], cap: 300 },
+      { relay: "wss://b", held: events(2600, (i) => 1000 + i), cap: 500 },
+    ];
+    const r = await readRelays(FILTER, ["wss://a", "wss://b"], { query: alone(set) });
+    expect(r.relayStatus.map((s) => s.state)).toEqual(["complete", "cut_off"]);
+    expect(r.truncated).toBe(true);
+  });
+
+  it("a relay that stops answering before its deadline is cut off, and the read not truncated by it", async () => {
+    const held = [one(500), ...events(300, (i) => 1000 + i)];
+    const set = [{ relay: "wss://a", held, cap: 300, answers: (f: Filter) => f.until === undefined }];
+    const r = await readRelays(FILTER, ["wss://a"], { query: alone(set) });
+    expect(r.relayStatus).toEqual([{ relay: "wss://a", eose: false, state: "cut_off" }]);
+    expect(r.truncated).toBe(false);
+  });
+
   it("a relay capping at 300 behind 700 newer events is paged to the one behind them", async () => {
     const sought = one(500);
     const held = [sought, ...events(700, (i) => 1000 + i)];
@@ -461,12 +509,15 @@ describe("readRelays: each relay read alone", () => {
     const r = await readRelays(FILTER, ["wss://a"], { query: slow, timeoutMs: 4000 });
     expect(left).toEqual([4000, 2500, 1000]);
     expect(r.relayStatus).toEqual([{ relay: "wss://a", eose: false, state: "cut_off" }]);
+    expect(r.truncated).toBe(true);
   });
 
   it("with your own query, NIP-11 is not read unless you pass maxLimit", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
-    await readRelays(FILTER, ["wss://a"], { query: alone([{ relay: "wss://a", held: [one(1)] }]) });
+    // A relay no other test names, so no earlier read of it is cached.
+    const relay = "wss://nip11-own-query.example";
+    await readRelays(FILTER, [relay], { query: alone([{ relay, held: [one(1)] }]) });
     expect(fetch).not.toHaveBeenCalled();
   });
 });
@@ -485,6 +536,7 @@ describe("relayMaxLimit: the page size a relay's NIP-11 document declares", () =
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0]![0]).toBe("https://nip11-a.example");
     expect(new Headers(fetch.mock.calls[0]![1]!.headers).get("accept")).toBe("application/nostr+json");
+    expect(fetch.mock.calls[0]![1]!.redirect).toBe("error");
   });
 
   it("no limit declared, or not a positive number: undefined", async () => {
