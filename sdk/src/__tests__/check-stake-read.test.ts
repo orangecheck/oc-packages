@@ -45,7 +45,7 @@ const NOW = Math.floor(Date.now() / 1000);
 
 /** What each relay holds, and how it answers a read of the address (`#t`). */
 let held: Record<string, NostrEvent[]> = {};
-let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop' | 'stale'> = {};
+let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop' | 'stale' | 'eoseDrop'> = {};
 /** The most events a relay sends to one REQ. */
 let cap = 500;
 /** REQs sent so far, and what each relay's NIP-11 document says: a page size, a hang, or a refusal (a CSP block). */
@@ -71,8 +71,11 @@ class FakeRelay {
     onerror: ((e: unknown) => void) | null = null;
     onclose: (() => void) | null = null;
     readyState = 0;
+    /** Its socket closed: a REQ sent on it goes nowhere. */
+    gone = false;
     constructor(public url: string) {
-        if (!url.startsWith('wss://')) throw new SyntaxError(`invalid relay URL: ${url}`);
+        // As a browser's: a fragment is refused too.
+        if (!url.startsWith('wss://') || url.includes('#')) throw new SyntaxError(`invalid relay URL: ${url}`);
         queueMicrotask(() => {
             this.readyState = 1;
             this.onopen?.();
@@ -80,7 +83,7 @@ class FakeRelay {
     }
     send(raw: string): void {
         const [type, sub, filter] = JSON.parse(raw) as [string, string, Record<string, unknown>];
-        if (type !== 'REQ') return;
+        if (type !== 'REQ' || this.gone) return;
         reqs++;
         const mode = '#t' in filter ? (addressMode[this.url] ?? 'ok') : 'ok';
         if (mode === 'silent') return;
@@ -102,6 +105,11 @@ class FakeRelay {
             if (mode === 'error') return this.onerror?.(new Error('reset'));
             if (mode === 'drop') return this.onclose?.();
             this.onmessage?.({ data: JSON.stringify(['EOSE', sub]) });
+            // A full page, its EOSE, and then the socket closes.
+            if (mode === 'eoseDrop') {
+                this.gone = true;
+                queueMicrotask(() => this.onclose?.());
+            }
         });
     }
     close(): void {
@@ -141,6 +149,8 @@ const onEvery = (...events: NostrEvent[][]) => {
     held = Object.fromEntries(RELAYS.map((r) => [r, events.flat()]));
 };
 const checkA = () => check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays: RELAYS });
+/** Where each relay's NIP-11 GET goes: its URL with ws made http. */
+const https = (relays: string[]) => relays.map((r) => r.replace(/^wss/, 'https'));
 
 async function nip11Fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
     const url = String(input);
@@ -293,6 +303,20 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
         });
     }
 
+    it('a relay whose socket closes right after a full page is cut off at once, not at the deadline', async () => {
+        held = {
+            [RELAYS[0]!]: [mine, ...junk(600, false)],
+            [RELAYS[1]!]: [mine],
+            [RELAYS[2]!]: [mine],
+            [RELAYS[3]!]: [mine],
+        };
+        addressMode = { [RELAYS[0]!]: 'eoseDrop' };
+        const started = Date.now();
+        const read = await readByAddress(ADDR, RELAYS);
+        expect(read.relays.map((x) => x.state)).toEqual(['cut_off', 'complete', 'complete', 'complete']);
+        expect(Date.now() - started).toBeLessThan(FANOUT_DEADLINE_MS / 2);
+    }, 10_000);
+
     for (const mode of ['hang', 'error', 'drop'] as const) {
         it(`a relay that sends some events and then stops (${mode}) is cut off, not silent: stake_unread`, async () => {
             // What that relay did not finish sending may hold the other attestation.
@@ -318,10 +342,13 @@ describe('readByAddress keeps only what a REQ for the address brought', () => {
         expect(read.events).toHaveLength(601);
     });
 
-    it('a relay URL that cannot be opened is no answer, not cut off', async () => {
+    it('a relay URL the socket refuses is no answer, not cut off', async () => {
         onEvery([mine]);
-        const read = await readByAddress(ADDR, [...RELAYS.slice(0, 3), 'not a relay']);
-        expect(read.relays.map((x) => x.state)).toEqual(['complete', 'complete', 'complete', 'no_answer']);
+        const read = await readByAddress(ADDR, [...RELAYS.slice(0, 3), 'not a relay', 'wss://fragment.example/#x']);
+        const states = read.relays.map((x) => x.state);
+        expect(states).toEqual(['complete', 'complete', 'complete', 'no_answer', 'no_answer']);
+        // Nor is it asked its NIP-11: in a browser, a GET of 'not a relay' goes to the page's own origin.
+        expect(nip11.map((g) => g.url)).toEqual(https(RELAYS.slice(0, 3)));
     });
 
     it("a full page at one second with nothing below: cut off, and the pager's page-size REQ adds no event of another subject", async () => {
@@ -357,7 +384,6 @@ describe('a relay the caller names is asked its NIP-11 page; the default relays 
     const hold = (relays: string[], ...events: NostrEvent[][]) => {
         held = Object.fromEntries(relays.map((r) => [r, events.flat()]));
     };
-    const https = (relays: string[]) => relays.map((r) => r.replace(/^wss/, 'https'));
 
     it('relays that declare a page of 50 and send 50 a REQ are cut off, never complete: stake_unread', async () => {
         const relays = named('cap50');
@@ -398,4 +424,44 @@ describe('a relay the caller names is asked its NIP-11 page; the default relays 
         expect(read.relays.map((x) => x.state)).toEqual(['complete', 'complete', 'complete', 'complete']);
         expect(read.events.some((e) => e.id === sibling.id)).toBe(true);
     }, 10_000);
+    it('a default relay is not asked however its URL is written, and a named one is asked at its own path', async () => {
+        const relays = ['wss://relay.damus.io/', 'wss://NOS.lol', 'wss://pathed.example/nostr', 'wss://pathed.example'];
+        hold(relays, [mine]);
+        await readByAddress(ADDR, relays);
+        expect(nip11.map((g) => g.url).sort()).toEqual(['https://pathed.example', 'https://pathed.example/nostr']);
+    });
+
+    it("a relative URL the socket takes, as a browser's does, is read but not asked: no GET to the page's own origin", async () => {
+        class BrowserSocket extends FakeRelay {
+            constructor(url: string) {
+                super(new URL(url, 'wss://page.example/').href);
+            }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        globalThis.WebSocket = BrowserSocket as any;
+        held = { 'wss://page.example/relay': [mine] };
+        const read = await readByAddress(ADDR, ['relay']);
+        expect(read.relays.map((x) => x.state)).toEqual(['complete']);
+        expect(nip11).toEqual([]);
+    });
+
+    it('check({identity}) asks each named relay once for both its reads, a refused GET included', async () => {
+        const relays = named('once');
+        hold(relays, [mine]);
+        for (const r of https(relays)) declares[r] = 'refuse';
+        const r = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(r.ok).toBe(true);
+        expect(nip11.map((g) => g.url)).toEqual(https(relays));
+    });
+
+    it("check({identity}) waits on a NIP-11 that never answers once, not once a read", async () => {
+        const relays = named('hang-once');
+        hold(relays, [mine]);
+        for (const r of https(relays)) declares[r] = 'hang';
+        const started = Date.now();
+        const r = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(Date.now() - started).toBeLessThan(FANOUT_DEADLINE_MS + 1000);
+        expect(r.ok).toBe(true);
+        expect(nip11.map((g) => g.url)).toEqual(https(relays));
+    }, 15_000);
 });

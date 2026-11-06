@@ -26,12 +26,17 @@ this file tracks the package's TS / Node / runtime API surface.
   only if it serves more than it sent at that second.
 - A page counts every event the relay sent, ones outside the REQ's window
   included: a full page with none inside it is `cut_off`.
-- A relay the caller passes that is not in `DEFAULT_RELAYS` is asked its NIP-11
-  `max_limit` alongside the read's first REQ, within the fan-out's time left;
-  one declaring under 100 that sent anything reads `cut_off`. The default
-  relays are not asked (each declares 500). A relay whose NIP-11 is not read
-  (no document, a CSP block, no answer in time) keeps the floor of 100: one
-  that sends fewer than 100 events a REQ reads `complete` after its first page.
+- A relay the caller passes by an absolute URL that is not in
+  `DEFAULT_RELAYS` is asked its NIP-11 `max_limit` once the WebSocket has taken
+  that URL, alongside the read's first REQ, within the fan-out's time left: a
+  GET of its URL with `ws` made `http`, path kept. One declaring under 100 that sent
+  anything reads `cut_off`. The default relays are not asked, however their
+  URL is written (each declares 500). A relay whose NIP-11 is not read (no
+  document, a CSP block, no answer in time) keeps the floor of 100: one that
+  sends fewer than 100 events a REQ reads `complete` after its first page.
+  `check()` asks each relay once for both of its reads, a failed GET included.
+- A relay whose socket closes reads `cut_off` at once if it sent anything,
+  between pages as well as within one, and `no_answer` if it sent nothing.
 - Depends on `@orangecheck/nostr-core` ^0.8.2, external in the build.
 
 ## [1.23.1] — 2026-11-05
