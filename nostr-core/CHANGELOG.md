@@ -12,6 +12,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.8.2] — 2026-11-06
+
+### Added
+
+- **`readPages(query, filter, bounds?)`**: a read paged with `until` to its end
+  on every relay `query` asks, one relay or several at once. A relay's read
+  ends on a page that is empty, under `MIN_PAGE` (100) or `limit`, or shorter
+  than a page it sent before, so a relay that caps a page below the page asked
+  for is read past its cap. A second holding more than a relay sends in a page
+  is stepped past and that relay reads `cut_off`. Bounds: 16 REQs and 2,000
+  events by default, and a `budget` several reads share. Returns every event,
+  each relay's `state` (`complete`, `cut_off`, `no_answer`) and `truncated`.
+- **`readRelays(filter, relays?, opts?)`**: `readPages` on each relay alone,
+  every page of one relay sharing one deadline (`timeoutMs`, default 4000).
+- **`relayMaxLimit(url)`**: the `max_limit` a relay's NIP-11 document
+  declares. A relay declaring one under `MIN_PAGE` that sent anything reads
+  `cut_off`.
+- **`MIN_PAGE`**, and the types `PageQuery`, `PageAnswer`, `PageBounds`,
+  `PagedRead` and `PagedReadState`.
+
 ## [0.8.1] — 2026-10-29
 
 ### Changed
