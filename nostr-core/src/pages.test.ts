@@ -148,6 +148,27 @@ describe("readPages: a relay that caps a page below the page asked is read past 
     expect(ids(r).has(sought.id)).toBe(true);
   });
 
+  it("dropped events beside kept ones at one second: the read asks at that second once, then reads on, complete", async () => {
+    const sought = one(500);
+    const held = [sought, one(2000), ...events(50, (i) => 1000 + i)];
+    // Page 1: the newest kept event and 299 the reader drops; below it, plain pages.
+    const pad = (f: Filter) => (f.until === undefined ? 299 : 0);
+    const calls: Filter[] = [];
+    const r = await readPages(relays([{ relay: "a", held, cap: 300, pad }], calls), FILTER);
+    expect(ids(r).has(sought.id)).toBe(true);
+    expect(states(r)).toEqual(["complete"]);
+    expect(calls.map((f) => f.until)).toEqual([undefined, 2000]);
+  });
+
+  it("dropped events at that second too: asked at it once, then stepped past, and cut off there", async () => {
+    const sought = one(500);
+    const held = [sought, ...events(301, () => 2000)];
+    const pad = () => 150;
+    const r = await readPages(relays([{ relay: "a", held, cap: 300, pad }]), FILTER);
+    expect(ids(r).has(sought.id)).toBe(true);
+    expect(states(r)).toEqual(["cut_off"]);
+  });
+
   it("with no counts, a page is the events read back: read until one comes back shorter", async () => {
     const sought = one(500);
     const held = [sought, ...events(400, (i) => 1000 + i)];

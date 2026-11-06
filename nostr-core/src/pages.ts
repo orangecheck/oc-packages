@@ -98,14 +98,15 @@ interface Paging {
  * no relay skips what it holds; when relays hold different events, one probe
  * of the seconds above the page's oldest tells which of them sent only there.
  * A page that sits wholly at one second cannot be paged past by `until`: the
- * read steps to the second before. A relay that then sends anything sent a
- * full page of its own at that second and may hold more there, so its read is
- * cut off. One that sends nothing is complete only if it sends more than that
- * in a page, which one REQ for the filter's kinds alone tells. A relay that
- * misses a page stopped, and stays stopped: cut off if it sent anything, else
- * no answer. Past a bound, a relay still open is cut off. A relay is taken to
- * send at least MIN_PAGE a page; one that caps below it without declaring so
- * in NIP-11 is not told apart.
+ * read steps to the second before (first asking at that second when the page
+ * held events the reader drops, whose seconds it cannot see). A relay that
+ * then sends anything sent a full page of its own at that second and may hold
+ * more there, so its read is cut off. One that sends nothing is complete only
+ * if it sends more than that in a page, which one REQ for the filter's kinds
+ * alone tells. A relay that misses a page stopped, and stays stopped: cut off
+ * if it sent anything, else no answer. Past a bound, a relay still open is cut
+ * off. A relay is taken to send at least MIN_PAGE a page; one that caps below
+ * it without declaring so in NIP-11 is not told apart.
  */
 export async function readPages(
   query: PageQuery,
@@ -212,6 +213,8 @@ export async function readPages(
       if (p.state === "open" && !res.answers.has(key)) stop(p, undefined);
     }
     const unsure: Paging[] = [];
+    // A relay still open sent events the reader dropped: their seconds are unknown.
+    let dropped = false;
     for (const [key, r] of res.answers) {
       let p = relays.get(key);
       if (!p) {
@@ -256,6 +259,7 @@ export async function readPages(
       }
       // Its kept events are among the page's, so its oldest is no newer than this.
       p.reached = oldest.created_at;
+      if ((r.rejected ?? 0) > 0) dropped = true;
     }
     if (unsure.length > 0) {
       const sizes = await pageSizes();
@@ -269,13 +273,20 @@ export async function readPages(
     const still = [...relays.values()].filter((p) => p.state === "open");
     if (still.length === 0) continue;
     // A page that sits wholly at one second: asking at that second again
-    // brings the same pages back, so the read steps past it.
-    if (page[0]!.created_at === page[page.length - 1]!.created_at) {
+    // brings the same pages back, so the read steps past it. Events the reader
+    // dropped may sit above that second, so a page that held some is asked at
+    // it once first.
+    const top = page[0]!.created_at;
+    if (top === page[page.length - 1]!.created_at) {
+      if (dropped && at !== top) {
+        until = top;
+        continue;
+      }
       for (const p of still) {
-        p.past = page[0]!.created_at;
+        p.past = top;
         p.pastSent = p.largest;
       }
-      until = page[0]!.created_at - 1;
+      until = top - 1;
       continue;
     }
     // The next page asks at the oldest second any relay still open sent. Each
