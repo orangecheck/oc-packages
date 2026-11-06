@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildCanonicalMessage, createAttestationEnvelope } from '../canonical';
 import { check } from '../check';
-import { createAttestationEvent, FANOUT_DEADLINE_MS, readByAddress } from '../nostr';
+import { createAttestationEvent, DEFAULT_RELAYS, FANOUT_DEADLINE_MS, readByAddress } from '../nostr';
 import { nostrIdentifierForms } from '../nostr-pubkey';
 import type { IdentityBinding, NostrEvent } from '../types';
 
@@ -48,6 +48,11 @@ let held: Record<string, NostrEvent[]> = {};
 let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop' | 'stale'> = {};
 /** The most events a relay sends to one REQ. */
 let cap = 500;
+/** REQs sent so far, and what each relay's NIP-11 document says: a page size, a hang, or a refusal (a CSP block). */
+let reqs = 0;
+let declares: Record<string, number | 'hang' | 'refuse'> = {};
+/** Each NIP-11 GET, with how many REQs had been sent when it went out. */
+let nip11: { url: string; reqsBefore: number }[] = [];
 
 function matches(ev: NostrEvent, f: Record<string, unknown>): boolean {
     if (Array.isArray(f.kinds) && !f.kinds.includes(ev.kind)) return false;
@@ -76,6 +81,7 @@ class FakeRelay {
     send(raw: string): void {
         const [type, sub, filter] = JSON.parse(raw) as [string, string, Record<string, unknown>];
         if (type !== 'REQ') return;
+        reqs++;
         const mode = '#t' in filter ? (addressMode[this.url] ?? 'ok') : 'ok';
         if (mode === 'silent') return;
         queueMicrotask(() => {
@@ -136,20 +142,41 @@ const onEvery = (...events: NostrEvent[][]) => {
 };
 const checkA = () => check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays: RELAYS });
 
+async function nip11Fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+    const url = String(input);
+    nip11.push({ url, reqsBefore: reqs });
+    const doc = declares[url];
+    if (doc === 'refuse') throw new TypeError('Failed to fetch');
+    if (doc === 'hang') {
+        return new Promise((_, reject) =>
+            init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+        );
+    }
+    if (typeof doc === 'number') return new Response(JSON.stringify({ limitation: { max_limit: doc } }));
+    return new Response('not found', { status: 404 });
+}
+
 let realWs: typeof globalThis.WebSocket;
+let realFetch: typeof globalThis.fetch;
 beforeEach(async () => {
     mine = await attest([{ protocol: 'nostr', identifier: KEY_A[0]! }], '2026-01-01T00:00:00Z', NOW - 2000);
     sibling = await attest([{ protocol: 'nostr', identifier: KEY_B[0]! }], '2026-02-01T00:00:00Z', NOW - 1000);
     held = {};
     addressMode = {};
     cap = 500;
+    reqs = 0;
+    declares = {};
+    nip11 = [];
     verdict.outcome = GOOD;
     realWs = globalThis.WebSocket;
+    realFetch = globalThis.fetch;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     globalThis.WebSocket = FakeRelay as any;
+    globalThis.fetch = nip11Fetch as typeof globalThis.fetch;
 });
 afterEach(() => {
     globalThis.WebSocket = realWs;
+    globalThis.fetch = realFetch;
 });
 
 describe('check({identity}): "not shared" needs a read of the address a flood could not cut off', () => {
@@ -322,4 +349,53 @@ describe('the stake is read only once everything else passed, so stake_unread on
             expect(r.reasons).toEqual(reasons);
         });
     }
+});
+
+describe('a relay the caller names is asked its NIP-11 page; the default relays are not', () => {
+    // nostr-core keeps a relay's NIP-11 answer for the process, so each test names relays of its own.
+    const named = (tag: string) => [1, 2, 3, 4].map((i) => `wss://${tag}-${i}.example`);
+    const hold = (relays: string[], ...events: NostrEvent[][]) => {
+        held = Object.fromEntries(relays.map((r) => [r, events.flat()]));
+    };
+    const https = (relays: string[]) => relays.map((r) => r.replace(/^wss/, 'https'));
+
+    it('relays that declare a page of 50 and send 50 a REQ are cut off, never complete: stake_unread', async () => {
+        const relays = named('cap50');
+        cap = 50;
+        hold(relays, [mine, sibling], junk(100, false));
+        for (const r of https(relays)) declares[r] = 50;
+        const read = await readByAddress(ADDR, relays);
+        expect(read.relays.map((x) => x.state)).toEqual(['cut_off', 'cut_off', 'cut_off', 'cut_off']);
+        const r = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(r.ok).toBe(false);
+        expect(r.reasons).toEqual(['stake_unread']);
+    });
+
+    it('the GET goes out with the read, before its first REQ, and only to the relays the caller named', async () => {
+        const relays = [...DEFAULT_RELAYS, 'wss://named-only.example'];
+        hold(relays, [mine]);
+        await readByAddress(ADDR, relays);
+        expect(nip11).toEqual([{ url: 'https://named-only.example', reqsBefore: 0 }]);
+    });
+
+    it('a NIP-11 refused (a CSP block) keeps the floor of 100: relays sending 300 a REQ are read to their end', async () => {
+        const relays = named('refused');
+        cap = 300;
+        hold(relays, [mine, sibling], junk(400, false));
+        for (const r of https(relays)) declares[r] = 'refuse';
+        const r = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(r.reasons).toContain('stake_shared');
+    });
+
+    it("a NIP-11 that never answers is waited on only for the fan-out's time left, and the floor of 100 stays", async () => {
+        const relays = named('hang');
+        cap = 300;
+        hold(relays, [mine, sibling], junk(400, false));
+        for (const r of https(relays)) declares[r] = 'hang';
+        const started = Date.now();
+        const read = await readByAddress(ADDR, relays);
+        expect(Date.now() - started).toBeLessThan(FANOUT_DEADLINE_MS + 1000);
+        expect(read.relays.map((x) => x.state)).toEqual(['complete', 'complete', 'complete', 'complete']);
+        expect(read.events.some((e) => e.id === sibling.id)).toBe(true);
+    }, 10_000);
 });

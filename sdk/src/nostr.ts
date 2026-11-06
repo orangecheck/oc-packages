@@ -6,6 +6,7 @@
 
 import {
     readPages,
+    relayMaxLimit,
     type Filter,
     type NostrEvent as PageEvent,
     type PageQuery,
@@ -95,6 +96,9 @@ export const DEFAULT_RELAYS: string[] = [
  * breaks that dependent — change both together, or don't.
  */
 export const FANOUT_DEADLINE_MS = 4000;
+
+/** The default relays each declare a NIP-11 page of 500 (measured 2026-11-06): no fetch asks them. */
+const DECLARED_RELAYS: ReadonlySet<string> = new Set(DEFAULT_RELAYS);
 const QUERY_TIMEOUT_MS = 10000;
 
 /** Remaining budget for a relay, given the fan-out's shared deadline. */
@@ -491,9 +495,13 @@ export async function readSubject(
         relays.map(async (relayUrl): Promise<SubjectReadState> => {
             let ws: WebSocket | null = null;
             try {
+                // A relay the caller names is asked its NIP-11 page alongside the first REQ, within the time left.
+                const declared = DECLARED_RELAYS.has(relayUrl)
+                    ? undefined
+                    : relayMaxLimit(relayUrl, budgetFor(deadlineAt));
                 ws = new WebSocket(relayUrl);
                 const pages = socketPages(ws, relayUrl, label, deadlineAt, filter, events);
-                const read = await readPages(pages, filter as Filter);
+                const read = await readPages(pages, filter as Filter, declared ? { maxLimit: () => declared } : {});
                 return read.relayStatus?.[0]?.state ?? 'no_answer';
             } catch (err) {
                 log.error({ relay: relayUrl, error: err }, 'Failed to query relay');
