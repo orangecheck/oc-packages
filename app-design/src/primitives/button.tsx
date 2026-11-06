@@ -14,8 +14,11 @@ import { Spinner } from './feedback';
  * edge the field's. `brand` is the orange fill with ink text, for dark grounds
  * and tiles only (the ink and burnt bands, the dark page): on paper it was
  * 2.34:1, so a page CTA there is `primary`. White on orange is never used.
- * `onInk` and `onInkOutline` are the pair for dark bands. `plus` adds the
- * trailing "+" that turns 90° on hover and press, CSS only.
+ * `onInk` and `onInkOutline` are the pair for dark bands. `overlay` is a
+ * control over a scene (a globe, a map, a photo): the page's own surface,
+ * blurred and at 85%, so it reads on whatever the scene draws, with the
+ * field's edge. `plus` adds the trailing "+" that turns 90° on hover and
+ * press, CSS only.
  */
 export const buttonVariants = cva(
     [
@@ -43,6 +46,7 @@ export const buttonVariants = cva(
                 link: 'h-auto rounded-none px-0 text-foreground underline decoration-foreground/35 underline-offset-4 hover:decoration-foreground',
                 onInk: 'bg-white text-oca-ink hover:bg-white/90',
                 onInkOutline: 'border border-white/40 text-white hover:border-white hover:bg-white/10 [--hit-b:1px]',
+                overlay: 'border border-input bg-background/85 text-foreground shadow-sm backdrop-blur-md hover:bg-accent [--hit-b:1px]',
             },
             size: {
                 // 36px drawn, 44px to a thumb. The target is positioned from inside the

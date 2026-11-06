@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { ArrowRight, CircleUser, LogOut, Wallet } from 'lucide-react';
+import { ArrowRight, CircleUser, Layers, LogOut, Maximize2, Wallet } from 'lucide-react';
 import { ThemeProvider } from 'next-themes';
 import { useState } from 'react';
 
@@ -101,6 +101,15 @@ export const Buttons: StoryObj = {
                 </Button>
                 <Button variant="onInk">Integrate</Button>
                 <Button variant="onInkOutline">GitHub</Button>
+            </div>
+            {/* A control over a scene: the page's own surface, so it reads on whatever the scene draws. */}
+            <div className="relative flex h-40 items-start justify-between overflow-hidden bg-[radial-gradient(circle_at_40%_60%,#f66d36_0,#7a2e10_22%,#0a0a0a_55%)] p-4">
+                <Button variant="overlay" size="sm">
+                    <Layers /> Data
+                </Button>
+                <Button variant="overlay" size="sm">
+                    <Maximize2 /> Fullscreen
+                </Button>
             </div>
         </div>
     ),

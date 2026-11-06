@@ -501,19 +501,20 @@ const census = { strings: 0, pairs: 0 };
     // by the lead's ruling, as a state is), not by its label alone. Each look is read from button.tsx and held
     // on the grounds it is drawn on: the page's looks on the page, every band and every Card tone; the ink pair
     // and the orange fill on the dark grounds only (the ink and burnt bands and Cards, and the orange fill on
-    // the dark page too). ghost and link are text, told by their words.
+    // the dark page too); the overlay on the page, in each mode, standing for the scene it sits over. ghost and
+    // link are text, told by their words.
     const buttonSrc = readFileSync(join(here, '../src/primitives/button.tsx'), 'utf8');
-    const looks = [...buttonSrc.matchAll(/^\s+(primary|secondary|brand|danger|onInk|onInkOutline):\s*'([^']*)'/gm)].map((m) => {
+    const looks = [...buttonSrc.matchAll(/^\s+(primary|secondary|brand|danger|onInk|onInkOutline|overlay):\s*'([^']*)'/gm)].map((m) => {
         const cls = m[2].split(/\s+/).filter(Boolean);
         const of = (kind, variant) => cls.map((c) => parse(c, kind)).find((x) => x?.variant === variant);
         return { name: m[1], ground: of('bg', ''), edge: of('border', ''), hoverGround: of('bg', 'hover'), hoverEdge: of('border', 'hover') };
     });
-    if (looks.length !== 6) {
-        console.error(`✗ contrast: read ${looks.length} of Button's six bounded looks from button.tsx`);
+    if (looks.length !== 7) {
+        console.error(`✗ contrast: read ${looks.length} of Button's seven bounded looks from button.tsx`);
         failed++;
     }
     const drawnOn = (look, ctx, mode) =>
-        /^onInk/.test(look) ? /ink|burnt/.test(ctx) : look === 'brand' ? /ink|burnt/.test(ctx) || (ctx === 'the page' && mode === 'dark') : true;
+        /^onInk/.test(look) ? /ink|burnt/.test(ctx) : look === 'brand' ? /ink|burnt/.test(ctx) || (ctx === 'the page' && mode === 'dark') : look === 'overlay' ? ctx === 'the page' : true;
     // And the orange fill is only drawn there: a brand Button in a component, a block or a story sits inside
     // an ink or burnt ground (a band, a tone, a ground, the dark class) or is disabled, which is one grey look.
     // The type checker reads each Button's variant, so a const, a conditional, a spread or a forwarded prop
