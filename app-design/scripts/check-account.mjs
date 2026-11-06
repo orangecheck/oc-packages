@@ -170,6 +170,11 @@ function nameRoom() {
         }
     }
     probe.remove();
+    // Where the cut line starts in its box: at its left edge, so the ellipsis ends inside it.
+    const first = document.createRange();
+    first.setStart(n.firstChild, 0);
+    first.setEnd(n.firstChild, 1);
+    const lead = half(first.getBoundingClientRect().left - n.getBoundingClientRect().left);
     // The trigger's own bar: SiteHeader's and AppShell's phone bar set their parts in a row; AppShell's desk bar is its own row.
     const bar = t.closest('header');
     const row = bar.querySelector(':scope > div') ?? bar;
@@ -181,7 +186,7 @@ function nameRoom() {
     // A word drawn and cut; one kept only for screen readers (sr-only, 1px) is not drawn.
     const spans = [...(row.querySelector('a')?.querySelectorAll('span') ?? [])];
     const brandCut = spans.some((e) => e.getBoundingClientRect().width > 1 && getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth);
-    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, slack, brandCut, brandWords: spans
+    return { shown: n.getClientRects().length > 0, w: half(w), cut, chars, cap, typical32, least, lead, slack, brandCut, brandWords: spans
             .filter((e) => !e.children.length && e.textContent.trim() && !e.classList.contains('sr-only') && e.getBoundingClientRect().width > 1)
             .map((e) => e.textContent.trim()), disc: disc.getClientRects().length > 0, sticky: bar.dataset.ocaSticky ?? null };
 }
@@ -293,6 +298,8 @@ try {
                             check(!n.brandCut || n.w < 1, `${at}: the brand is cut while the name still has ${n.w}px`);
                             check(n.w <= n.cap + 0.5, `${at}: the name is ${n.w}px, past its ${n.cap}px`);
                             check(!n.cut || n.w >= n.least, `${at}: the name is cut to ${n.w}px, under a letter and the ellipsis (${n.least}px), so the ellipsis is clipped`);
+                            // A button centres its text; a cut line set off its left edge pushes its ellipsis past the right.
+                            check(!n.cut || Math.abs(n.lead) <= 0.5, `${at}: the cut name starts ${n.lead}px into its ${n.w}px box, so its ellipsis runs past the edge`);
                             // At least 8 of its characters at every width: below 480 the lockup drops its wordmark, so
                             // orangecheck's own is its mark alone, and below 390 a site's is too, to make the room.
                             check(n.chars >= Math.min(8, name.length), `${at}: the name shows ${n.chars} characters, under 8`);

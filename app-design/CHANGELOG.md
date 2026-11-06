@@ -16,6 +16,13 @@
   prefixed it, or a family address as given. OcSignIn adds the page's origin
   to a bare path, so a site such as cosign needs no prefix of its own.
 
+A cut name keeps its whole ellipsis.
+
+- The signed-in name in a header's block and AppShell's bars is set from
+  the left. A button centres its text, so a cut name's line sat off its left
+  edge and its ellipsis ran past the right: at 900 the docs' bar showed
+  "ana@examp..". check-account holds a cut name's line at its left edge.
+
 ## [2.3.0] — 2026-11-05
 
 A signed-in docs bar gives the name its room. At 390px it showed "ana…"
