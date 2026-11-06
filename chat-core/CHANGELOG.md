@@ -6,6 +6,32 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and [Semantic Versioning](https://semver.org/). Wire rules live in the
 `oc-chat-protocol` spec's CHANGELOG; this file tracks the package's API.
 
+## [0.2.5] — 2026-11-06
+
+### Changed
+
+- Every read `readChannelVersions` makes is paged to its end with
+  `@orangecheck/nostr-core`'s `readPages`: the open read under the channel's
+  `t` tag, the legacy d-tag, each role holder's key read under `t` and by `s`,
+  and the walk back by exact d-tag. A relay that sends fewer events a page than
+  the 500 asked is read past them. A relay's read ends on a page that is empty,
+  under 100 events, or shorter than one it sent before. A second holding more
+  events than a relay sends in a page is stepped past and that relay is cut
+  off, so the read floor is unmet. Each read stops at 16 REQs or 2,000 events,
+  and the key reads share 512 REQs. `truncated`: the open read, the legacy read
+  or the walk back stopped at a bound or a capped second. `incomplete`: a key
+  read did.
+- `resolveDirectoryHandle` pages each directory relay and audit relay the same
+  way, 200 asked a page: a directory relay to 25 REQs, an audit relay to 2.
+  Every REQ stays under the handle's d tag, so a relay whose read stepped past
+  its oldest second is cut off. `PageRead`'s filter may carry `since`; send it
+  to the relay as given.
+- `VersionReads.maxLimit` and `WalkDeps.maxLimit` (optional): the page size a
+  relay's NIP-11 document declares, as nostr-core's `relayMaxLimit` reads it. A
+  relay declaring one under 100 that sent anything is cut off. A relay that
+  caps below 100 without declaring it is not told apart.
+- Depends on `@orangecheck/nostr-core` ^0.8.2.
+
 ## [0.2.4] — 2026-11-05
 
 - `readChannelVersions` returns `incomplete: true` when a relay fills a role
