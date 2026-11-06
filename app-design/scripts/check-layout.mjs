@@ -256,7 +256,8 @@ try {
         .sort();
     writeFileSync(
         join(dir, 'census.jsx'),
-        `import { Component } from 'react';\n` +
+        `import { Component, useEffect, useRef, useState } from 'react';\n` +
+            `import { createPortal } from 'react-dom';\n` +
             `import { createRoot } from 'react-dom/client';\n` +
             stories.map((f, i) => `import * as S${i} from '${f}';\n`).join('') +
             `class Boundary extends Component { state = { failed: null }; static getDerivedStateFromError(e) { return { failed: String(e?.message ?? e).slice(0, 120) }; } render() { return this.state.failed ? <p data-story-failed={this.state.failed}>failed</p> : this.props.children; } }\n` +
@@ -278,7 +279,26 @@ try {
             `<div data-plant="crowded-icons" className="flex gap-0.5"><button type="button" aria-label="Previous page" className="inline-flex size-4 items-center justify-center">‹</button><button type="button" aria-label="Next page" className="inline-flex size-4 items-center justify-center">›</button></div>` +
             `<div data-plant="lone-icon"><button type="button" aria-label="Dismiss the note" className="inline-flex size-4 items-center justify-center">×</button></div>` +
             `</div>;\n` +
-            `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}{plants}</div>);\n`
+            // Trigger plants, stories of their own, for the settle rule. Each shows its 48px target behind its trigger, and
+            // a link shows by itself while it is open, timed from the press, that stays once it shuts: in the trigger's own
+            // story under its layer, and in another story under a layer over the screen. The first layer stays a moment
+            // after it shuts (until the next press), as an overlay on its way out does. A link let go once and gone by the
+            // next trigger's shut is that trigger's in no way; what a details shows in the page is its own though it hides.
+            `const T48 = { display: 'inline-flex', width: 48, height: 48, alignItems: 'center', justifyContent: 'center' };\n` +
+            `function useEscape(open, shut) { useEffect(() => { if (!open) return; const k = (e) => e.key === 'Escape' && shut(); document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k); }, [open]); }\n` +
+            `function DoorOwn() { const [open, setOpen] = useState(false); const [drawn, setDrawn] = useState(false); const [late, setLate] = useState(false); const [gone, setGone] = useState(false); useEscape(open, () => setOpen(false));\n` +
+            `useEffect(() => { const go = () => setGone(true); window.addEventListener('oca-plant-door-other-shut', go); return () => window.removeEventListener('oca-plant-door-other-shut', go); }, []);\n` +
+            `useEffect(() => { if (open) { setDrawn(true); const t = setTimeout(() => setLate(true), 50); return () => clearTimeout(t); } const go = () => setDrawn(false); document.addEventListener('pointerdown', go, { capture: true, once: true }); return () => document.removeEventListener('pointerdown', go, { capture: true }); }, [open]);\n` +
+            `return <div style={{ height: 160, padding: 16, display: 'flex', gap: 16 }}><button type="button" aria-label="Open the note" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={T48}>+</button>{late ? <span data-plant="late-own"><a href="#plant" style={T48}>Late</a></span> : null}{late && !gone ? <span data-plant="late-gone"><a href="#plant" style={T48}>Gone</a></span> : null}{drawn ? <div data-plant="door-content" style={{ position: 'fixed', inset: 0, background: 'white', padding: 16 }}><a href="#plant" style={T48}>Note</a></div> : null}</div>; }\n` +
+            `function DoorOther() { const [open, setOpen] = useState(false); const was = useRef(false); useEscape(open, () => setOpen(false));\n` +
+            `useEffect(() => { if (open) window.dispatchEvent(new Event('oca-plant-door-other')); else if (was.current) window.dispatchEvent(new Event('oca-plant-door-other-shut')); was.current = open; }, [open]);\n` +
+            `return <div style={{ height: 96, padding: 16 }}><button type="button" aria-label="Open the cover" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={T48}>+</button>{open ? createPortal(<div data-plant="door-cover" style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'white', padding: 16 }}><a href="#plant" style={T48}>Cover</a></div>, document.body) : null}</div>; }\n` +
+            `function LateOther() { const [late, setLate] = useState(false); useEffect(() => { let t; const go = () => { t = setTimeout(() => setLate(true), 50); }; window.addEventListener('oca-plant-door-other', go); return () => { window.removeEventListener('oca-plant-door-other', go); clearTimeout(t); }; }, []);\n` +
+            `return <div style={{ height: 96, padding: 16 }}>{late ? <span data-plant="late-other"><a href="#plant" style={T48}>Late</a></span> : null}</div>; }\n` +
+            `function DoorInline() { return <details style={{ padding: 16 }}><summary style={T48}>More</summary><span data-plant="door-inline"><a href="#plant" style={T48}>Inline</a></span></details>; }\n` +
+            // The door that shuts slowly comes before the other, whose press clears its layer.
+            `const doors = plants ? [['plant/door-own', DoorOwn], ['plant/late-other', LateOther], ['plant/door-other', DoorOther], ['plant/door-inline', DoorInline]] : [];\n` +
+            `createRoot(document.getElementById('root')).render(<div>{shown.map(([name, s]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><Boundary><Story s={s} /></Boundary></div>)}{doors.map(([name, D]) => <div key={name} data-story={name} style={{ transform: 'translateZ(0)', margin: '64px 0' }}><D /></div>)}{plants}</div>);\n`
     );
     esbuild.buildSync({
         entryPoints: [join(dir, 'census.jsx')],
@@ -2820,6 +2840,13 @@ try {
         // Doors (what opens behind a trigger) cost nearly all of a pass's time, 70 to 125s a page here against 5s without,
         // so they are opened at one phone (390), one tablet (1024) and the desk (1440 mouse); every door finding
         // in 2.0.1 and 2.0.2 showed at one of those. The other passes read the page, the plants and the held dialog.
+        // A plant read in more than one pass: small in any is small; where it was first read is where it is.
+        const addPlants = (r, got) => {
+            for (const [k, v] of Object.entries(got.plants)) {
+                r.plants[k] = r.plants[k] === 'small' ? 'small' : v;
+                r.at[k] ??= got.at[k];
+            }
+        };
         for (const [width, fine, doors] of [[390, false, true], [320, false, false], [768, false, false], [900, false, false], [1024, false, true], [1180, false, false], [1440, true, true], [1024, true, false]]) for (const [url, least] of [[census, 100], [`${census}#modal`, 1]]) {
             const c = await browser.newPage(fine ? { viewport: { width, height: 900 } } : { viewport: { width, height: 900 }, isMobile: true, hasTouch: true });
             const to = fine ? `${width} mouse` : `${width} touch`;
@@ -2867,22 +2894,28 @@ try {
                     return false;
                 };
                 // `behind` names the trigger that was opened: then only what it showed is read, and each target once.
-                // What it showed is in its own story or in a layer outside every story; a target another story
-                // shows by itself meanwhile (a demo's last screen) is left for the page pass, read where it is.
-                window.__census = (behind, story) => {
-                const out = { seen: 0, inline: [], small: [], spaced: [], plants: {} };
+                // Each target read behind it is held, findings and all, until it shuts and __settle names what was not its.
+                let held = 0;
+                window.__census = (behind) => {
+                const out = { seen: 0, inline: [], small: [], spaced: [], plants: {}, at: {}, held: [] };
                 for (const el of document.querySelectorAll(SEL)) {
-                    if (el.hasAttribute('data-census-read') || (behind && el.dataset.censusBehind) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
-                    if (behind && el.closest('[data-story], [data-plants]') && el.closest('[data-story]')?.dataset.story !== story) continue;
+                    if (el.hasAttribute('data-census-read') || (behind && (el.dataset.censusBehind || el.hasAttribute('data-census-settled'))) || el.closest('[aria-hidden="true"], [inert], [data-story-failed]') || el.disabled) continue;
                     const box = el.getBoundingClientRect();
                     // checkVisibility skips a closed details' content too: it keeps its boxes but draws and takes nothing.
                     if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true })) continue;
                     el.setAttribute('data-census-read', '');
+                    const rec = behind ? { id: ++held, seen: 0, inline: [], small: [], spaced: [], plants: {}, at: {} } : out;
+                    if (behind) {
+                        el.dataset.censusHeld = String(rec.id);
+                        out.held.push(rec);
+                    }
                     const where = behind ?? el.closest('[data-story]')?.dataset.story ?? 'outside a story (a portal)';
                     const plant = el.closest('[data-plant]')?.dataset.plant;
                     if (inText(el)) {
-                        if (plant) out.plants[plant] = 'exempt';
-                        else out.inline.push(`${where}: "${el.textContent.trim().slice(0, 24)}"`);
+                        if (plant) {
+                            rec.plants[plant] = 'exempt';
+                            rec.at[plant] = where;
+                        } else rec.inline.push(`${where}: "${el.textContent.trim().slice(0, 24)}"`);
                         continue;
                     }
                     // What a trigger shows in the page itself (a details' list, a sidebar's section) comes into view as the
@@ -2914,7 +2947,7 @@ try {
                             continue;
                         }
                     }
-                    if (!plant) out.seen++;
+                    if (!plant) rec.seen++;
                     const b = el.getBoundingClientRect();
                     const cx = b.left + b.width / 2;
                     const cy = b.top + b.height / 2;
@@ -2950,11 +2983,12 @@ try {
                         });
                     if (plant) {
                         const v = !miss ? 'whole' : spaced ? 'spaced' : 'small';
-                        out.plants[plant] = out.plants[plant] === 'small' ? 'small' : v;
+                        rec.plants[plant] = rec.plants[plant] === 'small' ? 'small' : v;
+                        rec.at[plant] ??= where;
                         continue;
                     }
                     if (spaced) {
-                        out.spaced.push(`${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28)}" ${Math.round(b.width)}x${Math.round(b.height)}`);
+                        rec.spaced.push(`${where}: ${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 28)}" ${Math.round(b.width)}x${Math.round(b.height)}`);
                         continue;
                     }
                     if (miss) {
@@ -2962,10 +2996,29 @@ try {
                         // What a thumb there lands on instead: a neighbour, or the ground.
                         const got = document.elementFromPoint(cx + miss[0], cy + miss[1]);
                         const on = got ? `${got.tagName.toLowerCase()}${got.getAttribute('aria-label') ? ' "' + got.getAttribute('aria-label').slice(0, 20) + '"' : got.textContent?.trim() ? ' "' + got.textContent.trim().slice(0, 16) + '"' : ''}` : 'nothing';
-                        out.small.push(`${where}: ${el.tagName.toLowerCase()}${el.getAttribute('role') ? '[' + el.getAttribute('role') + ']' : ''} "${name}" ${Math.round(b.width)}x${Math.round(b.height)}, ${miss[0] ? (miss[0] < 0 ? 'left' : 'right') : miss[1] < 0 ? 'above' : 'below'} lands on ${on}`);
+                        rec.small.push(`${where}: ${el.tagName.toLowerCase()}${el.getAttribute('role') ? '[' + el.getAttribute('role') + ']' : ''} "${name}" ${Math.round(b.width)}x${Math.round(b.height)}, ${miss[0] ? (miss[0] < 0 ? 'left' : 'right') : miss[1] < 0 ? 'above' : 'below'} lands on ${on}`);
                     }
                 }
                 return out;
+                };
+                // The settle rule: a target still shown once its trigger has shut, outside a fixed layer, was not the
+                // trigger's (a demo's last screen, in the trigger's own story or another). It is let go unread, and the page
+                // pass reads it where it is. One in a fixed layer (an overlay on its way out) stays the trigger's.
+                window.__settle = () => {
+                    const ids = [];
+                    for (const el of document.querySelectorAll('[data-census-held]')) {
+                        const id = Number(el.dataset.censusHeld);
+                        el.removeAttribute('data-census-held');
+                        const box = el.getBoundingClientRect();
+                        if (!el.getClientRects().length || box.width <= 1 || box.height <= 1 || !el.checkVisibility({ visibilityProperty: true }) || el.closest('[aria-hidden="true"], [inert]')) continue;
+                        let layer = el;
+                        while (layer && layer !== document.body && getComputedStyle(layer).position !== 'fixed') layer = layer.parentElement;
+                        if (layer && layer !== document.body) continue;
+                        el.removeAttribute('data-census-read');
+                        el.setAttribute('data-census-settled', '');
+                        ids.push(id);
+                    }
+                    return ids;
                 };
             }, fine);
             const r = { width, fine, ...(await c.evaluate(() => window.__censusPage())), ...(await c.evaluate(() => window.__census(null))), doors: 0, opened: 0, behind: 0, lost: [], unread: [] };
@@ -2983,7 +3036,6 @@ try {
                 });
                 for (let i = 0; i < r.doors; i++) {
                     const door = c.locator(`[data-census-door="${i}"]`);
-                    const story = await door.evaluate((el) => el.closest('[data-story]')?.dataset.story).catch(() => null);
                     const name = await door.evaluate((el) => `behind ${el.closest('[data-story]')?.dataset.story} "${(el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 24)}"`).catch(() => null);
                     if (!name) continue;
                     // The trigger mid-screen, so what it opens has room on either side.
@@ -2995,18 +3047,24 @@ try {
                     }
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 300)));
                     await c.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
-                    const got = await c.evaluate(([n, st]) => window.__census(n, st), [name, story]);
-                    if (got.seen + got.inline.length) r.opened++;
-                    r.behind += got.seen;
-                    r.inline.push(...got.inline);
-                    r.small.push(...got.small);
-                    r.spaced.push(...got.spaced);
+                    const got = await c.evaluate((n) => window.__census(n), name);
                     // Shut it again: Escape for an overlay, a second press for a toggle or a details.
                     await c.keyboard.press('Escape');
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
                     const still = await door.evaluate((el) => el.getAttribute('aria-expanded') === 'true' || (el.tagName === 'SUMMARY' && el.parentElement.open)).catch(() => false);
                     if (still) await door.click({ timeout: 15000 }).catch(() => {});
                     await c.evaluate(() => new Promise((res) => setTimeout(res, 150)));
+                    // What it showed is what went when it shut; the rest is the page's (the settle rule).
+                    const settled = new Set(await c.evaluate(() => window.__settle()));
+                    const kept = got.held.filter((h) => !settled.has(h.id));
+                    if (kept.some((h) => h.seen + h.inline.length)) r.opened++;
+                    for (const h of kept) {
+                        r.behind += h.seen;
+                        r.inline.push(...h.inline);
+                        r.small.push(...h.small);
+                        r.spaced.push(...h.spaced);
+                        addPlants(r, h);
+                    }
                 }
                 // The page once more: what showed during the doors on its own is read where it is, and a target that
                 // only a trigger showed, out of view, is unread.
@@ -3015,6 +3073,7 @@ try {
                 r.inline.push(...late.inline);
                 r.small.push(...late.small);
                 r.spaced.push(...late.spaced);
+                addPlants(r, late);
                 r.unread = await c.evaluate(() => [...document.querySelectorAll('[data-census-behind]:not([data-census-read])')].map((e) => e.dataset.censusBehind));
             }
             const tag = least > 1 ? 'the census' : 'the census of a held-open dialog';
@@ -3031,6 +3090,14 @@ try {
                 ? { 'card-title': 'whole', 'checkbox-li': 'spaced', 'icon-button-li': 'spaced', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'spaced' }
                 : { 'card-title': 'small', 'checkbox-li': 'small', 'icon-button-li': 'small', 'sentence-link': 'exempt', 'crowded-icons': 'small', 'lone-icon': 'small' };
             if (least > 1) check(Object.entries(want).every(([k, v]) => r.plants[k] === v), `[${to}] the census's plants read ${JSON.stringify(r.plants)}, not ${JSON.stringify(want)}`);
+            // Behind a trigger, what it shows is its own, its layer on the way out too; a link that shows by itself
+            // meanwhile and stays, in its own story or another, is the page's, read whole once the layer over it has gone.
+            if (least > 1 && doors) {
+                const settle = { 'door-content': 'behind plant/door-own ', 'door-cover': 'behind plant/door-other ', 'door-inline': 'behind plant/door-inline ', 'late-own': 'plant/door-own', 'late-other': 'plant/late-other' };
+                const off = Object.entries(settle).filter(([k, at]) => r.plants[k] !== 'whole' || !(r.at[k] === at || r.at[k]?.startsWith(at)));
+                check(off.length === 0, `[${to}] the census's trigger plants read ${off.map(([k]) => `${k} ${r.plants[k]} at ${r.at[k]}`).join(', ')}: each whole, a trigger's own behind it and a link shown by itself at its story`);
+                check(!('late-gone' in r.plants), `[${to}] the census read late-gone ${r.plants['late-gone']} at ${r.at['late-gone']}: let go when its first trigger shut, it is no later trigger's`);
+            }
             check(r.small.length === 0, `[${to}] ${tag} found ${r.small.length} targets under ${fine ? '24px to a mouse' : '44px to a thumb'}: ${r.small.slice(0, 12).join('; ')}`);
             await c.close();
         }
