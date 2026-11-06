@@ -58,11 +58,11 @@ import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, St
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
-function still() {
-    const w = 480, h = 320, c = document.createElement('canvas'); c.width = w; c.height = h;
+function still(w = 480, h = 320) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
     const x = c.getContext('2d');
     // A page without a 2D canvas (?nocanvas) gets a blank still.
-    if (!x) return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"/>');
+    if (!x) return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '"/>');
     const img = x.createImageData(w, h), B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
         const l = 0.5 + 0.3 * Math.sin(i / 40) * Math.cos(j / 30), d = l < (B[(j & 3) * 4 + (i & 3)] + 0.5) / 16, o = (j * w + i) * 4;
@@ -150,6 +150,16 @@ const scenes = {
         </div>
     ),
     dither: () => <DitherImage src={q.get('src') ?? still()} width={480} height={320} alt="" dark="#2a1206" light="#eeeae6" style={{ width: 480 }} />,
+    // The live dither's grain: a still baked one pixel a cell drawn at 1 and 2 px a cell, a display-size still that
+    // states its cells, and a fixed pixel.
+    grain: () => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 24 }}>
+            <div id="g1"><DitherImage src={still(120, 80)} width={120} height={80} alt="" style={{ width: 120 }} /></div>
+            <div id="g2"><DitherImage src={still(120, 80)} width={120} height={80} alt="" style={{ width: 240 }} /></div>
+            <div id="g3"><DitherImage src={still()} width={480} height={320} cells={160} alt="" style={{ width: 480 }} /></div>
+            <div id="g4"><DitherImage src={still()} width={480} height={320} pixel={2} alt="" style={{ width: 480 }} /></div>
+        </div>
+    ),
 };
 const above = s === 'crowd' || s === 'stack' ? 200 : s === 'wipe' || s === 'wipecenter' ? 1200 : q.has('off') ? 3000 : 0;
 const root = createRoot(document.getElementById('root'));
@@ -606,6 +616,44 @@ try {
             check(moved > 3, `dither: a pointer moving over it drew ${moved} frames`);
             check(idle, 'dither: after the pointer stopped it never settled');
             check(clear === 0, `dither: settled, ${clear} live pixels still cover the still`);
+            await close();
+        }
+        // The live dither draws one buffer pixel a still's cell, so the trail has the still's grain at 1 and 2 px a
+        // cell, and keeps it when the drawn size changes (a site's --cell at a breakpoint); `cells` and `pixel` as stated.
+        {
+            const { p, close } = await open('grain');
+            await p.waitForTimeout(600);
+            const live = async (id) => {
+                const box = await p.locator(`#${id} .oca-dither`).boundingBox();
+                for (let i = 0; i <= 3; i++) await p.mouse.move(box.x + 10 + i * 12, box.y + box.height / 2, { steps: 2 });
+                await p.waitForTimeout(400);
+            };
+            const sizes = () =>
+                p.evaluate(() =>
+                    Object.fromEntries(
+                        ['g1', 'g2', 'g3', 'g4'].map((id) => {
+                            const c = document.querySelector(`#${id} canvas`);
+                            return [id, `${c.width}x${c.height} over ${Math.round(c.getBoundingClientRect().width)}px`];
+                        })
+                    )
+                );
+            for (const id of ['g1', 'g2', 'g3', 'g4']) await live(id);
+            const a = await sizes();
+            check(a.g1 === '120x80 over 120px', `dither grain, 120 cells at 1px a cell: the live dither is ${a.g1}, not 120x80 over 120px`);
+            check(a.g2 === '120x80 over 240px', `dither grain, 120 cells at 2px a cell: the live dither is ${a.g2}, not 120x80 over 240px`);
+            check(a.g3 === '160x107 over 480px', `dither grain, a 480px still of 160 cells: the live dither is ${a.g3}, not 160x107 over 480px`);
+            check(a.g4 === '240x160 over 480px', `dither grain, pixel 2 on 480px: the live dither is ${a.g4}, not 240x160 over 480px`);
+            // The drawn size swaps, as a hero's --cell does at xl: each still keeps its cells, the fixed pixel does not.
+            await p.evaluate(() => {
+                document.querySelector('#g1 .oca-dither').style.width = '240px';
+                document.querySelector('#g2 .oca-dither').style.width = '120px';
+                document.querySelector('#g4 .oca-dither').style.width = '240px';
+            });
+            await p.waitForTimeout(400);
+            const b = await sizes();
+            check(b.g1 === '120x80 over 240px', `dither grain, 120 cells redrawn at 2px a cell: the live dither is ${b.g1}, not 120x80 over 240px`);
+            check(b.g2 === '120x80 over 120px', `dither grain, 120 cells redrawn at 1px a cell: the live dither is ${b.g2}, not 120x80 over 120px`);
+            check(b.g4 === '120x80 over 240px', `dither grain, pixel 2 redrawn at 240px: the live dither is ${b.g4}, not 120x80 over 240px`);
             await close();
         }
         // A finger on a hybrid screen whose primary pointer is fine: the dither waits for a mouse or a pen.

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+DitherImage's live dither takes the still's own grain.
+
+- The live dither draws one pixel a still's cell over the still's box, so
+  under the pointer a picture keeps its still's grain at any drawn size:
+  at 1 and at 2 CSS px a cell, as ochk.app's heroes set `--cell`, and
+  through a resize. `cells` gives a display-size still's cells across
+  (./art's dither-mark-480 and -960 are 160); by default it is `width`,
+  for a still baked one pixel a cell. `pixel` still fixes the size in CSS
+  px when given, and no longer defaults to 2: a site that draws a
+  display-size still passes its `cells`, or `pixel={2}` for the earlier
+  look. check-idle-motion holds the live buffer to the still's cells at 1
+  and 2 px a cell and across a resize, and to `cells` and `pixel` as given.
+- `Ticker` is deprecated: no family site renders it. It goes in 3.0.
+
 ## [2.6.0] — 2026-11-06
 
 A depiction keeps the page's colours on every band.

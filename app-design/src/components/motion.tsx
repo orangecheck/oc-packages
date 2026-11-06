@@ -143,7 +143,10 @@ export function ScrollStory({
     );
 }
 
-/** A number that counts up to its value the first time it is seen. */
+/**
+ * A number that counts up to its value the first time it is seen.
+ * @deprecated 2.7: no family site renders it; it goes in 3.0.
+ */
 export function Ticker({
     value,
     duration = 1200,
