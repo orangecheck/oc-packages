@@ -807,6 +807,49 @@ const html = (el) => renderToStaticMarkup(el);
     check(probe(`<SignInPage protocol="lock" product="btc" home="/" audience="a" defaultReturnTo="/" />`) > 0, 'SignInPage types: a protocol and a product together type-check');
 }
 
+// The section shell: a Section's bar is its first row, across its container or frame, and the section's
+// space is under it; SectionHeading's split puts the title and the lead in two cells.
+{
+    const { JSDOM } = require('jsdom');
+    const dom = (el) => new JSDOM(html(el)).window.document;
+    const body = h('p', { 'data-body': '' }, 'Body');
+    const shapes = [
+        ['contained', h(C.Section, { id: 's', 'aria-labelledby': 's-bar', bar: { start: 'How it works', end: '01 / 03', as: 'h2' } }, body), '.oca-container', 'py-16 md:py-24'],
+        ['framed', h(C.Section, { framed: true, bar: { start: 'How it works' } }, body), '[data-oca-frame]', 'py-16 md:py-24'],
+        ['framed, space sm', h(C.Section, { framed: true, space: 'sm', bar: { start: 'How it works' } }, body), '[data-oca-frame]', 'py-12 md:py-16'],
+        ['uncontained', h(C.Section, { contained: false, bar: { start: 'How it works' } }, body), 'section', 'py-16 md:py-24'],
+    ];
+    for (const [name, el, box, space] of shapes) {
+        const d = dom(el);
+        const section = d.querySelector('section');
+        const holder = box === 'section' ? section : section.querySelector(`:scope > ${box}`);
+        const [first, second] = holder ? [...holder.children] : [];
+        check(first?.matches('[data-oca-section-bar]') && first.textContent.startsWith('How it works'), `Section bar (${name}): the bar is not the first row of its ${box}`);
+        check(second?.className === space && second.querySelector('[data-body]'), `Section bar (${name}): the body is not under the bar in its space ${space}: ${second?.outerHTML.slice(0, 120)}`);
+        // The space is under the bar, never above it: the section and its frame or container hold none.
+        const above = [section.className, holder === section ? '' : holder.className].join(' ');
+        check(!/(^|\s)(md:)?(py|pt)-\d|oca-section/.test(above), `Section bar (${name}): space above the bar: ${above}`);
+        check(!/clamp\(1rem/.test(html(el)), `Section bar (${name}): a literal gutter in the markup`);
+    }
+    const named = dom(shapes[0][1]);
+    check(named.querySelector('[data-oca-section-bar] h2')?.textContent.endsWith('How it works') && named.querySelector('[data-oca-section-bar]').textContent.includes('01 / 03'), 'Section bar: as h2 and its end label are not drawn');
+    // Without a bar a Section draws as before.
+    const plain = dom(h(C.Section, null, body)).querySelector('section');
+    check(!plain.querySelector('[data-oca-section-bar]') && /oca-section/.test(plain.className) && plain.querySelector(':scope > .oca-container > [data-body]'), 'Section without a bar: its space or container moved');
+    const framedPlain = dom(h(C.Section, { framed: true }, body)).querySelector('[data-oca-frame]');
+    check(/oca-section/.test(framedPlain.className) && framedPlain.querySelector(':scope > [data-body]'), 'framed Section without a bar: its Frame no longer holds its space and its children');
+
+    const split = dom(h(C.SectionHeading, { layout: 'split', reveal: false, eyebrow: 'Data and funds', title: 'What we store', lead: h('p', null, 'What a session keeps.'), id: 'store' })).body.firstElementChild;
+    const [left, right] = [...split.children];
+    check(/(^|\s)grid(\s|$)/.test(split.className) && /items-end/.test(split.className) && /lg:grid-cols-\[minmax\(0,1\.1fr\)_minmax\(0,0\.9fr\)\]/.test(split.className) && !/max-w-3xl/.test(split.className), `SectionHeading split: not two cells from lg, feet level: ${split.className}`);
+    check(split.children.length === 2 && left.querySelector('[data-ui="label"]')?.textContent === 'Data and funds' && left.querySelector('h2#store')?.textContent === 'What we store', 'SectionHeading split: the eyebrow and the title are not in the first cell');
+    check(/oca-lead/.test(right?.className) && right.querySelector('p')?.textContent === 'What a session keeps.', 'SectionHeading split: the lead is not the second cell');
+    const noLead = dom(h(C.SectionHeading, { layout: 'split', reveal: false, title: 'Alone' })).body.firstElementChild;
+    check(noLead.children.length === 1, 'SectionHeading split: a heading with no lead draws an empty cell');
+    const stack = dom(h(C.SectionHeading, { reveal: false, title: 'One column', lead: 'A line.' })).body.firstElementChild;
+    check(/max-w-3xl/.test(stack.className) && /flex-col/.test(stack.className), 'SectionHeading: the default layout is no longer one column');
+}
+
 if (failures) {
     console.error(`\n${failures} render failure(s)`);
     process.exit(1);

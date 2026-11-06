@@ -13,6 +13,7 @@ import { Display, Eyebrow } from './typography';
 /**
  * A section's title on a public page: eyebrow, headline, one line. It rises
  * into place the first time it is seen (`reveal={false}` keeps it still).
+ * `layout="split"` sets the lead beside the title from lg, their feet level.
  */
 export function SectionHeading({
     eyebrow,
@@ -23,6 +24,7 @@ export function SectionHeading({
     level = 2,
     as = 'h2',
     align = 'start',
+    layout = 'stack',
     reveal = true,
     className,
 }: {
@@ -37,9 +39,26 @@ export function SectionHeading({
     level?: 2 | 3;
     as?: 'h2' | 'h3';
     align?: 'start' | 'center';
+    /** `stack` (default): one column. `split`: the title at the left, the lead at the right from lg. */
+    layout?: 'stack' | 'split';
     reveal?: boolean;
     className?: string;
 }) {
+    if (layout === 'split') {
+        const cls = cn('grid grid-cols-1 items-end gap-x-16 gap-y-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]', className);
+        const cells = (
+            <>
+                <div className="flex min-w-0 flex-col items-start gap-5">
+                    {eyebrow ? <Eyebrow onInk={onInk}>{eyebrow}</Eyebrow> : null}
+                    <Display level={level} as={as} id={id} className="max-w-[15em] scroll-mt-24">
+                        {title}
+                    </Display>
+                </div>
+                {lead ? <div className={cn('oca-lead flex max-w-[34rem] flex-col gap-3 lg:pb-1', onInk && 'text-oca-ink-muted')}>{lead}</div> : null}
+            </>
+        );
+        return reveal ? <Reveal className={cls}>{cells}</Reveal> : <div className={cls}>{cells}</div>;
+    }
     return (
         <SectionIntro align={align} reveal={reveal} className={cn('max-w-3xl gap-4 md:gap-4', className)}>
             {eyebrow ? <Eyebrow onInk={onInk}>{eyebrow}</Eyebrow> : null}
