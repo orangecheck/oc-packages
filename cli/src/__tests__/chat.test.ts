@@ -16,6 +16,7 @@ import {
     descriptorId,
     DEVICE_RECORD_RELAYS,
     deviceDtag,
+    DIRECTORY_RELAYS,
     postDtag,
     postId,
     versionDtag,
@@ -33,7 +34,7 @@ import {
 import { DEFAULT_RELAYS, matchFilter } from '@orangecheck/nostr-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { liveNet, relaySets, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
+import { liveNet, netFor, relaySets, runChatVerify, type ChatNet, type RawQuery } from '../commands/chat';
 
 // Off unless a test sets it: the version read's flags as a test needs them, over
 // what chat-core's real read returned.
@@ -806,6 +807,8 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         const base = [version, founder.record, post];
         const recordsMissed = () => missedBy([B, C], base, {}, 30078);
         const versionsMissed = () => missedBy([B, C], base);
+        // A flood cuts the open read at its bound, so the founder's key reads decide, and B and C miss those.
+        const keyReadsMissed = () => missedBy([B, C], [...base, ...flood]);
         const keysRefused = () => ({ ...chainNet(answers({ jwks: refused })), ...pick(net([version, founder.record])) });
         const silent = Object.fromEntries(FOUR.map((r) => [r, null]));
 
@@ -815,16 +818,20 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
         };
         expect(await notRead({ file: file(version) }, recordsMissed())).toEqual({ path: 'threw', shape: v });
         expect(await notRead({ file: file(version) }, keysRefused())).toEqual({ path: 'threw', shape: v });
-        expect(await notRead({ file: file(version) }, versionsMissed())).toEqual({ path: 'rested', shape: v });
+        // Below the floor chat-core's version read stops the resolution (floorMet).
+        expect(await notRead({ file: file(version) }, versionsMissed())).toEqual({ path: 'threw', shape: v });
+        expect(await notRead({ file: file(version) }, keyReadsMissed())).toEqual({ path: 'rested', shape: v });
 
         const p = { subject: 'channel post', detail: { post_id: postId(postContent), resolves: null, channel: null } };
         expect(await notRead({ file: file(post) }, recordsMissed())).toEqual({ path: 'threw', shape: p });
-        expect(await notRead({ file: file(post) }, versionsMissed())).toEqual({ path: 'rested', shape: p });
+        expect(await notRead({ file: file(post) }, versionsMissed())).toEqual({ path: 'threw', shape: p });
+        expect(await notRead({ file: file(post) }, keyReadsMissed())).toEqual({ path: 'rested', shape: p });
 
         const c = { subject: 'channel', detail: { resolves: null, channel: null } };
         expect(await notRead({ channel: genesis.channel_id }, recordsMissed())).toEqual({ path: 'threw', shape: c });
-        expect(await notRead({ channel: genesis.channel_id }, versionsMissed())).toEqual({ path: 'rested', shape: c });
-        expect(await notRead({ channel: genesis.channel_id }, four([founder.record], {}, [C, D]))).toEqual({ path: 'rested', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, versionsMissed())).toEqual({ path: 'threw', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, four([founder.record], {}, [C, D]))).toEqual({ path: 'threw', shape: c });
+        expect(await notRead({ channel: genesis.channel_id }, keyReadsMissed())).toEqual({ path: 'rested', shape: c });
 
         const nulls = { result: null, holder: null, claim_id: null, anchor: null, coin: null, tip: null };
         expect(await notRead({ handle: 'alice' }, over(silent))).toEqual({ path: 'threw', shape: { subject: 'directory listing', detail: nulls } });
@@ -894,6 +901,34 @@ describe('oc chat verify: relays that do not answer, and the read floor (SPEC §
 });
 
 /**
+ * Relays that each hold `base` plus their `extra` and send at most `cap` a page, newest
+ * first, `until` inclusive, as nostr-core counts it. The `stops` relays answer a REQ with no
+ * `until` and then nothing: each reads a paged read's first page only. `seen` gets each REQ.
+ */
+function cappedRaw(
+    cap: number,
+    base: NostrEvent[],
+    extra: Record<string, NostrEvent[]> = {},
+    stops: readonly string[] = [],
+    seen?: (filter: Record<string, unknown>) => void
+): RawQuery {
+    return async (filter, to) => {
+        seen?.(filter);
+        const sent = new Map<string, NostrEvent>();
+        const relayStatus = to.map((relay) => {
+            if (stops.includes(relay) && typeof filter.until === 'number') return { relay, eose: false, events: 0, rejected: 0 };
+            const page = [...base, ...(extra[relay] ?? [])]
+                .filter((e) => matchFilter(e, filter as never))
+                .sort((x, y) => y.created_at - x.created_at)
+                .slice(0, Math.min(cap, typeof filter.limit === 'number' ? filter.limit : Infinity));
+            for (const e of page) sent.set(e.id, e);
+            return { relay, eose: true, events: page.length, rejected: 0 };
+        });
+        return { events: [...sent.values()], relayStatus };
+    };
+}
+
+/**
  * `events` behind a relay that answers a limited read with the newest `limit`
  * matches, as relays do, so a flood under a channel's tag pushes older versions
  * out of the open read.
@@ -933,23 +968,36 @@ describe('oc chat verify: a version read cut off at its bound is not an answer (
     });
 
     // chat-core pages its open read with an inclusive `until`, so 600 events in one second
-    // bring back the same full page every time. Before 0.1.1 that read stopped there as if
-    // complete: the genesis it never reached read as absent (a channel and a post FAILED), and a
-    // version read as the tip of the little that was read (VERIFIED).
-    describe('a flood in one second the read cannot page past, with no founder named', () => {
-        const stuck = flood.slice(0, 600).map((e) => ({ ...e, created_at: genesis.created_at + 1000 }));
-        const cases: [string, Parameters<typeof run>[0], NostrEvent[]][] = [
-            ['a channel by --channel', { channel: genesis.channel_id }, [version, founder.record]],
-            ['a version from a file', { file: file(version) }, [version, founder.record]],
-            ['a post from a file', { file: file(post) }, [version, founder.record, post]],
-        ];
+    // bring back the same full page every time. The read steps to the second before, and the
+    // relay is cut off at that second: it may hold more there than it sends in a page.
+    const cases: [string, Parameters<typeof run>[0], NostrEvent[]][] = [
+        ['a channel by --channel', { channel: genesis.channel_id }, [version, founder.record]],
+        ['a version from a file', { file: file(version) }, [version, founder.record]],
+        ['a post from a file', { file: file(post) }, [version, founder.record, post]],
+    ];
+    // The flood shares the genesis's second and the relay sends it first, so the genesis is
+    // never read and no founder is known.
+    describe("a flood in the genesis's own second the read cannot page past, with no founder named", () => {
+        const stuck = flood.slice(0, 600).map((e) => ({ ...e, created_at: genesis.created_at }));
         for (const [subject, opts, events] of cases) {
             it(`${subject}: can't tell, NOT READ, exit 2, never FAILED or VERIFIED`, async () => {
-                expect(await run(opts, limitedNet([...events, ...stuck]))).toBe(2);
+                expect(await run(opts, limitedNet([...stuck, ...events]))).toBe(2);
                 expect(stdout).toContain("can't tell");
                 expect(stdout).toContain('NOT READ');
                 expect(stdout).not.toContain('FAILED');
                 expect(stdout).not.toMatch(/^VERIFIED/m);
+            });
+        }
+    });
+
+    // A flood in a second newer than the genesis: the read steps past it to the genesis, so
+    // the founder is known and its keys are read in full, and the answer stands.
+    describe('a flood in one second newer than the genesis, with no founder named', () => {
+        const stuck = flood.slice(0, 600).map((e) => ({ ...e, created_at: genesis.created_at + 1000 }));
+        for (const [subject, opts, events] of cases) {
+            it(`${subject}: the read steps past the flood to the genesis, VERIFIED`, async () => {
+                expect(await run({ ...opts, json: true }, limitedNet([...stuck, ...events]))).toBe(0);
+                expect(JSON.parse(stdout).verdict).toBe('verified');
             });
         }
     });
@@ -989,64 +1037,121 @@ describe('oc chat verify: a directory page is full by what the relay sent (chat-
             const listing = (filter.kinds as number[]).includes(30114);
             return { events: [], relayStatus: relays.map((relay) => ({ relay, eose: true, events: listing ? kept : 0, rejected: listing ? dropped : 0 })) };
         };
-    const walkNet = (kept: number, dropped: number) => {
+    const walkNet = (raw: RawQuery) => {
         vi.stubGlobal('fetch', (async (url: string) => (String(url).endsWith('/blocks/tip/height') ? json(930000) : json({ keys: [HOST] }))) as unknown as typeof fetch);
-        return liveNet(['wss://a.example'], 'https://esplora.test/api', padded(kept, dropped));
+        return liveNet(['wss://a.example'], 'https://esplora.test/api', raw);
     };
 
     it('a full page of dropped or repeated events is not the end of the read: NOT READ, exit 2, never "not listed"', async () => {
         for (const [kept, dropped] of [[0, 200], [150, 50]] as const) {
             for (const ns of [{}, { channelHandle: true }]) {
                 stdout = '';
-                expect(await run({ handle: 'alice', ...ns, json: true }, walkNet(kept, dropped)), `${kept} ${dropped} ${JSON.stringify(ns)}`).toBe(2);
+                expect(await run({ handle: 'alice', ...ns, json: true }, walkNet(padded(kept, dropped))), `${kept} ${dropped} ${JSON.stringify(ns)}`).toBe(2);
                 expect(JSON.parse(stdout).verdict).toBe('unread');
             }
         }
     });
 
-    it('a short page, every event the relay sent counted, still ends it: not listed, FAILED', async () => {
-        expect(await run({ handle: 'alice', json: true }, walkNet(100, 99))).toBe(1);
-        expect(JSON.parse(stdout).detail).toEqual({ result: 'not_found' });
+    // One event under the handle's d tag that is no claim, which the directory relay sends as
+    // `kept` copies with `dropped` more nostr-core dropped, at or before `until`; the audit relays
+    // hold nothing. A page under 100 ends a relay's read.
+    const junk = { id: 'c'.repeat(64), pubkey: 'f'.repeat(64), created_at: 1780000500, kind: 30114, tags: [['d', 'x']], content: 'junk', sig: '0'.repeat(128) };
+    const onePage =
+        (kept: number, dropped: number): RawQuery =>
+        async (filter, relays) => {
+            const sent =
+                relays.every((r) => DIRECTORY_RELAYS.includes(r)) &&
+                (filter.kinds as number[]).includes(30114) &&
+                (typeof filter.until !== 'number' || filter.until >= junk.created_at);
+            return { events: sent ? [junk] : [], relayStatus: relays.map((relay) => ({ relay, eose: true, events: sent ? kept : 0, rejected: sent ? dropped : 0 })) };
+        };
+
+    it('a page under 100, every event the relay sent counted, ends the read: un-listed, FAILED; a page of 100 does not', async () => {
+        expect(await run({ handle: 'alice', json: true }, walkNet(onePage(50, 49)))).toBe(1);
+        // The one event is no claim that passes (E_DIR_UNVERIFIED): the handle resolves as un-listed.
+        expect(JSON.parse(stdout).detail).toEqual({ result: 'E_DIR_UNVERIFIED' });
+        stdout = '';
+        // 100 sent at one second: the relay may hold more there than it sends in a page, so it is cut off.
+        expect(await run({ handle: 'alice', json: true }, walkNet(onePage(50, 50)))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
     });
 });
 
-describe('oc chat verify: a page of device records a relay filled is cut off (chat-core 0.2.2)', () => {
+describe('oc chat verify: device records are read to each relay\'s end, whatever page it caps at', () => {
     afterEach(() => vi.unstubAllGlobals());
     const RECORD_PAGE = 500; // the page the cli asks device records in
+    const [A, B, C, D] = ['wss://a.example', 'wss://b.example', 'wss://c.example', 'wss://d.example'];
+    const FOUR = [A, B, C, D];
+    const revocation = signNostrEvent(
+        {
+            pubkey: founder.nostrPk,
+            kind: 30078,
+            created_at: 1780000300,
+            content: 'revoked\n',
+            tags: [
+                ['d', `oc-chat:device:${FOUNDER}`],
+                ['addr', FOUNDER],
+                ['device_id', founder.kp.device_id],
+                ['device_pk', 'revoked'],
+                ['auth', 'session'],
+                ['binding_sig', ''],
+            ],
+        },
+        founder.nostrSk
+    );
+    /** Events under the founder's device d tag, newer than its record and revocation, that are no device record. */
+    const filler = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({
+            id: (0x100000 + i).toString(16).padStart(64, '0'),
+            pubkey: 'e'.repeat(64),
+            created_at: 1780000400 + i,
+            kind: 30078,
+            tags: [['d', deviceDtag(FOUNDER)]],
+            content: 'junk',
+            sig: '0'.repeat(128),
+        }));
     let recordLimits: unknown[] = [];
-    // Two relays hold the version and the founder's record. Asked for device records, each
-    // sends `sent` as nostr-core counts them: past the founder's record, filler under its d
-    // tag that binds nothing, left out of `events`, as if it pushed a revocation off the page.
-    const filled = (sent: number) => {
+    const capped = (cap: number, base: NostrEvent[], extra: Record<string, NostrEvent[]> = {}, stops: readonly string[] = []) => {
         recordLimits = [];
-        const raw: RawQuery = async (filter, relays) => {
-            const records = (filter.kinds as number[]).includes(30078);
-            if (records) recordLimits.push(filter.limit);
-            const events = [version, founder.record].filter((e) => matchFilter(e, filter as never));
-            return { events, relayStatus: relays.map((relay) => ({ relay, eose: true, events: records ? sent : events.length, rejected: 0 })) };
+        const seen = (filter: Record<string, unknown>) => {
+            if ((filter.kinds as number[]).includes(30078)) recordLimits.push(filter.limit);
         };
         vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
-        return liveNet(['wss://a.example', 'wss://b.example'], 'https://esplora.test/api', raw);
+        return liveNet(FOUR, 'https://esplora.test/api', cappedRaw(cap, base, extra, stops, seen));
     };
+    const revokedOn = { [B]: [revocation], [C]: [revocation] };
 
-    it('a full page is a read cut off, so the key is not read as live: NOT READ, exit 2, the read named below its floor', async () => {
-        expect(await run({ file: file(version), json: true }, filled(RECORD_PAGE))).toBe(2);
+    it('a revocation two relays hold behind 400 newer events, at a cap of 300 a page: read past the cap, the version FAILS, never VERIFIED', async () => {
+        expect(await run({ file: file(version), json: true }, capped(300, [version, founder.record, ...filler(400)], revokedOn))).toBe(1);
         const r = JSON.parse(stdout);
-        expect(r.verdict).toBe('unread');
-        // chat-core's own floor stops the resolution, as when the relays send no records at all.
-        expect(r.checks).toEqual([]);
+        expect(r.verdict).toBe('failed');
+        expect(r.relays).toMatchObject({ below_floor: 0, floors_missed: [] });
         expect(recordLimits.length).toBeGreaterThan(0);
         expect(new Set(recordLimits)).toEqual(new Set([RECORD_PAGE]));
-        expect(r.relays).toMatchObject({ asked: 2, answered: 2, floors_missed: ['1 of 2'], silent: [] });
-        expect(r.relays.below_floor).toBeGreaterThan(0);
-        expect(r.not_checked.join('\n')).toMatch(/reads had fewer relays answering in full than their floor \(1 of 2\)/);
     });
 
-    it('a short page is a full answer: VERIFIED, every read at its floor', async () => {
-        expect(await run({ file: file(version), json: true }, filled(RECORD_PAGE - 1))).toBe(0);
+    it('the same read with no revocation: VERIFIED, every relay read to its end', async () => {
+        expect(await run({ file: file(version), json: true }, capped(300, [version, founder.record, ...filler(400)]))).toBe(0);
+        expect(JSON.parse(stdout).relays).toMatchObject({ asked: 4, answered: 4, below_floor: 0, floors_missed: [] });
+    });
+
+    it('a relay that stops partway through the records read is cut off, so the key is not read as live: NOT READ, exit 2', async () => {
+        for (const stops of [[D], [C, D]]) {
+            stdout = '';
+            expect(await run({ file: file(version), json: true }, capped(300, [version, founder.record, ...filler(400)], {}, stops)), `${stops}`).toBe(2);
+            const r = JSON.parse(stdout);
+            expect(r.verdict).toBe('unread');
+            expect(r.relays.below_floor).toBeGreaterThan(0);
+            expect(r.relays.silent.map((s: { relay: string }) => s.relay)).toEqual(stops);
+        }
+    });
+
+    it('relays that keep sending past the bound: the records read is cut off, NOT READ, exit 2, the read named below its floor', async () => {
+        expect(await run({ file: file(version), json: true }, capped(RECORD_PAGE, [version, founder.record, ...filler(2600)]))).toBe(2);
         const r = JSON.parse(stdout);
-        expect(r.verdict).toBe('verified');
-        expect(r.relays).toMatchObject({ below_floor: 0, floors_missed: [] });
+        expect(r.verdict).toBe('unread');
+        expect(r.relays.floors_missed).toContain('3 of 4');
+        expect(r.not_checked.join('\n')).toMatch(/reads had fewer relays answering in full than their floor \(3 of 4\)/);
     });
 
     it("a full page chat-core pages past is not cut off: the versions read over 500 filler events is VERIFIED", async () => {
@@ -1116,8 +1221,25 @@ describe("oc chat verify: a role holder's key read a relay filled leaves the ver
         return { code, r: JSON.parse(stdout) };
     };
 
-    it("the founder's key fills its read over the edit and the open read is cut off: can't tell, NOT READ, exit 2, never the tip", async () => {
+    it("the founder's key read pages past its own 500 to the edit, though the open read is cut off: VERIFIED and not the tip", async () => {
         const { code, r } = await verify([...founderSigned, ...flood.slice(0, 1600)]);
+        expect(code).toBe(0);
+        expect(r.verdict).toBe('verified');
+        expect(r.detail.is_tip).toBe(false);
+    });
+
+    it("the founder's key fills its read to its bound over the edit and the open read is cut off: can't tell, NOT READ, exit 2, never the tip", async () => {
+        // 2,600 under the founder's key, newer than the edit: its read stops at 2,000 events.
+        const own = Array.from({ length: 2600 }, (_, i) => ({
+            id: (0x200000 + i).toString(16).padStart(64, '0'),
+            pubkey: founder.nostrPk,
+            created_at: editContent.created_at + 1 + i,
+            kind: 30110,
+            tags: [['t', genesis.channel_id]],
+            content: 'filler',
+            sig: '0'.repeat(128),
+        }));
+        const { code, r } = await verify(own);
         expect(code).toBe(2);
         expect(r.verdict).toBe('unread');
         expect(r.detail?.is_tip ?? null).toBeNull();
@@ -1143,5 +1265,116 @@ describe("oc chat verify: a role holder's key read a relay filled leaves the ver
         expect(code).toBe(0);
         expect(r.verdict).toBe('verified');
         expect(r.detail.is_tip).toBe(false);
+    });
+});
+
+describe('oc chat verify: a relay that stops partway through the version read is cut off (chat-core floorMet)', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const [A, B, C, D] = ['wss://a.example', 'wss://b.example', 'wss://c.example', 'wss://d.example'];
+    const FOUR = [A, B, C, D];
+    // The versions under 600 newer events, 500 a page: the open read takes three pages.
+    const stopping = (stops: readonly string[]) => {
+        vi.stubGlobal('fetch', (async () => json({ keys: [HOST] })) as unknown as typeof fetch);
+        return liveNet(FOUR, 'https://esplora.test/api', cappedRaw(500, [version, founder.record, post, ...flood.slice(0, 600)], {}, stops));
+    };
+    const subjects = [{ file: file(version) }, { file: file(post) }, { channel: genesis.channel_id }];
+
+    it("one of four relays stopping after its first page: can't tell, NOT READ, exit 2, never VERIFIED", async () => {
+        for (const opts of subjects) {
+            stdout = '';
+            expect(await run({ ...opts, json: true }, stopping([D])), JSON.stringify(opts)).toBe(2);
+            const r = JSON.parse(stdout);
+            expect(r.verdict).toBe('unread');
+            expect(r.not_checked.join('\n')).toMatch(/fewer relays than the read floor read this channel's versions to the end/);
+        }
+    });
+
+    it('two of four stopping: NOT READ, exit 2; none stopping: VERIFIED', async () => {
+        for (const opts of subjects) {
+            stdout = '';
+            expect(await run({ ...opts, json: true }, stopping([C, D])), JSON.stringify(opts)).toBe(2);
+            stdout = '';
+            expect(await run({ ...opts, json: true }, stopping([])), JSON.stringify(opts)).toBe(0);
+        }
+    });
+});
+
+describe('oc chat verify: --relays asks each relay for the page size its NIP-11 document declares', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    /** Each relay's NIP-11 document declares `declared`; what was fetched goes to `asked`, a document with its Accept header. */
+    const declaring = (declared: number, asked: string[]) =>
+        vi.stubGlobal('fetch', (async (url: string, init?: RequestInit) => {
+            const u = String(url);
+            if (u.endsWith('/blocks/tip/height')) return json(930000);
+            if (u.endsWith('.example')) {
+                asked.push(`${u} ${new Headers(init?.headers).get('accept')}`);
+                return json({ limitation: { max_limit: declared } });
+            }
+            asked.push(u);
+            return json({ keys: [HOST] });
+        }) as unknown as typeof fetch);
+    // relayMaxLimit keeps what a document declared for the process, so each test names its own relays.
+    const named = (tag: string) => ['a', 'b', 'c', 'd'].map((x) => `wss://${tag}-${x}.example`);
+    const revocation = signNostrEvent(
+        {
+            pubkey: founder.nostrPk,
+            kind: 30078,
+            created_at: 1780000300,
+            content: 'revoked\n',
+            tags: [
+                ['d', `oc-chat:device:${FOUNDER}`],
+                ['addr', FOUNDER],
+                ['device_id', founder.kp.device_id],
+                ['device_pk', 'revoked'],
+                ['auth', 'session'],
+                ['binding_sig', ''],
+            ],
+        },
+        founder.nostrSk
+    );
+    const recordFiller = Array.from({ length: 300 }, (_, i) => ({
+        id: (0x300000 + i).toString(16).padStart(64, '0'),
+        pubkey: 'e'.repeat(64),
+        created_at: 1780000400 + i,
+        kind: 30078,
+        tags: [['d', deviceDtag(FOUNDER)]],
+        content: 'junk',
+        sig: '0'.repeat(128),
+    }));
+
+    it("relays that declare 50 and send 50 a page, the versions under 300 newer events: can't tell, NOT READ, exit 2; each document asked once", async () => {
+        const asked: string[] = [];
+        declaring(50, asked);
+        const relays = named('v50');
+        const opts = { file: file(version), relays: relays.join(','), json: true };
+        expect(await run(opts, netFor(opts, cappedRaw(50, [version, ...flood.slice(0, 300)])))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+        const docs = asked.filter((a) => a.includes('.example'));
+        expect(docs.sort()).toEqual(relays.map((r) => `${r.replace(/^wss/, 'https')} application/nostr+json`).sort());
+    });
+
+    it('relays that declare 50 and send 50 a page, a revocation two hold behind 300 newer records: NOT READ, exit 2, never VERIFIED', async () => {
+        declaring(50, []);
+        const relays = named('r50');
+        const opts = { file: file(version), relays: relays.join(','), json: true };
+        const raw = cappedRaw(50, [founder.record, ...recordFiller], { [relays[1]!]: [revocation], [relays[2]!]: [revocation] });
+        expect(await run(opts, netFor(opts, raw))).toBe(2);
+        expect(JSON.parse(stdout).verdict).toBe('unread');
+    });
+
+    it('relays that declare 500 and send 500 a page: VERIFIED', async () => {
+        const asked: string[] = [];
+        declaring(500, asked);
+        const opts = { file: file(version), relays: named('v500').join(','), json: true };
+        expect(await run(opts, netFor(opts, cappedRaw(500, [version, founder.record, ...flood.slice(0, 300)])))).toBe(0);
+        expect(asked.filter((a) => a.includes('.example'))).toHaveLength(4);
+    });
+
+    it('without --relays no NIP-11 document is asked: the reference relays declare 500', async () => {
+        const asked: string[] = [];
+        declaring(50, asked);
+        const opts = { file: file(version), json: true };
+        expect(await run(opts, netFor(opts, cappedRaw(500, [version, founder.record, ...flood.slice(0, 300)])))).toBe(0);
+        expect(asked).toEqual(['https://ochk.io/.well-known/jwks.json']);
     });
 });

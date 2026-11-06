@@ -60,14 +60,14 @@ import {
     parseChannelDirectoryContent,
     parseDirectoryContent,
 } from '@orangecheck/lock-core/directory';
-import { queryEvents } from '@orangecheck/nostr-core';
+import { queryEvents, readRelays, relayMaxLimit } from '@orangecheck/nostr-core';
 import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
 import { die, readStdin } from '../util';
 
 const ESPLORA = 'https://mempool.space/api';
 const TIMEOUT_MS = 8000;
-/** Device records are asked a page this size, so a relay that fills it reads as cut off (chat-core RecordLookup). */
+/** Device records are asked a page this size, and each relay is paged past it to the end (nostr-core readRelays). */
 const RECORD_PAGE = 500;
 
 export interface ChatVerifyOpts {
@@ -90,6 +90,9 @@ export interface ChatNet {
     tip(): Promise<number>;
     verifyOnChain: VerifyOnChain;
     walk: Omit<WalkDeps, 'boundKeys' | 'verifyEvent'>;
+    /** The page size a relay's NIP-11 document declares (nostr-core relayMaxLimit). Asked only
+     *  of relays `--relays` names: one declaring under 100 that sent anything is cut off. */
+    maxLimit?: (relay: string) => Promise<number | undefined>;
     /** How the relays answered this run, when the network can tell. */
     relays?: () => RelayReport;
 }
@@ -157,10 +160,11 @@ const verifyBip322 = ({ address, message, signature }: { address: string; messag
  *  the events it sent that were kept and that were dropped. */
 type RelayStatus = { relay: string; eose: boolean; events?: number; rejected?: number };
 
-/** One REQ to some relays: the events, and how each relay answered. */
+/** One REQ to some relays, answered within `timeoutMs`: the events, and how each relay answered. */
 export type RawQuery = (
     filter: Record<string, unknown>,
-    relays: readonly string[]
+    relays: readonly string[],
+    timeoutMs?: number
 ) => Promise<{ events: NostrEvent[]; relayStatus: readonly RelayStatus[] }>;
 
 /** How the relays answered over one run: how many there were, which missed a read, and how
@@ -205,14 +209,16 @@ export function relayTally() {
     };
 }
 
-const rawQuery: RawQuery = async (filter, relays) => queryEvents(filter as never, relays, TIMEOUT_MS);
+const rawQuery: RawQuery = async (filter, relays, timeoutMs = TIMEOUT_MS) =>
+    queryEvents(filter as never, relays, timeoutMs);
 
 export function liveNet(
     relays: readonly string[],
     esplora = ESPLORA,
     raw: RawQuery = rawQuery,
     // Device records and revocations: the set OC Lock counts over (chat-core DEVICE_RECORD_RELAYS).
-    recordRelays: readonly string[] = relays
+    recordRelays: readonly string[] = relays,
+    maxLimit?: ChatNet['maxLimit']
 ): ChatNet {
     const timed: typeof fetch = (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
     const tally = relayTally();
@@ -227,10 +233,19 @@ export function liveNet(
     return {
         query,
         // A bind any answering relay holds counts; "not bound" needs the floor (chat-core recordReads).
+        // Each relay is paged alone to its end, whatever page it caps at, and the floor counts
+        // the relays whose read ended complete: one that stopped partway is cut off.
         records: async (principal) => {
-            const res = await ask({ kinds: [30078], '#d': [deviceDtag(principal)], limit: RECORD_PAGE }, recordRelays, RECORD_PAGE);
-            return { events: res.events, relayStatus: res.relayStatus, limit: RECORD_PAGE };
+            const res = await readRelays({ kinds: [30078], '#d': [deviceDtag(principal)] }, recordRelays, {
+                limit: RECORD_PAGE,
+                timeoutMs: TIMEOUT_MS,
+                query: (f, to, left) => raw(f as Record<string, unknown>, to, left),
+                ...(maxLimit ? { maxLimit } : {}),
+            });
+            tally.note(res.relayStatus);
+            return { events: res.events as NostrEvent[], relayStatus: res.relayStatus };
         },
+        ...(maxLimit ? { maxLimit } : {}),
         relays: () => tally.report(),
         // A JWKS that answers with no keys binds nothing; one that does not answer is not read.
         hostKeys: () =>
@@ -306,7 +321,11 @@ const reads = (net: ChatNet) =>
 /** Resolve a channel from what the relays hold, plus `given` when the caller holds an event of it. */
 async function resolveChannel(cid: string, net: ChatNet, founder?: string, given?: NostrEvent) {
     const r = reads(net);
-    const read = await readChannelVersions(cid, { query: net.query, everBoundKeys: r.everBoundKeys }, founder);
+    const read = await readChannelVersions(
+        cid,
+        { query: net.query, everBoundKeys: r.everBoundKeys, ...(net.maxLimit ? { maxLimit: net.maxLimit } : {}) },
+        founder
+    );
     const events = given && !read.events.some((e) => e.id === given.id) ? [...read.events, given] : read.events;
     const resolved = await resolveChannelChain(events, cid, {
         isBound: r.isBound,
@@ -323,6 +342,16 @@ async function resolveChannel(cid: string, net: ChatNet, founder?: string, given
             resolved
                 ? "can't tell: the read of this channel's versions stopped at its bound, and its role holders' keys were not all read, so a newer version may exist"
                 : "can't tell: the read of this channel's versions stopped at its bound, so the channel may exist though it did not resolve"
+        );
+    }
+    // Below the read floor (§8.7) what was not read may be on a relay that did not answer
+    // to the end: one that stopped partway is cut off, though it answered the REQs that met
+    // their floor. A read cut off at its bound is judged above, by its role holders' keys.
+    if (!read.truncated && !read.floorMet) {
+        throw new UnansweredReadError(
+            resolved
+                ? "can't tell: fewer relays than the read floor read this channel's versions to the end, so a newer version may exist"
+                : "can't tell: fewer relays than the read floor read this channel's versions to the end, so the channel may exist though it did not resolve"
         );
     }
     return { resolved, read };
@@ -565,6 +594,13 @@ export function relaySets(given?: string): { relays: readonly string[]; recordRe
     return list ? { relays: list, recordRelays: list } : { relays: CHAT_RELAYS, recordRelays: DEVICE_RECORD_RELAYS };
 }
 
+/** The network a run reads (relaySets). The NIP-11 page size is asked only of relays `--relays`
+ *  names: the reference sets declare 500, and one that declares under 100 is cut off. */
+export function netFor(opts: ChatVerifyOpts, raw: RawQuery = rawQuery): ChatNet {
+    const { relays, recordRelays } = relaySets(opts.relays);
+    return liveNet(relays, opts.esplora ?? ESPLORA, raw, recordRelays, opts.relays ? relayMaxLimit : undefined);
+}
+
 export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null): Promise<void> {
     let input: unknown = null;
     if (!opts.channel && !opts.handle) {
@@ -576,11 +612,10 @@ export async function runChatVerify(opts: ChatVerifyOpts, net?: ChatNet | null):
             die('input is not JSON');
         }
     }
-    const { relays, recordRelays } = relaySets(opts.relays);
     if (!opts.offline && net === undefined && typeof (globalThis as { WebSocket?: unknown }).WebSocket !== 'function') {
         die('reading the relays needs a WebSocket global (Node 22 or later); run with --offline, or upgrade Node');
     }
-    const n = opts.offline ? null : (net ?? liveNet(relays, opts.esplora ?? ESPLORA, rawQuery, recordRelays));
+    const n = opts.offline ? null : (net ?? netFor(opts));
     const r = await verifyChat(opts, input, n);
     // A verdict that rests on something being absent stands only on reads that met the
     // read floor (chat-core readFloor, SPEC §8.7): a revocation, binding or version
