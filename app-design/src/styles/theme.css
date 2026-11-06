@@ -87,9 +87,8 @@
        and family components must not change shape. Floored at 0, since 2.0's
        --radius is 0; xl scales with it (1.25×, the old +4px at a 1rem radius).
        Depictions and social tiles have their own radii. A site's own bare rounded is
-       --radius itself, and xs steps down as sm does, so both are square under 2.0 too,
-       not Tailwind's 4px and 2px. */
-    --radius: var(--radius);
+       --radius itself (the reference block below), and xs steps down as sm does, so
+       both are square under 2.0 too, not Tailwind's 4px and 2px. */
     --radius-xs: max(0px, calc(var(--radius) - 6px));
     --radius-sm: max(0px, calc(var(--radius) - 4px));
     --radius-md: max(0px, calc(var(--radius) - 2px));
@@ -112,6 +111,13 @@
     --shadow-md: var(--oc-shadow-md);
     --shadow-lg: var(--oc-shadow-lg);
     --shadow-xl: var(--oc-shadow-xl);
+}
+
+/* A bare rounded reads --radius from tokens.css. As a reference the key is
+   inlined into the utility and not emitted, since an emitted --radius: var(--radius)
+   would be a custom property that refers to itself. */
+@theme inline reference {
+    --radius: var(--radius);
 }
 
 /* ── Type scale ──────────────────────────────────────────────────────────
