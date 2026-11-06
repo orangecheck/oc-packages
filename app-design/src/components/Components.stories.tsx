@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
+import { Code2, Package, Sparkles } from 'lucide-react';
+
 import { failureText } from '../format';
 import { Button, StatusPill } from '../primitives';
 import { useEffect, useState } from 'react';
@@ -86,6 +88,28 @@ export const Packages: StoryObj = {
                     { title: 'All of it open', code: 'MIT code · CC-BY-4.0 specs', kind: 'link', note: 'TypeScript and Python SDKs. Fork it or host it yourself.' },
                 ]}
             />
+        </div>
+    ),
+};
+
+// A tone makes PackageCard a tile, as ochk.app's /apps draws one: white, ink and orange.
+export const PackageTiles: StoryObj = {
+    name: 'Package tiles',
+    render: () => (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.45fr_1fr]">
+            <PackageCard tone="ink" icon={<Code2 />} label="01 · @orangecheck/me-client" title="Sign-in that keeps bots out" note="A sign-in button, and session checks for Next.js, Express and Hono that hold accounts to your bar.">
+                <CodeBlock lang="sh" code="yarn add @orangecheck/me-client" />
+            </PackageCard>
+            <PackageCard tone="brand" icon={<Sparkles />} label="02 · @orangecheck/me-client" title="Pay your users, when you choose" note="Report the events you value. Always or in promos, your users get paid and you get a receipt.">
+                <ul className="mt-auto border-t border-border">
+                    {['Off, always, or in promos.', 'Your users keep up to 80%', 'A receipt for every event'].map((l) => (
+                        <li key={l} className="border-b border-border py-3.5 text-[1.0625rem]">
+                            {l}
+                        </li>
+                    ))}
+                </ul>
+            </PackageCard>
+            <PackageCard tone="card" icon={<Package />} label="03 · @orangecheck/gate" title="A drop-in gate" note="Middleware for Express, Next, Fastify, Hono and Workers." className="lg:col-span-2" />
         </div>
     ),
 };
