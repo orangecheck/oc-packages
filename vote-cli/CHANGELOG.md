@@ -19,10 +19,9 @@ this file tracks the package's TS / Node / runtime API surface.
   was cut off on. A poll read cut short on any relay is an error that names
   those relays and says the poll may be missing.
 - A page whose events all share one second is stepped past (`until` one
-  second lower). A relay that sends anything below it stopped short at that
-  second, and its read counts as cut short. One that sends nothing is asked
-  for a page of the kinds alone, and is read in full only if it serves more
-  than it sent at that second.
+  second lower). At a page of 100, a relay whose page sat wholly at that
+  second sent a full page there and may hold more at it, so its read counts as
+  cut short, whatever it sends below.
 - `tally`, `show` and `verify` with `--relay` ask each named relay its NIP-11
   `limitation.max_limit` for every read they make. A relay declaring a page
   under 100 that sent events counts as cut short. The default relays are not
