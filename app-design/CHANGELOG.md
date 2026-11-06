@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-06
+
 A second logo, pixel, can be switched on to test.
 
 - Every place the package draws the brand draws both logos: classic, as
