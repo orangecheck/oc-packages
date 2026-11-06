@@ -111,8 +111,8 @@ export const Dither: StoryObj = {
     name: 'Dither image',
     render: () => (
         <div className="flex flex-col items-center gap-4 py-8">
-            {/* A site passes a baked two-tone still from ./art; the deck's halftone stands in here. */}
-            <DitherImage src={portrait} width={600} height={600} alt="" dark="#0d0a08" className="w-full max-w-[28rem]" />
+            {/* A site passes a baked two-tone still from ./art; the deck's halftone stands in here, at a fixed pixel. */}
+            <DitherImage src={portrait} width={600} height={600} alt="" dark="#0d0a08" pixel={2} className="w-full max-w-[28rem]" />
             <p className="m-0 text-muted-foreground">With a mouse, move over the picture: the screen comes alive where you pass, then settles.</p>
         </div>
     ),

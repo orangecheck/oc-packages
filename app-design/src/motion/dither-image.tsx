@@ -37,7 +37,14 @@ export interface DitherImageProps {
      */
     dark?: string;
     light?: string;
-    /** Size of one dither pixel, in CSS px. */
+    /**
+     * The still's dither cells across: `width` by default, for a still baked
+     * one pixel a cell. A display-size still states its own (./art's
+     * dither-mark-480 and -960 are 160). The live dither draws one pixel a
+     * cell over the still's box, so the two share one grain at any drawn size.
+     */
+    cells?: number;
+    /** A fixed size for one live dither pixel, in CSS px, in place of the still's grain. */
     pixel?: number;
     className?: string;
     style?: CSSProperties;
@@ -72,7 +79,7 @@ function groundOf(el: Element): string {
 /** A smooth field that crawls with z: two crossed waves, enough for a bias that drifts; far cheaper than lattice noise. */
 const noise = (x: number, y: number, z: number) => Math.sin(x * 1.9 + z * 1.3 + Math.sin(y * 2.3 - z)) * Math.cos(y * 1.7 - z * 0.9 + Math.sin(x * 1.1));
 
-export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark, light, pixel = 2, className, style }: DitherImageProps) {
+export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark, light, cells, pixel, className, style }: DitherImageProps) {
     const box = useRef<HTMLSpanElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
     const setting = useMotionSetting();
@@ -97,7 +104,7 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
                 return;
             }
             if (gone) return;
-            const inks = { dark: word(dark ?? lightPalette.burnt), light: word(light ?? groundOf(el)), pixel };
+            const inks = { dark: word(dark ?? lightPalette.burnt), light: word(light ?? groundOf(el)), cells: cells ?? width, pixel };
             mounted = mountScene(cv, el, (surface, wake) => ditherScene(el, img, surface, wake, inks, e));
             mounted.wake();
         };
@@ -107,7 +114,7 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
             el.removeEventListener('pointerenter', start);
             mounted?.stop();
         };
-    }, [src, tone, dark, light, pixel, setting]);
+    }, [src, tone, dark, light, cells, width, pixel, setting]);
 
     return (
         <span ref={box} className={cn('oca-dither relative block overflow-hidden', className)} style={{ aspectRatio: `${width} / ${height}`, ...style }}>
@@ -121,13 +128,15 @@ export function DitherImage({ src, srcSet, sizes, width, height, alt, tone, dark
 interface Inks {
     dark: number;
     light: number;
-    pixel: number;
+    cells: number;
+    pixel?: number;
 }
 
 function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, wake: () => void, o: Inks, first: PointerEvent) {
-    // The canvas works at dither resolution and is scaled up pixelated: one buffer pixel per `pixel` CSS px.
+    // The canvas works at dither resolution and is scaled up pixelated: one buffer pixel a still's cell, or per `pixel` CSS px.
     let W = 0;
     let H = 0;
+    let grain = 1; // CSS px per buffer pixel
     let lum = new Float32Array(0);
     let gw = 0;
     let gh = 0;
@@ -141,8 +150,10 @@ function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, w
     function layout() {
         const cw = surface.width;
         const ch = surface.height;
-        W = Math.max(1, Math.round(cw / o.pixel));
-        H = Math.max(1, Math.round(ch / o.pixel));
+        // The still's own grain is its drawn width over its cells, so at 1 or 2 CSS px a cell the trail is the still's.
+        grain = o.pixel ?? (cw > 0 ? cw / o.cells : 1);
+        W = Math.max(1, Math.round(cw / grain));
+        H = Math.max(1, Math.round(ch / grain));
         // Draw at buffer size, whatever the Surface's device scale: the CSS scales it up, square and crisp.
         surface.canvas.width = W;
         surface.canvas.height = H;
@@ -213,7 +224,7 @@ function ditherScene(el: HTMLElement, img: HTMLImageElement, surface: Surface, w
             const keep = Math.exp(-dt / 0.22);
             let alive = false;
             px.fill(0);
-            const k = CELL / o.pixel; // buffer pixels per cell
+            const k = CELL / grain; // buffer pixels per trail cell
             for (let gy = 0; gy < gh - 1; gy++) {
                 for (let gx = 0; gx < gw - 1; gx++) {
                     const i = gy * gw + gx;
