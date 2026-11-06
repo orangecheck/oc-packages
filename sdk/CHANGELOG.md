@@ -12,8 +12,8 @@ this file tracks the package's TS / Node / runtime API surface.
 ### Changed
 
 - Each relay's read of a subject (`readByAttestationId`, `readByAddress`,
-  `readByIdentity`, and through them `check()` and `queryByAttestationId`,
-  `queryByAddress`, `queryByIdentity`) pages through
+  `readByIdentity`, and through them `check()`, `readAttestations`,
+  `discoverAttestations` and the three `queryBy*` helpers) pages through
   `@orangecheck/nostr-core`'s `readPages`:
   500 asked a page, until about 2,000 events or 16 REQs a relay. A relay is
   `complete` on a page shorter than 100 events or shorter than the largest it
@@ -26,6 +26,12 @@ this file tracks the package's TS / Node / runtime API surface.
   only if it serves more than it sent at that second.
 - A page counts every event the relay sent, ones outside the REQ's window
   included: a full page with none inside it is `cut_off`.
+- A relay the caller passes that is not in `DEFAULT_RELAYS` is asked its NIP-11
+  `max_limit` alongside the read's first REQ, within the fan-out's time left;
+  one declaring under 100 that sent anything reads `cut_off`. The default
+  relays are not asked (each declares 500). A relay whose NIP-11 is not read
+  (no document, a CSP block, no answer in time) keeps the floor of 100: one
+  that sends fewer than 100 events a REQ reads `complete` after its first page.
 - Depends on `@orangecheck/nostr-core` ^0.8.2, external in the build.
 
 ## [1.23.1] — 2026-11-05
