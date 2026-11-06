@@ -21,8 +21,9 @@ this file tracks the package's TS / Node / runtime API surface.
   partway is cut off, so the key is NOT READ, exit 2, never live or not bound.
 - A channel's version read below the read floor (chat-core `floorMet`) is NOT
   READ, exit 2, unless the read was cut off at its bound. A read cut off at its
-  bound stands only when the role holders' key reads were complete, so a flood
-  alone does not block a verdict.
+  bound stands only when every REQ of the role holders' key reads met its read
+  floor and none of those reads was cut off at its bound, so a flood alone does
+  not block a verdict.
 - With `--relays`, each relay's NIP-11 document is asked for its `max_limit`
   (nostr-core `relayMaxLimit`). A relay that declares under 100 and sent
   anything is cut off. The reference sets declare 500 and are not asked. A
