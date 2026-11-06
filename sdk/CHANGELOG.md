@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Changed
+
+- Each relay's read of a subject (`readByAttestationId`, `readByAddress`,
+  `readByIdentity`, and through them `check()` and `queryByAttestationId`,
+  `queryByAddress`, `queryByIdentity`) pages through
+  `@orangecheck/nostr-core`'s `readPages`:
+  500 asked a page, until about 2,000 events or 16 REQs a relay. A relay is
+  `complete` on a page shorter than 100 events or shorter than the largest it
+  sent, so a relay that serves at most 300 events a REQ is read to its end, and
+  one still sending full pages at the bound is `cut_off`.
+- A page whose events all share one second is stepped past (`until` one
+  second lower), so what lies below it is still read. A relay that sends
+  anything below it stopped short at that second and is `cut_off`. One that
+  sends nothing is asked for a page of the kinds alone, and is `complete`
+  only if it serves more than it sent at that second.
+- A page counts every event the relay sent, ones outside the REQ's window
+  included: a full page with none inside it is `cut_off`.
+- Depends on `@orangecheck/nostr-core` ^0.8.2, external in the build.
+
 ## [1.23.1] — 2026-11-05
 
 ### Fixed
