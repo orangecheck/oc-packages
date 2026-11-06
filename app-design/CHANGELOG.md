@@ -72,6 +72,10 @@ letters up to 1000.
   by itself meanwhile was read as the trigger's. Six plants in four stories
   of the census hold each case, and a link let go once is read behind no
   later trigger.
+- check-dom holds where `SignInPage`'s Google sign-in comes back to: this
+  site's own address with the return path, as a site's own sign-in page
+  prefixed it, or a family address as given. OcSignIn adds the page's origin
+  to a bare path, so a site such as cosign needs no prefix of its own.
 
 One header for every site. The six verb sites drew ToolShell's own bar:
 56px at every width, a 22px lockup, the tools as underlined tabs from 768px,
