@@ -955,9 +955,12 @@ function founderFrom(e: NostrEvent, cid: string): string | null {
  * to its end (readPages), so a relay that caps a page below the page asked for
  * is read past its cap. Every copy is kept. `truncated`: the open read, the
  * legacy read or the walk back stopped at a bound. Throws UnansweredReadError
- * when no read was answered. `floorMet` is false when any read, of versions or
- * of a role holder's keys, fell below the read floor (§8.7), so a newer version
- * may exist.
+ * when no read was answered. `floorMet` is false when any read fell below the
+ * read floor (§8.7), so a newer version may exist. A read anyone can publish
+ * into that stopped at its bound meets it when each REQ it made met it: the
+ * bound cut its relays off, and what it did not reach is for the role holders'
+ * key reads to find. Every other read, each key read included, meets it on the
+ * relays read to its end, and every lookup of a role holder's keys on its own.
  */
 export async function readChannelVersions(
     cid: string,
@@ -972,18 +975,31 @@ export async function readChannelVersions(
     // Versions a role holder's key signed: the only ones the walk goes forward from.
     const walkable = new Set<string>();
     const roleKeys = new Set<string>();
-    const page = (filter: Record<string, unknown>, bounds: PageBounds = VERSION_READ) =>
-        readPages(
-            (f) => reads.query(f as Record<string, unknown>),
+    // One paged read, and whether each REQ it made met the floor by the relays that sent EOSE.
+    const page = async (filter: Record<string, unknown>, bounds: PageBounds = VERSION_READ) => {
+        let eachReq = true;
+        const res = await readPages(
+            async (f) => {
+                const got = await reads.query(f as Record<string, unknown>);
+                if (got.relayStatus && !meetsReadFloor(got.relayStatus)) eachReq = false;
+                return got;
+            },
             { kinds: [CHANNEL_DESCRIPTOR_KIND], ...filter } as Filter,
             reads.maxLimit ? { ...bounds, maxLimit: reads.maxLimit } : bounds
         );
-    // One paged read's answer. Its floor counts each relay whose read ended complete.
-    const add = (res: PagedRead, byRole = false) => {
+        return { ...res, eachReq };
+    };
+    // One paged read's answer. `open`: anyone can publish into it, so one a bound
+    // stopped meets the floor on its REQs; any other counts each relay read to its end.
+    const add = (res: PagedRead & { eachReq: boolean }, how: { byRole?: boolean; open?: boolean }) => {
         status.push(...(res.relayStatus ?? []));
-        if (res.relayStatus && !meetsReadFloor(res.relayStatus)) floorMet = false;
+        const met =
+            how.open && res.truncated
+                ? res.eachReq
+                : !res.relayStatus || meetsReadFloor(res.relayStatus);
+        if (!met) floorMet = false;
         for (const e of res.events) {
-            if (byRole) walkable.add(e.id);
+            if (how.byRole) walkable.add(e.id);
             if (!merged.has(e.id)) merged.set(e.id, e);
         }
     };
@@ -993,7 +1009,7 @@ export async function readChannelVersions(
         page({ '#d': [descriptorDtag(cid)] }),
     ]);
     for (const res of [open, legacy]) {
-        add(res);
+        add(res, { open: true });
         if (res.truncated) truncated = true;
     }
 
@@ -1034,7 +1050,7 @@ export async function readChannelVersions(
             for (const res of await Promise.all(
                 fresh.map((k) => page({ ...filter, authors: [k] }, { ...VERSION_READ, budget }))
             )) {
-                add(res, true);
+                add(res, { byRole: true });
                 // A key's read a bound stopped may hold back more versions that key signed.
                 if (res.truncated) incomplete = true;
             }
@@ -1085,7 +1101,7 @@ export async function readChannelVersions(
         if (missing.length === 0) break;
         for (const id of missing) asked.add(id);
         const back = await page({ '#d': missing.map(versionDtag) });
-        add(back);
+        add(back, { open: true });
         if (back.truncated) truncated = true;
     }
     return {

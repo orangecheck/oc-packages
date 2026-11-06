@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import {
     authorizedCopy,
     channelId,
+    descriptorDtag,
     descriptorId,
     readChannelVersions,
     resolveChannelChain,
@@ -157,6 +158,23 @@ describe('liveness that no relay answered', () => {
     it('stops the resolution, never reads as live or revoked', async () => {
         await expect(resolve([version(founderKey, genesis)], async () => 'unknown')).rejects.toBeInstanceOf(
             UnansweredReadError
+        );
+    });
+
+    it('read from records that three of four relays answered in full, one cut off: the resolution stops and says so', async () => {
+        const status: RelayAnswer[] = ['a', 'b', 'c', 'd'].map((x, i) => ({
+            relay: `wss://${x}`,
+            eose: i < 3,
+            state: i < 3 ? ('complete' as const) : ('cut_off' as const),
+        }));
+        const r = recordReads(async () => ({ events: [founderKey.record], relayStatus: status }), {
+            hostKeys,
+            verifyBip322: never,
+        });
+        const out = resolve([version(founderKey, genesis)], r.liveness);
+        await expect(out).rejects.toBeInstanceOf(UnansweredReadError);
+        await expect(out).rejects.toThrow(
+            '3 of 4 relays answered in full and 1 was cut off before the end of what it holds, so a revocation of this binding may not have been seen'
         );
     });
 });
@@ -608,9 +626,9 @@ describe('readChannelVersions: relays that cap a page below the 500 asked for ar
         const r = await readOver(every([g1, v2, ...newer(300, OTHER, T, 'o', true)], 300));
         expect(ids(r)).toEqual(expect.arrayContaining([g1.id, v2.id]));
         expect(r.truncated).toBe(true);
-        expect(r.floorMet).toBe(false);
-        // The founder was found below the flood, and its keys read in full.
+        // The founder was found below the flood, and its keys read in full; every relay answered every REQ.
         expect(r.incomplete).toBe(false);
+        expect(r.floorMet).toBe(true);
     });
 
     it('a relay that stops answering partway stays cut off, though every other relay is read in full', async () => {
@@ -640,7 +658,8 @@ describe('readChannelVersions: relays that cap a page below the 500 asked for ar
         };
         const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: founderKeys }, FOUNDER);
         expect(r.truncated).toBe(true);
-        expect(r.floorMet).toBe(false);
+        // Cut off by the bound, not by a relay: every REQ met the floor, and the founder's key read was read in full.
+        expect(r.floorMet).toBe(true);
         expect(calls.filter((f) => Array.isArray(f['#t']) && !f.authors).length).toBeLessThanOrEqual(16);
     });
 
@@ -665,6 +684,83 @@ describe('readChannelVersions: relays that cap a page below the 500 asked for ar
         relays[0] = { ...relays[0]!, held: [g1, v2, ...newer(1, OTHER, T, 'o')] };
         const r = await readOver(relays);
         expect(r).toMatchObject({ truncated: false, incomplete: false, floorMet: true });
+    });
+});
+
+describe('readChannelVersions: a read anyone can publish into that stops at its bound meets the floor on each REQ it made; every other read on the relays read to its end (§8.3.1, §8.7)', () => {
+    const flood = newer(2500, OTHER, T, 'o');
+    const openRead = (f: Record<string, unknown>) => Array.isArray(f['#t']) && !f.authors;
+    const firstPage = (f: Record<string, unknown>) => f.until === undefined && f.since === undefined;
+
+    it('a flood alone: truncated, and the floor met, since every relay answered every REQ and the key reads were read in full', async () => {
+        const r = await readOver(every([g1, v2, ...flood], 500), FOUNDER);
+        expect(ids(r)).toContain(v2.id);
+        expect(r).toMatchObject({ truncated: true, incomplete: false, floorMet: true });
+    });
+
+    it('relays silent after their first page of the flooded read: one of four leaves each REQ at the floor, two do not', async () => {
+        const quiet = (n: number): Planted[] =>
+            every([g1, v2, ...flood], 500).map((p, i) =>
+                i < n ? { ...p, answers: (f) => !openRead(f) || firstPage(f) } : p
+            );
+        expect(await readOver(quiet(1), FOUNDER)).toMatchObject({ truncated: true, incomplete: false, floorMet: true });
+        expect(await readOver(quiet(2), FOUNDER)).toMatchObject({ truncated: true, incomplete: false, floorMet: false });
+    });
+
+    it("a newer version on one relay of four, behind 500 of the founder's own events, that relay stopping after its first page: the floor unmet, though each REQ met it", async () => {
+        // No `s` tag, so the walk forward does not find it: only the founder's key read under `t` does.
+        const c3 = next(next(genesis, 'Town, edited', genesis.created_at + 50), 'Town, v3', genesis.created_at + 80);
+        const v3 = signNostrEvent(
+            {
+                pubkey: founderKey.nostrPk,
+                kind: 30110,
+                created_at: c3.created_at,
+                content: JSON.stringify(c3),
+                tags: [
+                    ['d', versionDtag(descriptorId(c3))],
+                    ['t', c3.channel_id],
+                    ['binding', JSON.stringify(founderKey.record)],
+                ],
+            },
+            founderKey.nostrSk
+        );
+        const own = junk(500, founderKey.nostrPk, T, (i) => genesis.created_at + 100 + i, 'f');
+        const held = [g1, v2, ...own, ...newer(2600, OTHER, T, 'o')];
+        const relays = (stops: boolean): Planted[] =>
+            every(held, 500).map((p, i) =>
+                i === 3 ? { ...p, held: [...held, v3], ...(stops ? { answers: firstPage } : {}) } : p
+            );
+        const stopped = await readOver(relays(true), FOUNDER);
+        expect(ids(stopped)).not.toContain(v3.id);
+        expect(stopped).toMatchObject({ truncated: true, incomplete: false, floorMet: false });
+        const full = await readOver(relays(false), FOUNDER);
+        expect(ids(full)).toContain(v3.id);
+        expect(full).toMatchObject({ truncated: true, incomplete: false, floorMet: true });
+    });
+
+    it("the walk back stopped at its bound by 2,600 events under the parent's d-tag: truncated, the floor met on its REQs", async () => {
+        const parent: string[][] = [['d', versionDtag(descriptorId(genesis))]];
+        const r = await readOver(every([v2, ...junk(2600, OTHER, parent, (i) => genesis.created_at + 1000 + i, 'w')], 300), FOUNDER);
+        expect(r).toMatchObject({ truncated: true, floorMet: true });
+    });
+
+    it("the legacy read stopped at its bound by 2,600 events under the channel's legacy d-tag: truncated, the floor met on its REQs", async () => {
+        const legacy: string[][] = [['d', descriptorDtag(genesis.channel_id)]];
+        const r = await readOver(every([g1, v2, ...junk(2600, OTHER, legacy, (i) => genesis.created_at + 1000 + i, 'l')], 500), FOUNDER);
+        expect(ids(r)).toContain(v2.id);
+        expect(r).toMatchObject({ truncated: true, incomplete: false, floorMet: true });
+    });
+
+    it('a REQ of the flooded read that a relay answered with part of a page and no EOSE leaves the floor unmet', async () => {
+        const base = planted(every([g1, v2, ...flood], 500));
+        let n = 0;
+        const query = async (f: Record<string, unknown>) => {
+            const res = await base(f);
+            if (!openRead(f) || n++ !== 1) return res;
+            return { ...res, relayStatus: res.relayStatus.map((s, i) => (i === 0 ? { ...s, eose: false } : s)) };
+        };
+        const r = await readChannelVersions(genesis.channel_id, { query, everBoundKeys: founderKeys }, FOUNDER);
+        expect(r).toMatchObject({ truncated: true, floorMet: false });
     });
 });
 
@@ -730,13 +826,58 @@ describe('recordReads.liveness for an address binding with a relay that did not 
     it('live needs the floor; a revocation seen is revoked on any answer', async () => {
         const b = await recordBinding(bind, nostrPk, { hostKeys, verifyBip322: () => true });
         expect(b?.kind).toBe('btc');
-        expect(await reads([bind], [true, true, false, false]).liveness(b!)).toBe('unknown');
+        expect(await reads([bind], [false, false, false, false]).liveness(b!)).toBe('unknown');
+        await expect(reads([bind], [true, true, false, false]).liveness(b!)).rejects.toThrow(
+            new UnansweredReadError(
+                '2 of 4 relays answered in full, fewer than the read floor of 3, so a revocation of this binding may not have been seen'
+            )
+        );
         expect(await reads([bind], [true, true, true, false]).liveness(b!)).toBe('live');
         expect(await reads([bind, revoke], [true, false, false, false]).liveness(b!)).toBe('revoked');
     });
 
+    it('a relay cut off is named as cut off, never as one that did not answer', async () => {
+        const b = await recordBinding(bind, nostrPk, { hostKeys, verifyBip322: () => true });
+        const status: RelayAnswer[] = [
+            { relay: 'wss://a', eose: true, state: 'complete' },
+            { relay: 'wss://b', eose: true, state: 'complete' },
+            { relay: 'wss://c', eose: true, state: 'complete' },
+            { relay: 'wss://d', eose: false, state: 'cut_off' },
+        ];
+        const cut = recordReads(async () => ({ events: [bind], relayStatus: status }), {
+            hostKeys,
+            verifyBip322: () => true,
+            now: () => new Date('2026-10-20T00:00:00Z'),
+        });
+        const why = '3 of 4 relays answered in full and 1 was cut off before the end of what it holds';
+        await expect(cut.liveness(b!)).rejects.toThrow(`${why}, so a revocation of this binding may not have been seen`);
+        await expect(cut.isBound(nostrPk, ADDR)).rejects.toThrow(
+            `${why}, so a record that binds or revokes this key may not have been seen`
+        );
+    });
+
+    it('two cut off, one by a full page under the limit the lookup asked: each counted as cut off, not as answering in full', async () => {
+        const b = await recordBinding(bind, nostrPk, { hostKeys, verifyBip322: () => true });
+        const status: RelayAnswer[] = [
+            { relay: 'wss://a', eose: true, events: 1 },
+            { relay: 'wss://b', eose: true, events: 1 },
+            { relay: 'wss://c', eose: true, events: 500 },
+            { relay: 'wss://d', eose: false, events: 7 },
+        ];
+        const cut = recordReads(async () => ({ events: [bind], relayStatus: status, limit: 500 }), {
+            hostKeys,
+            verifyBip322: () => true,
+            now: () => new Date('2026-10-20T00:00:00Z'),
+        });
+        await expect(cut.liveness(b!)).rejects.toThrow(
+            '2 of 4 relays answered in full and 2 were cut off before the end of what they hold, so a revocation of this binding may not have been seen'
+        );
+    });
+
     it('bound now, not bound and every key ever bound: below the floor, not read', async () => {
-        await expect(reads([bind], [true, true, false, false]).isBound(nostrPk, ADDR)).rejects.toThrow('fewer than 3 of 4 relays answered');
+        await expect(reads([bind], [true, true, false, false]).isBound(nostrPk, ADDR)).rejects.toThrow(
+            '2 of 4 relays answered in full, fewer than the read floor of 3, so a record that binds or revokes this key may not have been seen'
+        );
         await expect(reads([], [true, true, false, false]).isBound(nostrPk, ADDR)).rejects.toBeInstanceOf(UnansweredReadError);
         expect(await reads([bind], [true, true, true, false]).isBound(nostrPk, ADDR)).toBe(true);
         expect(await reads([], [true, true, true, false]).isBound(nostrPk, ADDR)).toBe(false);

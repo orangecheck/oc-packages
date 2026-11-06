@@ -17,6 +17,7 @@ import {
     completeAnswers,
     meetsReadFloor,
     readFloor,
+    readState,
     UnansweredReadError,
     type RelayAnswer,
     type VerifyBip322,
@@ -83,8 +84,22 @@ export interface RecordReads {
     /** Throws UnansweredReadError when the read is below the floor: "bound now" and
      *  "not bound" both rest on what was not seen. */
     isBound: IsBound;
+    /** 'unknown' when no relay answered in full. A read some relay answered that is below
+     *  the floor, with no revocation seen, throws UnansweredReadError saying how it fell short. */
     liveness(b: VersionBinding): Promise<Liveness>;
     everBoundKeys(principal: string): Promise<{ keys: string[]; answered: boolean; floor: boolean }>;
+}
+
+/** How a read some relay answered fell below the read floor (§8.7), in words. */
+function shortOfFloor(status: readonly RelayAnswer[], limit?: number): string {
+    const states = status.map((r) => readState(r, limit));
+    const full = states.filter((s) => s === 'complete').length;
+    const cut = states.filter((s) => s === 'cut_off').length;
+    const answered = `${full} of ${status.length} relays answered in full`;
+    if (cut === 0) return `${answered}, fewer than the read floor of ${readFloor(status.length)}`;
+    return cut === 1
+        ? `${answered} and 1 was cut off before the end of what it holds`
+        : `${answered} and ${cut} were cut off before the end of what they hold`;
 }
 
 /** Binding reads over `lookup`, one lookup per principal for the life of the object. */
@@ -103,21 +118,26 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
             events,
             answered: completeAnswers(relayStatus) > 0,
             floor: meetsReadFloor(relayStatus, limit),
-            asked: relayStatus.length,
+            short: () => shortOfFloor(relayStatus, limit),
         };
     };
     const verified = async (address: string) => {
-        const { events, answered, floor } = await read(address);
+        const { events, answered, floor, short } = await read(address);
         return {
             answered,
             floor,
+            short,
             verified: await verifyDeviceRecords(events, address, { verifyBip322: opts.verifyBip322 }),
         };
     };
     const sessionEvents = async (didOc: string) => {
-        const { events, answered, floor } = await read(didOc);
+        const { events, answered, floor, short } = await read(didOc);
         // Only records signed by the key they name count for anything (§8.6).
-        return { answered, floor, events: events.filter(verifyNostrEvent) };
+        return { answered, floor, short, events: events.filter(verifyNostrEvent) };
+    };
+    // Below the floor with no revocation seen: not read, and why.
+    const unseenRevocation = (short: () => string): never => {
+        throw new UnansweredReadError(`${short()}, so a revocation of this binding may not have been seen`);
     };
     // Which keys are bound now rests on no revocation being seen: the read must meet the floor.
     const boundKeys = async (principal: string): Promise<string[] | 'no-answer'> => {
@@ -136,10 +156,10 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
         async isBound(pubkey, principal) {
             const keys = await boundKeys(principal);
             if (keys === 'no-answer') {
-                const { answered, asked } = await read(principal);
+                const { answered, short } = await read(principal);
                 throw new UnansweredReadError(
                     answered
-                        ? `fewer than ${readFloor(asked)} of ${asked} relays answered, so a record that binds or revokes this key may not have been seen`
+                        ? `${short()}, so a record that binds or revokes this key may not have been seen`
                         : undefined
                 );
             }
@@ -152,14 +172,14 @@ export function recordReads(lookup: RecordLookup, opts: RecordReadOptions): Reco
                 const v = await verified(b.principal);
                 if (!v.answered) return 'unknown';
                 if (!btcBindingLive(b, v.verified, now())) return 'revoked';
-                return v.floor ? 'live' : 'unknown';
+                return v.floor ? 'live' : unseenRevocation(v.short);
             }
-            const { events, answered, floor } = await sessionEvents(b.principal);
+            const { events, answered, floor, short } = await sessionEvents(b.principal);
             if (!answered) return 'unknown';
             const keys = await opts.hostKeys();
             if (keys.length === 0) return 'unknown';
             if (sessionBindingRevoked(b, events, keys)) return 'revoked';
-            return floor ? 'live' : 'unknown';
+            return floor ? 'live' : unseenRevocation(short);
         },
         async everBoundKeys(principal) {
             if (isDidOc(principal)) {

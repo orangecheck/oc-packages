@@ -67,11 +67,17 @@ export type PageRead = (
  * One relay's REQs as the pager asks them, with what it sent and the reader
  * dropped. Every REQ stays under the d tag, so a relay whose read stepped past
  * its oldest second is cut off: what it sends a page is not asked of other tags.
+ * A REQ that throws is one the relay did not answer.
  */
 const onRelay =
     (page: PageRead, relay: string, d: string): PageQuery =>
     async (filter) => {
-        const got = await page(relay, { ...filter, '#d': [d] } as Parameters<PageRead>[1]);
+        let got: Awaited<ReturnType<PageRead>>;
+        try {
+            got = await page(relay, { ...filter, '#d': [d] } as Parameters<PageRead>[1]);
+        } catch {
+            return { events: [], relayStatus: [{ relay, eose: false, events: 0, rejected: 0 }] };
+        }
         const events = got.events as Awaited<ReturnType<PageQuery>>['events'];
         const rejected = Math.max(0, (got.sent ?? 0) - got.events.length);
         return { events, relayStatus: [{ relay, eose: got.complete, events: events.length, rejected }] };
@@ -152,7 +158,8 @@ const underTag = (d: string): Filter => ({ kinds: [30114], '#d': [d] });
 
 /**
  * Every event a relay holds under one d tag, paged to its end (nostr-core
- * readPages); null when the read is not complete.
+ * readPages), or how its read ended short: cut off, when it answered and could
+ * not be read to its end, or no answer, when it sent nothing.
  */
 async function readAll(
     page: PageRead,
@@ -160,14 +167,15 @@ async function readAll(
     d: string,
     maxPages: number,
     maxLimit?: (relay: string) => Promise<number | undefined>
-): Promise<NostrEvent[] | null> {
+): Promise<NostrEvent[] | 'cut_off' | 'no_answer'> {
     const read = await readPages(onRelay(page, relay, d), underTag(d), {
         limit: PAGE,
         maxPages,
         maxEvents: PAGE * maxPages,
         ...(maxLimit ? { maxLimit } : {}),
     });
-    return read.relayStatus?.[0]?.state === 'complete' ? (read.events as NostrEvent[]) : null;
+    const state = read.relayStatus?.[0]?.state ?? 'no_answer';
+    return state === 'complete' ? (read.events as NostrEvent[]) : state;
 }
 
 /** Up to `pages` REQs of what an audit relay holds; whatever it answered, or nothing. */
@@ -177,16 +185,11 @@ async function readSome(
     d: string,
     pages: number
 ): Promise<NostrEvent[]> {
-    const ask = onRelay(page, relay, d);
-    const read = await readPages(
-        (f) =>
-            ask(f).catch(() => ({
-                events: [],
-                relayStatus: [{ relay, eose: false, events: 0, rejected: 0 }],
-            })),
-        underTag(d),
-        { limit: PAGE, maxPages: pages, maxEvents: PAGE * pages }
-    );
+    const read = await readPages(onRelay(page, relay, d), underTag(d), {
+        limit: PAGE,
+        maxPages: pages,
+        maxEvents: PAGE * pages,
+    });
     return read.events as NostrEvent[];
 }
 
@@ -297,7 +300,7 @@ async function collect(
     const [directoryReads, auditReads, tip] = await Promise.all([
         Promise.all(
             (deps.directoryRelays ?? DIRECTORY_RELAYS).map((r) =>
-                readAll(deps.page, r, d, MAX_DIRECTORY_PAGES, deps.maxLimit).catch(() => null)
+                readAll(deps.page, r, d, MAX_DIRECTORY_PAGES, deps.maxLimit)
             )
         ),
         Promise.all(
@@ -306,11 +309,14 @@ async function collect(
         deps.tip().catch(() => null),
     ]);
     if (tip === null) return null;
-    const directoryAnswered = directoryReads.some((r) => r !== null);
-    const onDirectory = new Set(directoryReads.flatMap((r) => r ?? []).map((e) => e.id));
+    // A directory relay that answered and was cut off may hold an earlier claim past
+    // the cut: neither what it sent nor the audit settles the handle without it.
+    if (directoryReads.includes('cut_off')) return null;
+    const directory = directoryReads.filter((r): r is NostrEvent[] => Array.isArray(r)).flat();
+    const directoryAnswered = directoryReads.some((r) => Array.isArray(r));
+    const onDirectory = new Set(directory.map((e) => e.id));
     const all = new Map<string, NostrEvent>();
-    for (const ev of [...directoryReads.flatMap((r) => r ?? []), ...auditReads.flat()])
-        all.set(ev.id, ev);
+    for (const ev of [...directory, ...auditReads.flat()]) all.set(ev.id, ev);
 
     const headers = budgetedHeaders(deps.headers);
     const out: WalkRecord[] = [];
