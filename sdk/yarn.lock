@@ -163,7 +163,7 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@noble/curves@^1.9.7":
+"@noble/curves@^1.9.0", "@noble/curves@^1.9.7":
   version "1.9.7"
   resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
@@ -195,6 +195,14 @@
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
+
+"@orangecheck/nostr-core@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.2.tgz#a0be7dd4fb4e492866c00074aca698c1bf189701"
+  integrity sha512-USJBT1js3CH5/5Tb6SIJnmWGRYNgYGmYPeuuEGATDKavBZ/i6ZpWqkhdeZGkaAX4urFoe4DYBoiPiilfBR54lg==
+  dependencies:
+    "@noble/curves" "^1.9.0"
+    "@noble/hashes" "^1.8.0"
 
 "@oxc-project/types@=0.149.0":
   version "0.149.0"

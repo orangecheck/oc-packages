@@ -90,6 +90,7 @@
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^1.5.0",
     "@orangecheck/bip322": "^1.1.3",
+    "@orangecheck/nostr-core": "^0.8.2",
     "@scure/base": "^1.1.9",
     "buffer": "^6.0.3"
   },

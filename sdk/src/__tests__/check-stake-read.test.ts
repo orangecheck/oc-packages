@@ -7,15 +7,16 @@
  * floor of relays finished with a short page, none cut off; otherwise the
  * answer is stake_unread.
  *
- * Four in-memory relays that honour `limit`, `until` and newest-first order;
- * signature and chain checks are stubbed, as in check-binding.test.ts.
+ * Four in-memory relays that honour `limit`, `since`, `until` and newest-first
+ * order, up to a cap of 500 a REQ (`cap`); signature and chain checks are
+ * stubbed, as in check-binding.test.ts.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildCanonicalMessage, createAttestationEnvelope } from '../canonical';
 import { check } from '../check';
-import { createAttestationEvent } from '../nostr';
+import { createAttestationEvent, FANOUT_DEADLINE_MS, readByAddress } from '../nostr';
 import { nostrIdentifierForms } from '../nostr-pubkey';
 import type { IdentityBinding, NostrEvent } from '../types';
 
@@ -44,11 +45,14 @@ const NOW = Math.floor(Date.now() / 1000);
 
 /** What each relay holds, and how it answers a read of the address (`#t`). */
 let held: Record<string, NostrEvent[]> = {};
-let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop'> = {};
+let addressMode: Record<string, 'ok' | 'closed' | 'silent' | 'hang' | 'error' | 'drop' | 'stale'> = {};
+/** The most events a relay sends to one REQ. */
+let cap = 500;
 
 function matches(ev: NostrEvent, f: Record<string, unknown>): boolean {
     if (Array.isArray(f.kinds) && !f.kinds.includes(ev.kind)) return false;
     if (typeof f.until === 'number' && ev.created_at > f.until) return false;
+    if (typeof f.since === 'number' && ev.created_at < f.since) return false;
     for (const [k, v] of Object.entries(f)) {
         if (!k.startsWith('#')) continue;
         if (!ev.tags.some((t) => t[0] === k.slice(1) && (v as string[]).includes(t[1] ?? ''))) return false;
@@ -63,6 +67,7 @@ class FakeRelay {
     onclose: (() => void) | null = null;
     readyState = 0;
     constructor(public url: string) {
+        if (!url.startsWith('wss://')) throw new SyntaxError(`invalid relay URL: ${url}`);
         queueMicrotask(() => {
             this.readyState = 1;
             this.onopen?.();
@@ -78,9 +83,11 @@ class FakeRelay {
                 this.onmessage?.({ data: JSON.stringify(['CLOSED', sub, 'rate-limited: slow down']) });
                 return;
             }
-            const limit = typeof filter.limit === 'number' ? Math.min(filter.limit, 500) : 500;
+            const limit = typeof filter.limit === 'number' ? Math.min(filter.limit, cap) : cap;
+            // A stale relay ignores `until`: every page is its newest.
+            const asked = mode === 'stale' ? { ...filter, until: undefined } : filter;
             const answer = (held[this.url] ?? [])
-                .filter((e) => matches(e, filter))
+                .filter((e) => matches(e, asked))
                 .sort((a, b) => b.created_at - a.created_at)
                 .slice(0, limit);
             for (const ev of answer) this.onmessage?.({ data: JSON.stringify(['EVENT', sub, ev]) });
@@ -135,6 +142,7 @@ beforeEach(async () => {
     sibling = await attest([{ protocol: 'nostr', identifier: KEY_B[0]! }], '2026-02-01T00:00:00Z', NOW - 1000);
     held = {};
     addressMode = {};
+    cap = 500;
     verdict.outcome = GOOD;
     realWs = globalThis.WebSocket;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,15 +160,30 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
         expect(r.reasons).toContain('stake_shared');
     });
 
-    it('501 junk events in one second, newer than the other attestation: stake_unread, never ok', async () => {
+    it('relays that send at most 300 a REQ are read past 400 newer junk events to the other attestation', async () => {
+        cap = 300;
+        onEvery([mine, sibling], junk(400, false));
+        const r = await checkA();
+        expect(r.ok).toBe(false);
+        expect(r.reasons).toContain('stake_shared');
+    });
+
+    it('501 junk events in one second, newer than the other attestation: that second is stepped past and the stake read as shared', async () => {
         onEvery([mine, sibling], junk(501, true));
         const r = await checkA();
         expect(r.ok).toBe(false);
-        expect(r.reasons).toContain('stake_unread');
+        expect(r.reasons).toContain('stake_shared');
     });
 
-    it('more junk than the page bound reads (2,001 at distinct times): stake_unread', async () => {
+    it('2,001 junk events at distinct times are read past: stake_shared', async () => {
         onEvery([mine, sibling], junk(2001, false));
+        const r = await checkA();
+        expect(r.ok).toBe(false);
+        expect(r.reasons).toContain('stake_shared');
+    });
+
+    it('more junk than the read takes (2,600 at distinct times, past its 2,000 events): stake_unread', async () => {
+        onEvery([mine, sibling], junk(2600, false));
         const r = await checkA();
         expect(r.ok).toBe(false);
         expect(r.reasons).toContain('stake_unread');
@@ -192,7 +215,7 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
 
     it('one relay cut off is enough, though the floor finished: the attestation may sit behind its flood', async () => {
         held = {
-            [RELAYS[0]!]: [mine, sibling, ...junk(501, true)],
+            [RELAYS[0]!]: [mine, sibling, ...junk(2600, false)],
             [RELAYS[1]!]: [mine],
             [RELAYS[2]!]: [mine],
             [RELAYS[3]!]: [mine],
@@ -214,6 +237,35 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
         expect(r.reasons).not.toContain('stake_unread');
     });
 
+    it('a relay that ignores until and sends its newest page again is cut off, never read complete', async () => {
+        held = {
+            [RELAYS[0]!]: [mine, sibling, ...junk(600, false)],
+            [RELAYS[1]!]: [mine],
+            [RELAYS[2]!]: [mine],
+            [RELAYS[3]!]: [mine],
+        };
+        addressMode = { [RELAYS[0]!]: 'stale' };
+        const r = await checkA();
+        expect(r.ok).toBe(false);
+        expect(r.reasons).toEqual(['stake_unread']);
+    });
+
+    for (const mode of ['error', 'drop'] as const) {
+        it(`a relay whose socket fails mid-page (${mode}) is cut off at once, not at the deadline`, async () => {
+            held = {
+                [RELAYS[0]!]: [mine, ...junk(300, false)],
+                [RELAYS[1]!]: [mine],
+                [RELAYS[2]!]: [mine],
+                [RELAYS[3]!]: [mine],
+            };
+            addressMode = { [RELAYS[0]!]: mode };
+            const started = Date.now();
+            const read = await readByAddress(ADDR, RELAYS);
+            expect(read.relays.map((x) => x.state)).toEqual(['cut_off', 'complete', 'complete', 'complete']);
+            expect(Date.now() - started).toBeLessThan(FANOUT_DEADLINE_MS / 2);
+        });
+    }
+
     for (const mode of ['hang', 'error', 'drop'] as const) {
         it(`a relay that sends some events and then stops (${mode}) is cut off, not silent: stake_unread`, async () => {
             // What that relay did not finish sending may hold the other attestation.
@@ -229,6 +281,30 @@ describe('check({identity}): "not shared" needs a read of the address a flood co
             expect(r.reasons).toEqual(['stake_unread']);
         }, 10_000);
     }
+});
+
+describe('readByAddress keeps only what a REQ for the address brought', () => {
+    it('lists each event once per relay, though paging reads the boundary second again', async () => {
+        held = { [RELAYS[0]!]: [mine, ...junk(600, false)] };
+        const read = await readByAddress(ADDR, [RELAYS[0]!]);
+        expect(read.relays.map((x) => x.state)).toEqual(['complete']);
+        expect(read.events).toHaveLength(601);
+    });
+
+    it('a relay URL that cannot be opened is no answer, not cut off', async () => {
+        onEvery([mine]);
+        const read = await readByAddress(ADDR, [...RELAYS.slice(0, 3), 'not a relay']);
+        expect(read.relays.map((x) => x.state)).toEqual(['complete', 'complete', 'complete', 'no_answer']);
+    });
+
+    it("a full page at one second with nothing below: cut off, and the pager's page-size REQ adds no event of another subject", async () => {
+        const other = { ...sibling, id: 'f'.repeat(64), created_at: NOW + 500, tags: [['t', 'bc1qother']] };
+        onEvery(junk(500, true), [other]);
+        const read = await readByAddress(ADDR, RELAYS);
+        expect(read.relays.map((r) => r.state)).toEqual(['cut_off', 'cut_off', 'cut_off', 'cut_off']);
+        expect(read.events.some((e) => e.id === other.id)).toBe(false);
+        expect(read.events).toHaveLength(2000);
+    });
 });
 
 describe('the stake is read only once everything else passed, so stake_unread only comes alone', () => {

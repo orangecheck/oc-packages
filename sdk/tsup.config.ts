@@ -22,5 +22,5 @@ export default defineConfig({
     // via their own npm install, and bundlers can de-dupe across packages.
     // The old `external: []` was inlining ~400 KB of signature-verification
     // and noble/scure code into every consumer that imports `@orangecheck/sdk`.
-    external: ['@noble/curves', '@noble/hashes', '@orangecheck/bip322', '@scure/base', 'buffer'],
+    external: ['@noble/curves', '@noble/hashes', '@orangecheck/bip322', '@orangecheck/nostr-core', '@scure/base', 'buffer'],
 });
