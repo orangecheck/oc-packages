@@ -115,6 +115,15 @@ channel versions and posts from chat's four, so 3 of 4. A revocation published
 to 2 of the five is then always among what answered. Below the floor the result
 is NOT READ (exit 2). `--relays` replaces both sets.
 
+Each relay is read page by page to the end of what it holds, whatever page size
+it caps at. A relay counts toward the floor only when its read ended complete:
+one that stops answering partway is cut off. A version read cut off at its bound
+(2,000 events, or a second holding more than a relay sends in a page) stands
+only when the reads of the role holders' keys were complete; else it is NOT
+READ. With `--relays`, each relay's NIP-11 document is asked for its page size,
+and one that declares under 100 is cut off. A relay that caps a page below 100
+without declaring it is not told apart.
+
 ---
 
 ## Scripting examples
