@@ -454,6 +454,23 @@ describe('a relay the caller names is asked its NIP-11 page; the default relays 
         expect(nip11.map((g) => g.url)).toEqual(https(relays));
     });
 
+    it('a GET refused in one check() is asked again in the next, whose answer of 50 cuts the read off: stake_unread', async () => {
+        // Adapted from site-attest's P7: a failed GET is kept for its own call only.
+        const relays = named('next-call');
+        cap = 50;
+        hold(relays, [mine, sibling], junk(100, false));
+        for (const r of https(relays)) declares[r] = 'refuse';
+        const first = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(nip11.map((g) => g.url)).toEqual(https(relays));
+        expect(first.ok).toBe(true);
+        nip11 = [];
+        for (const r of https(relays)) declares[r] = 50;
+        const second = await check({ identity: { protocol: 'nostr', identifier: KEY_A[1]! }, relays });
+        expect(nip11.map((g) => g.url)).toEqual(https(relays));
+        expect(second.ok).toBe(false);
+        expect(second.reasons).toEqual(['stake_unread']);
+    }, 15_000);
+
     it("check({identity}) waits on a NIP-11 that never answers once, not once a read", async () => {
         const relays = named('hang-once');
         hold(relays, [mine]);
