@@ -45,6 +45,19 @@ A fourth StepGrid look, `line`.
   rules to one line from 768, the 10px node on each at its step's left,
   at 320, 390 and 1440.
 
+PackageCard draws ochk.app's package tile.
+
+- With `tone` (`card` white, `ink` or `brand` orange), PackageCard is a
+  tile, as ochk.app's /apps draws its own: a square panel in that tone,
+  a 40px `icon` at the top left (orange on ink) and a mono `label` at the
+  top right, its `title` and `note`, then its children. Without a tone
+  it is the dark panel of `items`, drawn as before. `PackageCardProps`
+  and `PackageTileProps` are exported.
+- check-render holds the panel's markup to 2.4.0's and reads each tile's
+  parts in order; check-layout holds each tile square, padded 24 (32
+  from 768), on its tone's ground with its title and note at 4.5:1, and
+  the icon and label inside that padding, at 320, 390 and 1440.
+
 ## [2.5.0] — 2026-11-06
 
 A second logo, pixel, can be switched on to test.
