@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-11-06
+
 ### Changed
 
 - The poll, ballots, the reveal and ballot stamps are read through
