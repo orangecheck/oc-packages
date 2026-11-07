@@ -8,6 +8,15 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app's links name the pages that hold them
+
+The `me` profile linked three ochk.app addresses that now redirect. The
+Terms' "your settings" (deleting your identity) and the Privacy policy's
+"your settings" (deleting your account) pointed at `/me/settings`; both now
+point at `/me/account#delete`, the section that deletes an account. The
+Privacy policy's "the privacy comparison" pointed at `/privacy-compare`; it now
+points at `/trust#privacy`. The words are unchanged, and so is every claim.
+
 ## [0.7.30] — 2026-11-06
 
 ### Changed — every Privacy policy lists the logo cookie
