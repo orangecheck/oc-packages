@@ -27,8 +27,9 @@ export const buttonVariants = cva(
         'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'active:translate-y-px disabled:pointer-events-none',
         // Disabled is one look for every variant: a quiet grey block, never a
-        // faded black or orange slab that reads as broken.
-        'disabled:border disabled:border-border disabled:bg-muted disabled:text-oca-subtle disabled:shadow-none',
+        // faded black or orange slab that reads as broken. Its border is counted
+        // back into the touch target, as a bordered variant's is.
+        'disabled:border disabled:border-border disabled:bg-muted disabled:text-oca-subtle disabled:shadow-none disabled:[--hit-b:1px]',
         '[&_svg]:pointer-events-none [&_svg]:size-[1.1em] [&_svg]:shrink-0',
     ],
     {

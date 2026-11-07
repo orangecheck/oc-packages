@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+- `AppShell`'s bar from lg sticks as the phone's bar does, with the same
+  0.9 ground, blur and hairline under it, so the account and the alerts
+  stay in reach on a long page. The page keeps the phone's room under it
+  (24px, was 8; a banner 16px, was 0), so a link at the top of a page is
+  a whole 44px target to a thumb, clear of the bar. A control the
+  keyboard reaches scrolls into view below it (scroll-padding-top).
+  Below lg, the place strip under the phone's bar now counts too, so a
+  focused control is no longer left under the strip.
+- The section switcher keeps every place in one row: each tab takes an
+  even share, and a longer label takes what it needs from the others.
+  ochk.app's four places (You, Build, Operate, Admin) fit the sidebar
+  whole. Labels too long to share a row wrap rather than being cut short.
+  A tab is 36px tall to a mouse (was 32) and 44px to a thumb.
+- `PageHeader`'s `eyebrow` gives a link handed to it the standalone hit
+  area (`HIT_LINK`, exported from ./primitives): 24px to a mouse and 44px
+  to a thumb, from an invisible ::before, so the line keeps its height.
+  A page's link to the page above it needs no class of its own.
+- A disabled `Button` counts its border into the touch target, as a
+  bordered variant does: a disabled `sm` is 44px to a thumb, not 42, and
+  `icon` and `icon-sm` are 44 square.
+- check-layout holds the four places in one row at 1024 to a mouse and a
+  thumb, long labels wrapping inside the sidebar, the disabled targets,
+  and the eyebrow link. check-focus walks an app page at 1440 and 390 and
+  holds each shell's bar stuck at the top.
+
 ## [2.9.0] — 2026-11-07
 
 - `Closing` takes `art="dither"`, the family's closing band. On burnt (ink

@@ -36,6 +36,7 @@ import {
     SkipLink,
     ThemeToggle,
     type SessionState,
+    type ShellSection,
 } from './index';
 
 const meta: Meta = { title: 'Chrome', parameters: { fullBleed: true } };
@@ -271,59 +272,64 @@ export const ManyPages: StoryObj = {
     ),
 };
 
+/** ochk.app's four places, as an account that can go everywhere sees them. */
+const OCHK_APP_SECTIONS: ShellSection[] = [
+    {
+        id: 'you',
+        icon: <House />,
+        label: 'You',
+        title: 'Your account',
+        href: '/me',
+        groups: [
+            {
+                items: [
+                    { href: '/me', label: 'Home', icon: <House /> },
+                    { href: '/me/activity', label: 'Activity', icon: <Activity /> },
+                    { href: '/me/balance', label: 'Balance', icon: <Wallet />, active: true },
+                    { href: '/me/apps', label: 'Apps', icon: <LayoutGrid /> },
+                ],
+            },
+        ],
+    },
+    {
+        id: 'build',
+        icon: <Boxes />,
+        label: 'Build',
+        href: '/me/developer',
+        groups: [{ items: [{ href: '/me/projects', label: 'Projects', icon: <Boxes /> }] }],
+    },
+    {
+        id: 'operate',
+        icon: <Activity />,
+        label: 'Operate',
+        href: '/me/operator',
+        groups: [{ items: [{ href: '/me/operator', label: 'Federations', icon: <ShieldCheck /> }] }],
+    },
+    {
+        id: 'admin',
+        icon: <ShieldCheck />,
+        label: 'Admin',
+        href: '/me/admin',
+        groups: [{ items: [{ href: '/me/admin', label: 'Queue', icon: <ShieldCheck /> }] }],
+    },
+];
+
+const OCHK_APP_PERSISTENT = [
+    {
+        label: 'Account',
+        items: [
+            { href: '/me/account', label: 'Account', icon: <CircleUser /> },
+            { href: '/me/account#sign-in', label: 'Ways to sign in', icon: <KeyRound /> },
+        ],
+    },
+];
+
 export const Sections: StoryObj = {
     name: 'Signed-in shell, with sections (tabs on a phone)',
     render: () => (
         <AppShell
-            sections={[
-                {
-                    id: 'you',
-                    icon: <House />,
-                    label: 'You',
-                    title: 'Your account',
-                    href: '/me',
-                    groups: [
-                        {
-                            items: [
-                                { href: '/me', label: 'Home', icon: <House /> },
-                                { href: '/me/activity', label: 'Activity', icon: <Activity /> },
-                                { href: '/me/balance', label: 'Balance', icon: <Wallet />, active: true },
-                                { href: '/me/apps', label: 'Apps', icon: <LayoutGrid /> },
-                            ],
-                        },
-                    ],
-                },
-                {
-                    id: 'build',
-                    icon: <Boxes />,
-                    label: 'Build',
-                    href: '/me/developer',
-                    groups: [{ items: [{ href: '/me/projects', label: 'Projects', icon: <Boxes /> }] }],
-                },
-                {
-                    id: 'operate',
-                    icon: <Activity />,
-                    label: 'Operate',
-                    href: '/me/operator',
-                    groups: [{ items: [{ href: '/me/operator', label: 'Federations', icon: <ShieldCheck /> }] }],
-                },
-                {
-                    id: 'admin',
-                    icon: <ShieldCheck />,
-                    label: 'Admin',
-                    href: '/me/admin',
-                    groups: [{ items: [{ href: '/me/admin', label: 'Queue', icon: <ShieldCheck /> }] }],
-                },
-            ]}
-            persistent={[
-                {
-                    label: 'Account',
-                    items: [
-                        { href: '/me/account', label: 'Account', icon: <CircleUser /> },
-                        { href: '/me/account#sign-in', label: 'Ways to sign in', icon: <KeyRound /> },
-                    ],
-                },
-            ]}
+            sections={OCHK_APP_SECTIONS}
+            persistent={OCHK_APP_PERSISTENT}
             footer={<ThemeToggle />}
             account={<AccountMenu name="you@example.com" detail="Signed in with email" items={[{ label: 'Account', href: '/me/account' }]} />}
         >
@@ -334,6 +340,39 @@ export const Sections: StoryObj = {
                     <StatCard label="This week" value={<Sats value={420} />} raw={420} />
                     <StatCard label="Paid out" value={<Sats value={null} />} raw={null} />
                 </StatGrid>
+            </div>
+        </AppShell>
+    ),
+};
+
+export const PlaceUnder: StoryObj = {
+    name: 'Signed-in shell, a page under a place (a long page, its bar stuck)',
+    render: () => (
+        <AppShell
+            sections={OCHK_APP_SECTIONS}
+            activeSection="build"
+            page="Lumen Notes"
+            persistent={OCHK_APP_PERSISTENT}
+            footer={<ThemeToggle />}
+            account={<AccountMenu name="you@example.com" detail="Signed in with email" items={[{ label: 'Account', href: '/me/account' }]} />}
+        >
+            <div className="flex flex-col gap-10">
+                {/* The page above, handed to the eyebrow: 44px to a thumb, its line unchanged. */}
+                <PageHeader eyebrow={<a href="/me/projects">Projects</a>} title="Lumen Notes" description="notes.example.com" />
+                <form className="flex max-w-md flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
+                    <Field label="Name">
+                        <Input defaultValue="Lumen Notes" />
+                    </Field>
+                    {/* Disabled until something changes, and still a 44px target to a thumb. */}
+                    <Button type="submit" size="sm" className="self-start" disabled>
+                        Save
+                    </Button>
+                </form>
+                {Array.from({ length: 8 }, (_, i) => (
+                    <Card key={i} className="flex h-48 flex-col justify-end p-6">
+                        <p className="oca-body">Event {i + 1}: the bar above stays at the top as this scrolls under it.</p>
+                    </Card>
+                ))}
             </div>
         </AppShell>
     ),

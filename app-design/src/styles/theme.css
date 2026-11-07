@@ -544,12 +544,18 @@
 /* A focused control is never left under a sticky bar: the page scrolls it into view below the
    bar, with a little room. The bars say what they are (data-oca-sticky); their heights are the
    shells' own: the site's bar 3.5rem, 4.25rem from 900px (its rule counts 4rem, 4.5rem from md,
-   for room), an app's bar 3.5rem below lg, the docs' section bar a further 3rem below lg. Each with
-   its 1px hairline. The scope is the page's root itself or an element under it, so each rule
-   names both. */
+   for room), an app's bar 3.5rem below lg (5.75rem with its place strip) and 4.5rem from it, the
+   docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the page's
+   root itself or an element under it, so each rule names both. */
 :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
 :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
     scroll-padding-top: calc(3.5rem + 1px + 0.75rem);
+}
+@media (width < 64rem) {
+    :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar'] [data-oca-place]),
+    :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar'] [data-oca-place]) {
+        scroll-padding-top: calc(3.5rem + 2.25rem + 1px + 0.75rem);
+    }
 }
 :root[data-oc-app='ochk']:has([data-oca-sticky='site']),
 :root:has([data-oc-app='ochk'] [data-oca-sticky='site']) {
@@ -584,10 +590,10 @@
     }
 }
 @media (width >= 64rem) {
-    /* From lg an app's bar is its desk bar, which does not stick, and its sidebar does not cover the page. */
+    /* From lg an app's bar is its desk bar, 4.5rem with its hairline in it; its sidebar does not cover the page. */
     :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
-        scroll-padding-top: 0;
+        scroll-padding-top: calc(4.5rem + 0.75rem);
     }
 }
 

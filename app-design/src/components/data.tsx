@@ -20,7 +20,7 @@ import { announce, announcer } from '../lib/announce';
 import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 import { useDensity } from '../lib/density';
-import { HIT_32, HIT_LINK } from '../lib/hit';
+import { HIT_32, HIT_LINK, HIT_LINKS } from '../lib/hit';
 import { useShellPlace } from '../lib/shell-context';
 import { Button } from '../primitives/button';
 import { Skeleton, useTimedOut } from '../primitives/feedback';
@@ -53,7 +53,8 @@ export function PageHeader({
     return (
         <header className={cn('flex flex-col gap-5 md:flex-row md:items-end md:justify-between', className)}>
             <div className="flex min-w-0 max-w-[44rem] flex-col gap-2.5">
-                {eb ? <p className="oca-eyebrow">{eb}</p> : null}
+                {/* A link handed in (the page above this one) is a 44px target to a thumb, its line unchanged. */}
+                {eb ? <p className={cn('oca-eyebrow', HIT_LINKS)}>{eb}</p> : null}
                 <h1 className="oca-display-3">{title}</h1>
                 {description ? <p className="oca-body max-w-[40rem] text-[1.0625rem]">{description}</p> : null}
             </div>

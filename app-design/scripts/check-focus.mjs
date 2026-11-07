@@ -272,6 +272,7 @@ try {
     const deskShell = ssr('appshell-desk', h(Ch.AppShell, { product: 'ochk.app', nav: appNav, account: h('button', { type: 'button', 'data-account': '' }, 'Account') }, h('p', null, 'page')));
     // A long tool page: every control further down than the window, under a sticky bar.
     const tall = ssr('tall', h(Ch.ToolShell, { protocol: 'stamp', tools: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
+    const tallApp = ssr('tall-app', h(Ch.AppShell, { product: 'ochk.app', nav: appNav, account: h('button', { type: 'button', 'data-account': '' }, 'Account') }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
     const tallDocs = ssr('tall-docs', h(Ch.DocsShell, { nav: [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }], current: '/docs', toc: [] }, h('div', { className: 'flex flex-col gap-12' }, ...Array.from({ length: 24 }, (_, i) => h('button', { key: i, type: 'button', 'data-n': i, className: 'h-10 w-40 rounded-full border' }, `Copy ${i + 1}`)))));
     // A long page's contents, as the server renders them: plain links, no script.
     const LONG = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
@@ -603,10 +604,13 @@ try {
         const walked = steps.filter(Boolean);
         check(walked.length === 5 && walked.every((x) => x.inside), `MdxTable: Shift+Tab back through a table scrolled right leaves a link outside its box (${JSON.stringify(walked.filter((x) => !x.inside))}, ${walked.length} stops)`);
 
-        // A control the keyboard reaches is never left under a sticky bar: a tool page at a desk, the docs on a phone.
+        // A control the keyboard reaches is never left under a sticky bar: a tool page at a desk, the docs on a phone,
+        // an app at a desk and on a phone. Each has its bar stuck at the top through the walk.
         for (const [name, url, vw] of [
             ['ToolShell', tall, 1280],
             ['DocsShell', tallDocs, 390],
+            ['AppShell', tallApp, 1440],
+            ['AppShell', tallApp, 390],
         ]) {
             const q = await browser.newPage({ viewport: { width: vw, height: 800 } });
             await q.goto(url);
@@ -614,6 +618,7 @@ try {
             await q.focus('[data-n="23"]');
             const hidden = [];
             let scrolled = 0;
+            let stuck = Infinity;
             // Far enough up that every step past the window's top must scroll.
             for (let i = 0; i < 16; i++) {
                 await q.keyboard.press('Shift+Tab');
@@ -631,9 +636,11 @@ try {
                 });
                 if (r.n !== null && r.top < r.under) hidden.push(r);
                 scrolled = Math.max(scrolled, r.y);
+                stuck = Math.min(stuck, r.under);
             }
             const moved = await q.evaluate(() => scrollY);
             check(hidden.length === 0 && moved < scrolled, `${name} at ${vw}: a focused control scrolled in under the sticky bar (${JSON.stringify(hidden.slice(0, 2))}; the page scrolled from ${scrolled} to ${moved})`);
+            check(stuck >= 48, `${name} at ${vw}: no bar stayed stuck across the top while the page scrolled (lowest bar bottom ${stuck}px)`);
             await q.close();
         }
 
