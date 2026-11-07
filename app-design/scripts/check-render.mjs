@@ -591,6 +591,24 @@ const html = (el) => renderToStaticMarkup(el);
     check(/>Stake behind the signer<[\s\S]*?>Not checked</.test(out), 'VerifyReport: an unchecked check does not read Not checked');
 }
 
+// A VerifyReport that runs in the page: no statement until it has run, a running check turns and says so, and a check's output sits under its line.
+{
+    const out = html(
+        h(C.VerifyReport, {
+            title: 'Check it yourself',
+            checks: [
+                { label: 'Fetch the signed bytes', state: 'ok', note: '482 bytes', output: h('details', null, h('summary', null, 'Output')) },
+                { label: 'Check the signature', state: 'running' },
+            ],
+        })
+    );
+    check(/<header[^>]*><h2/.test(out) && !out.includes('data-status='), 'VerifyReport: a report with no verdict yet draws a statement before its title');
+    check(/>Check the signature<[\s\S]*?>Running</.test(out), 'VerifyReport: a running check does not read Running');
+    check(/<span aria-hidden="true" class="[^"]*text-foreground"><svg[^>]*class="[^"]*animate-spin/.test(out), 'VerifyReport: a running check does not turn');
+    check(/>482 bytes<\/span><\/div><span[^>]*>Passed<\/span><div class="[^"]*sm:basis-full[^"]*"><details>/.test(out), "VerifyReport: a check's output does not take a line of its own under its result");
+    check(/class="[^"]*sm:flex-wrap[^"]*"><div[^>]*><span[^>]*>Fetch the signed bytes</.test(out) && !/sm:flex-wrap[^"]*"><div[^>]*><span[^>]*>Check the signature</.test(out), "VerifyReport: only a check with output wraps its line");
+}
+
 // Tool parts.
 {
     const meter = html(h(C.Meter, { value: 62, max: 100, ghost: 20, label: 'Turnout' }));
