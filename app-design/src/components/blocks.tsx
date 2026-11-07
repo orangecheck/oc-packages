@@ -5,6 +5,7 @@ import { cn } from '../lib/cn';
 import type { HeadingTag } from '../lib/heading';
 import { HIT_LINKS } from '../lib/hit';
 import { Accordion, AccordionItem } from '../primitives/accordion';
+import { ClosingField, ClosingMark } from './closing-art';
 import { HERO_ACTIONS } from './hero';
 import { Reveal } from './motion';
 import { Section, SectionIntro, type SectionProps } from './section';
@@ -218,7 +219,11 @@ export function ProofStrip({ items, className }: { items: { icon?: ReactNode; la
     );
 }
 
-/** The last band of a page: one large line, the actions, and the check settling beside them. */
+/**
+ * The last band of a page: one large line, the actions, and the check settling beside them.
+ * `art="dither"` draws the family's closing: on burnt, the check in ordered dither rising out of
+ * the dither field at the band's foot.
+ */
 export function Closing({
     title,
     lead,
@@ -234,17 +239,25 @@ export function Closing({
     actions?: ReactNode;
     /** Small print under the actions: a credit (Acknowledgement), what a button commits you to. */
     fineprint?: ReactNode;
-    /** Beside the words from md up. Defaults to the check; `null` leaves it out. */
-    art?: ReactNode;
+    /**
+     * Beside the words from md up, under them on a phone. Defaults to the check; `null` leaves it out.
+     * `"dither"`: the check in ordered dither, rising out of the dither field at the band's foot on its
+     * side, clear of the words. A still that comes alive under a fine pointer, for a dark band: burnt
+     * (its default) or ink.
+     */
+    art?: ReactNode | 'dither';
     /** The title's heading level, where the page puts it. Default h2. */
     as?: HeadingTag;
-    /** Its band, one of Section's tones; canvas by default. The default check is orange, so on brand pass your own art or `null`. */
+    /** Its band, one of Section's tones; canvas by default, burnt with `art="dither"`. The default check is orange, so on brand pass your own art or `null`. */
     tone?: SectionProps['tone'];
     className?: string;
 }) {
+    const dither = art === 'dither';
     return (
         // On the Frame like PageHero; its title is a display-2, so the page's H1 stays the largest text.
-        <Section framed tone={tone} className={cn('overflow-hidden', className)}>
+        // The dither field sits under everything in the band: isolate keeps its -z-10 inside the section.
+        <Section framed tone={dither ? (tone ?? 'burnt') : tone} className={cn('overflow-hidden', dither && 'isolate', className)}>
+            {dither ? <ClosingField /> : null}
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <Reveal className="flex flex-col items-start gap-8 md:col-span-7">
                     <div className="flex flex-col gap-5">
@@ -256,7 +269,12 @@ export function Closing({
                     {/* 52ch in em: a ch is the face's 0, which the fallback draws 6% narrower, so the measure moved at the swap. */}
                     {fineprint ? <div className="max-w-[32.7em] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
                 </Reveal>
-                {art !== null ? (
+                {dither ? (
+                    // The check stands in the field: at the foot of the words from md, with no room under it on a phone.
+                    <div aria-hidden data-oca-art="dither" className="flex justify-center md:col-span-5 md:self-end">
+                        <ClosingMark />
+                    </div>
+                ) : art !== null ? (
                     // Room under the check on a phone, so its glow fades before the band ends.
                     <div aria-hidden className="flex justify-center max-md:pb-16 md:col-span-5">
                         {art ?? <IsoCheck size={340} settle tilt className="max-w-full" />}

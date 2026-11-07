@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- `Closing` takes `art="dither"`, the family's closing band. On burnt (ink
+  if you pass it), the check in ordered dither stands in the dither field
+  at the band's foot: beside the words from md, its foot level with
+  theirs, and under them on a phone. The field runs from the band's edge
+  under the check and stays clear of the words. Both are the baked PNGs
+  from ./art, inlined, and the art is decoration. The server draws the
+  still. With a fine pointer and motion allowed, `DitherImage` comes by a
+  dynamic import once the page has loaded and is idle, and the dither
+  comes alive under the pointer; under reduced motion or on touch it stays
+  the still and nothing from ./motion loads. A `Closing` without it draws
+  as before. The new story is "Closing, dithered". check-render holds its
+  markup; check-layout holds the art under the words on a phone and beside
+  them from md, standing in the field, and the field at the band's foot
+  and edge, painting no pixel under any line of the words, from 320 to
+  1440; check-idle-motion holds the live mark to after the page's load and
+  to never under reduced motion or on touch; check-budget holds its lazy
+  chunk to a ceiling of its own, and every `import()` in dist to a file
+  the build keeps.
+
 ## [2.8.1] — 2026-11-07
 
 - On a phone, `DocLayout` with contents opens with its `header`: the

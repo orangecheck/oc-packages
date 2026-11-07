@@ -16,6 +16,10 @@
  *   in once the dots gather, while it still forms.
  * - DitherImage is its still until a fine pointer moves over it, then clear
  *   again within about a second; never under reduced motion or on touch.
+ * - Closing's dithered art is its baked still at load. With a fine pointer
+ *   and motion allowed, DitherImage takes its place after the page's load
+ *   event and then behaves as above; under reduced motion or on touch it
+ *   never mounts.
  * - The headline swap never shows both headlines at once.
  * - Without script the portrait's poster and notes stand.
  *
@@ -55,6 +59,7 @@ const PAGE = `
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ParticlePortrait, ParticleText, CrowdDissolve, StorySwap, MiniCheck, StackCards, Marquee, Wipe, DitherImage, ScrollStory, PORTRAIT_ANCHORS, schedule, bustPoints, deckPortraitPoints } from '${join(pkg, 'src/motion/index.ts')}';
+import { Closing } from '${join(pkg, 'src/components/index.ts')}';
 const q = new URLSearchParams(location.search);
 const s = q.get('s');
 // A two-tone still to dither: soft blobs through Bayer 4x4, burnt on paper.
@@ -114,6 +119,7 @@ const scenes = {
     marquee: () => <Marquee><span style={{ fontSize: 64, paddingRight: 32 }}>Lumen Notes</span><span style={{ fontSize: 64, paddingRight: 32 }}>Halfway Books</span></Marquee>,
     wipe: () => <Wipe><div id="wiped" style={{ height: 300, background: '#2a1206' }} /></Wipe>,
     loop: () => <Loop />,
+    closing: () => <Closing art="dither" title="The family's closing band." lead="A line." />,
     // A Wipe from its middle, carrying its own id and label.
     wipecenter: () => <Wipe from="center" id="wiped-center" aria-label="A statement"><div style={{ height: 300, background: '#2a1206' }} /></Wipe>,
     // Scenes whose first layout can fail: text sampled through getImageData, and a dither over a cross-origin still.
@@ -194,7 +200,11 @@ const COUNTERS =
     `window.__cbs = 0; window.__formedAt = null;` +
     `new MutationObserver((rs) => { for (const r of rs) if (r.target.dataset.phase === 'formed' && r.oldValue !== 'formed') window.__formedAt = { cbs: window.__cbs, draws: window.__draws }; })` +
     `.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['data-phase'], attributeOldValue: true });` +
-    `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();</script>`;
+    `window.__ticks = 0; (function tick() { window.__ticks++; raf(tick); })();` +
+    // The moment of the page's load event, and the moment a live dither first shows in the page.
+    `window.__loadAt = null; window.__liveAt = null; addEventListener('load', () => { window.__loadAt = performance.now(); });` +
+    `if (new URLSearchParams(location.search).has('late')) { const i = document.createElement('img'); i.src = 'http://late.invalid/late.gif'; document.head.appendChild(i); }` +
+    `if (new URLSearchParams(location.search).get('s') === 'closing') new MutationObserver(() => { if (window.__liveAt === null && document.querySelector('.oca-dither')) window.__liveAt = performance.now(); }).observe(document.documentElement, { subtree: true, childList: true });</script>`;
 
 const dir = mkdtempSync(join(tmpdir(), 'app-design-idle-motion-'));
 try {
@@ -247,8 +257,10 @@ try {
     // After the scene last read formed: the frames that ran and the draws, which a page waiting for formed must not see.
     const sinceFormed = (p) => p.evaluate(() => window.__formedAt && { cbs: window.__cbs - window.__formedAt.cbs, draws: window.__draws - window.__formedAt.draws });
     const formedLast = (f) => (f ? `${f.cbs} frames ran and ${f.draws} draws after it read formed` : 'it never read formed');
-    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false, flags = '' } = {}) => {
+    const open = async (scene, { reduce = false, width = 1280, height = 900, js = true, off = false, touch = false, flags = '', late = 0 } = {}) => {
         const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: reduce ? 'reduce' : 'no-preference', javaScriptEnabled: js, hasTouch: touch, isMobile: touch });
+        // A picture that answers late holds the page's load event back, so what waits for load is told from what does not.
+        if (late) await ctx.route('http://late.invalid/**', (r) => setTimeout(() => r.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') }), late));
         const p = await ctx.newPage();
         const errors = [];
         p.on('pageerror', (e) => errors.push(e.message));
@@ -719,6 +731,49 @@ try {
             for (let i = 0; i <= 6; i++) await p.mouse.move(box.x + 60 + i * 40, box.y + 160, { steps: 2 });
             await p.waitForTimeout(400);
             check((await p.evaluate(() => window.__draws)) === 0, `dither under ${label}: the live dither drew`);
+            await close();
+        }
+
+        // Closing's dithered art: the still at load; with a fine pointer, DitherImage once the page has loaded, asking for
+        // nothing until a pointer comes, live under it, then clear again. Under reduced motion or on touch, only the still.
+        {
+            const { p, errors, close } = await open('closing', { late: 1500, flags: 'late' });
+            const came = await p.waitForFunction(() => document.querySelector('[data-oca-art] .oca-dither canvas'), null, { timeout: 8000 }).then(() => true, () => false);
+            const at = await p.evaluate(() => ({ load: window.__loadAt, live: window.__liveAt, still: Boolean(document.querySelector('[data-oca-still]')) }));
+            check(came && !at.still, 'closing dither: with a fine pointer DitherImage never took the still\'s place');
+            check(at.load > 1400, `closing dither: the late picture did not hold the load event back (load at ${at.load?.toFixed(0)} ms)`);
+            check(at.load !== null && at.live !== null && at.live > at.load, `closing dither: the live mark showed at ${at.live?.toFixed(0)} ms, the page loaded at ${at.load?.toFixed(0)} ms`);
+            if (came) {
+                await p.waitForTimeout(400);
+                const before = await read(p);
+                const box = await p.locator('[data-oca-art] .oca-dither').boundingBox();
+                for (let i = 0; i <= 10; i++) await p.mouse.move(box.x + 40 + i * (box.width - 80) / 10, box.y + box.height / 2, { steps: 2 });
+                const moved = await p.evaluate(() => window.__draws);
+                const idle = await settle(p, 6000);
+                const lit = await p.evaluate(() => {
+                    const c = document.querySelector('[data-oca-art] .oca-dither canvas');
+                    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                    let n = 0;
+                    for (let i = 3; i < d.length; i += 4) n += d[i] ? 1 : 0;
+                    return n;
+                });
+                check(before.draws === 0 && before.rafs === 0, `closing dither: before any pointer it drew ${before.draws} and asked ${before.rafs} frames`);
+                check(moved > 3, `closing dither: a pointer moving over the check drew ${moved} frames`);
+                check(idle && lit === 0, `closing dither: after the pointer stopped it settled ${idle}, with ${lit} live pixels left`);
+            }
+            check(errors.length === 0, `closing dither: page errors ${JSON.stringify(errors)}`);
+            await close();
+        }
+        for (const [label, opts] of [
+            ['reduced motion', { reduce: true }],
+            ['a touch screen', { touch: true }],
+        ]) {
+            const { p, close } = await open('closing', opts);
+            await p.waitForFunction(() => window.__loadAt !== null, null, { timeout: 8000 });
+            // Past the idle callback's 2 s timeout, so a load that was going to happen has.
+            await p.waitForTimeout(2600);
+            const s = await p.evaluate(() => ({ still: Boolean(document.querySelector('[data-oca-art] [data-oca-still] img')), live: Boolean(document.querySelector('.oca-dither')), draws: window.__draws }));
+            check(s.still && !s.live && s.draws === 0, `closing dither under ${label}: still ${s.still}, live ${s.live}, ${s.draws} draws`);
             await close();
         }
 

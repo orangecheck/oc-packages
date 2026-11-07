@@ -322,6 +322,29 @@ const html = (el) => renderToStaticMarkup(el);
     // Closing on a band: its tone reaches the section, which leaves the canvas; with none it stays there.
     check(/^<section class="(?=[^"]*\boca-band-brand\b)(?![^"]*\bbg-background\b)/.test(html(h(C.Closing, { tone: 'brand', title: 't', art: null }))), 'Closing tone="brand": its section is not on the brand band');
     check(/^<section class="[^"]*\bbg-background\b/.test(html(h(C.Closing, { title: 't', art: null }))), 'Closing with no tone: its section is not on the canvas');
+    // Closing art="dither": on burnt unless told ink, isolated for the field under it; the field first in the band, a baked
+    // PNG at its foot and its 2x in srcset, lazy, decoration; the check its baked still, lazy, in an aria-hidden cell with
+    // no room under it on a phone. The server draws no live dither: no canvas, nothing from ./motion.
+    {
+        const out = html(h(C.Closing, { art: 'dither', title: 't', actions: h('a', { href: '/go' }, 'Go') }));
+        check(/^<section class="(?=[^"]*\boca-band-burnt\b)(?=[^"]*\bisolate\b)/.test(out), 'Closing art="dither": its section is not on the burnt band, isolated');
+        check(/^<section class="[^"]*\boca-band-ink\b/.test(html(h(C.Closing, { art: 'dither', tone: 'ink', title: 't' }))), 'Closing art="dither" tone="ink": its section is not on the ink band');
+        const field = out.match(/<div data-oca-frame=""[^>]*>(<img [^>]*data-oca-field=""[^>]*>)<div class="grid /)?.[1] ?? '';
+        check(
+            /src="data:image\/png;base64,/.test(field) &&
+                /srcSet="data:image\/png;base64,[^"]+ 2x"/.test(field) &&
+                /alt=""/.test(field) &&
+                /loading="lazy"/.test(field) &&
+                /class="(?=[^"]*\babsolute\b)(?=[^"]*\bbottom-0\b)(?=[^"]*\bright-0\b)(?=[^"]*\s-z-10\b)/.test(field),
+            `Closing art="dither": the field is not the band's first child, a lazy baked PNG at its foot under everything: ${field.slice(0, 120) || 'none'}`
+        );
+        const cell = out.match(/<div aria-hidden="true" data-oca-art="dither" class="([^"]*)"><span data-oca-still=""[^>]*><img ([^>]*)><\/span><\/div>/);
+        check(cell && !/\bpb-|max-md:pb/.test(cell[1]) && /width="480" height="240"/.test(cell[2]) && /loading="lazy"/.test(cell[2]) && /srcSet="data:image\/png;base64,[^"]+ 2x"/.test(cell[2]), `Closing art="dither": the check is not its lazy baked still, 480 by 240 with its 2x, in an aria-hidden cell with no room under it: ${cell ? cell[0].slice(0, 160) : 'none'}`);
+        check(!/<canvas|oca-dither/.test(out), 'Closing art="dither": the server drew the live dither');
+        // Without it, none of this: no field, no isolate, the cell as it was.
+        const plain = html(h(C.Closing, { title: 't' }));
+        check(!/data-oca-field|data-oca-art|\bisolate\b/.test(plain) && /<div aria-hidden="true" class="flex justify-center max-md:pb-16 md:col-span-5">/.test(plain), 'Closing without art="dither" grew its field, isolate or a new art cell');
+    }
     // Every block that draws a CTA pair draws it in HERO_ACTIONS, the row sites import for their own pairs: a block
     // with a row of its own, or one that drops or overrides a class of it, parts from the sites' rows.
     {

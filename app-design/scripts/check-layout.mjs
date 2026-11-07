@@ -77,6 +77,9 @@
  *   PageHero layouts, a document's header and an ErrorPage.
  * - From 640px a VerifyReport check's result sits on its label's line, with
  *   output or without, under a long mono note; the output gets a line under both.
+ * - Closing's dithered art sits under the words on a phone and beside them
+ *   from md, standing in its field; the field lies at the band's foot and
+ *   edge and paints no pixel under any line of the words, from 320 to 1440.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -1196,6 +1199,19 @@ try {
                 // The closing band holds the same pair by the same rule: one page, one CTA pair.
                 h('div', { 'data-t': 'closing' }, h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.', art: null, actions: pair() }))
             )
+        )
+    );
+    // Closing's dithered art, the family's closing band as vault draws it: long words, a CTA pair and small print.
+    const closingDither = page(
+        'closing-dither',
+        renderToStaticMarkup(
+            h(C.Closing, {
+                art: 'dither',
+                title: 'Paid in bitcoin. Ciphertext only. Yours by construction.',
+                lead: 'Free in your browser. Cloud sync is 7,000 sats per 30 days or 70,000 sats per year, prepaid on-chain. No card, no auto-renew.',
+                actions: pair(),
+                fineprint: h('span', null, 'With thanks to the writer whose work on Bitcoin as a sovereignty layer shaped the premise.'),
+            })
         )
     );
     // The footer's giant wordmark: one word at its natural spacing, filling the frame, nothing clipped.
@@ -2331,6 +2347,80 @@ try {
                     } else {
                         check(m.level && m.order && m.widths[0] !== m.widths[1], `[${w}] ${t}'s two actions are not side by side at their own widths: ${JSON.stringify(m)}`);
                     }
+                }
+                await c.close();
+            }
+            // Closing's dithered art: under the words on a phone, beside them from md, standing in the field; the field
+            // drawn at the band's foot on the art's side, out to the band's edge past the frame, and clear of the words
+            // pixel for pixel (every line of text and both actions read the same with the field hidden); no sideways scroll.
+            for (const w of width < 768 ? [320, width] : [768, 1024, width]) {
+                const c = await browser.newPage({ viewport: { width: w, height: 1400 }, isMobile: w < 768, hasTouch: w < 768 });
+                await visit(c, closingDither);
+                await c.evaluate(() => Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]));
+                const d = await c.evaluate(() => {
+                    const r = (el) => el && el.getBoundingClientRect().toJSON();
+                    const sec = document.querySelector('section');
+                    const field = sec.querySelector('img[data-oca-field]');
+                    const art = sec.querySelector('[data-oca-art="dither"]');
+                    const words = sec.querySelector('h2').parentElement.parentElement;
+                    const lines = [...words.querySelectorAll('[data-cta]')].map(r);
+                    const walk = document.createTreeWalker(words, NodeFilter.SHOW_TEXT);
+                    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+                        if (!n.textContent.trim()) continue;
+                        const range = document.createRange();
+                        range.selectNodeContents(n);
+                        lines.push(...[...range.getClientRects()].map((x) => x.toJSON()));
+                    }
+                    return {
+                        sec: r(sec),
+                        frameRight: r(sec.querySelector('[data-oca-frame]')).right,
+                        field: field && { ...r(field), drawn: field.complete && field.naturalWidth > 0 && getComputedStyle(field).visibility === 'visible' },
+                        art: r(art),
+                        mark: r(art?.querySelector('img')),
+                        words: r(words),
+                        lines,
+                        over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                        dpr: devicePixelRatio,
+                    };
+                });
+                const tag = `[${w}] Closing art="dither"`;
+                check(d.over <= 0, `${tag}: the page scrolls ${d.over}px sideways`);
+                check(Boolean(d.field?.drawn), `${tag}: no dither field is drawn`);
+                check(Boolean(d.art && d.mark && d.mark.width > 0), `${tag}: no dithered check is drawn`);
+                if (d.field?.drawn && d.art && d.mark) {
+                    const { sec, field, art, mark, words } = d;
+                    check(Math.abs(field.bottom - sec.bottom) <= 1 && Math.abs(field.right - sec.right) <= 1, `${tag}: the field is not at the band's foot and edge: field ${JSON.stringify(field)}, band ${JSON.stringify(sec)}`);
+                    if (sec.width > d.frameRight + 1) check(field.right > d.frameRight + 1, `${tag}: the field stops at the frame's rule (${d.frameRight}), not the band's edge (${sec.right})`);
+                    if (w < 768) {
+                        check(art.top >= words.bottom - 0.5 && field.top >= words.bottom - 0.5, `${tag}: on a phone the check (top ${art.top}) and the field (top ${field.top}) are not under the words (foot ${words.bottom})`);
+                    } else {
+                        check(art.left >= words.right - 0.5 && art.top < words.bottom && art.bottom > words.top, `${tag}: from md the check (${Math.round(art.left)}-${Math.round(art.right)}) is not beside the words (${Math.round(words.left)}-${Math.round(words.right)})`);
+                        check((field.left + field.right) / 2 > (words.left + words.right) / 2, `${tag}: the field is not on the art's side: centre ${Math.round((field.left + field.right) / 2)}, the words' ${Math.round((words.left + words.right) / 2)}`);
+                    }
+                    check(mark.bottom > field.top && mark.top < field.top, `${tag}: the check does not rise out of the field: check ${Math.round(mark.top)}-${Math.round(mark.bottom)}, field from ${Math.round(field.top)}`);
+                    // Clear of the words: the same pixels under every line and action with the field hidden.
+                    const shot = async () => decodePng(await c.screenshot({ fullPage: true }));
+                    const a = await shot();
+                    await c.evaluate(() => {
+                        document.querySelector('img[data-oca-field]').style.visibility = 'hidden';
+                    });
+                    const b = await shot();
+                    let touched = 0;
+                    const where = [];
+                    for (const l of d.lines) {
+                        for (let y = Math.floor(l.top * d.dpr); y < Math.ceil(l.bottom * d.dpr); y++) {
+                            for (let x = Math.floor(l.left * d.dpr); x < Math.ceil(l.right * d.dpr); x++) {
+                                const i = (y * a.width + x) * 4;
+                                if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2]) {
+                                    touched++;
+                                    if (where.length < 3) where.push([x, y]);
+                                }
+                            }
+                        }
+                    }
+                    const differs = a.data.length === b.data.length && !a.data.equals(b.data);
+                    check(d.lines.length >= 6 && differs, `${tag}: the clearance read nothing (${d.lines.length} lines, the field changed the page: ${differs})`);
+                    check(touched === 0, `${tag}: the field paints ${touched} pixels under the words, first at ${JSON.stringify(where)}`);
                 }
                 await c.close();
             }

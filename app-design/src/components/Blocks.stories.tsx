@@ -164,6 +164,32 @@ export const ProofAndClosing: StoryObj = {
     ),
 };
 
+/**
+ * The family's closing band: on burnt, the check in ordered dither rising out of the dither field at the band's
+ * foot. Under a mouse the dither comes alive where it passes; on a phone and under reduced motion it is the still.
+ */
+export const ClosingDither: StoryObj = {
+    name: 'Closing, dithered',
+    render: () => (
+        <Closing
+            art="dither"
+            title="Paid in bitcoin. Ciphertext only. Yours by construction."
+            lead="Free in your browser. Cloud sync is 7,000 sats per 30 days or 70,000 sats per year, prepaid on-chain. No card, no auto-renew."
+            actions={
+                <>
+                    <Button size="lg" plus>
+                        Open your vault
+                    </Button>
+                    <Button size="lg" variant="secondary">
+                        See pricing
+                    </Button>
+                </>
+            }
+            fineprint={<Acknowledgement />}
+        />
+    ),
+};
+
 /** Excerpted from the family's privacy policy in @orangecheck/legal, which renders as-is. */
 const PRIVACY: LegalSource = {
     eyebrow: 'privacy',
