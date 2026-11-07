@@ -501,7 +501,7 @@ const html = (el) => renderToStaticMarkup(el);
 {
     const sections = [{ id: 'you', label: 'You', href: '/me', groups: [{ items: [{ href: '/me', label: 'Home', active: true }] }] }];
     const out = html(h(Ch.AppShell, { sections }, h(C.PageHeader, { title: 'Home' })));
-    check(/class="oca-eyebrow">You</.test(out), 'AppShell (chrome) does not reach PageHeader (components): the section eyebrow is missing');
+    check(/class="oca-eyebrow[^"]*">You</.test(out), 'AppShell (chrome) does not reach PageHeader (components): the section eyebrow is missing');
 }
 
 // A Select inside a Field is named by the Field's label: the trigger carries the id the label points at.

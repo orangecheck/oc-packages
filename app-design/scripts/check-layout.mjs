@@ -788,12 +788,19 @@ try {
             )
         )
     );
-    // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons.
+    // An app shell's sidebar (its lockup, the section switcher, the page rows) and a rail of icons. The
+    // switcher holds ochk.app's four places, as an account that can go everywhere sees them.
+    const shellPlace = (id, label, items) => ({ id, label, href: `/${id}`, groups: [{ items }] });
     const shellSections = [
-        { id: 'a', label: 'Apps', href: '/a', groups: [{ items: [{ href: '/a', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }] }] },
-        { id: 'm', label: 'Money', href: '/m', groups: [{ items: [{ href: '/m', label: 'Payouts' }] }] },
+        shellPlace('you', 'You', [{ href: '/you', label: 'Entries', active: true }, { href: '/b', label: 'Keys' }]),
+        shellPlace('build', 'Build', [{ href: '/build', label: 'Projects' }]),
+        shellPlace('operate', 'Operate', [{ href: '/operate', label: 'Federations' }]),
+        shellPlace('admin', 'Admin', [{ href: '/admin', label: 'Queue' }]),
     ];
-    const touchShell = page('touch-shell', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'a' }, h('p', null, 'x'))));
+    const touchShell = page('touch-shell', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'you' }, h('p', null, 'x'))));
+    // Four places whose labels cannot share the sidebar's row whole.
+    const longSections = ['Your account', 'Developers', 'Operators', 'Administration'].map((label, i) => shellPlace(`p${i}`, label, [{ href: `/p${i}`, label: 'Home', active: i === 0 }]));
+    const shellLong = page('shell-long', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: longSections, activeSection: 'p0' }, h('p', null, 'x'))));
     const icon = h('svg', { viewBox: '0 0 10 10' }, h('rect', { width: 10, height: 10 }));
     const touchRail = page(
         'touch-rail',
@@ -1251,7 +1258,17 @@ try {
                     h('p', { 'data-t': 'link-alone', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x', standalone: true }, 'Your public record')),
                     h('p', { 'data-t': 'link-prose', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x' }, 'Your public record')),
                     // An overlay over a scene, placed absolutely as globe places one: bordered, and still a 44px target.
-                    h('div', { className: 'relative h-16 w-56 bg-oca-ink' }, h(P.Button, { size: 'sm', variant: 'overlay', className: 'absolute top-3 left-4', 'data-t': 'sm-o' }, 'Data'))
+                    h('div', { className: 'relative h-16 w-56 bg-oca-ink' }, h(P.Button, { size: 'sm', variant: 'overlay', className: 'absolute top-3 left-4', 'data-t': 'sm-o' }, 'Data')),
+                    // Disabled, as a form's Save is until something changes: its border counts, as a bordered variant's does.
+                    h(
+                        'div',
+                        { className: 'flex items-center gap-4' },
+                        h(P.Button, { size: 'sm', disabled: true, 'data-d': 'sm' }, 'Save'),
+                        h(P.Button, { size: 'icon-sm', disabled: true, 'aria-label': 'Refresh', 'data-d': 'icon-sm' }, 'R'),
+                        h(P.Button, { size: 'icon', disabled: true, 'aria-label': 'Close', 'data-d': 'icon' }, 'X')
+                    ),
+                    // A page header's eyebrow that links to the page above: a line of text, 44px to a thumb.
+                    h('div', { 'data-t': 'eyebrow' }, h(C.PageHeader, { eyebrow: h('a', { href: '/me/projects' }, 'Projects'), title: 'Lumen Notes' }))
                 )
             )
     );
@@ -1631,6 +1648,7 @@ try {
                     scrollTo(0, 1200);
                     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                     out.asideTopScrolled = box(aside).top;
+                    out.barTopScrolled = box(bar).top;
                     scrollTo(0, 0);
                     return out;
                 });
@@ -1645,8 +1663,9 @@ try {
                         desk.banner.top >= desk.bar.bottom - 0.5 &&
                         desk.main.top >= desk.banner.bottom - 0.5 &&
                         desk.main.left >= desk.aside.right - 0.5 &&
-                        Math.abs(desk.asideTopScrolled) < 1,
-                    `[${width}] AppShell: the account bar is first in the page ${desk.barFirst} but drawn at ${JSON.stringify(desk.bar)}, the sidebar at ${JSON.stringify(desk.aside)} (scrolled top ${desk.asideTopScrolled}), main at ${JSON.stringify(desk.main)}`
+                        Math.abs(desk.asideTopScrolled) < 1 &&
+                        Math.abs(desk.barTopScrolled) < 1,
+                    `[${width}] AppShell: the account bar is first in the page ${desk.barFirst} but drawn at ${JSON.stringify(desk.bar)}, the sidebar at ${JSON.stringify(desk.aside)} (scrolled top ${desk.asideTopScrolled}, the bar's ${desk.barTopScrolled}), main at ${JSON.stringify(desk.main)}`
                 );
             }
             // The family footer: a phone gets folded groups in 600px; a desk the columns.
@@ -1981,6 +2000,31 @@ try {
                 check(!prose.reach, `[${width}] TextLink in a sentence: its target grew to 44px`);
                 if (width < 768) check(alone.reach, `[${width} touch] TextLink standalone: link ${alone.w}×${alone.h}px, 44px target ${alone.reach}`);
                 else check(!alone.reach, `[${width} mouse] TextLink standalone: its target grew past the text`);
+                // A disabled button's target is a thumb's 44px as an enabled one's is. It takes no pointer, so its ::before is read.
+                const off = await t.$$eval('[data-d]', (els) =>
+                    els.map((el) => {
+                        const b = getComputedStyle(el, '::before');
+                        return { d: el.dataset.d, drawn: Math.round(el.getBoundingClientRect().height), w: b.content === 'none' ? 0 : parseFloat(b.width), h: b.content === 'none' ? 0 : parseFloat(b.height) };
+                    })
+                );
+                const OFF = { sm: 36, 'icon-sm': 32, icon: 40 };
+                for (const o of off) {
+                    if (width < 768) check(o.drawn === OFF[o.d] && o.h === 44 && (o.d === 'sm' || o.w === 44), `[${width} touch] a disabled ${o.d} button: drawn ${o.drawn}px, its target ${o.w}×${o.h}, not 44`);
+                    else check(o.drawn === OFF[o.d] && o.h === 0, `[${width} mouse] a disabled ${o.d} button: drawn ${o.drawn}px, or a target past it (${o.h}px)`);
+                }
+                check(off.length === 3, `[${width}] the disabled buttons drawn: ${off.length} of 3`);
+                // A page header's eyebrow link: 44px to a thumb and 24px to a mouse, from a ::before; its line keeps its height.
+                const eyebrow = await t.evaluate(() => {
+                    const line = document.querySelector('[data-t="eyebrow"] header p');
+                    const el = line.querySelector('a');
+                    const r = el.getBoundingClientRect();
+                    const cx = r.left + r.width / 2;
+                    const cy = r.top + r.height / 2;
+                    const lands = (d) => el.contains(document.elementFromPoint(cx, cy - d)) && el.contains(document.elementFromPoint(cx, cy + d));
+                    return { w: Math.round(r.width), h: Math.round(r.height), line: Math.round(line.getBoundingClientRect().height), mouse: lands(11.5), thumb: lands(21.5) };
+                });
+                check(eyebrow.h < 24 && Math.abs(eyebrow.line - eyebrow.h) < 6 && eyebrow.mouse, `[${width}] PageHeader's eyebrow link: ${eyebrow.w}×${eyebrow.h}px in a ${eyebrow.line}px line, 24px target ${eyebrow.mouse}`);
+                check(eyebrow.thumb === width < 768, `[${width} ${width < 768 ? 'touch' : 'mouse'}] PageHeader's eyebrow link: a 44px target ${eyebrow.thumb}`);
                 // A field has no box beyond its own: a small one is drawn 44px tall to a thumb, 36px to a mouse.
                 await visit(t, fields);
                 const fh = await t.$$eval('[data-f]', (els) => Object.fromEntries(els.map((el) => [el.dataset.f, el.getBoundingClientRect().height])));
@@ -2930,7 +2974,7 @@ try {
                     const shapes = [
                         ['line tabs and the sign-in header', touchShapes, [390, 1024], '[data-t="line-tab"], main header a', 5],
                         ['the sign-in page header, Go back to the return target', touchSignInPage, [390, 1024], 'main header a', 2],
-                        ['the app shell sidebar', touchShell, [1024], 'aside a', 5],
+                        ['the app shell sidebar', touchShell, [1024], 'aside a', 7],
                         ['the app shell rail', touchRail, [768], 'nav[aria-label="Pages"] a', 2],
                         ['the site header nav', touchNav, [1024], 'nav[aria-label="Main"] a', 2],
                     ];
@@ -2950,12 +2994,35 @@ try {
                     const goBack = mouse['the sign-in page header, Go back to the return target'];
                     const touchGoBack = (await read(touchSignInPage, 1024, true, 'main header a')).header;
                     check(goBack.targets.some((x) => x.name === 'Go back') && touchGoBack === goBack.header && goBack.header === mouse['line tabs and the sign-in header'].header, `[1024] the sign-in page's header with Go back is ${touchGoBack}px to a thumb and ${goBack.header}px to a mouse, not the frame's ${mouse['line tabs and the sign-in header'].header}px`);
-                    // A mouse's drawn sizes: section switcher 32, page rows 36, rail icons 40.
+                    // A mouse's drawn sizes: section switcher 36, page rows 36, rail icons 40.
                     const bar = mouse['the app shell sidebar'].targets;
-                    check(bar.length === 5 && bar.filter((x) => ['Apps', 'Money'].includes(x.name)).every((x) => x.h === 32) && bar.filter((x) => ['Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not sections 32 and rows 36`);
+                    const PLACES = ['You', 'Build', 'Operate', 'Admin'];
+                    check(bar.length === 7 && bar.filter((x) => PLACES.includes(x.name)).length === 4 && bar.filter((x) => [...PLACES, 'Entries', 'Keys'].includes(x.name)).every((x) => x.h === 36), `[1024 mouse] the app shell sidebar is drawn ${sizes('the app shell sidebar')}, not places and rows 36`);
                     const earn = mouse['the site header nav'].targets.find((x) => x.name === 'Earn');
                     check(earn && earn.w < 44 && earn.h === 44, `[1024 mouse] the header's Earn is drawn ${earn?.w}x${earn?.h}: a fine pointer's nav word keeps its own width`);
                     check(mouse['the app shell rail'].targets.length === 2 && mouse['the app shell rail'].targets.every((x) => x.w === 40 && x.h === 40), `[768 mouse] the rail's icons are drawn ${sizes('the app shell rail')}, not 40x40`);
+                }
+                // The four places share one row of the sidebar (17rem at every desk width), each label whole and the
+                // row filled, 36px tall to a mouse and 44 to a thumb. Labels too long for one row wrap, whole, in the sidebar.
+                for (const [url, touch] of [[touchShell, false], [touchShell, true], [shellLong, false]]) {
+                    const c = await browser.newPage({ viewport: { width: 1024, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await visit(c, url);
+                    const r = await c.evaluate(() => {
+                        const nav = document.querySelector('aside nav[aria-label="Sections"]');
+                        const n = nav.getBoundingClientRect();
+                        const tabs = [...nav.querySelectorAll('a')].map((a) => {
+                            const b = a.getBoundingClientRect();
+                            const s = a.querySelector('span');
+                            return { name: a.textContent.trim(), top: Math.round(b.top), left: b.left, right: b.right, w: Math.round(b.width), h: Math.round(b.height), whole: s.scrollWidth <= s.clientWidth };
+                        });
+                        const aside = document.querySelector('aside').getBoundingClientRect();
+                        return { tabs, rows: new Set(tabs.map((t) => t.top)).size, inside: n.left >= aside.left && n.right <= aside.right && tabs.every((t) => t.left >= n.left && t.right <= n.right + 0.5), fill: Math.round(n.right - Math.max(...tabs.map((t) => t.right))) };
+                    });
+                    const label = `[1024 ${touch ? 'touch' : 'mouse'}]`;
+                    const tall = r.tabs.every((t) => t.h === (touch ? 44 : 36));
+                    if (url === touchShell) check(r.tabs.length === 4 && r.rows === 1 && r.fill <= 5 && tall && r.tabs.every((t) => t.whole), `${label} the four places: ${r.rows} rows, ${r.fill}px left at the end, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
+                    else check(r.tabs.length === 4 && r.rows > 1 && r.inside && tall && r.tabs.every((t) => t.whole), `${label} four long places: ${r.rows} rows, inside the sidebar ${r.inside}, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
+                    await c.close();
                 }
                 // Block heights to a thumb: each lands from 21.5px out in every direction, and no point of one's 44px square
                 // lands on another height (a ::before 44 tall over a line of text can reach a neighbour). To a mouse each

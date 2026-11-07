@@ -98,15 +98,10 @@ function SectionSwitch({
     current: ShellSection;
     onNavigate?: () => void;
 }) {
-    // Up to three fit one row of the sidebar; four go two by two, so no label
-    // is ever cut short.
-    const cols = sections.length <= 3 ? sections.length : 2;
+    // One row: each tab an even share, a longer label taking what it needs from the
+    // others. A row that cannot hold every label whole wraps rather than cut one short.
     return (
-        <nav
-            aria-label="Sections"
-            className={cn('grid gap-1 bg-muted p-1', cols === sections.length ? 'rounded-none' : 'rounded-none')}
-            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-        >
+        <nav aria-label="Sections" className="flex flex-wrap gap-1 bg-muted p-1">
             {sections.map((sec) => {
                 const on = sec.id === current.id;
                 return (
@@ -116,7 +111,7 @@ function SectionSwitch({
                         onClick={onNavigate}
                         aria-current={on ? 'true' : undefined}
                         className={cn(
-                            'flex h-8 min-w-0 items-center justify-center rounded-none border border-transparent px-1.5 text-[0.8125rem] font-medium transition-colors pointer-coarse:h-11',
+                            'flex h-9 max-w-full flex-1 items-center justify-center rounded-none border border-transparent px-1.5 text-[0.8125rem] font-medium transition-colors pointer-coarse:h-11',
                             // The chosen section is edged in ink, as a pill tab's is: card on the muted list was 1.18:1.
                             on ? 'border-foreground bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                         )}
@@ -419,7 +414,7 @@ function SidebarShell({
                     </div>
                     {/* Phones keep it beside the tab bar, so sections that arrive after first paint move nothing. */}
                     {place.page ? (
-                        <div className="flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]">
+                        <div data-oca-place="" className="flex h-9 items-center gap-1.5 border-t border-border px-4 text-[0.875rem]">
                             {place.section ? (
                                 <>
                                     <span className="shrink-0 text-muted-foreground">{place.section}</span>
@@ -431,9 +426,14 @@ function SidebarShell({
                     ) : null}
                 </header>
                 {/* From lg a grid, so the account bar comes before the sidebar in the page (Tab reaches it first) and still draws top right. */}
-                <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
-                    {/* The shell's bar from lg, as the phone bar is below it; it does not stick. */}
-                    <header data-oca-sticky="app-bar" className="hidden h-[4.5rem] items-center justify-end gap-3 px-8 lg:col-start-2 lg:row-start-1 lg:flex">
+                <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[4.5rem_1fr]">
+                    {/* The shell's bar from lg, as the phone bar is below it, and it sticks as that one does, with the
+                        page's top room under it as there. Its area runs down the page (rows 1 and 2), so it has room to
+                        stick; the first row is its height. */}
+                    <header
+                        data-oca-sticky="app-bar"
+                        className="sticky top-0 z-40 hidden h-[4.5rem] items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur-md lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex"
+                    >
                         <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
                     </header>
                     <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
@@ -449,8 +449,8 @@ function SidebarShell({
                         <div className="mt-auto flex flex-col gap-3">{footer}</div>
                     </aside>
                     <div className="flex min-w-0 flex-1 flex-col lg:col-start-2 lg:row-start-2">
-                        {banner ? <div className="px-4 pb-2 pt-4 md:px-8 lg:pt-0">{banner}</div> : null}
-                        <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-16 pt-6 outline-none md:px-8 lg:pt-2">
+                        {banner ? <div className="px-4 pb-2 pt-4 md:px-8">{banner}</div> : null}
+                        <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-16 pt-6 outline-none md:px-8">
                             {/* One width for every signed-in page. */}
                             <div className="mx-auto w-full max-w-[72rem]">
                                 <InColumnContext.Provider value={true}>{children}</InColumnContext.Provider>
