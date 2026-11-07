@@ -191,7 +191,7 @@ export function LegalDocument({ doc, art, className }: { doc: LegalSource; art?:
                             {doc.preamble?.map((b, i) => <BlockView key={i} block={b} />)}
                             {doc.sections.map((s) => (
                                 <section key={s.id}>
-                                    <h2 id={s.id} className="scroll-mt-24">
+                                    <h2 id={s.id}>
                                         {s.num ? <span className="mb-3 block font-mono text-[0.75rem] font-normal leading-[1.4] tracking-[0.08em] text-oca-accent-ink">§ {s.num}</span> : null}
                                         {headingCase(s.heading)}
                                     </h2>

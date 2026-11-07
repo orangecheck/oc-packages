@@ -385,7 +385,7 @@ export function FormSection({
             id={id}
             aria-labelledby={titleId}
             aria-current={status === 'current' ? 'step' : undefined}
-            className={cn('scroll-mt-24 rounded-none border border-border bg-card', className)}
+            className={cn('rounded-none border border-border bg-card', className)}
         >
             {/* Below sm the action takes its own row under the hint, so the hint keeps the width. */}
             <header className={cn('flex flex-wrap items-start gap-x-3.5 gap-y-3', tight ? 'px-5 pt-5' : 'px-6 pt-6')}>

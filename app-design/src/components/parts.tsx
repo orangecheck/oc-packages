@@ -48,7 +48,7 @@ export function SectionTitle({
                 <Tag
                     id={id}
                     className={cn(
-                        'flex scroll-mt-24 flex-wrap items-baseline gap-x-3',
+                        'flex flex-wrap items-baseline gap-x-3',
                         size === 'sm' ? 'oca-title-sm' : 'oca-title',
                         tone === 'danger' && 'text-destructive'
                     )}

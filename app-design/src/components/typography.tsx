@@ -52,7 +52,7 @@ export function Prose({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
             className={cn(
                 // A word wider than the line (a hostname, a URL) breaks rather than scroll the page sideways.
                 'max-w-[42rem] break-words text-[1.0625rem] leading-[1.7] text-muted-foreground',
-                '[&_h2:not(.not-prose_h2)]:oca-display-3 [&_h2:not(.not-prose_h2)]:mb-4 [&_h2:not(.not-prose_h2)]:mt-14 [&_h2]:scroll-mt-24 [&_h2]:text-foreground',
+                '[&_h2:not(.not-prose_h2)]:oca-display-3 [&_h2:not(.not-prose_h2)]:mb-4 [&_h2:not(.not-prose_h2)]:mt-14 [&_h2]:text-foreground',
                 '[&_h3:not(.not-prose_h3)]:oca-title [&_h3:not(.not-prose_h3)]:mb-3 [&_h3:not(.not-prose_h3)]:mt-10 [&_h3]:text-foreground',
                 '[&_p:not(.not-prose_p)]:my-4 [&_strong]:font-medium [&_strong]:text-foreground',
                 '[&_a]:text-foreground [&_a]:underline [&_a]:decoration-foreground/35 [&_a]:underline-offset-4 hover:[&_a]:decoration-foreground',

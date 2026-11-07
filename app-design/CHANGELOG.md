@@ -5,6 +5,17 @@
 - `AppShell`'s JSDoc says how script reads `--oca-app-bar-h`: its value is
   a CSS length (4.5rem, or a calc), so the number in pixels comes from a
   probe's computed height, never from parseFloat.
+- A link to a section brings it up where the page's scroll-padding
+  leaves it: 20px under the site's bar on a phone and 16px on a desk,
+  20px under the docs' bars, 12px under an app's bar. Twelve blocks set
+  a scroll-margin of 6 or 7rem on top of that padding (`SectionHeading`,
+  `FactBlock`, `SectionTitle`, `FormSection`, `LegalDocument`'s
+  headings, `Prose`'s h2, `AccordionItem`, the docs' `Step`, `ApiTable`'s
+  rows, `DocsHeading` and the MDX h5 and h6), so each landed 96 or 112px
+  lower. They set none now. A site's own scroll-margin on one of them
+  adds to the padding the same way: keep one only under a second sticky
+  band the padding does not cover, at that band's height. check-focus
+  holds it.
 
 ## [2.10.0] — 2026-11-07
 

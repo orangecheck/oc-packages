@@ -124,7 +124,7 @@ export function createMdxComponents({ mermaid }: MdxOptions = {}) {
     // TypeDoc writes h5 for a method's "Returns": a label over what follows, not a section.
     const minor = (Tag: 'h5' | 'h6') =>
         function Minor({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-            return <Tag className={cn('mb-2 mt-6 scroll-mt-28 text-[0.9375rem] font-medium leading-snug text-foreground', className)} {...props} />;
+            return <Tag className={cn('mb-2 mt-6 text-[0.9375rem] font-medium leading-snug text-foreground', className)} {...props} />;
         };
 
     return {
