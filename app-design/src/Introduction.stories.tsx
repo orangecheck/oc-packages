@@ -10,6 +10,7 @@ import { DocColumns, Frame, MonoLabel, PageFrame, PageHero, Prose, Section, Sect
 import type { TocItem } from './components';
 import { DitherImage } from './motion';
 import { Button } from './primitives';
+import { readReleases } from './releases.data';
 
 /*
  * design.ochk.io's front page, drawn from the package's own parts: the header, the frame and its
@@ -18,35 +19,6 @@ import { Button } from './primitives';
  */
 const meta: Meta = { title: 'Introduction', parameters: { fullBleed: true } };
 export default meta;
-
-interface Release {
-    version: string;
-    date?: string;
-    /** The opening sentence of each of the release's stanzas. */
-    lines: string[];
-}
-
-/** CHANGELOG.md's releases, newest first: a stanza opens with a sentence; bullets, headings and indented lines are its body. */
-function readReleases(md: string): Release[] {
-    return md
-        .split(/^## /m)
-        .slice(1)
-        .flatMap((part) => {
-            const [head = '', ...rest] = part.split('\n');
-            const m = /^\[([^\]]+)\](?:\s+—\s+(\d{4}-\d{2}-\d{2}))?/.exec(head);
-            if (!m?.[1]) return [];
-            const lines = rest
-                .join('\n')
-                .trim()
-                .split(/\n[ \t]*\n/)
-                .filter((p) => /^[^\s\-*#|>`]/.test(p))
-                .map((p) => {
-                    const flat = p.replace(/\s*\n\s*/g, ' ');
-                    return flat.match(/^.*?[.:](?=\s|$)/)?.[0] ?? flat;
-                });
-            return lines.length ? [{ version: m[1], date: m[2], lines }] : [];
-        });
-}
 
 const RELEASES = readReleases(changelog).slice(0, 6);
 const LATEST = RELEASES.find((r) => r.version !== 'Unreleased')?.version;
@@ -122,8 +94,9 @@ export const Overview: StoryObj = {
                     lead="A column ruled at each side, its sections and bands between the rules, each opening on a bar like the one above."
                 >
                     <StatRow
+                        size="sm"
                         items={[
-                            { value: '82.5rem', label: 'The column', note: 'At most; ruled from 900px' },
+                            { value: '82.5rem', label: 'The column', note: 'At most, ruled at each side' },
                             { value: '3rem', label: 'The gutter', note: '1rem on a phone' },
                             { value: '0', label: 'Corner radius', note: 'Square everywhere' },
                             { value: '4.5:1', label: 'Text contrast', note: '3:1 at display sizes' },
