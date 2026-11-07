@@ -47,7 +47,7 @@
     "@orangecheck/me-client": "^0.56.0",
     "@orangecheck/nostr-core": "^0.8.2",
     "@orangecheck/sdk": "^1.21.0",
-    "@orangecheck/stamp-ots": "^0.6.1",
+    "@orangecheck/stamp-ots": "^0.7.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {
