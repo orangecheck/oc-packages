@@ -198,8 +198,8 @@ export function useActiveHeading(ids: string[]): string | undefined {
  * A long document beside its contents. With `toc`, S34's columns on a Frame: the numbered contents
  * in a column ruled off to the frame, sticky under the site's bar from 900px, the entry being read
  * marked in ember, folded above the text on a phone; the text in the other column, `header` (a
- * DocHeader) at its top. Without `toc`, one readable column. The ids are the ids of the document's
- * h2s.
+ * DocHeader) at its top, and on a phone above the fold, so the page opens with its title. Without
+ * `toc`, one readable column. The ids are the ids of the document's h2s.
  */
 export function DocLayout({
     toc,
@@ -215,8 +215,7 @@ export function DocLayout({
     if (toc && toc.length > 0) {
         return (
             <Frame padded={false} className={className}>
-                <DocColumns nav={<Toc entries={toc} />}>
-                    {header ? <div className="pb-10 md:pb-14">{header}</div> : null}
+                <DocColumns nav={<Toc entries={toc} />} header={header}>
                     {children}
                 </DocColumns>
             </Frame>

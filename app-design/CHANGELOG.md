@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- On a phone, `DocLayout` with contents opens with its `header`: the
+  title first, then the folded contents, ruled above and below, then the
+  text. From 900px nothing moves, and the header heads the text column
+  beside the contents as before. `DocColumns` takes the `header` for this;
+  without one it draws as it did. check-layout holds the order at 390 and
+  the columns at 900 and 1440, and check-render holds the cells.
+
 ## [2.8.0] — 2026-11-07
 
 - `VerifyReport` draws a check that runs in the page. A check can be

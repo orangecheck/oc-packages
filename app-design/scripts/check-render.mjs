@@ -993,13 +993,31 @@ const html = (el) => renderToStaticMarkup(el);
     check(cls(cols).includes(' min-[900px]:grid-cols-[15.5rem_minmax(0,1fr)] ') && cls(cols).includes(' xl:grid-cols-[18.5rem_minmax(0,1fr)] '), `DocColumns: not 15.5rem then 18.5rem of contents beside the text: ${cls(cols)}`);
     check(cls(navCell).includes(' min-[900px]:border-r ') && cls(navCell).includes(' border-b ') && cls(navCell).includes(' min-[900px]:border-b-0 '), `DocColumns: the contents are not ruled off, under the fold on a phone and beside the text from 900px: ${cls(navCell)}`);
     check(cls(textCell).includes(' px-[var(--oca-frame-gutter)] ') && !/clamp\(/.test(html(h(C.DocColumns, { nav: null }, 'x'))) && textCell.querySelector('[data-text]'), `DocColumns: the text is not on the frame's gutter: ${cls(textCell)}`);
+    check(!cols?.querySelector(':scope > [data-oca-doc-header]') && !cls(navCell).includes(' border-t '), `DocColumns without a header: a header cell, or a rule over the fold: ${cls(navCell)}`);
+    // With a header: first, so a phone opens with the title above the fold; from 900px it heads the text column, the contents down both rows.
+    const headed = dom(h(C.DocColumns, { nav: h('nav', null, 'N'), header: h('h1', null, 'H') }, h('p', { 'data-text': '' }, 'T'))).body.firstElementChild;
+    const [hHead, hNav, hText] = headed ? [...headed.children] : [];
+    check(
+        hHead?.matches('[data-oca-doc-header]') &&
+            hHead.querySelector('h1') &&
+            [' min-[900px]:col-start-2 ', ' min-[900px]:row-start-1 ', ' min-[900px]:pl-16 ', ' px-[var(--oca-frame-gutter)] '].every((c) => cls(hHead).includes(c)) &&
+            [' border-t ', ' border-b ', ' min-[900px]:border-t-0 ', ' min-[900px]:row-span-2 ', ' min-[900px]:border-r '].every((c) => cls(hNav).includes(c)) &&
+            cls(hText).includes(' min-[900px]:pt-0 ') &&
+            !cls(hText).includes(' min-[900px]:pt-14 ') &&
+            hText.querySelector('[data-text]'),
+        `DocColumns with a header: not the header first, the fold ruled over and under on a phone, the contents down both rows beside it from 900px: ${cls(hHead)} | ${cls(hNav)} | ${cls(hText)}`
+    );
 
     const withToc = dom(h(C.DocLayout, { toc: entries, header: h(C.DocHeader, { title: 'Security' }) }, h('p', { 'data-text': '' }, 'T')));
     const frame = withToc.querySelector('[data-oca-frame]');
     const columns = frame?.querySelector(':scope > [data-oca-doc-columns]');
-    const text = columns?.children[1];
+    const head = columns?.firstElementChild;
+    const text = columns?.lastElementChild;
     check(frame && !/oca-container/.test(html(h(C.DocLayout, { toc: entries }, 'x'))) && columns && columns.querySelectorAll('nav[aria-label="On this page"] a[href="#b"]').length === 2, 'DocLayout with contents: not DocColumns on a Frame with the numbered contents');
-    check(text?.firstElementChild?.querySelector('h1')?.textContent === 'Security' && text.lastElementChild?.matches('p[data-text]'), 'DocLayout with contents: its header is not at the top of the text column');
+    check(
+        head?.matches('[data-oca-doc-header]') && head.querySelector('h1')?.textContent === 'Security' && head.nextElementSibling?.querySelector('details nav[aria-label="On this page"]') && text?.firstElementChild?.matches('p[data-text]') && !text.querySelector('h1'),
+        'DocLayout with contents: its header does not come first, before the contents, with the text after them'
+    );
     // Without contents, the markup 2.5.0 drew.
     check(sha(html(h(C.DocLayout, null, h('p', null, 'Body')))) === 'd16b1c4df347861c5339f77dd02bfb09a53e69cb34450e2d3be99f8b4bdbd964', 'DocLayout without contents no longer draws as 2.5.0 did');
     check(sha(html(h(C.DocLayout, { header: h(C.DocHeader, { title: 'Security', lead: 'How to tell us.' }), className: 'x' }, h('p', null, 'Body')))) === '2748b5ab7cb9ebfcfceed04893d00583f0dc587436f97300eb55566d288f732b', 'DocLayout without contents, with a header, no longer draws as 2.5.0 did');
