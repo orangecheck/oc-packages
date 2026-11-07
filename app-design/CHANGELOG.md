@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.8.0] — 2026-11-07
+
 - `VerifyReport` draws a check that runs in the page. A check can be
   `running`: it reads "Running" beside the package's turning `Spinner`,
   which stops under reduced motion. `verdict` is optional, and with none
