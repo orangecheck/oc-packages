@@ -285,7 +285,9 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * their pages stay in the sheet. Pages get the section through context:
  * PageHeader uses it as its eyebrow. `family` puts the family menu beside the
  * lockup. The account control and any banner are slots. `variant="rail"` is
- * the messenger's frame instead.
+ * the messenger's frame instead. Its bar sticks at every width and publishes
+ * its height as --oca-app-bar-h: a page's own sticky element sets its top
+ * from it, `calc(var(--oca-app-bar-h, 0px) + 1.5rem)`.
  */
 export function AppShell(props: AppShellProps) {
     return props.variant === 'rail' ? <RailShell {...props} /> : <SidebarShell {...props} />;

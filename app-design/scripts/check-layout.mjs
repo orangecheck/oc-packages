@@ -801,6 +801,9 @@ try {
     // Four places whose labels cannot share the sidebar's row whole.
     const longSections = ['Your account', 'Developers', 'Operators', 'Administration'].map((label, i) => shellPlace(`p${i}`, label, [{ href: `/p${i}`, label: 'Home', active: i === 0 }]));
     const shellLong = page('shell-long', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: longSections, activeSection: 'p0' }, h('p', null, 'x'))));
+    // A page's own sticky element (vault's folder column, analytics' ScopeBar), its top from the bar's published height.
+    const pin = h('div', { 'data-pin': '', style: { position: 'sticky', top: 'calc(var(--oca-app-bar-h, 0px) + 1.5rem)' } }, 'Folders');
+    const shellSticky = page('shell-sticky', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'you' }, h('div', { style: { height: 3000 } }, pin))));
     const icon = h('svg', { viewBox: '0 0 10 10' }, h('rect', { width: 10, height: 10 }));
     const touchRail = page(
         'touch-rail',
@@ -3023,6 +3026,20 @@ try {
                     if (url === touchShell) check(r.tabs.length === 4 && r.rows === 1 && r.fill <= 5 && tall && r.tabs.every((t) => t.whole), `${label} the four places: ${r.rows} rows, ${r.fill}px left at the end, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
                     else check(r.tabs.length === 4 && r.rows > 1 && r.inside && tall && r.tabs.every((t) => t.whole), `${label} four long places: ${r.rows} rows, inside the sidebar ${r.inside}, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
                     await c.close();
+                }
+                // The bar sticks at every width, so a page's own sticky element pinned by --oca-app-bar-h stands 24px under
+                // the bar drawn there: the phone's with its place strip, and the desk's.
+                for (const [w, touch] of [[390, true], [1024, true], [1440, false]]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 }, isMobile: touch, hasTouch: touch });
+                    await visit(c, shellSticky);
+                    const r = await c.evaluate(async () => {
+                        scrollTo(0, 1500);
+                        await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+                        const bar = [...document.querySelectorAll('[data-oca-sticky="app-bar"]')].find((el) => el.getClientRects().length > 0);
+                        return { bar: bar.getBoundingClientRect().bottom, pin: document.querySelector('[data-pin]').getBoundingClientRect().top, y: scrollY };
+                    });
+                    await c.close();
+                    check(r.y > 1000 && Math.abs(r.pin - r.bar - 24) < 0.5, `[${w} ${touch ? 'touch' : 'mouse'}] AppShell: a page's sticky element pinned by --oca-app-bar-h stands at ${r.pin}, the bar ends at ${r.bar} (scrolled ${r.y})`);
                 }
                 // Block heights to a thumb: each lands from 21.5px out in every direction, and no point of one's 44px square
                 // lands on another height (a ::before 44 tall over a line of text can reach a neighbour). To a mouse each

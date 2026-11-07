@@ -546,15 +546,17 @@
    shells' own: the site's bar 3.5rem, 4.25rem from 900px (its rule counts 4rem, 4.5rem from md,
    for room), an app's bar 3.5rem below lg (5.75rem with its place strip) and 4.5rem from it, the
    docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the page's
-   root itself or an element under it, so each rule names both. */
+   root itself or an element under it, so each rule names both. An app's bar publishes its height as
+   --oca-app-bar-h, so a page's own sticky element sits under it: top: calc(var(--oca-app-bar-h, 0px) + 1.5rem). */
 :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
 :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
-    scroll-padding-top: calc(3.5rem + 1px + 0.75rem);
+    --oca-app-bar-h: calc(3.5rem + 1px);
+    scroll-padding-top: calc(var(--oca-app-bar-h) + 0.75rem);
 }
 @media (width < 64rem) {
     :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar'] [data-oca-place]),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar'] [data-oca-place]) {
-        scroll-padding-top: calc(3.5rem + 2.25rem + 1px + 0.75rem);
+        --oca-app-bar-h: calc(3.5rem + 2.25rem + 1px);
     }
 }
 :root[data-oc-app='ochk']:has([data-oca-sticky='site']),
@@ -593,7 +595,7 @@
     /* From lg an app's bar is its desk bar, 4.5rem with its hairline in it; its sidebar does not cover the page. */
     :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='app-bar']) {
-        scroll-padding-top: calc(4.5rem + 0.75rem);
+        --oca-app-bar-h: 4.5rem;
     }
 }
 

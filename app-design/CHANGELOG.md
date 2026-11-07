@@ -13,6 +13,13 @@
   keyboard reaches scrolls into view below it (scroll-padding-top).
   Below lg, the place strip under the phone's bar now counts too, so a
   focused control is no longer left under the strip.
+- `AppShell` publishes its bar's height as `--oca-app-bar-h` on the root:
+  57px below lg (93 with the place strip) and 72 from lg. A page's own
+  sticky element sets its top from it, so it stands under the bar:
+  `top: calc(var(--oca-app-bar-h, 0px) + 1.5rem)`. **A page that pins an
+  element to the top from lg needs it now that the bar sticks there**
+  (vault's folder column and analytics' ScopeBar). With the fallback the
+  same line works on 2.9.0, so a site can take it before this release.
 - The section switcher keeps every place in one row: each tab takes an
   even share, and a longer label takes what it needs from the others.
   ochk.app's four places (You, Build, Operate, Admin) fit the sidebar
@@ -27,8 +34,9 @@
   `icon` and `icon-sm` are 44 square.
 - check-layout holds the four places in one row at 1024 to a mouse and a
   thumb, long labels wrapping inside the sidebar, the disabled targets,
-  and the eyebrow link. check-focus walks an app page at 1440 and 390 and
-  holds each shell's bar stuck at the top.
+  and the eyebrow link, and a sticky element pinned by `--oca-app-bar-h`
+  24px under the bar at 390, 1024 and 1440. check-focus walks an app page
+  at 1440 and 390 and holds each shell's bar stuck at the top.
 
 ## [2.9.0] — 2026-11-07
 
