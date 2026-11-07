@@ -195,6 +195,12 @@ const html = (el) => renderToStaticMarkup(el);
     check(!search.includes('aria-label=') && /class="sr-only[^"]*">Search</.test(search), 'SearchButton: its name is not its visible word');
 }
 
+// SearchButton says what it is to a test or a census (data-ui), as the dialog's input says "search".
+{
+    const search = html(h(C.SearchButton, {}));
+    check(/^<button[^>]* data-ui="search-button"/.test(search), `SearchButton: no data-ui="search-button" on its button: ${search.slice(0, 120)}`);
+}
+
 // Docs: the current page marked, other sections folded, the header marks Docs.
 {
     const nav = [
