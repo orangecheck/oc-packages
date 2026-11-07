@@ -3042,9 +3042,11 @@ try {
                 c.evaluate((legal) => {
                     const r = (el) => el.getBoundingClientRect();
                     const cols = document.querySelector('[data-oca-doc-columns]');
+                    const cells = [...cols.children];
                     const head = cols.querySelector(':scope > [data-oca-doc-header]');
                     const text = cols.lastElementChild;
-                    const navCell = text.previousElementSibling;
+                    // The contents are the cell holding the fold, wherever it sits, so a misplaced header is named, not a throw.
+                    const navCell = cells.find((el) => el !== text && el.querySelector('details')) ?? text.previousElementSibling;
                     const frame = cols.parentElement;
                     const sticky = navCell.querySelector('nav:not(details nav)');
                     const details = navCell.querySelector('details');
@@ -3055,6 +3057,7 @@ try {
                     return {
                         cols: [Math.round(r(cols).left - r(frame).left - frame.clientLeft), Math.round(r(frame).left + frame.clientLeft + frame.clientWidth - r(cols).right)],
                         nav: [Math.round(r(navCell).width * 10) / 10, ns.borderRightWidth, ns.borderBottomWidth, Math.round(r(navCell).top - r(cols).top), Math.round(r(cols).bottom - r(navCell).bottom), ns.borderTopWidth],
+                        order: cells.map((el) => (el === head ? 'header' : el === navCell ? 'contents' : el === text ? 'text' : 'other')).join(' '),
                         side: Math.round(r(navCell).top - r(head ?? text).top),
                         head: head
                             ? {
@@ -3089,6 +3092,7 @@ try {
             const a = await read();
             check(Math.abs(a.cols[0]) <= 0.5 && Math.abs(a.cols[1]) <= 0.5 && Math.abs(a.bar) <= 0.5 && a.over === 0, `[${w}] ${name}: the columns do not span the frame from the dates' bar (S34) or its top, or the page scrolls sideways: ${JSON.stringify(a)}`);
             if (legal) check(a.subtle && a.mark[0] && a.mark[1] === 'block', `[${w}] S34: the title's last word is not set back, or a section's mark is not a mono line: ${JSON.stringify(a)}`);
+            check(a.order === (legal ? 'contents text' : 'header contents text'), `[${w}] ${name}: the columns' cells are ${a.order}, not ${legal ? 'the contents, then the text' : 'the header, then the contents, then the text'}`);
             if (w >= 900) {
                 const navW = w >= 1280 ? 296 : 248;
                 check(Math.abs(a.nav[0] - navW) <= 0.5 && a.nav[1] === '1px' && a.nav[2] === '0px' && a.nav[3] === 0 && a.nav[4] === 0 && a.side === 0, `[${w}] ${name}: the contents are not a ${navW}px column ruled off down the frame beside the text: ${JSON.stringify(a)}`);
