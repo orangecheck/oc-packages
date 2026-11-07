@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.10.0] — 2026-11-07
+
 - `SearchButton` carries `data-ui="search-button"`, so a test or a census
   can find the header's way into search, as the dialog's input carries
   `data-ui="search"`. check-render holds it.
