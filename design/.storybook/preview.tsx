@@ -2,7 +2,7 @@ import type { Decorator, Preview } from '@storybook/react';
 import { useEffect } from 'react';
 
 import './storybook.css';
-import { DEFAULT_OC_THEME, OC_THEMES } from '../src/tokens/themes';
+import { DEFAULT_OC_THEME } from '../src/tokens/themes';
 
 /**
  * Two-axis toolbar: `skin` (data-oc-theme) × `mode` (.dark). Applied to
@@ -83,9 +83,12 @@ const preview: Preview = {
                         'Primitives',
                         'Components',
                         'Blocks',
+                        'Interactive blocks',
+                        'Motion',
                         'Protocol',
                         'Family',
                         'Chrome',
+                        'Sign-in button',
                         'Tools',
                         'Docs',
                         'App parts',
@@ -93,7 +96,7 @@ const preview: Preview = {
                         'Pages',
                     ],
                     'Classic (frozen)',
-                    ['Tokens', 'Primitives', 'Composites', 'Chrome', 'Patterns'],
+                    ['Tokens', 'Primitives', 'Composites', 'Chrome', 'Patterns', 'Themes'],
                 ],
             },
         },
@@ -104,16 +107,8 @@ const preview: Preview = {
         skin: DEFAULT_OC_THEME,
     },
     globalTypes: {
-        skin: {
-            // Only the classic system has skins; the family's stories ignore it.
-            description: 'Classic system skin (data-oc-theme); Classic (frozen) stories only',
-            toolbar: {
-                title: 'Classic skin',
-                icon: 'paintbrush',
-                dynamicTitle: true,
-                items: OC_THEMES.map((t) => ({ value: t.id, title: `Classic · ${t.label}` })),
-            },
-        },
+        // Only the classic system has skins: manager.ts draws this picker on the Classic (frozen) stories alone.
+        skin: { description: 'Classic system skin (data-oc-theme)' },
         mode: {
             description: 'Light / dark mode',
             toolbar: {
