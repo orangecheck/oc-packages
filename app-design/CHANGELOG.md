@@ -17,7 +17,7 @@ DitherImage's live dither takes the still's own grain.
 - The live dither's trail centres on the pointer: the brush weighs each
   8px trail cell from its centre. check-idle-motion rests the pointer on a
   still drawn at 1 and at 2 px a cell and holds the lit live pixels'
-  centre within half a trail cell of it.
+  centre within 3px of it, under half a trail cell on either axis.
 - `Ticker` is deprecated: no family site renders it. It goes in 3.0.
 
 ## [2.6.0] — 2026-11-06

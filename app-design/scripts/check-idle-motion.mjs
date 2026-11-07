@@ -644,7 +644,8 @@ try {
             check(a.g3 === '160x107 over 480px', `dither grain, a 480px still of 160 cells: the live dither is ${a.g3}, not 160x107 over 480px`);
             check(a.g4 === '240x160 over 480px', `dither grain, pixel 2 on 480px: the live dither is ${a.g4}, not 240x160 over 480px`);
             // The trail lands under the pointer at the still's grain: once the passes above have faded, the pointer
-            // rests at one point, and the lit live pixels centre on it within half a trail cell (4px), at 1 and 2 px a cell.
+            // rests at one point, and the lit live pixels centre on it within 3px, at 1 and 2 px a cell: a brush off by
+            // half a trail cell (4px) on either axis fails.
             await p.waitForTimeout(1500);
             for (const [id, grain] of [
                 ['g1', 1],
@@ -675,7 +676,7 @@ try {
                     .then((h) => h.jsonValue(), () => null);
                 const off = lit ? Math.hypot(lit.x - want.x, lit.y - want.y) : Infinity;
                 check(
-                    off <= 4,
+                    off <= 3,
                     `dither trail at ${grain}px a cell: the pointer rests at ${Math.round(want.x)},${Math.round(want.y)} and the lit live pixels centre on ${lit ? `${Math.round(lit.x)},${Math.round(lit.y)}` : 'nothing'}`
                 );
                 // Off to the side of the column, over no picture, until the trail has faded.
