@@ -426,13 +426,12 @@ function SidebarShell({
                     ) : null}
                 </header>
                 {/* From lg a grid, so the account bar comes before the sidebar in the page (Tab reaches it first) and still draws top right. */}
-                <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[4.5rem_1fr]">
+                <div className="mx-auto flex w-full max-w-[90rem] lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
                     {/* The shell's bar from lg, as the phone bar is below it, and it sticks as that one does, with the
-                        page's top room under it as there. Its area runs down the page (rows 1 and 2), so it has room to
-                        stick; the first row is its height. */}
+                        page's top room under it as there. */}
                     <header
                         data-oca-sticky="app-bar"
-                        className="sticky top-0 z-40 hidden h-[4.5rem] items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur-md lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex"
+                        className="sticky top-0 z-40 hidden h-[4.5rem] items-center justify-end gap-3 border-b border-border bg-background/90 px-8 backdrop-blur-md lg:col-start-2 lg:row-start-1 lg:flex"
                     >
                         <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
                     </header>
