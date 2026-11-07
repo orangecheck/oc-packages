@@ -10,8 +10,9 @@
   line, such as its own output behind a disclosure, on a line of its own
   under the check's label and result. The report's controls go in
   `actions`, under everything, as before. A report that uses none of
-  these draws as it did. The new story is "Verify report: running", and
-  check-render holds each new state.
+  these draws as it did. The new story is "Verify report: running".
+  check-render holds each new state, and check-layout holds a check's
+  result on its label's line, with output and without, from 640 to 1440.
 
 ## [2.7.0] — 2026-11-07
 

@@ -75,6 +75,8 @@
  * - A hero's two actions stack on a phone, each the column's full width, in
  *   DOM order; from 640px they sit side by side at their own widths. In both
  *   PageHero layouts, a document's header and an ErrorPage.
+ * - From 640px a VerifyReport check's result sits on its label's line, with
+ *   output or without, under a long mono note; the output gets a line under both.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -968,6 +970,30 @@ try {
                 h(C.PageHero, { eyebrow: 'Lumen Notes', title: 'Notes that know who wrote them.', lead: 'A lead.' }),
                 h(C.VerifyReport, { verdict: 'valid', title: 'This note is signed', checks: [] }),
                 h(C.Closing, { title: 'Ask for a backed account.', lead: 'A lead.' })
+            )
+        )
+    );
+    // A VerifyReport check with output, its note a long mono line, beside one without: the result stays on the label's line.
+    const longNote = h('span', { className: 'block font-mono' }, 'sha256 27b5e6c5a69c2b3441f5480688eeba5a47dc63c3ef9dd788fa3a77ef6f645ad5');
+    const verifyOutput = page(
+        'verify-output',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'flex flex-col gap-6 p-6' },
+                ...['max-w-3xl', 'max-w-[36rem]'].map((w) =>
+                    h(
+                        'div',
+                        { key: w, className: w, 'data-vo': w },
+                        h(C.VerifyReport, {
+                            title: 'Check it yourself',
+                            checks: [
+                                { label: 'Hash them', state: 'ok', note: longNote, output: h('details', { 'data-out': '' }, h('summary', null, 'Output'), h('pre', null, '{}')) },
+                                { label: 'Hash them', state: 'ok', note: longNote },
+                            ],
+                        })
+                    )
+                )
             )
         )
     );
@@ -2153,6 +2179,30 @@ try {
                         })
                     );
                     for (const r of rows) check(r.over <= 1 && r.right <= 1 && r.clash <= 0, `[${w}] the ${r.hdr} header with the product word "${longest}" overflows: ${JSON.stringify(r)}`);
+                    await c.close();
+                }
+            }
+            // From sm a check's result sits on its label's line, with output or without; the output gets a line under both.
+            if (width === 1440) {
+                for (const w of [640, 768, 1024, 1440]) {
+                    const c = await browser.newPage({ viewport: { width: w, height: 900 } });
+                    await visit(c, verifyOutput);
+                    await c.evaluate(() => document.fonts.ready);
+                    const rows = await c.evaluate(() =>
+                        [...document.querySelectorAll('[data-vo] li')].map((li) => {
+                            const label = li.querySelector('.text-\\[0\\.9375rem\\]').getBoundingClientRect();
+                            const word = [...li.querySelectorAll('span')].find((s) => s.textContent === 'Passed').getBoundingClientRect();
+                            const out = li.querySelector('[data-out]')?.getBoundingClientRect();
+                            return {
+                                box: li.closest('[data-vo]').dataset.vo,
+                                output: !!out,
+                                beside: word.top < label.bottom && word.left > label.right,
+                                under: !out || out.top >= Math.max(label.bottom, word.bottom),
+                            };
+                        })
+                    );
+                    check(rows.length === 4, `[${w}] the VerifyReport rows drew ${rows.length}, not 4`);
+                    for (const r of rows) check(r.beside && r.under, `[${w}] a VerifyReport check${r.output ? ' with output' : ''} in ${r.box} drops its result off the label's line: ${JSON.stringify(r)}`);
                     await c.close();
                 }
             }
