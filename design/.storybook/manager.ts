@@ -1,7 +1,33 @@
-import { addons } from 'storybook/manager-api';
+import { PaintBrushIcon } from '@storybook/icons';
+import { createElement } from 'react';
+import { Select } from 'storybook/internal/components';
+import { addons, types, useGlobals } from 'storybook/manager-api';
 import { create } from 'storybook/theming';
 
 import { MARK_FACES, MARK_POINTS } from '../../app-design/src/brand/mark';
+import { OC_THEMES } from '../src/tokens/themes';
+
+/** The classic skin's picker, on the Classic (frozen) stories only: the family's system has no skins. */
+const SKINS = OC_THEMES.map((t) => ({ value: t.id, title: `Classic · ${t.label}` }));
+function ClassicSkin() {
+    const [globals, updateGlobals] = useGlobals();
+    return createElement(Select, {
+        ariaLabel: 'Classic skin',
+        tooltip: 'Classic skin',
+        icon: createElement(PaintBrushIcon),
+        options: SKINS,
+        defaultOptions: [globals.skin],
+        onSelect: (skin) => updateGlobals({ skin }),
+    });
+}
+addons.register('oc-classic-skin', () => {
+    addons.add('oc-classic-skin/tool', {
+        type: types.TOOL,
+        title: 'Classic skin',
+        match: ({ storyId }) => Boolean(storyId?.startsWith('classic-frozen-')),
+        render: ClassicSkin,
+    });
+});
 
 /** The site's own name and the visitor's mode, light or dark, for the frame around the stories. */
 const dark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
