@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.7.0] — 2026-11-07
+
 DitherImage's live dither takes the still's own grain.
 
 - The live dither draws one pixel a still's cell over the still's box, so
