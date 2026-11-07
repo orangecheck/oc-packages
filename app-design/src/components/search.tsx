@@ -59,6 +59,7 @@ export const SearchButton = forwardRef<HTMLButtonElement, { label?: string; onCl
         <button
             ref={ref}
             type="button"
+            data-ui="search-button"
             onClick={onClick}
             aria-keyshortcuts={mac ? 'Meta+K' : 'Control+K'}
             className={cn(

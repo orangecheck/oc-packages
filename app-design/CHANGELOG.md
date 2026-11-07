@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `SearchButton` carries `data-ui="search-button"`, so a test or a census
+  can find the header's way into search, as the dialog's input carries
+  `data-ui="search"`. check-render holds it.
 - `AppShell`'s bar from lg sticks as the phone's bar does, with the same
   0.9 ground, blur and hairline under it, so the account and the alerts
   stay in reach on a long page. The page keeps the phone's room under it
