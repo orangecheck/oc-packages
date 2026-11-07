@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.8.1] — 2026-11-07
+
 - On a phone, `DocLayout` with contents opens with its `header`: the
   title first, then the folded contents, ruled above and below, then the
   text. From 900px nothing moves, and the header heads the text column
