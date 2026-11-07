@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { Button } from '../primitives/button';
+import { Spinner } from '../primitives/feedback';
 import { Field, Textarea } from '../primitives/form';
 import { StatusBadge, type Statement } from '../primitives/status-badge';
 import { CodeBlock } from './code-block';
@@ -11,14 +12,17 @@ import { KeyValueList, type KeyValueItem } from './data';
 /**
  * `none`: there is nothing to check, and that is a fact (no timestamp yet, no
  * stake bound). `unchecked`: there may be, but this check did not look.
+ * `running`: the check is under way, in a verifier that runs in the page.
  */
-export type CheckState = 'ok' | 'fail' | 'pending' | 'none' | 'skipped' | 'unchecked';
+export type CheckState = 'ok' | 'fail' | 'pending' | 'none' | 'skipped' | 'unchecked' | 'running';
 
 export interface VerifyCheck {
     label: ReactNode;
     state: CheckState;
     /** What was found, in a line: the block, the address, why it failed. */
     note?: ReactNode;
+    /** What does not fit in a line, such as the check's own output behind a disclosure: on a line of its own. */
+    output?: ReactNode;
 }
 
 const CHECK: Record<CheckState, { word: string; icon: ReactNode; tone: string }> = {
@@ -28,13 +32,16 @@ const CHECK: Record<CheckState, { word: string; icon: ReactNode; tone: string }>
     none: { word: 'None', icon: <CircleSlash />, tone: 'text-muted-foreground' },
     skipped: { word: 'Skipped', icon: <CircleMinus />, tone: 'text-muted-foreground' },
     unchecked: { word: 'Not checked', icon: <CircleDashed />, tone: 'text-oca-subtle' },
+    running: { word: 'Running', icon: <Spinner />, tone: 'text-foreground' },
 };
 
 /**
  * What a check on an artifact found: the statement (good, caution or
  * refused) with a title and one line, each check and its result in words,
  * the facts read from the artifact, and what this check did not cover. One
- * shape for a stamp, a ballot, an envelope, a delegation or a pledge.
+ * shape for a stamp, a ballot, an envelope, a delegation or a pledge, and for
+ * a check that runs in the page: its checks run one by one, and the statement
+ * comes once they have.
  */
 export function VerifyReport({
     verdict,
@@ -47,7 +54,8 @@ export function VerifyReport({
     as: Heading = 'h2',
     className,
 }: {
-    verdict: Statement;
+    /** Left out until there is one: a check that has not run yet, or is running. */
+    verdict?: Statement;
     title: ReactNode;
     /** One line under the title. */
     summary?: ReactNode;
@@ -55,6 +63,7 @@ export function VerifyReport({
     facts?: KeyValueItem[];
     /** "What this did not check": every verb has something it cannot see. */
     notChecked?: ReactNode[];
+    /** Under everything: what to do next, or the controls of a check that runs in the page. */
     actions?: ReactNode;
     /** The title's level: h2 under the page's title (the default), h3 inside a section. */
     as?: 'h2' | 'h3';
@@ -67,7 +76,7 @@ export function VerifyReport({
         >
             {/* items-start sizes each line to its longest word: a Bitcoin address must be free to break. */}
             <header className="flex flex-col items-start gap-3 p-6 md:p-8">
-                <StatusBadge status={verdict} />
+                {verdict ? <StatusBadge status={verdict} /> : null}
                 {/* A step under the page's H1 (PageHeader's display-3): the verdict reads as a section. */}
                 <Heading className="oca-title [overflow-wrap:anywhere] md:text-[1.5rem]">{title}</Heading>
                 {summary ? <p className="oca-body max-w-[40rem] [overflow-wrap:anywhere]">{summary}</p> : null}
@@ -80,7 +89,13 @@ export function VerifyReport({
                             <span aria-hidden className={cn('mt-0.5 shrink-0 [&_svg]:size-[1.125rem]', k.tone)}>
                                 {k.icon}
                             </span>
-                            <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+                            {/* A check's output takes a line of its own, under the label and the result. */}
+                            <div
+                                className={cn(
+                                    'flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6',
+                                    c.output ? 'sm:flex-wrap sm:gap-y-0.5' : null
+                                )}
+                            >
                                 <div className="flex min-w-0 flex-col gap-0.5">
                                     <span className="text-[0.9375rem]">{c.label}</span>
                                     {c.note ? (
@@ -95,6 +110,7 @@ export function VerifyReport({
                                 >
                                     {k.word}
                                 </span>
+                                {c.output ? <div className="min-w-0 pt-1 sm:basis-full">{c.output}</div> : null}
                             </div>
                         </li>
                     );

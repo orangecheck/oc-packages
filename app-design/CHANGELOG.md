@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- `VerifyReport` draws a check that runs in the page. A check can be
+  `running`: it reads "Running" beside the package's turning `Spinner`,
+  which stops under reduced motion. `verdict` is optional, and with none
+  the header starts at the title, as a check that has not run yet has
+  nothing to state. A check takes `output` for what does not fit in a
+  line, such as its own output behind a disclosure, on a line of its own
+  under the check's label and result. The report's controls go in
+  `actions`, under everything, as before. A report that uses none of
+  these draws as it did. The new story is "Verify report: running", and
+  check-render holds each new state.
+
 ## [2.7.0] — 2026-11-07
 
 DitherImage's live dither takes the still's own grain.

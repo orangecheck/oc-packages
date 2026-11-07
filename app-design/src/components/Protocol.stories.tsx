@@ -4,7 +4,7 @@ import { Anchor, Code2, FileCheck2, UserX } from 'lucide-react';
 
 import { AccountCta, SiteFooter, SiteHeader } from '../chrome';
 import { OCHK_IO_FOOTER, OCHK_IO_NAV } from '../family';
-import { Button } from '../primitives';
+import { Button, Switch } from '../primitives';
 import {
     Accent,
     AppGrid,
@@ -404,6 +404,56 @@ export const Report: StoryObj = {
                         { label: 'Signed by the address', state: 'fail', note: 'E_BAD_SIGNATURE' },
                         { label: 'Anchored to Bitcoin', state: 'unchecked', note: 'Not checked after a failed signature.' },
                     ]}
+                />
+            </div>
+        </Section>
+    ),
+};
+
+const STEPS = ['Fetch the signed bytes', 'Hash them. The hash must equal the id', 'Fetch the published signing key', 'Check the signature over those bytes'];
+
+/** A check that runs in the page: no statement until it has run, each check running in turn, and its controls under it. */
+export const ReportRunning: StoryObj = {
+    name: 'Verify report: running',
+    render: () => (
+        <Section space="sm">
+            <div className="flex max-w-3xl flex-col gap-8">
+                <VerifyReport
+                    title="Check it yourself"
+                    summary="Four steps, run in your browser against the published key."
+                    checks={STEPS.map((label) => ({ label, state: 'unchecked' as const }))}
+                    actions={
+                        <>
+                            <label className="flex min-h-11 items-center gap-3 text-[0.9375rem]">
+                                <Switch />
+                                Change one byte first
+                            </label>
+                            <Button>Run the check</Button>
+                        </>
+                    }
+                />
+                <VerifyReport
+                    title="Check it yourself"
+                    summary="Four steps, run in your browser against the published key."
+                    checks={[
+                        {
+                            label: STEPS[0],
+                            state: 'ok',
+                            note: '482 bytes',
+                            output: (
+                                <details>
+                                    <summary className="flex min-h-11 cursor-pointer items-center text-[0.8125rem] text-muted-foreground hover:text-foreground">
+                                        This step&rsquo;s output
+                                    </summary>
+                                    <CodeBlock lang="json" code={ENVELOPE} />
+                                </details>
+                            ),
+                        },
+                        { label: STEPS[1], state: 'ok', note: HASH },
+                        { label: STEPS[2], state: 'running' },
+                        { label: STEPS[3], state: 'unchecked' },
+                    ]}
+                    actions={<Button loading>Checking</Button>}
                 />
             </div>
         </Section>
