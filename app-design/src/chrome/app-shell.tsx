@@ -287,7 +287,9 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * lockup. The account control and any banner are slots. `variant="rail"` is
  * the messenger's frame instead. Its bar sticks at every width and publishes
  * its height as --oca-app-bar-h: a page's own sticky element sets its top
- * from it, `calc(var(--oca-app-bar-h, 0px) + 1.5rem)`.
+ * from it, `calc(var(--oca-app-bar-h, 0px) + 1.5rem)`. Its value is a CSS
+ * length (4.5rem, a calc), not pixels: script that needs the number reads a
+ * probe's computed height (height: var(--oca-app-bar-h)), never parseFloat.
  */
 export function AppShell(props: AppShellProps) {
     return props.variant === 'rail' ? <RailShell {...props} /> : <SidebarShell {...props} />;
