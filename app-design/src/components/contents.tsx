@@ -75,14 +75,16 @@ export function useActiveEntry(ids: readonly string[], top = 140, share?: number
 
 /**
  * The text beside its contents: a column for `nav`, ruled off by a hairline and sticky under the
- * site's bar, from 900px; above the text, folded, on a phone. Put it on a Frame with `padded={false}`
- * so the rule meets the frame's.
+ * site's bar, from 900px; above the text, folded, on a phone. `header` heads the text column, and on
+ * a phone it comes before the fold, so the page opens with its title. Put it on a Frame with
+ * `padded={false}` so the rule meets the frame's.
  */
-export function DocColumns({ nav, children, className }: { nav: ReactNode; children: ReactNode; className?: string }) {
+export function DocColumns({ nav, header, children, className }: { nav: ReactNode; header?: ReactNode; children: ReactNode; className?: string }) {
     return (
-        <div data-oca-doc-columns="" className={cn('grid grid-cols-1 min-[900px]:grid-cols-[15.5rem_minmax(0,1fr)] xl:grid-cols-[18.5rem_minmax(0,1fr)]', className)}>
-            <div className="min-w-0 border-b border-border min-[900px]:border-b-0 min-[900px]:border-r">{nav}</div>
-            <div className={cn('min-w-0 pb-20 pt-10 md:pb-28 min-[900px]:pl-16 min-[900px]:pt-14', GUTTER)}>{children}</div>
+        <div data-oca-doc-columns="" className={cn('grid grid-cols-1 min-[900px]:grid-cols-[15.5rem_minmax(0,1fr)] xl:grid-cols-[18.5rem_minmax(0,1fr)]', header ? 'min-[900px]:grid-rows-[auto_1fr]' : null, className)}>
+            {header ? <div data-oca-doc-header="" className={cn('min-w-0 pb-10 pt-10 md:pb-14 min-[900px]:col-start-2 min-[900px]:row-start-1 min-[900px]:pl-16 min-[900px]:pt-14', GUTTER)}>{header}</div> : null}
+            <div className={cn('min-w-0 border-b border-border min-[900px]:border-b-0 min-[900px]:border-r', header ? 'border-t min-[900px]:col-start-1 min-[900px]:row-span-2 min-[900px]:row-start-1 min-[900px]:border-t-0' : null)}>{nav}</div>
+            <div className={cn('min-w-0 pb-20 pt-10 md:pb-28 min-[900px]:pl-16', header ? 'min-[900px]:col-start-2 min-[900px]:pt-0' : 'min-[900px]:pt-14', GUTTER)}>{children}</div>
         </div>
     );
 }

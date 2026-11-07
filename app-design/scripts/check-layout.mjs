@@ -3027,7 +3027,9 @@ try {
         // hidden; the text 4rem from the rule and the frame's gutter from its edge. Below 900px the fold sits over the
         // text with a rule under it, the list hidden, the text on the gutter at both sides. The dates' bar meets the
         // columns; the title's last word is set back; a section's mark is mono in accent ink.
-        // DocLayout with contents is held to the same columns, rule, sticky top and gutter.
+        // DocLayout with contents is held to the same columns, rule, sticky top and gutter. Its header heads the text
+        // column from 900px, on the text's measure; below 900px it comes first, so the page opens with its title, and
+        // the fold under it is ruled above and below.
         const s34 = [
             ['S34', legalS34, true],
             ['DocLayout', docS34, false],
@@ -3040,7 +3042,9 @@ try {
                 c.evaluate((legal) => {
                     const r = (el) => el.getBoundingClientRect();
                     const cols = document.querySelector('[data-oca-doc-columns]');
-                    const [navCell, text] = cols.children;
+                    const head = cols.querySelector(':scope > [data-oca-doc-header]');
+                    const text = cols.lastElementChild;
+                    const navCell = text.previousElementSibling;
                     const frame = cols.parentElement;
                     const sticky = navCell.querySelector('nav:not(details nav)');
                     const details = navCell.querySelector('details');
@@ -3050,8 +3054,21 @@ try {
                     const mark = document.querySelector('h2#p1 > span');
                     return {
                         cols: [Math.round(r(cols).left - r(frame).left - frame.clientLeft), Math.round(r(frame).left + frame.clientLeft + frame.clientWidth - r(cols).right)],
-                        nav: [Math.round(r(navCell).width * 10) / 10, ns.borderRightWidth, ns.borderBottomWidth, Math.round(r(navCell).top - r(cols).top), Math.round(r(cols).bottom - r(navCell).bottom)],
-                        side: Math.round(r(navCell).top - r(text).top),
+                        nav: [Math.round(r(navCell).width * 10) / 10, ns.borderRightWidth, ns.borderBottomWidth, Math.round(r(navCell).top - r(cols).top), Math.round(r(cols).bottom - r(navCell).bottom), ns.borderTopWidth],
+                        side: Math.round(r(navCell).top - r(head ?? text).top),
+                        head: head
+                            ? {
+                                  top: Math.round(r(head).top - r(cols).top),
+                                  under: Math.round(r(navCell).top - r(head).bottom),
+                                  over: Math.round(r(text).top - r(navCell).bottom),
+                                  meets: Math.round(r(text).top - r(head).bottom),
+                                  content: Math.round(r(text.firstElementChild).top - r(head).bottom),
+                                  edges: [Math.round(r(head).left - r(text).left), Math.round(r(head).right - r(text).right)],
+                                  pad: [parseFloat(getComputedStyle(head).paddingLeft), parseFloat(getComputedStyle(head).paddingRight)],
+                                  title: head.contains(h1),
+                                  first: Math.round(r(details.querySelector('summary')).top - r(h1).bottom),
+                              }
+                            : null,
                         bar: legal ? Math.round((r(cols).top - r(document.querySelector('[data-oca-frame] > [data-oca-section-bar]')).bottom) * 10) / 10 : Math.round(r(cols).top - r(frame).top),
                         shown: [getComputedStyle(sticky).display, getComputedStyle(details).display],
                         stickyTop: Math.round(r(sticky).top * 10) / 10,
@@ -3076,12 +3093,14 @@ try {
                 const navW = w >= 1280 ? 296 : 248;
                 check(Math.abs(a.nav[0] - navW) <= 0.5 && a.nav[1] === '1px' && a.nav[2] === '0px' && a.nav[3] === 0 && a.nav[4] === 0 && a.side === 0, `[${w}] ${name}: the contents are not a ${navW}px column ruled off down the frame beside the text: ${JSON.stringify(a)}`);
                 check(a.shown[0] === 'flex' && a.shown[1] === 'none' && a.pad[0] === 64 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] ${name}: the list or the fold shows wrong, or the text is not 4rem from the rule and on the gutter: ${JSON.stringify(a)}`);
+                if (!legal) check(a.head?.title && a.head.top === 0 && a.head.meets === 0 && a.head.content === 0 && a.head.edges[0] === 0 && a.head.edges[1] === 0 && a.head.pad[0] === 64 && Math.abs(a.head.pad[1] - a.gutter) <= 0.5 && a.nav[5] === '0px', `[${w}] ${name}: the header does not head the text column, on its measure, the text straight under it, beside the contents: ${JSON.stringify(a)}`);
                 await c.evaluate(() => window.scrollTo(0, document.getElementById('p3').getBoundingClientRect().top + scrollY - 200));
                 await c.waitForTimeout(100);
                 const b = await read();
                 check(Math.abs(b.stickyTop - 113) <= 0.5, `[${w}] ${name}: scrolled, the contents sit ${b.stickyTop}px down, not 113 (under the site's bar)`);
             } else {
-                check(a.nav[1] === '0px' && a.nav[2] === '1px' && a.side < 0 && a.shown[0] === 'none' && a.shown[1] === 'block', `[${w}] ${name}: the fold is not over the text with a rule under it, the list hidden: ${JSON.stringify(a)}`);
+                check(a.nav[1] === '0px' && a.nav[2] === '1px' && a.shown[0] === 'none' && a.shown[1] === 'block' && (legal ? a.side < 0 && a.nav[5] === '0px' : a.side > 0), `[${w}] ${name}: the fold is not over the text with a rule under it, the list hidden: ${JSON.stringify(a)}`);
+                if (!legal) check(a.head?.title && a.head.top === 0 && a.head.under >= 0 && a.head.over >= 0 && a.head.first > 0 && a.nav[5] === '1px' && Math.abs(a.head.pad[0] - a.gutter) <= 0.5 && Math.abs(a.head.pad[1] - a.gutter) <= 0.5, `[${w}] ${name}: the page does not open with its title above the fold, ruled over and under, on the gutter: ${JSON.stringify(a)}`);
                 check(Math.abs(a.pad[0] - a.gutter) <= 0.5 && Math.abs(a.pad[1] - a.gutter) <= 0.5, `[${w}] ${name}: the text is not on the frame's gutter at both sides: ${JSON.stringify(a)}`);
             }
             await c.close();
