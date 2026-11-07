@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `AppShell`'s JSDoc says how script reads `--oca-app-bar-h`: its value is
+  a CSS length (4.5rem, or a calc), so the number in pixels comes from a
+  probe's computed height, never from parseFloat.
+
 ## [2.10.0] — 2026-11-07
 
 - `SearchButton` carries `data-ui="search-button"`, so a test or a census
