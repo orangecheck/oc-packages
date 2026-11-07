@@ -96,7 +96,8 @@ export function VerifyReport({
                                     c.output ? 'sm:flex-wrap sm:gap-y-0.5' : null
                                 )}
                             >
-                                <div className="flex min-w-0 flex-col gap-0.5">
+                                {/* With output the row wraps, so the label column takes what the result leaves, never the whole line. */}
+                                <div className={cn('flex min-w-0 flex-col gap-0.5', c.output ? 'sm:flex-1' : null)}>
                                     <span className="text-[0.9375rem]">{c.label}</span>
                                     {c.note ? (
                                         <span className="break-words text-[0.8125rem] leading-snug text-muted-foreground">{c.note}</span>
