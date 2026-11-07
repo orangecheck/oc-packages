@@ -738,7 +738,8 @@ try {
         // nothing until a pointer comes, live under it, then clear again. Under reduced motion or on touch, only the still.
         {
             const { p, errors, close } = await open('closing', { late: 1500, flags: 'late' });
-            const came = await p.waitForFunction(() => document.querySelector('[data-oca-art] .oca-dither canvas'), null, { timeout: 8000 }).then(() => true, () => false);
+            // Polled on a timer: a wait polled on frames would count as frames the page asked for.
+            const came = await p.waitForFunction(() => document.querySelector('[data-oca-art] .oca-dither canvas'), null, { timeout: 8000, polling: 100 }).then(() => true, () => false);
             const at = await p.evaluate(() => ({ load: window.__loadAt, live: window.__liveAt, still: Boolean(document.querySelector('[data-oca-still]')) }));
             check(came && !at.still, 'closing dither: with a fine pointer DitherImage never took the still\'s place');
             check(at.load > 1400, `closing dither: the late picture did not hold the load event back (load at ${at.load?.toFixed(0)} ms)`);
@@ -769,7 +770,7 @@ try {
             ['a touch screen', { touch: true }],
         ]) {
             const { p, close } = await open('closing', opts);
-            await p.waitForFunction(() => window.__loadAt !== null, null, { timeout: 8000 });
+            await p.waitForFunction(() => window.__loadAt !== null, null, { timeout: 8000, polling: 100 });
             // Past the idle callback's 2 s timeout, so a load that was going to happen has.
             await p.waitForTimeout(2600);
             const s = await p.evaluate(() => ({ still: Boolean(document.querySelector('[data-oca-art] [data-oca-still] img')), live: Boolean(document.querySelector('.oca-dither')), draws: window.__draws }));
