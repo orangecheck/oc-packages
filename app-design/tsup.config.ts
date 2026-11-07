@@ -24,6 +24,10 @@ const entry = {
     blocks: 'src/blocks/index.ts',
 };
 
+// Modules the package loads by import(): no module entry of their own, or the import() would point into dist/m,
+// which the build deletes. Closing's dithered art fetches DitherImage this way.
+const LAZY = new Set(['src/motion/dither-image.tsx']);
+
 /** Every source module, for the ESM build: one module each, so a site's bundler keeps only what a page uses. */
 function modules(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
@@ -55,7 +59,7 @@ export default defineConfig([
     // page carries only the parts it imports, and the 404 function needs nothing from node_modules but peers.
     {
         ...shared,
-        entry: { ...entry, ...Object.fromEntries(modules('src').map((p) => [`m/${p.slice(4).replace(/\.tsx?$/, '')}`, p])) },
+        entry: { ...entry, ...Object.fromEntries(modules('src').filter((p) => !LAZY.has(p)).map((p) => [`m/${p.slice(4).replace(/\.tsx?$/, '')}`, p])) },
         format: ['esm'],
         dts: false,
         splitting: true,

@@ -10,7 +10,10 @@
  *   and ./tokens) has a ceiling of its own, and so does its data: the
  *   portrait poster drawn in the page, and the portrait's dots, which load
  *   only when a portrait mounts and the page is idle.
- * - Importing `.` or `./components` reaches none of ./motion's own modules.
+ * - Importing `.` or `./components` reaches none of ./motion's own modules,
+ *   but by one dynamic import: Closing's dithered art fetches DitherImage once
+ *   the page is idle. That lazy chunk has a ceiling of its own, and every
+ *   import() in dist points at a file the build kept.
  *
  * Run after `yarn build`.
  */
@@ -44,13 +47,16 @@ const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 // Ceilings in bytes, minified and gzipped, every chunk an entry can load: about 15% over each entry's size
 // on 2026-11-03 (app-design 2.0.0-pre). A new entry needs a line here.
 const CEILING = {
-    '.': 173_500,
+    // 177,682 bytes on 2026-11-07, 7.2 KB over 2.8.0: Closing's dithered art, the field and the mark baked at 1x and 2x and
+    // inlined (6.3 KB), and the loader for its live mark. The ceiling moves by as much, so the margin stays as it was.
+    '.': 181_000,
     './tokens': 1_500,
     './primitives': 95_000,
     // 24,940 bytes on 2026-11-06: the pixel logo beside the classic one, its baked paths and its switch (2.3 KB). The
     // ceiling 15% over.
     './brand': 28_700,
-    './components': 121_000,
+    // 118,080 bytes on 2026-11-07, 6.7 KB over 2.8.0: Closing's dithered art, as above. The ceiling moves by as much.
+    './components': 128_000,
     './chrome': 76_000,
     './family': 2_000,
     './code': 5_000,
@@ -96,21 +102,30 @@ const MOTION_LAZY = 26 * 1024;
 // hero's size). Its places are blue noise, so gzip finds little in them: the cost is the dots. It loads after the
 // poster paints, and only on a page that draws the portrait.
 const MOTION_PORTRAIT = 72 * 1024;
+// Closing's live mark, which ./components fetches by import() once the page is idle and only under a fine pointer:
+// DitherImage and the loop it runs on, the files past what the page already has: 5,973 bytes on 2026-11-07, the
+// ceiling 15% over.
+const LIVE_MARK = 6_900;
 
 const peers = [...Object.keys(pkg.peerDependencies ?? {}), ...builtinModules, 'node:*', 'react/jsx-runtime', 'next/link', 'next/router', 'next/compat/router', 'next/head', 'next/image', 'next/dynamic', 'next/og', 'next/font/local'];
 
 /** Every file an ESM file reaches inside dist, statically and by dynamic import. */
 function reach(file) {
     const seen = new Map();
-    const walk = (f, lazy) => {
+    const walk = (f, lazy, from) => {
         if (seen.has(f)) {
             if (!lazy) seen.get(f).lazy = false;
             return;
         }
+        // A target the build did not keep (an import() into dist/m, which the build deletes) fails in a site's page.
+        if (!existsSync(f)) {
+            check(false, `${relative(root, from ?? file)} imports ${relative(root, f)}, which dist does not hold`);
+            return;
+        }
         const src = readFileSync(f, 'utf8');
         seen.set(f, { src, lazy });
-        for (const [, spec] of src.matchAll(/(?:from\s*|import\s*)["'](\.[^"']+)["']/g)) walk(join(dirname(f), spec), lazy);
-        for (const [, spec] of src.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)) walk(join(dirname(f), spec), true);
+        for (const [, spec] of src.matchAll(/(?:from\s*|import\s*)["'](\.[^"']+)["']/g)) walk(join(dirname(f), spec), lazy, f);
+        for (const [, spec] of src.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)) walk(join(dirname(f), spec), true, f);
     };
     walk(file, false);
     return seen;
@@ -167,7 +182,8 @@ for (const [entry, target] of Object.entries(pkg.exports)) {
 }
 
 // ./motion's own: what is left once the base entries' files are taken as already on the page.
-const base = new Set(['./primitives', './components', './brand', './tokens'].flatMap((e) => [...reach(join(root, pkg.exports[e].import)).keys()]));
+// Statically: what ./components fetches by import() is not on the page until it asks.
+const base = new Set(['./primitives', './components', './brand', './tokens'].flatMap((e) => [...reach(join(root, pkg.exports[e].import))].filter(([, v]) => !v.lazy).map(([f]) => f)));
 const motion = reach(join(root, pkg.exports['./motion'].import));
 const own = [...motion.keys()].filter((f) => !base.has(f));
 const isPoster = (f) => /src\/motion\/portrait-poster\.ts/.test(motion.get(f).src.slice(0, 600));
@@ -199,11 +215,23 @@ for (const f of lazy) {
     check(gz([f]) <= ceiling, `./motion's lazy ${f.split('/').pop()} is ${kb(gz([f]))} gzipped, over ${kb(ceiling)}`);
 }
 
-// Apart: `.` and `./components` reach none of ./motion's own modules (ESM), and their CJS builds carry none of it.
+// Apart: `.` and `./components` reach none of ./motion's own modules (ESM) but DitherImage, by Closing's one import(),
+// and their CJS builds carry none of the scenes. The import() is the only way in: its target is DitherImage's chunk, and
+// everything it reaches past the page's own files is under LIVE_MARK.
+const isDitherImage = (src) => /src\/motion\/dither-image\.tsx/.test(src.slice(0, 600)) || /^export \{ DitherImage \} from/.test(src);
+let liveMark = 0;
 for (const entry of ['.', './components']) {
     const reached = reach(join(root, pkg.exports[entry].import));
-    const pulled = own.filter((f) => reached.has(f));
+    const pulled = own.filter((f) => reached.has(f) && !reached.get(f).lazy);
     check(pulled.length === 0, `${entry} pulls in ./motion's own modules: ${pulled.map((f) => f.split('/').pop()).join(', ')}`);
+    const eager = [...reached].filter(([, v]) => !v.lazy && /oca-dither/.test(v.src)).map(([f]) => f.split('/').pop());
+    check(eager.length === 0, `${entry} loads DitherImage's code at once, in ${eager.join(', ')}`);
+    const targets = [...reached].filter(([, v]) => !v.lazy).flatMap(([f, v]) => [...v.src.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)].map(([, spec]) => join(dirname(f), spec)));
+    check(targets.length === 1 && reached.has(targets[0]) && isDitherImage(reached.get(targets[0]).src), `${entry} loads by import() ${targets.map((f) => f.split('/').pop()).join(', ') || 'nothing'}, not DitherImage's chunk alone`);
+    const later = [...reached].filter(([f, v]) => v.lazy && !base.has(f)).map(([f]) => f);
+    const gzLater = later.reduce((n, f) => n + gzipSync(esbuild.transformSync(reached.get(f).src, { minify: true, format: 'esm' }).code).length, 0);
+    check(gzLater <= LIVE_MARK, `${entry}'s lazy live mark is ${kb(gzLater)} gzipped, over ${kb(LIVE_MARK)}`);
+    liveMark = gzLater;
     const cjs = readFileSync(join(root, pkg.exports[entry].require), 'utf8');
     check(!/oca-portrait|ParticlePortrait|CrowdDissolve|oca-marquee/.test(cjs), `${entry} (require) carries ./motion's code`);
 }
@@ -215,4 +243,5 @@ if (failures) {
 const width = Math.max(...rows.map(([e]) => e.length));
 console.log(rows.map(([e, n]) => `  ${e.padEnd(width)}  ${kb(n).padStart(9)}`).join('\n'));
 console.log(`  ./motion own code ${kb(code.total)} (${code.total} bytes), posters ${kb(gz(poster))}, lazy dots ${lazy.map((f) => kb(gz([f]))).join(' + ')}`);
+console.log(`  ./components' lazy live mark ${kb(liveMark)} (${liveMark} bytes)`);
 console.log(`✓ budget: ${checks} checks; every entry under its ceiling, ./motion's own code under ${kb(MOTION_OWN)}, and \`.\` and ./components reach none of it`);

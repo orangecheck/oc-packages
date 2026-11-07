@@ -1,7 +1,8 @@
 /*
  * @orangecheck/app-design/motion: the family's motion, on one sleeping loop.
- * Nothing here is reachable from `.` or `./components`; a page that imports
- * none of it carries none of it.
+ * Nothing here is reachable from `.` or `./components` but DitherImage, which
+ * Closing's dithered art fetches by a dynamic import once the page is idle; a
+ * page that imports none of it carries none of it.
  */
 export { ParticlePortrait } from './particle-portrait';
 export type { Callout, ParticlePortraitProps } from './particle-portrait';
