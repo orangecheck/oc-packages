@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@orangecheck/lock-crypto": "^0.1.0",
-    "@orangecheck/stamp-ots": "^0.6.1"
+    "@orangecheck/stamp-ots": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

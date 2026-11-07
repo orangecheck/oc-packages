@@ -49,7 +49,7 @@
     "@orangecheck/lock-crypto": "^0.1.0",
     "@orangecheck/nostr-core": "^0.8.2",
     "@orangecheck/stamp-core": "^1.3.0",
-    "@orangecheck/stamp-ots": "^0.6.0",
+    "@orangecheck/stamp-ots": "^0.7.0",
     "commander": "^12.1.0",
     "ws": "^8.18.0"
   },
