@@ -244,6 +244,14 @@
     "@noble/hashes" "^1.8.0"
     "@orangecheck/stamp-core" "^1.0.0"
 
+"@orangecheck/stamp-ots@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-ots/-/stamp-ots-0.7.0.tgz#fb4d53d37b24751c2eb778ea2f13130fb1882c7a"
+  integrity sha512-ZquNnoYnQ4DIskKpfNGl4a6krAgWg/TgcdDHN/CVHozPXTGfAP4dpTObOfqjJpwELIV7NXc4GY224bw+lQk/jA==
+  dependencies:
+    "@noble/hashes" "^1.8.0"
+    "@orangecheck/stamp-core" "^1.0.0"
+
 "@oxc-project/types@=0.155.0":
   version "0.155.0"
   resolved "https://registry.yarnpkg.com/@oxc-project/types/-/types-0.155.0.tgz#a3525bff41bc0575839e95d2064635dd73dfef81"
