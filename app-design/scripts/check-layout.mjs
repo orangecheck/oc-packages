@@ -316,7 +316,8 @@ try {
         define: { 'process.env.NODE_ENV': '"production"' },
         alias: { 'next/link': join(pkg, 'node_modules/next/link.js'), 'next/compat/router': join(pkg, 'node_modules/next/compat/router.js') },
         banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
-        loader: { '.webp': 'dataurl', '.png': 'dataurl', '.jpg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
+        // A story's ?raw text (the Introduction reads CHANGELOG.md) comes in as a string, as Vite gives it.
+        loader: { '.webp': 'dataurl', '.png': 'dataurl', '.jpg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl', '.md': 'text' },
         logLevel: 'error',
     });
     esbuild.buildSync({
