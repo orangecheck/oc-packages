@@ -225,9 +225,9 @@
     "@orangecheck/stamp-core" "^1.0.0"
 
 "@orangecheck/vote-core@^2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-2.2.0.tgz#1e7b2f02a5ad63efeb14e3cd34a0c135e621ce4a"
-  integrity sha512-NhgHGl1fnycNfEFicfdZR0AnhLRoL1F2d6Evxj0CKt9yPKW2nlI65vIgh5fvSYUyx0WDxnOUswhd0SQK2tnyrg==
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/vote-core/-/vote-core-2.2.1.tgz#126ca0e17a6a1a00a817058b2dfc257551daeca4"
+  integrity sha512-KyVtIilqAvjyoOn5fA0D4eRDc1aO9aUw68nrTCBpSmdKuUrJaiGmpQD2Xe0W7h/Ka9qVy72NS7nzIpgZGZRaeA==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.5.0"
