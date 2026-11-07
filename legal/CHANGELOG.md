@@ -8,6 +8,8 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.31] — 2026-11-07
+
 ### Changed — ochk.app's links name the pages that hold them
 
 The `me` profile linked three ochk.app addresses that now redirect. The
