@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.9.0] — 2026-11-07
+
 - `Closing` takes `art="dither"`, the family's closing band. On burnt (ink
   if you pass it), the check in ordered dither stands in the dither field
   at the band's foot: beside the words from md, its foot level with
