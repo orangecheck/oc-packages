@@ -61,7 +61,7 @@
     "@orangecheck/lock-crypto": "^0.1.0",
     "@orangecheck/lock-device": "^0.8.0",
     "@orangecheck/nostr-core": "^0.8.2",
-    "@orangecheck/stamp-ots": "^0.6.1"
+    "@orangecheck/stamp-ots": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
