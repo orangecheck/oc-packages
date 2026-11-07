@@ -73,7 +73,7 @@ export function AccordionItem({
     const variant = useContext(Variant);
     const rule = variant === 'rule';
     return (
-        <details id={id} name={name} open={defaultOpen || undefined} className={cn('group scroll-mt-24', className)}>
+        <details id={id} name={name} open={defaultOpen || undefined} className={cn('group', className)}>
             <summary
                 className={cn(
                     'flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 leading-snug',

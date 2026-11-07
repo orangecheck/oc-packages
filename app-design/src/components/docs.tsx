@@ -252,7 +252,7 @@ export function Step({ title, id, as: Tag = 'h3', children }: { title: ReactNode
                 className="absolute left-0 top-0 flex size-7 items-center justify-center rounded-none border border-oca-hairline-strong bg-card text-[0.8125rem] oca-tabular text-foreground before:content-[counter(oca-step)]"
             />
             <span aria-hidden className="absolute bottom-1 left-[0.8125rem] top-9 w-px bg-border" />
-            <Tag id={id} className="scroll-mt-28 pt-0.5 text-[1.0625rem] font-medium leading-snug tracking-[-0.008em] text-foreground">
+            <Tag id={id} className="pt-0.5 text-[1.0625rem] font-medium leading-snug tracking-[-0.008em] text-foreground">
                 {title}
             </Tag>
             <div className="mt-2 text-muted-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{children}</div>
@@ -418,7 +418,7 @@ export function ApiTable({
                             <tr
                                 key={r.id ?? r.name}
                                 id={r.id}
-                                className="scroll-mt-28 align-top target:bg-muted max-sm:flex max-sm:flex-col max-sm:gap-1.5 max-sm:px-4 max-sm:py-3.5"
+                                className="align-top target:bg-muted max-sm:flex max-sm:flex-col max-sm:gap-1.5 max-sm:px-4 max-sm:py-3.5"
                             >
                                 <th scope="row" className={cn(cell, 'text-left font-normal')}>
                                     <span className="flex flex-col items-start gap-1 max-sm:flex-row max-sm:flex-wrap max-sm:items-baseline max-sm:gap-x-2">
@@ -768,7 +768,7 @@ export function DocsHeading({
     ...props
 }: HTMLAttributes<HTMLHeadingElement> & { as: keyof typeof HEADING }) {
     return (
-        <Tag id={id} className={cn('group scroll-mt-28', HEADING[Tag], className)} {...props}>
+        <Tag id={id} className={cn('group', HEADING[Tag], className)} {...props}>
             <span data-heading-text="">{children}</span>
             {id && Tag !== 'h1' ? (
                 <a

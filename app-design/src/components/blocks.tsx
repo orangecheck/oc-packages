@@ -51,7 +51,7 @@ export function SectionHeading({
             <>
                 <div className="flex min-w-0 flex-col items-start gap-5">
                     {eyebrow ? <Eyebrow onInk={onInk}>{eyebrow}</Eyebrow> : null}
-                    <Display level={level} as={as} id={id} className="max-w-[15em] scroll-mt-24">
+                    <Display level={level} as={as} id={id} className="max-w-[15em]">
                         {title}
                     </Display>
                 </div>
@@ -63,7 +63,7 @@ export function SectionHeading({
     return (
         <SectionIntro align={align} reveal={reveal} className={cn('max-w-3xl gap-4 md:gap-4', className)}>
             {eyebrow ? <Eyebrow onInk={onInk}>{eyebrow}</Eyebrow> : null}
-            <Display level={level} as={as} id={id} className="scroll-mt-24">
+            <Display level={level} as={as} id={id}>
                 {title}
             </Display>
             {lead ? <p className={cn('oca-lead', onInk && 'text-oca-ink-muted')}>{lead}</p> : null}
@@ -96,7 +96,7 @@ export function FactBlock({
     className?: string;
 }) {
     return (
-        <section id={id} className={cn('flex scroll-mt-24 flex-col gap-6', className)}>
+        <section id={id} className={cn('flex flex-col gap-6', className)}>
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-8">
                 <div className="flex max-w-[44rem] flex-col gap-3">
                     <Tag className="oca-display-3">{title}</Tag>

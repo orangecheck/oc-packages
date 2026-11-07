@@ -14,6 +14,10 @@
  *   AppShell's next stop is the account bar, then the sidebar.
  * - A code block's scroll area and a tab's panel ring when reached; a
  *   focused control never sits under a sticky bar.
+ * - A link to a section (a heading, a block, a docs row, a step) brings it
+ *   up where the page's scroll-padding leaves it, under the site's, the
+ *   docs' or an app's bar and no lower: nothing in the package's source sets
+ *   a scroll-margin to add to that padding.
  * - The docs sidebar's open section closes from its own button.
  * - A dialog opened without a Trigger (confirm(), a dialog or sheet opened
  *   from state) hands focus back to what opened it.
@@ -41,10 +45,10 @@
  * Run after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { bundle, COLOUR_KIT, compileCss, findChrome, pkg, writePage } from './browser.mjs';
 
@@ -289,6 +293,73 @@ try {
             )
         )
     );
+
+    // Each block that takes an id for a link, a window's height of page above and below it, under the site's
+    // bar, the docs' bars and an app's bar.
+    const M = require(join(pkg, 'dist/mdx.js'));
+    const room = (k) => h('div', { key: k, style: { height: 1200 } });
+    const docsNav = [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }];
+    const privacy = { eyebrow: 'privacy', title: 'Privacy policy', description: 'What we keep.', effective: '2025-09-30', updated: '2026-10-19', sections: [{ id: 'principles', num: '01', heading: 'our principles', blocks: [{ kind: 'para', text: 'We keep little.' }] }] };
+    const anchored = [
+        [
+            ssr(
+                'anchors-site',
+                h(
+                    'div',
+                    null,
+                    h(Ch.SiteHeader, { nav: [{ href: '/how', label: 'How it works' }] }),
+                    room(0),
+                    h(C.SectionHeading, { id: 'heading', title: 'A section', reveal: false }),
+                    room(1),
+                    h(C.SectionHeading, { id: 'split', title: 'A section', lead: 'Its lead.', layout: 'split', reveal: false }),
+                    room(2),
+                    h(C.FactBlock, { id: 'facts', title: 'What a stamp proves' }, h('p', null, 'A fact.')),
+                    room(3),
+                    h(C.Prose, null, h('h2', { id: 'prose' }, 'A heading in running text'), h('p', null, 'Text.')),
+                    room(4),
+                    h(P.Accordion, null, h(P.AccordionItem, { id: 'question', title: 'A question' }, h('p', null, 'Its answer.'))),
+                    room(5),
+                    h(C.LegalDocument, { doc: privacy }),
+                    room(6)
+                )
+            ),
+            ['heading', 'split', 'facts', 'prose', 'question', 'principles'],
+        ],
+        [
+            ssr(
+                'anchors-docs',
+                h(
+                    Ch.DocsShell,
+                    { nav: docsNav, current: '/docs', toc: [] },
+                    room(0),
+                    h(C.DocsHeading, { as: 'h2', id: 'properties' }, 'Properties'),
+                    room(1),
+                    h(C.Steps, null, h(C.Step, { id: 'step', title: 'Drop the file' }, h('p', null, 'Its bytes stay in the tab.'))),
+                    room(2),
+                    h(C.ApiTable, { rows: [{ name: 'sticky', id: 'property-sticky', type: 'boolean', description: 'Sticks under the bar.' }] }),
+                    room(3),
+                    h(M.mdxComponents.h5, { id: 'returns' }, 'Returns'),
+                    room(4)
+                )
+            ),
+            ['properties', 'step', 'property-sticky', 'returns'],
+        ],
+        [
+            ssr(
+                'anchors-app',
+                h(
+                    Ch.AppShell,
+                    { product: 'ochk.app', nav: [{ items: [{ href: '/me', label: 'Home', active: true }] }] },
+                    room(0),
+                    h(C.SectionTitle, { id: 'keys', title: 'Keys' }),
+                    room(1),
+                    h(C.FormSection, { id: 'domain', n: 1, title: 'Your domain' }, h('p', null, 'A field.')),
+                    room(2)
+                )
+            ),
+            ['keys', 'domain'],
+        ],
+    ];
 
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, args: ['--use-angle=swiftshader', '--font-render-hinting=none'] });
@@ -668,7 +739,7 @@ try {
                     const bar = document.querySelector('[data-oca-sticky="site"]')?.getBoundingClientRect().bottom ?? 0;
                     return { hash: location.hash, top: Math.round(document.getElementById('s1').getBoundingClientRect().top), bar: Math.round(bar) };
                 });
-                check(r.hash === '#s1' && r.top >= r.bar && r.top <= r.bar + 120, `[${vw}] Toc: Enter on the first entry does not bring its heading up under the site's bar: ${JSON.stringify(r)}`);
+                check(r.hash === '#s1' && r.top >= r.bar && r.top <= r.bar + 24,`[${vw}] Toc: Enter on the first entry does not bring its heading up under the site's bar: ${JSON.stringify(r)}`);
             } else {
                 await q.keyboard.press('Enter');
                 await q.keyboard.press('Tab');
@@ -676,6 +747,40 @@ try {
                 check(r.open && r.at === '#s1', `[${vw}] Toc: Enter does not open the fold with Tab going on to its first entry: ${JSON.stringify(r)}`);
             }
             await q.close();
+        }
+
+        // A link to a section brings it up where the page's scroll-padding leaves it, under its sticky bars and no
+        // lower: a scroll-margin of its own would add to the padding. At 390 the docs have their section bar too.
+        const MARGIN = /\bscroll-m[trblxyse]?-[^\s"'`]+|\bscroll-margin[\w-]*\s*:|\bscrollMargin\w*/g;
+        const sources = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(d, e.name)) : /\.(tsx?|css|mjs)$/.test(e.name) ? [join(d, e.name)] : []));
+        const scanned = sources(join(pkg, 'src'));
+        const margins = scanned.flatMap((f) => (readFileSync(f, 'utf8').match(MARGIN) ?? []).map((m) => `${relative(pkg, f)}: ${m}`));
+        check(scanned.length > 150 && margins.length === 0, `a scroll-margin in the package's source adds to the page's scroll-padding (${scanned.length} files read): ${show(margins)}`);
+        for (const [url, ids] of anchored) {
+            for (const vw of [390, 1440]) {
+                const q = await browser.newPage({ viewport: { width: vw, height: 800 } });
+                await q.goto(url);
+                for (const id of ids) {
+                    const r = await q.evaluate(async (id) => {
+                        scrollTo(0, 0);
+                        location.hash = id;
+                        await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+                        const root = document.documentElement;
+                        const bars = [...document.querySelectorAll('[data-oca-sticky]')].map((b) => b.getBoundingClientRect()).filter((b) => b.height > 0);
+                        return {
+                            top: Math.round(document.getElementById(id).getBoundingClientRect().top),
+                            padding: Math.round(parseFloat(getComputedStyle(root).scrollPaddingTop)),
+                            bar: Math.round(Math.max(0, ...bars.map((b) => b.bottom))),
+                            end: scrollY >= root.scrollHeight - innerHeight - 1,
+                        };
+                    }, id);
+                    check(
+                        !r.end && r.bar >= 48 && r.top >= r.bar && Math.abs(r.top - r.padding) <= 1,
+                        `[${vw}] a link to #${id} lands it ${r.top - r.bar}px under the sticky bar, not where the page's scroll-padding leaves it (${r.padding}px from the top): ${show(r)}`
+                    );
+                }
+                await q.close();
+            }
         }
 
         // SignMessage: select the whole message by hand, copy, and the clipboard holds the exact bytes, its final LF too.
@@ -867,4 +972,4 @@ if (failures) {
     console.error(`\n${failures} focus failure(s)`);
     process.exit(1);
 }
-console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, text at 4.5:1 on every dark and orange ground, skip links that land, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
+console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, text at 4.5:1 on every dark and orange ground, skip links that land, sections a link brings up under the bar, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
