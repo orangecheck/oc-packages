@@ -24,6 +24,7 @@ from orangecheck import (
     attestation_id,
     build_canonical_message,
     format_identities,
+    parse_identities,
     score_v0,
 )
 
@@ -220,6 +221,41 @@ def test_bond_extension(vector: dict) -> None:
             assert f"\nbond: {value}\n" in build()
 
 
+# ─── canonical_form (SPEC §7.1 step 1) ─────────────────────────────────────
+# This package has no attestation verifier, so the reasons are the TS SDK's to
+# check. Here every signature verifies and the builder writes the control.
+
+
+@pytest.mark.parametrize("vector", vectors_of("canonical_form"), ids=ids_for("canonical_form"))
+def test_canonical_form_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    inp = vector["input"]
+    for case in inp["cases"]:
+        got = verify_bip322_signature(inp["address"], case["message"], case["signature"])
+        assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
+
+
+@pytest.mark.parametrize("vector", vectors_of("canonical_form"), ids=ids_for("canonical_form"))
+def test_canonical_form_control_is_what_the_builder_writes(vector: dict) -> None:
+    controls = [c for c in vector["input"]["cases"] if c["reason"] is None]
+    assert len(controls) == 1
+    message = controls[0]["message"]
+    fields = dict(line.split(": ", 1) for line in message[:-1].split("\n")[1:])
+    core = ("identities", "address", "purpose", "nonce", "issued_at", "ack")
+    rebuilt = build_canonical_message(
+        address=fields["address"],
+        identities=parse_identities(fields["identities"]),
+        extensions={k: v for k, v in fields.items() if k not in core},
+        nonce=fields["nonce"],
+        issued_at=fields["issued_at"],
+    )
+    assert rebuilt == message
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -239,6 +275,7 @@ def test_vector_set_complete() -> None:
         "bond_nullifier",
         "bond_floors",
         "bond_extension",
+        "canonical_form",
     }
     assert len(VECTORS) >= 28
 
