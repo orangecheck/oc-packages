@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+A site's script-src can run its inline scripts by hash instead of
+`'unsafe-inline'`. `buildCsp` takes `scriptHashes` and lists them in its
+place; an empty list runs no inline script, and `dev` keeps
+`'unsafe-inline'`. A policy without `scriptHashes` is unchanged.
+`inlineSources` gives the same rule to a site that writes its own policy.
+
+The new `./csp` entry hashes a site's scripts (`scriptHash`,
+`inlineHashes`) and renders the theme script app-design's `ThemeProvider`
+writes (`themeScript`). `oc-site-kit csp-check` reads every page of a build
+against the header it is served with. `familyAnalyticsScripts` in
+`./analytics` gives the text `FamilyAnalytics` writes, which now renders
+from it.
+
 ## 0.9.0
 
 `createOgHandler` takes `home`, the tiles of app-design's `OgBento`, and draws

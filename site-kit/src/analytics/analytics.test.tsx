@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+    familyAnalyticsScripts,
     familyPageUrl,
     FamilyAnalytics,
     onlyOnOrigins,
@@ -133,6 +134,16 @@ describe('FamilyAnalytics', () => {
 
     it('renders nothing outside production by default', () => {
         expect(renderToStaticMarkup(<FamilyAnalytics />)).toBe('');
+        expect(familyAnalyticsScripts()).toEqual({ plausible: '', ocpulse: '' });
+    });
+
+    it('writes exactly the text familyAnalyticsScripts gives, which a policy hashes', () => {
+        const props = { enabled: true, origins: ['https://ochk.io'] } as const;
+        const html = renderToStaticMarkup(<FamilyAnalytics {...props} />);
+        const written = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+        const { plausible, ocpulse } = familyAnalyticsScripts(props);
+        expect(written).toEqual([plausible, ocpulse]);
+        expect(plausible).toContain('"https://ochk.io"');
     });
 
     it('turns a beacon off rather than write an unsafe value into the page', () => {

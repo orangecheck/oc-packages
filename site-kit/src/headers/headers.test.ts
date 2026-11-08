@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCsp, HSTS, relayOrigin, securityHeaders, siteHeaders, type CspOptions } from './index';
+import { buildCsp, HSTS, inlineSources, relayOrigin, securityHeaders, siteHeaders, type CspOptions } from './index';
 
 /** stamp.ochk.io's Content-Security-Policy as served on 2026-10-20, before the kit. */
 const STAMP_SERVED =
@@ -95,6 +95,38 @@ describe('buildCsp', () => {
         const csp = buildCsp(STAMP);
         expect(csp).not.toContain('unsafe-eval');
         expect(csp).not.toMatch(/\bws:/);
+    });
+});
+
+describe('script hashes', () => {
+    const A = `'sha256-${'a'.repeat(43)}='`;
+    const B = `'sha256-${'B'.repeat(42)}+='`;
+    const scriptSrc = (o: CspOptions) => buildCsp(o).split('; ').find((d) => d.startsWith('script-src'));
+
+    it("lists the page's inline scripts by hash in place of 'unsafe-inline'", () => {
+        expect(scriptSrc({ script: ['https://plausible.io'], scriptHashes: [A, B] })).toBe(
+            `script-src 'self' ${A} ${B} https://plausible.io`
+        );
+    });
+
+    it('runs no inline script at all for an empty list', () => {
+        expect(scriptSrc({ scriptHashes: [] })).toBe("script-src 'self'");
+    });
+
+    it("keeps 'unsafe-inline' alone under dev, since any hash would turn it off", () => {
+        expect(scriptSrc({ scriptHashes: [A], dev: true })).toBe("script-src 'self' 'unsafe-inline' 'unsafe-eval'");
+        expect(inlineSources({ scriptHashes: [A], dev: true })).toEqual(["'unsafe-inline'"]);
+    });
+
+    it("leaves a policy without hashes as it was: 'unsafe-inline'", () => {
+        expect(inlineSources({})).toEqual(["'unsafe-inline'"]);
+        expect(buildCsp(STAMP)).toBe(STAMP_SERVED);
+    });
+
+    it('refuses anything that is not a quoted sha256 source', () => {
+        for (const bad of ["'unsafe-inline'", `sha256-${'a'.repeat(43)}=`, `'sha256-${'a'.repeat(42)}='`, `${A}; script-src *`, `'sha384-${'a'.repeat(64)}'`]) {
+            expect(() => buildCsp({ scriptHashes: [bad] }), bad).toThrow(/script hash/);
+        }
     });
 });
 
