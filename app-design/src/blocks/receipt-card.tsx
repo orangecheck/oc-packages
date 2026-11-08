@@ -127,7 +127,7 @@ export function ReceiptCard({ label, title, facts, rows, unit, caption, split, f
             ) : null}
             {footer || action ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-oca-surface-foreground/10 pt-4">
-                    {footer ? <span className={cn('font-mono text-[0.75rem]', QUIET)}>{footer}</span> : <span />}
+                    {footer ? <span className={cn('font-mono text-[0.75rem] text-pretty', QUIET)}>{footer}</span> : <span />}
                     {action}
                 </div>
             ) : null}

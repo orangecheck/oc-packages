@@ -109,7 +109,6 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
         <div
             data-ui="stat"
             className={cn(
-                '@container',
                 sm ? 'rounded-none p-4' : 'rounded-none p-5 md:p-6',
                 // In a grid, label, value and hint each share a row with their
                 // neighbours, so values line up whatever wraps above them; the
@@ -119,19 +118,21 @@ export function StatCard({ label, value, hint, size, delta, className }: StatCar
             )}
         >
             <span className="oca-label leading-snug">{label}</span>
-            {/* Bottom-aligned within a grid row; a lone card keeps it under its label. */}
-            <span
-                className={cn(
-                    'break-words oca-tabular leading-tight tracking-[-0.03em]',
-                    // The figure grows with its cell (a five-up row's cells are narrow), and is light only at 24px and up.
-                    sm ? 'text-[1.25rem]' : 'text-[clamp(1.5rem,13cqi,2.5rem)] font-light',
-                    inGrid && 'self-end',
-                    delta && 'flex flex-wrap items-baseline gap-x-2'
-                )}
-            >
-                {value}
-                {delta ? <Delta {...delta} /> : null}
-            </span>
+            {/* Bottom-aligned within a grid row; a lone card keeps it under its label. The value's box is the
+                container its size reads: a container on the card would contain its layout and drop the subgrid. */}
+            <div className={cn('@container', inGrid && 'self-end')}>
+                <span
+                    className={cn(
+                        'block break-words oca-tabular leading-tight tracking-[-0.03em]',
+                        // The figure grows with its cell (a five-up row's cells are narrow), and is light only at 24px and up.
+                        sm ? 'text-[1.25rem]' : 'text-[clamp(1.5rem,13cqi,2.5rem)] font-light',
+                        delta && 'flex flex-wrap items-baseline gap-x-2'
+                    )}
+                >
+                    {value}
+                    {delta ? <Delta {...delta} /> : null}
+                </span>
+            </div>
             {hint ? (
                 <span className="text-[0.8125rem] leading-snug text-muted-foreground">{hint}</span>
             ) : inGrid ? (

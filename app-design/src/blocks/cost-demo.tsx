@@ -95,7 +95,7 @@ function compact(n: number): string {
 
 const satsText = (n: number) => `${n.toLocaleString('en-US')} sats`;
 const daysText = (d: number) => (d === 365 ? 'a year' : d === 1 ? '1 day' : `${d} days`);
-const dayCompact = (d: number) => (d % 365 === 0 ? `${d / 365}y` : `${d}d`);
+const dayCompact = (d: number) => (d > 0 && d % 365 === 0 ? `${d / 365}y` : `${d}d`);
 
 /** A total in BTC once it reaches a hundredth of one, in sats below that. */
 export function costText(sats: number): { value: string; unit: string } {

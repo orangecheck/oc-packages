@@ -6,6 +6,8 @@
  *
  * - A Panel's actions stay top right beside a two-line description, on a
  *   phone and in a half-width panel, rather than wrapping under the text.
+ * - A StatGrid's values start at one height in each row, at 390 and 1440,
+ *   whatever wraps in the labels above them.
  * - An expanded Panel's body scrolls inside itself: a tall body never runs
  *   under the source at the foot.
  * - The app frames (ToolShell variant="app", AppShell variant="rail") clip
@@ -1212,6 +1214,23 @@ try {
             )
         ).join('')
     );
+    // A StatGrid row whose labels and hints wrap to different heights: /scale's three tiles.
+    const statGrid = page(
+        'stat-grid',
+        renderToStaticMarkup(
+            h(
+                'div',
+                { className: 'oca-container py-6' },
+                h(
+                    C.StatGrid,
+                    { columns: 3 },
+                    h(C.StatCard, { label: 'Guardian federations running', value: '0 of 1', hint: 'Independent guardians' }),
+                    h(C.StatCard, { label: 'Limit today, events a second', value: '600 to 770', hint: 'Bounded by the event store, the slowest layer that every event passes through' }),
+                    h(C.StatCard, { label: 'Receipts, all time', value: '0', hint: 'Signed and sent for a timestamp' })
+                )
+            )
+        )
+    );
     // Every hero shape, its entrance read on the first frame.
     const heroes = page(
         'heroes',
@@ -1614,6 +1633,18 @@ try {
             );
             check(!tb.fits.scrolls && tb.fits.spills === 0, `[${width}] a three-column error table scrolls (${tb.fits.scrolls}) or spills from ${tb.fits.spills} cell(s)`);
             if (width < 768) check(tb.wide.scrolls, `[${width}] a table that cannot fit does not scroll`);
+            // A StatGrid's values share a row with their neighbours' (its cards are subgrids), so a label that
+            // wraps higher than the next one moves no value: every value in a row starts at one height.
+            await visit(p, statGrid);
+            const sg = await p.evaluate(() => {
+                const rows = {};
+                for (const s of document.querySelectorAll('[data-ui="stat"]')) {
+                    const key = Math.round(s.getBoundingClientRect().top);
+                    (rows[key] ??= []).push(Math.round(s.children[1].getBoundingClientRect().top));
+                }
+                return Object.values(rows).map((t) => Math.max(...t) - Math.min(...t));
+            });
+            check(sg.length > 0 && sg.every((d) => d <= 1), `[${width}] a StatGrid row's values start at different heights: ${JSON.stringify(sg)}px apart`);
             // A tool site's phone menu holds Docs, a 44px target, beside About.
             if (width < 768) {
                 await visit(p, toolMenu);
