@@ -480,6 +480,21 @@ for (const mode of ['dark', 'light']) {
     await held.unmount();
 }
 
+// LoadingBlock: past its deadline the rows become a notice that blames neither side, and Try again calls back.
+{
+    let tries = 0;
+    const l = await mount(h(C.LoadingBlock, { timeoutMs: 10, onRetry: () => tries++ }));
+    check(l.host.querySelector('[role="status"]') !== null, 'LoadingBlock: before its deadline there are no loading rows');
+    await act(async () => new Promise((r) => setTimeout(r, 40)));
+    const text = l.host.textContent;
+    check(text.includes('This is taking longer than it should.') && text.includes('The server or the connection is slow. Try again in a moment.'), `LoadingBlock: past its deadline the notice reads ${show(text)}`);
+    check(!text.includes('Check your connection'), 'LoadingBlock: a slow read is put on the reader\'s connection alone');
+    const retry = [...l.host.querySelectorAll('button')].find((b) => b.textContent === 'Try again');
+    await act(async () => retry?.click());
+    check(tries === 1, `LoadingBlock: Try again called back ${tries} times`);
+    await l.unmount();
+}
+
 // SessionAccount: a sign-out the auth host refuses keeps the account and says so; one it does ends the session quietly.
 {
     const account = {
@@ -737,5 +752,5 @@ if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a refused sign-out, observer-free mounts`);
+console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a slow read, a refused sign-out, observer-free mounts`);
 process.exit(0);

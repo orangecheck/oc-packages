@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `LoadingBlock`'s notice past its deadline says "The server or the
+  connection is slow. Try again in a moment." under its title, in place
+  of "Check your connection, then try again.", which put a slow server on
+  the reader's connection. `OFFLINE_TEXT` keeps that sentence for a
+  request that got no answer. check-dom holds the notice and its retry.
+
 ## [2.12.0] — 2026-11-08
 
 - `AppShell`'s desk sidebar holds the section switcher's room while the
