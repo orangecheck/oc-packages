@@ -4,6 +4,17 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.18.0] — 2026-11-08
+
+### Changed
+
+- **`build_canonical_message` writes each extension as one line a verifier
+  reads** (SPEC §2.2, §7.1 step 1), as `@orangecheck/sdk` 1.25.0's builder
+  does. It raises `ValueError` for a key that is not printable ASCII without
+  a colon, a core key, or a value with a line break, instead of writing a
+  message a verifier answers with `decode_error`. A key in capitals is still
+  written in lowercase, and an empty value is still left out.
+
 ## [3.17.0] — 2026-11-03
 
 ### Changed

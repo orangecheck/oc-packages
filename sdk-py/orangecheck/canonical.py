@@ -122,6 +122,10 @@ def parse_identities(identities_str: str) -> list[IdentityBinding]:
 
 _NONCE_RE = re.compile(r"^[0-9a-f]{32}$")
 
+# An extension key as SPEC §2.2 writes it: printable ASCII with no capital and no colon.
+_EXTENSION_KEY_RE = re.compile(r"[!-9;-@\[-~]+")
+_CORE_KEYS = ("identities", "address", "purpose", "nonce", "issued_at", "ack")
+
 
 def random_nonce() -> str:
     """16 bytes of secrets.token_bytes → 32 lowercase hex chars."""
@@ -172,7 +176,9 @@ def build_canonical_message(
     extensions:
         Optional key/value extensions. Empty-string and ``None`` values are
         dropped. Keys are lowercased and sorted lexicographically in the
-        output. Non-string values are ``str()``-ified.
+        output. Non-string values are ``str()``-ified. Raises ``ValueError``
+        for a key that is not printable ASCII without a colon, a core key, or
+        a value with a line break.
     nonce:
         Optional 32-lowercase-hex override. Tests only; production callers
         should let this default to a fresh cryptographic nonce.
@@ -205,10 +211,16 @@ def build_canonical_message(
     for k, v in (extensions or {}).items():
         if v is None or v == "":
             continue
+        key = k.lower()
+        # Each extension is one line a verifier reads: a key it takes and a value with no line break.
+        if not _EXTENSION_KEY_RE.fullmatch(key) or key in _CORE_KEYS or re.search(r"[\r\n]", str(v)):
+            raise ValueError(
+                f"invalid extension {k!r}: a lowercase ASCII key that is not a core key, a value on one line"
+            )
         # A bond is written as SPEC §2.2 reads it, so no verifier refuses it as bond_malformed.
-        if k.lower() == "bond" and (isinstance(v, bool) or read_bond_extension(str(v)) is None):
+        if key == "bond" and (isinstance(v, bool) or read_bond_extension(str(v)) is None):
             raise ValueError(f"invalid bond: {v!r} is not a whole number of sats up to 2^53 - 1")
-        norm_ext[k.lower()] = str(v)
+        norm_ext[key] = str(v)
     ext_lines = [f"{k}: {norm_ext[k]}" for k in sorted(norm_ext.keys())]
 
     return "\n".join(core + ext_lines) + "\n"
