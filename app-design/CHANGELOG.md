@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.14.0] — 2026-11-08
+
 - `CodeBlock`'s caption wraps onto a second line where it does not fit,
   rather than being cut with an ellipsis; where it fits, its row is 44px
   as before. `wrap` takes `'words'`: a long line breaks only between
