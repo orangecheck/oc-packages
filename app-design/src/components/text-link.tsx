@@ -7,7 +7,8 @@ import { HIT_LINK } from '../lib/hit';
 
 // Padding above and below an inline link grows what a finger can press without moving its line: 24px or more
 // at any size, the text's own 1.21em (Inter's ascent and descent) plus what it lacks, and never under 0.25em.
-const LINK = 'py-[max(0.25em,calc((24.5px_-_1.21em)/2))] text-foreground underline decoration-foreground/35 underline-offset-4 transition-colors hover:decoration-foreground';
+export const LINK_PAD = 'py-[max(0.25em,calc((24.5px_-_1.21em)/2))]';
+const LINK = `${LINK_PAD} text-foreground underline decoration-foreground/35 underline-offset-4 transition-colors hover:decoration-foreground`;
 
 const SCHEME = /^[a-z][a-z\d+.-]*:/i;
 
@@ -41,14 +42,17 @@ export function TextLink({
     children: ReactNode;
     /** Force a new tab (true) or keep it in this one (false). Default: by the address. */
     external?: boolean;
-    /** Not part of a sentence (after a "·" in a line of facts): a 44px target to a thumb, its line unchanged. */
+    /** Not part of a sentence (after a "·" in a line of facts): a 44px target to a thumb, its line unchanged.
+     *  It is one box: it goes to the next line whole rather than break after the "·", and one longer than its line
+     *  is one target across every line, not a strip per line. */
     standalone?: boolean;
     className?: string;
 }) {
     const href = useResolved(written);
     const internal = href.startsWith('/') && !href.startsWith('/api/') && !href.startsWith('/.well-known/');
     const offsite = external ?? /^https?:\/\//.test(href);
-    const look = cn(LINK, standalone && HIT_LINK, className);
+    // One box whose ::before is the target; the inline padding goes, or it would grow the line.
+    const look = cn(LINK, standalone && cn('inline-block py-0', HIT_LINK), className);
     if (internal && !offsite) {
         return (
             <Link href={href} className={look}>

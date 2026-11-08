@@ -9,7 +9,7 @@ import { ClosingField, ClosingMark } from './closing-art';
 import { HERO_ACTIONS } from './hero';
 import { Reveal } from './motion';
 import { Section, SectionIntro, type SectionProps } from './section';
-import { TextLink } from './text-link';
+import { LINK_PAD, TextLink } from './text-link';
 import { Display, Eyebrow } from './typography';
 
 /**
@@ -220,8 +220,8 @@ export function ProofStrip({ items, className }: { items: { icon?: ReactNode; la
     );
 }
 
-/** A closing link's look: its words' width on a phone, where the actions stack, and 24px after the button from sm. */
-const CLOSING_LINK = 'self-start text-[1.0625rem] font-medium sm:ml-3 sm:self-center';
+/** A closing link's look: its words' width on a phone, where the actions stack and its padding spaces them, and 24px after the button from sm. */
+const CLOSING_LINK = cn(LINK_PAD, 'self-start text-[1.0625rem] font-medium sm:ml-3 sm:self-center');
 
 /**
  * The last band of a page: one large line, the actions, and the check settling beside them. Its one button goes in
