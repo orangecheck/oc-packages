@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.12.0] — 2026-11-08
+
 - `AppShell`'s desk sidebar holds the section switcher's room while the
   root carries `data-oca-switch`: an app that keeps the account's
   sections from its last visit sets it in a head script before the body
