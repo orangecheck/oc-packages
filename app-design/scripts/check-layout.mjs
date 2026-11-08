@@ -19,7 +19,9 @@
  *   in another cell stays its own; a compact HashChip sits in a line under
  *   32px with a 44px target; six wrapping tabs fit a phone; AppShell's
  *   lockup and product word fit its sidebar, and its account bar, first in
- *   the page, still draws top right with the sidebar sticky beside it.
+ *   the page, still draws top right with the sidebar sticky beside it. With
+ *   data-oca-switch on the root, one section holds the switcher's room, so
+ *   the page rows stand where four sections put them; with no mark, none.
  * - The family footer fits a phone in 600px, its meta line included, each
  *   link group a disclosure with a 44px summary, every link still there; a
  *   desk sees the columns. A product's footer with seven groups fits too.
@@ -802,6 +804,8 @@ try {
         shellPlace('admin', 'Admin', [{ href: '/admin', label: 'Queue' }]),
     ];
     const touchShell = page('touch-shell', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections, activeSection: 'you' }, h('p', null, 'x'))));
+    // One place so far, as ochk.app draws before its checks answer: the switcher's room, for a root that carries the mark.
+    const shellOne = page('shell-one', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: shellSections.slice(0, 1), activeSection: 'you' }, h('p', null, 'x'))));
     // Four places whose labels cannot share the sidebar's row whole.
     const longSections = ['Your account', 'Developers', 'Operators', 'Administration'].map((label, i) => shellPlace(`p${i}`, label, [{ href: `/p${i}`, label: 'Home', active: i === 0 }]));
     const shellLong = page('shell-long', renderToStaticMarkup(h(Ch.AppShell, { product: 'ochk.app', sections: longSections, activeSection: 'p0' }, h('p', null, 'x'))));
@@ -3092,6 +3096,27 @@ try {
                     if (url === touchShell) check(r.tabs.length === 4 && r.rows === 1 && r.fill <= 5 && tall && r.tabs.every((t) => t.whole), `${label} the four places: ${r.rows} rows, ${r.fill}px left at the end, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
                     else check(r.tabs.length === 4 && r.rows > 1 && r.inside && tall && r.tabs.every((t) => t.whole), `${label} four long places: ${r.rows} rows, inside the sidebar ${r.inside}, ${JSON.stringify(r.tabs.map(({ name, w, h, whole }) => ({ name, w, h, whole })))}`);
                     await c.close();
+                }
+                // Before the sections come: with data-oca-switch on the root, one place holds the switcher's room, so the page
+                // rows stand where four places put them, to a mouse and a thumb; with no mark the room takes nothing.
+                for (const touch of [false, true]) {
+                    const c = await browser.newPage({ viewport: { width: 1440, height: 900 }, isMobile: touch, hasTouch: touch });
+                    const rows = async (url, mark) => {
+                        await visit(c, url);
+                        return c.evaluate((mark) => {
+                            if (mark) document.documentElement.setAttribute('data-oca-switch', '');
+                            const room = document.querySelector('aside [data-oca-switch-room]');
+                            return { top: document.querySelector('aside nav[aria-label="Pages"]').getBoundingClientRect().top, room: room ? room.getBoundingClientRect().height : null };
+                        }, mark);
+                    };
+                    const four = await rows(touchShell, false);
+                    const held = await rows(shellOne, true);
+                    const bare = await rows(shellOne, false);
+                    await c.close();
+                    const label = `[1440 ${touch ? 'touch' : 'mouse'}]`;
+                    check(four.room === null, `${label} AppShell draws the switcher's room beside a switcher`);
+                    check(Math.abs(held.top - four.top) < 0.5, `${label} AppShell: with data-oca-switch the page rows start at ${held.top}, with four places at ${four.top}`);
+                    check(bare.room === 0 && four.top - bare.top > 40, `${label} AppShell: with no mark the room is ${bare.room}px and the rows start at ${bare.top}, four places' at ${four.top}`);
                 }
                 // The bar sticks at every width, so a page's own sticky element pinned by --oca-app-bar-h stands 24px under
                 // the bar drawn there: the phone's with its place strip, and the desk's.

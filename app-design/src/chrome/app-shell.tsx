@@ -124,6 +124,19 @@ function SectionSwitch({
     );
 }
 
+/**
+ * The switcher's room before the sections arrive. It shows only while the root carries data-oca-switch, which an
+ * app's head script sets from its own kept answer, so the page rows stand where the switcher will put them; the
+ * app takes the mark off once its sections are known. The switcher's own box: one row, a tab tall.
+ */
+function SwitchRoom() {
+    return (
+        <div aria-hidden data-oca-switch-room="" className="gap-1 bg-muted p-1">
+            <span className="h-9 flex-1 pointer-coarse:h-11" />
+        </div>
+    );
+}
+
 /** A count (99+) for a number, a dot for anything else; the badge is read with the label. */
 function NavBadge({ badge, className }: { badge: ReactNode; className: string }) {
     if (typeof badge === 'number') {
@@ -290,6 +303,9 @@ function warnDuplicateLabels(groups: ShellNavGroup[]) {
  * from it, `calc(var(--oca-app-bar-h, 0px) + 1.5rem)`. Its value is a CSS
  * length (4.5rem, a calc), not pixels: script that needs the number reads a
  * probe's computed height (height: var(--oca-app-bar-h)), never parseFloat.
+ * An app that keeps the account's sections from its last visit sets
+ * data-oca-switch on <html> before the body paints: until the sections come
+ * the desk sidebar holds the switcher's room, so nothing moves when it lands.
  */
 export function AppShell(props: AppShellProps) {
     return props.variant === 'rail' ? <RailShell {...props} /> : <SidebarShell {...props} />;
@@ -447,7 +463,7 @@ function SidebarShell({
                             </Link>
                             {familyMenu}
                         </div>
-                        {switcher}
+                        {switcher ?? <SwitchRoom />}
                         <SideNav groups={groups} />
                         <div className="mt-auto flex flex-col gap-3">{footer}</div>
                     </aside>
