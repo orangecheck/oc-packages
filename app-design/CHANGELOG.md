@@ -10,6 +10,14 @@
   to sign or an id. ochk.app's quickstart cut both at 390, its captions
   and its settings lines. check-layout draws those lines in a 290px and a
   720px panel at 390 and 1440.
+- `StatGrid` lines its values up row by row. Each `StatCard` in a grid is a
+  subgrid, but it was also the size container for its figure, and a
+  container's layout containment turns its subgrid off: values in one row
+  sat up to 29px apart where a label or a hint wrapped. The container is
+  now the figure's own box. check-layout measures a row at 390 and 1440.
+- `CostDemo`'s day tick for a zero stop reads "0d"; it read "0y".
+- `ReceiptCard`'s footer wraps with `text-pretty`, so it never ends on one
+  word. check-blocks resizes one from 280 to 640px, and checks the zero tick.
 
 ## [2.13.1] — 2026-11-08
 

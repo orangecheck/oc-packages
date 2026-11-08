@@ -33,7 +33,9 @@
  * - StepPath draws its line when it comes into view, and is simply drawn
  *   under reduced motion, also when served and hydrated; its steps are a
  *   list with the current one marked; its labels stay inside its box.
- * - ReceiptCard stacks its amounts on the decimal point.
+ * - ReceiptCard stacks its amounts on the decimal point, and its footer never
+ *   ends on one word, at any width from 280 to 640px.
+ * - CostDemo's day ticks name a zero stop "0d", not "0y".
  * - DitherMark draws the baked PNG its srcSet names, at its own width, in the
  *   ground's art, light and dark, at 1x and 2x, with no layout shift.
  * - None of them widens a phone.
@@ -96,6 +98,10 @@ try {
             `  dither: <div className="flex flex-col items-start gap-4"><DitherMark size="sm" /><DitherMark size="md" /><DitherMark size="lg" title="orangecheck" /><div style={{ width: 300 }}><DitherMark className="w-full" sizes="300px" /></div><DitherMark size="md" ground="dark" /><DitherMark size="md" ground="brand" /></div>,\n` +
             // Ruling 11's person at the edges of their own coin: 250,000 sats, 180 days.
             `  edge: <CostDemo amounts={[249_999, 250_000, 250_001]} dayStops={[179, 180, 181]} defaultAmountIndex={1} defaultDayIndex={1} />,\n` +
+            // A site whose bar can ask for no holding time at all, as ochk.app's /apps does.
+            `  zero: <CostDemo dayStops={[0, 7, 30, 90, 365]} />,\n` +
+            // ochk.app's /how footer, in a box a test resizes.
+            `  footer: <div data-fw="" style={{ width: 560 }}><ReceiptCard unit="sats" rows={[{ label: 'The app paid', amount: 240 }]} footer="Signed by orangecheck · the signature checks offline, without asking us" /></div>,\n` +
             `  pathlong: <StepPath steps={[{ label: 'Open the app on the phone you already carry' }, { label: 'Back it with a coin you hold' }, { label: 'Get paid when an app asks for you' }, { label: 'Own your key, a little later on' }]} />,\n` +
             `  bento: <div className="grid grid-cols-2"><BentoTile tone="burnt" span={2} halftone numeral="80%" title="of a reward">Coming soon.</BentoTile></div>,\n` +
             // A halftone picture at 2:1, to see it kept at its own aspect and cropped by the strip.
@@ -120,7 +126,7 @@ try {
         const p = await ctx.newPage();
         await p.goto(`${page}?b=${b}${off ? '&off' : ''}${ssr ? '&ssr' : ''}${dark ? '&dark' : ''}`);
         await p.waitForSelector('[data-hydrated]', { state: 'attached' });
-        await p.waitForSelector({ demo: '[data-demo-mode]', phone: '[data-demo-phone]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', headings: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]' }[b] ?? 'table');
+        await p.waitForSelector({ demo: '[data-demo-mode]', phone: '[data-demo-phone]', cost: '[data-cost-demo]', own: '[data-cost-demo]', path: '[data-line]', pathlong: '[data-line]', bento: '[data-bento-tone]', headings: '[data-bento-tone]', art: '[data-halftone] img', dither: '[data-dither-mark]', edge: '[data-cost-demo]', zero: '[data-cost-demo]' }[b] ?? 'table');
         return { p, close: () => ctx.close() };
     };
     const demo = (p) => p.evaluate(() => {
@@ -634,6 +640,39 @@ try {
 
         // ReceiptCard: the points stack.
         {
+            // The footer's last line holds more than one word at every width a card is drawn.
+            {
+                const f = await open('footer');
+                const lone = await f.p.evaluate(() => {
+                    const box = document.querySelector('[data-fw]');
+                    const span = box.querySelector('.border-t > span');
+                    const t = span.firstChild;
+                    const words = [...t.data.matchAll(/\S+/g)];
+                    const out = [];
+                    for (let w = 280; w <= 640; w += 4) {
+                        box.style.width = `${w}px`;
+                        const tops = words.map((m) => {
+                            const r = document.createRange();
+                            r.setStart(t, m.index);
+                            r.setEnd(t, m.index + m[0].length);
+                            return Math.round(r.getBoundingClientRect().top);
+                        });
+                        const last = Math.max(...tops);
+                        const onLast = tops.filter((y) => y === last).length;
+                        if (onLast === 1 && new Set(tops).size > 1) out.push(`${w}px: "${words.at(-1)[0]}"`);
+                    }
+                    return out;
+                });
+                check(lone.length === 0, `ReceiptCard: the footer ends on one word at ${lone.length} widths (${lone.slice(0, 6).join(', ')})`);
+                await f.close();
+            }
+            // A zero-day stop is "0d": ochk.app's /apps read "0y".
+            {
+                const z = await open('zero');
+                const ticks = await z.p.evaluate(() => [...document.querySelectorAll('[data-cost-demo] [data-slider]')].map((r) => [...r.parentElement.querySelectorAll('[aria-hidden] > span')].map((t) => t.textContent)));
+                check(JSON.stringify(ticks[1]) === JSON.stringify(['0d', '7d', '30d', '90d', '1y']), `CostDemo: a zero-day stop's tick: ${JSON.stringify(ticks[1])}`);
+                await z.close();
+            }
             const { p, close } = await open('receipt');
             const cols = await p.evaluate(() =>
                 [...document.querySelectorAll('td')].map((td) => {
