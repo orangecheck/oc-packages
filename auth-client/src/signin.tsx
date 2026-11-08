@@ -401,17 +401,23 @@ export function looksLikeBitcoinAddress(input: string): boolean {
 /** Provider refusals whose way back in is an email code. */
 const OAUTH_EMAIL_CODE_REASONS = new Set(['email_code_required', 'account_mismatch']);
 
+/** The providers a refusal may name (`?oauth_provider=`); any other value names none. */
+const OAUTH_PROVIDER_NAMES = new Map([
+    ['google', 'Google'],
+    ['github', 'GitHub'],
+]);
+
 /** What a refused provider sign-in (`?oauth_error=`) says to the person. */
-function oauthErrorText(reason: string, retryAt: unknown): string {
+function oauthErrorText(reason: string, retryAt: unknown, provider: string | null): string {
     const cap = capText(reason, retryAt);
     if (cap) return cap;
     if (reason === 'email_code_required') {
         return 'This email already has an orangecheck account. Sign in to it with an email code below.';
     }
     if (reason === 'account_mismatch') {
-        return 'A different Google or GitHub account is already linked to this email. Use that one, or sign in with an email code below.';
+        return `A different ${provider ?? 'Google or GitHub'} account is already linked to this email. Use that one, or sign in with an email code below.`;
     }
-    return "That sign-in didn't finish. Try again, or use another way below.";
+    return `That ${provider ? `${provider} ` : ''}sign-in didn't finish. Try again, or use another way below.`;
 }
 
 export function OcSignIn({
@@ -517,16 +523,22 @@ export function OcSignIn({
     // Set when the user is bounced back here after a failed provider
     // (e.g. Google) sign-in — the auth host redirects to
     // `/signin?oauth_error=…`.
-    const [oauthError, setOauthError] = React.useState<{ reason: string; retryAt: unknown } | null>(
-        null
-    );
+    const [oauthError, setOauthError] = React.useState<{
+        reason: string;
+        retryAt: unknown;
+        provider: string | null;
+    } | null>(null);
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);
         const reason = params.get('oauth_error');
         if (reason === null) return;
         const retryAt = params.get('retry_at');
-        setOauthError({ reason, retryAt: retryAt === null ? null : Number(retryAt) });
+        setOauthError({
+            reason,
+            retryAt: retryAt === null ? null : Number(retryAt),
+            provider: OAUTH_PROVIDER_NAMES.get(params.get('oauth_provider') ?? '') ?? null,
+        });
         // The way back in is an email code, so open on it.
         if (OAUTH_EMAIL_CODE_REASONS.has(reason) && emailEnabled) setPath('email');
     }, [emailEnabled]);
@@ -651,7 +663,7 @@ export function OcSignIn({
                         fontSize: signinRoleSize('text', signinSize(11)),
                     }}
                 >
-                    {oauthErrorText(oauthError.reason, oauthError.retryAt)}
+                    {oauthErrorText(oauthError.reason, oauthError.retryAt, oauthError.provider)}
                 </div>
             )}
             {addMode && (
