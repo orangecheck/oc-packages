@@ -11,7 +11,7 @@ changed=$(git diff --no-renames --name-only "$base" HEAD)
 while IFS= read -r path; do
     [ -n "$path" ] || continue
     dir=${path%%/*}
-    if [ "$dir" = "$path" ] || [ "$dir" = app-design ] || [ ! -f "$dir/package.json" ]; then
+    if [ "$dir" = "$path" ] || [ "$dir" = app-design ] || [ "${dir#.}" != "$dir" ] || [ ! -f "$dir/package.json" ]; then
         echo "app-design's checks can read $path"
         exit 1
     fi
