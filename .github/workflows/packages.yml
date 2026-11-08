@@ -332,12 +332,19 @@ jobs:
             - name: Packed files load only what installing the package brings
               run: node "$GITHUB_WORKSPACE/scripts/check-packed-imports.mjs" .
 
+            # app-design's 17-minute checks read only app-design/: a pull request or queue entry changing neither it nor this file skips them; a push to main runs them.
             - name: Test (if present)
+              env:
+                  BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
               run: |
-                  if grep -q '"test":' package.json; then
-                      yarn test
-                  else
+                  if ! grep -q '"test":' package.json; then
                       echo "no test script; skipping"
+                  elif [ "${{ matrix.pkg }}" = app-design ] && [ -n "$BASE" ] \
+                      && git fetch -q --depth=1 origin "$BASE" \
+                      && git diff --quiet "$BASE" HEAD -- . ../.github/workflows/packages.yml; then
+                      echo "nothing in app-design/ or packages.yml changed since $BASE: its checks passed on this same tree"
+                  else
+                      yarn test
                   fi
 
             # app-design's 1.29.3 and 2.0.0 snapshots held to npm's tarballs, and no prop narrowed since
