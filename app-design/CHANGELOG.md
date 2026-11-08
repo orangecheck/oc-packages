@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.13.0] — 2026-11-08
+
 - `--oca-site-bar-h` is the site's sticky bar, its hairline in it:
   3.5rem + 1px, 4.25rem + 1px from 900px, where the bar grows. The bar is
   that tall, and the page's scroll-padding reads it, as do the docs' section
