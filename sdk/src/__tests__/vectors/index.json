@@ -122,26 +122,31 @@
   {
     "id": "tv25",
     "category": "bond_signature",
-    "description": "P2WPKH and P2TR bond signatures by private key 1, inside the signing window"
+    "description": "P2WPKH and P2TR bond signatures by private key 1 (public, holds nothing), checked inside the signing window"
   },
   {
     "id": "tv26",
     "category": "bond_signature",
-    "description": "wrong signer, expired window, window over an hour, rolled-over time — MUST NOT verify"
+    "description": "the P2TR signature over the P2WPKH message MUST NOT verify; the P2WPKH bond after its window MUST be refused; a window over an hour MUST be refused even with a good signature; a time that rolls over (T24:00:00Z) is malformed"
   },
   {
     "id": "tv27",
     "category": "bond_nullifier",
-    "description": "one coin, two audiences, one registry key (BOND.md §6)"
+    "description": "one coin, two audiences, one registry key: the same input gives the same nullifier, different audiences unrelated ones (BOND.md §6). The key is a public test key; a registry keeps its own secret."
   },
   {
     "id": "tv28",
     "category": "bond_floors",
-    "description": "floors instead of amount and age (BOND.md §5)"
+    "description": "floors an audience sees instead of amount and age (BOND.md §5); age in blocks, 144 per day"
   },
   {
     "id": "tv29",
     "category": "bond_extension",
     "description": "bond: values (SPEC §2.2): base-10 ASCII digits up to 2^53 - 1 give the amount; anything else is bond_malformed"
+  },
+  {
+    "id": "tv30",
+    "category": "canonical_form",
+    "description": "messages validly BIP-322 signed by burn key #1 that are not attestations in canonical form (SPEC §7.1 step 1): each case's reason is decode_error; the canonical control's is null"
   }
 ]

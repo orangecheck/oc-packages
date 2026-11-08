@@ -20,7 +20,7 @@ import { hexToBytes } from '@noble/hashes/utils.js';
 import { verifySignature } from '@orangecheck/bip322';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     bondFloors,
@@ -33,6 +33,7 @@ import {
     generateAttestationId,
     parseBondMessage,
     readBondExtension,
+    verify,
     verifyBondSignature,
     type BondFields,
 } from '../index';
@@ -161,6 +162,31 @@ describe('conformance: bip322_signature', () => {
     }
 });
 
+describe('conformance: canonical_form (SPEC §7.1 step 1)', () => {
+    // Every signature verifies, so only the canonical checks decide each answer.
+    // The control goes on to read the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    for (const v of vectors.filter((x) => x.category === 'canonical_form')) {
+        const input = v.input as {
+            address: string;
+            cases: { name: string; message: string; signature: string; reason: string | null }[];
+        };
+        const expected = v.expected as { signatures_valid: boolean };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            expect(verifySignature(input.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            const r = await verify({ addr: input.address, msg: c.message, sig: c.signature, scheme: 'bip322' });
+            expect(r.codes.includes('decode_error') ? 'decode_error' : null).toBe(c.reason);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -254,6 +280,7 @@ describe('conformance: vector index loaded', () => {
                 'bond_nullifier',
                 'bond_floors',
                 'bond_extension',
+                'canonical_form',
             ])
         );
     });

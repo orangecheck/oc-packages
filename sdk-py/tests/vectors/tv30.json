@@ -1,0 +1,140 @@
+{
+  "id": "tv30",
+  "category": "canonical_form",
+  "description": "messages validly BIP-322 signed by burn key #1 that are not attestations in canonical form (SPEC §7.1 step 1): each case's reason is decode_error; the canonical control's is null",
+  "input": {
+    "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+    "scheme": "bip322",
+    "cases": [
+      {
+        "name": "canonical (control)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAN6XBPbd1GkshOt2LNSTBzBAjG49GwYjWn3p532XlOPPAiAK6jlFUNeBCL1yifEbA8OZFCkzpDvZUF4LnP23tyL+pQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null
+      },
+      {
+        "name": "no trailing LF (1.b)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z",
+        "signature": "AkgwRQIhAPNNu6o8zLzEG9qwRhyEZfTIF71BZcrbydxNyJE5fHJhAiBFP0GcbK4lrmmBg25CZlx1tiMy7+KrzzoxRpllEJYluQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "two trailing LFs (1.b)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n\n",
+        "signature": "AkcwRAIgQGSrkrGG+h90IVu132OCcU/wHp44jKHrHlxgfK303XwCIGIUh+sp5OYH1LWIfWFWywwAbMHc8ieLAdTvYXxf8EqmASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "CRLF line ends (1.b)",
+        "message": "orangecheck\r\nidentities: github:conformance\r\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\r\npurpose: portable reputation attestation (non-custodial)\r\nnonce: 0011223344556677889900aabbccddee\r\nissued_at: 2026-04-22T12:00:00Z\r\nack: I attest control of this address and bind it to my identities.\r\naud: https://example.com\r\nexpires: 2030-01-01T00:00:00Z\r\n",
+        "signature": "AkgwRQIhAIDO1eWdn2Vez6+BN71IYTX1QKjG9AxMto9bINBCCbi5AiAfD3uRAXOy/2Oi5v1FxZoyNtYe1Jko9UMEcbHwZlFquAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a CR inside a value (1.b)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\rnetwork: testnet\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkcwRAIgWbFfUV2M73DlnoM8ybzdnY8QS9iqdBgW//0U9RaoQaUCICC7Ehyw88zQ23PrpJiEJQnq35xt5yNJseKPI/7unhDGASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "another header line (1.c)",
+        "message": "OrangeCheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkcwRAIgdfTNrC6kNIexXLKDEpR0M/hqrdUoS3vLvELv8YxRLB4CIAN2NCKOqTP5t41VrTxJCrmRUiwt6g7iJ/DqF56OZYmWASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "another purpose (1.c)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: sign in to example.com\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAPuxQ7uLetERdR2M2qGpzSFOw96/eF7w0NbLDnp9ZDVTAiA9wbpb8gcEwZS3VufW4N4nwV6eKHiM1AEZ6NTKbHjjFgEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "another ack (1.c)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I agree.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAMdksNUBrwb2v6vl99uXPSJutwQxddW5Ln6Wn3uc4pfvAiApm+x+8eOO76f6C5OKyErUR8QZE5klypaz26DXYKUrEwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a core line missing (1.c)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkcwRAIgWeAfm2JLnyhOd31fecYvHcBLUnvAAco4owPXPHcNWbgCIC70LbPSbCUeBTGOThg3GmTz6MR9w0NB+Mho8n/6kZO9ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "core lines out of order (1.c)",
+        "message": "orangecheck\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nidentities: github:conformance\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAOM3/0PG7Rs7j3buWjh/T67kCNXLc7KxBC7x2iBXE2CCAiAdgWNAqFAnwm8HbGdWbrVhgrAAFSRXQVfGWNYPKhv6fAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "an extension among the core lines (1.c)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\naud: https://example.com\nack: I attest control of this address and bind it to my identities.\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhALWwnA7rqFqpTpgTzCIbhJR2aOqqX3hhFPQruTQWZUwEAiB2jUg1Ir0txwQWjHoaVmilDReA1HkmlNtCaP2SxrEWbQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a blank line (1.c)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAL8dM06rHHF+PomvVnVHrnYgtrWK6MMHfaebt7i/EYo6AiBRWgpHMP4HpCGiMtD+vtzJeZn3D1qWfyFTwTUiK8JyugEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "extension keys out of order (1.d)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nexpires: 2030-01-01T00:00:00Z\naud: https://example.com\n",
+        "signature": "AkgwRQIhAJxw35rY4gajELOGeVPMgPMOma8qZz8qpalaVBRfPAdHAiB22lbqEmcjmgkMQ60PUhdtaPBhWh37MIhHrmulbNX38gEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "an extension key in capitals (1.d)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nAUD: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkcwRAIgJDz3dr3dGfHtZ5YRqdmDXAsNBdIMewQHw4GFt8acDH4CIBKQg+wFxxc8d7coe+Q6rwqWZca7uT0ap45Ff+XJAmFOASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "an extension with no value (1.d)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: \n",
+        "signature": "AkcwRAIgTbTd15PruKIphNtdM4KoXNXcorH5f2aYZA0H1CrISukCIG9ZO2NUNcsRzvoL4poCKrrzXNITd0EnH8oOcVrmMOzEASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a nonce in capitals (1.f)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900AABBCCDDEE\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAIUQqu1PXvzQqdp00ykRf2bdgHU/3j9xEqBfGmtcvm0pAiBBOdhI17eQ1B8SG70UDc+pl52EspM2a6fEZyPIO3lEhQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a nonce of 16 hex (1.f)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkcwRAIgTxyHusTqq4jCbmd2jCBS7KR06dzRBlI+TnZNo1UE/MACIGfwD4cPksxiqFPTyQG5Vmw0ikgyCaYegjR7S5J+KdVBASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      },
+      {
+        "name": "identities that do not parse (1.h)",
+        "message": "orangecheck\nidentities: GitHub:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAJJN3Xw5VL22XvJEcYWm/tD98bWlXMFunRzOgTGYOfwgAiB8BF+kGp9pXzq2r2DlVeb3yDS89J7J4jTos0JgbL9M6wEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "identities out of order (1.h)",
+        "message": "orangecheck\nidentities: github:conformance,dns:example.com\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\n",
+        "signature": "AkgwRQIhAMsfSFuZ443Rg9d5Qqm9NpGtaa7cYgIDxnTy5jZPLNvEAiB0GHY6pLdhaFDh6sLdA428J306bVoCJoKd5VqGklBQOgEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "a key signed twice (1.i)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\naud: https://example.com\nexpires: 2030-01-01T00:00:00Z\nnetwork: mainnet\nnetwork: testnet\n",
+        "signature": "AkgwRQIhAIdLedV51lk0Gj+kN3ehJIXUuqgBgyGOuNkR/9F7U2Q3AiBVl6zKn0lN1PUcn75jhPsSZ/rvppp++coYYdP8ll0wWwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "decode_error"
+      },
+      {
+        "name": "signed text that carries attestation lines in no attestation form",
+        "message": "Sign in to example.com\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nissued_at: 2026-04-22T12:00:00Z\n",
+        "signature": "AkcwRAIgQUmMSS7RxiAptQyOB51jf/KlUFEPBf1IcMa0HtiRiEsCID5ZHZ39xGPlJqNuw7Y+bF74mVRW3tVgZ8Z0yV6wNdDuASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "decode_error"
+      }
+    ]
+  },
+  "expected": {
+    "signatures_valid": true
+  }
+}
