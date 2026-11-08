@@ -80,6 +80,10 @@
  * - Closing's dithered art sits under the words on a phone and beside them
  *   from md, standing in its field; the field lies at the band's foot and
  *   edge and paints no pixel under any line of the words, from 320 to 1440.
+ * - Closing's links are as wide as their words where a phone stacks the
+ *   actions, so nothing right of the words follows one, and stand 24px after
+ *   the button from 640; each is a 44px target under a coarse pointer and
+ *   24px under a fine one.
  *
  * CI runners carry Chrome (CHROME_BIN); locally it uses Playwright's. Run
  * after `yarn build`.
@@ -1221,6 +1225,22 @@ try {
                 lead: 'Free in your browser. Cloud sync is 7,000 sats per 30 days or 70,000 sats per year, prepaid on-chain. No card, no auto-renew.',
                 actions: pair(),
                 fineprint: h('span', null, 'With thanks to the writer whose work on Bitcoin as a sovereignty layer shaped the premise.'),
+            })
+        )
+    );
+    // The closing band as ochk.io draws it: one button, then two text links.
+    const closingLinks = page(
+        'closing-links',
+        renderToStaticMarkup(
+            h(C.Closing, {
+                art: 'dither',
+                title: 'Open protocols. Checked against Bitcoin.',
+                lead: 'Read a spec, add a package, or try a tool. Nothing to sign up for.',
+                actions: h(P.Button, { size: 'lg', plus: true, 'data-cta': '' }, 'Read the docs'),
+                links: [
+                    { href: '/signin', label: 'Get an account' },
+                    { href: 'https://ochk.app', label: 'Open ochk.app', external: false },
+                ],
             })
         )
     );
@@ -2468,6 +2488,52 @@ try {
                     const differs = a.data.length === b.data.length && !a.data.equals(b.data);
                     check(d.lines.length >= 6 && differs, `${tag}: the clearance read nothing (${d.lines.length} lines, the field changed the page: ${differs})`);
                     check(touched === 0, `${tag}: the field paints ${touched} pixels under the words, first at ${JSON.stringify(where)}`);
+                }
+                await c.close();
+            }
+            // Closing's links: their words' width where the actions stack, 24px after the button from 640, and a 44px
+            // target under a coarse pointer (24px under a fine one), with nothing right of the words following one.
+            for (const w of width < 768 ? [320, width] : [640, width]) {
+                const c = await browser.newPage({ viewport: { width: w, height: 1400 }, isMobile: w < 768, hasTouch: w < 768 });
+                await visit(c, closingLinks);
+                await c.evaluate(() => document.fonts.ready);
+                const cl = await c.evaluate(() => {
+                    const button = document.querySelector('section [data-cta]');
+                    button.parentElement.scrollIntoView({ block: 'center' });
+                    const b = button.getBoundingClientRect();
+                    return {
+                        coarse: matchMedia('(pointer: coarse)').matches,
+                        links: [...document.querySelectorAll('section a[href="/signin"], section a[href="https://ochk.app"]')].map((a) => {
+                            const r = a.getBoundingClientRect();
+                            const range = document.createRange();
+                            range.selectNodeContents(a);
+                            const words = range.getBoundingClientRect();
+                            const [cx, cy] = [words.left + words.width / 2, r.top + r.height / 2];
+                            const lands = (x, y) => a.contains(document.elementFromPoint(x, y));
+                            return {
+                                label: a.textContent,
+                                box: Math.round(r.width * 10) / 10,
+                                words: Math.round(words.width * 10) / 10,
+                                row: Math.round(a.parentElement.getBoundingClientRect().width),
+                                tall44: lands(cx, cy - 21.5) && lands(cx, cy + 21.5),
+                                tall24: lands(cx, cy - 11.5) && lands(cx, cy + 11.5),
+                                past: lands(words.right + 16, cy),
+                                after: Math.round(r.left - b.right),
+                                beside: cy > b.top && cy < b.bottom,
+                            };
+                        }),
+                    };
+                });
+                const tag = `[${w}] Closing links`;
+                check(cl.links.length === 2, `${tag}: drew ${cl.links.length} of its 2 links`);
+                for (const l of cl.links) {
+                    check(Math.abs(l.box - l.words) <= 1 && l.box < l.row - 1, `${tag}: '${l.label}' is ${l.box}px wide, not its words' ${l.words}px (row ${l.row}px)`);
+                    check(!l.past, `${tag}: a press 16px right of '${l.label}' follows it`);
+                    check(cl.coarse ? l.tall44 : l.tall24, `${tag}: '${l.label}' is not a ${cl.coarse ? 44 : 24}px target under a ${cl.coarse ? 'coarse' : 'fine'} pointer`);
+                }
+                if (w >= 640 && cl.links.length) {
+                    const [first] = cl.links;
+                    check(first.beside && Math.abs(first.after - 24) <= 1, `${tag}: '${first.label}' is not 24px after the button on its line (${first.after}px, beside ${first.beside})`);
                 }
                 await c.close();
             }

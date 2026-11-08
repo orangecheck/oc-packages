@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- `Closing` takes `links`, the band's other ways on after its one button:
+  `{ href, label, external? }[]`, drawn as text links in the actions row.
+  Each is as wide as its words where a phone stacks the actions, so a
+  press beside the words does not follow it, stands 24px after the button
+  from 640, and is a 44px target to a thumb. A site that put a
+  `TextLink` in `actions` with its own `self-start sm:self-center` class
+  moves it to `links` and drops the class. check-layout holds the shape
+  at 320, 390, 640 and 1440; the story is "Closing, a button and links".
+
 ## [2.10.1] — 2026-11-08
 
 - `AppShell`'s JSDoc says how script reads `--oca-app-bar-h`: its value is
