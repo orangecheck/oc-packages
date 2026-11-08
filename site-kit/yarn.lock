@@ -512,9 +512,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/app-design@^2.0.0":
-  version "2.7.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-2.7.0.tgz#fab68a99a35ec0ba675f58b37c9d31f8eef5ee56"
-  integrity sha512-PQXighQEdu2Vkv7ZT2q+tAp8sJO4Y9YSQgrXcML3OaXJyJWolYjH3nW2hvx2rEpVAx9OqXJXwscZ2acztIMZeQ==
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/app-design/-/app-design-2.11.0.tgz#662a973b9a9fe42481f11f22450ed68ac38c476c"
+  integrity sha512-MtshU8Q8P6DigBIKjn42yT3PQzUYH2jwkzg6LwTbfPPpncbgktLgagfh0v1RDeDGM65HIZ+hsQB0Rz0vAm19Lw==
   dependencies:
     "@orangecheck/mark" "^0.3.0"
     "@radix-ui/react-checkbox" "^1.3.3"
