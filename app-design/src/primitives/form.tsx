@@ -146,7 +146,7 @@ export function Field({ label, hint, optional, error, children, id: fixedId, cla
     ) : null;
     return (
         <div className={cn('flex flex-col gap-2', className)}>
-            <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'flex items-baseline gap-2'}>
+            <Label id={`${id}-label`} htmlFor={id} className={hideLabel ? 'sr-only' : 'flex items-baseline gap-2'}>
                 {label}
                 {optional ? <span className="text-[0.8125rem] font-normal text-muted-foreground">Optional</span> : null}
             </Label>
@@ -269,14 +269,44 @@ export const SelectTrigger = forwardRef<
     );
 });
 
+type ListName = { 'aria-label'?: string; 'aria-labelledby'?: string };
+
+/** The name of the trigger that opened a list: its aria-labelledby, its aria-label, or the labels that point at it. */
+function triggerName(list: HTMLElement): ListName {
+    const trigger = [...list.ownerDocument.querySelectorAll<HTMLButtonElement>('[aria-controls]')].find((t) => t.getAttribute('aria-controls') === list.id);
+    if (!trigger) return {};
+    const by = trigger.getAttribute('aria-labelledby');
+    if (by) return { 'aria-labelledby': by };
+    const label = trigger.getAttribute('aria-label');
+    if (label) return { 'aria-label': label };
+    const labels = [...(trigger.labels ?? [])];
+    if (labels.length && labels.every((l) => l.id)) return { 'aria-labelledby': labels.map((l) => l.id).join(' ') };
+    const text = labels.map((l) => l.textContent?.trim()).filter(Boolean).join(' ');
+    return text ? { 'aria-label': text } : {};
+}
+
 export const SelectContent = forwardRef<
     ElementRef<typeof SelectPrimitive.Content>,
     ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(function SelectContent({ className, children, position = 'popper', ...props }, ref) {
+    // Radix names the trigger, not the list it opens: the list takes the trigger's name as it mounts, unless given one.
+    const [named, setNamed] = useState<ListName>({});
+    const own = props['aria-label'] !== undefined || props['aria-labelledby'] !== undefined;
+    const list = useCallback(
+        (node: HTMLDivElement | null) => {
+            if (typeof ref === 'function') ref(node);
+            else if (ref) ref.current = node;
+            if (!node || own) return;
+            const next = triggerName(node);
+            setNamed((was) => (was['aria-label'] === next['aria-label'] && was['aria-labelledby'] === next['aria-labelledby'] ? was : next));
+        },
+        [ref, own]
+    );
     return (
         <SelectPrimitive.Portal>
             <SelectPrimitive.Content
-                ref={ref}
+                ref={list}
+                {...named}
                 position={position}
                 sideOffset={6}
                 className={cn(

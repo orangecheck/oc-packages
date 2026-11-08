@@ -34,6 +34,8 @@
  * - Tab past a toast goes on to the page, not back to where it came from;
  *   sonner's alt+T still returns there.
  * - A highlighted menu or select item stands out from its neighbours at 3:1.
+ * - A select's open list has the name its trigger has: from aria-label,
+ *   aria-labelledby or its field's label.
  * - A tab pressed with the mouse shows no ring; one reached by the keyboard does.
  * - Shift+Tab back through a docs table scrolled right brings each link, its
  *   ring included, inside the table's box.
@@ -119,6 +121,16 @@ try {
             `which === 'select'\n` +
                 `  ? <div className="p-6"><Select defaultOpen><SelectTrigger id="sel"><SelectValue placeholder="Network" /></SelectTrigger><SelectContent><SelectItem value="a">Mainnet</SelectItem><SelectItem value="b">Signet</SelectItem><SelectItem value="c">Testnet4</SelectItem></SelectContent></Select></div>\n` +
                 `  : <div className="p-6"><DropdownMenu modal={false}><DropdownMenuTrigger id="menu">Actions</DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem>Rename</DropdownMenuItem><DropdownMenuItem>Copy link</DropdownMenuItem><DropdownMenuItem>Forget</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>`
+        ),
+        // A select named each way a page names one: aria-label, aria-labelledby, and a Field's label (Optional too).
+        selects: mount(
+            `import { Field, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '${src('primitives/form.tsx')}';\n` +
+                `const items = <SelectContent><SelectItem value="a">Mainnet</SelectItem><SelectItem value="b">Signet</SelectItem></SelectContent>;`,
+            `<div className="flex flex-col gap-6 p-6">` +
+                `<Select><SelectTrigger aria-label="Show" data-s="label"><SelectValue placeholder="All" /></SelectTrigger>{items}</Select>` +
+                `<div><span id="fed">Federation</span><Select><SelectTrigger aria-labelledby="fed" data-s="labelledby"><SelectValue placeholder="All" /></SelectTrigger>{items}</Select></div>` +
+                `<Field label="Bitcoin network" optional><Select><SelectTrigger data-s="field"><SelectValue placeholder="Pick one" /></SelectTrigger>{items}</Select></Field>` +
+                `</div>`
         ),
         tabs: mount(
             `import { Tabs, TabsList, TabsTrigger, TabsContent } from '${src('primitives/tabs.tsx')}';`,
@@ -1037,6 +1049,32 @@ try {
                 });
                 check(got.edge >= 3, `[${dark ? 'dark' : 'light'}] ${m}: the highlighted item stands out ${got.edge.toFixed(2)}:1 from the menu (${got.shadow})`);
             }
+        }
+
+        // A select's open list is named as its trigger is, as Chrome computes both (CDP's accessibility tree).
+        {
+            const cdp = await p.context().newCDPSession(p);
+            await cdp.send('Accessibility.enable');
+            const nameOf = async (selector) => {
+                const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+                const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+                const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+                return nodes[0]?.name?.value ?? '';
+            };
+            await p.goto(client('selects'));
+            for (const [way, named] of [['label', 'Show'], ['labelledby', 'Federation'], ['field', 'Bitcoin network']]) {
+                await p.waitForSelector(`[data-s="${way}"]`);
+                await p.focus(`[data-s="${way}"]`);
+                const trigger = await nameOf(`[data-s="${way}"]`);
+                await p.keyboard.press('Enter');
+                await p.waitForSelector('[role="listbox"]');
+                await p.waitForTimeout(200);
+                const list = await nameOf('[role="listbox"]');
+                check(trigger.startsWith(named) && list === trigger, `Select named by ${way}: its trigger is ${show(trigger)} and its open list ${show(list)}`);
+                await p.keyboard.press('Escape');
+                await p.waitForSelector('[role="listbox"]', { state: 'detached' });
+            }
+            await cdp.detach();
         }
 
         // Tabs: a press shows no ring; the keyboard does.
