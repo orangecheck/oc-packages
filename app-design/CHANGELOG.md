@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `SplitBar`'s card share reads on the orange band. The band makes the card
+  surface orange, so the share and its legend square were orange on orange
+  (1:1, and 1.4:1 for the square's ring). Both now draw a ring in the text
+  colour: ink on the band, 6.6:1. check-focus measures each segment and
+  square against the band at 3:1, in light and dark.
+
 ## [2.13.0] — 2026-11-08
 
 - `--oca-site-bar-h` is the site's sticky bar, its hairline in it:

@@ -8,6 +8,8 @@
  *   inside it. An invalid one keeps its red. Under forced colours a field
  *   keeps an outline.
  * - On the orange closing band the focus ring is ink, not orange on orange.
+ * - A SplitBar on the band: each segment and legend square stands out from
+ *   the orange at 3:1, by its fill or its ring.
  * - The sign-in page's first stop skips to the ceremony; every shell's skip
  *   link (AppShell's too) puts focus on its main, and so does a site's own
  *   plain <main>, even on a page that handles its own hash. On a desk,
@@ -246,6 +248,20 @@ try {
         'band',
         h(C.Section, { tone: 'brand' }, h('p', null, h('a', { href: '/docs', 'data-b': 'link' }, 'Read the docs')), h(P.Button, { 'data-b': 'button' }, 'Get an account'))
     );
+    // A SplitBar where the site puts one: on the orange band, a share of each tone.
+    const split = ssr(
+        'split',
+        h(
+            C.Section,
+            { tone: 'brand' },
+            h(C.SplitBar, {
+                segments: [
+                    { pct: 80, label: 'Goes to the person', tone: 'card' },
+                    { pct: 20, label: 'orangecheck keeps this', tone: 'ink' },
+                ],
+            })
+        )
+    );
     const signin = ssr('signin', h(Ch.SignInFrame, { title: 'Sign in', protocol: 'stamp' }, h('input', { 'data-ceremony': '', 'aria-label': 'Email' })));
     // Every dark or orange ground, a Card tone, a band and the sign-in frame's ink panel, with what
     // a page puts on it: a MonoLabel, a muted line, a card raised on it (its text and its muted line)
@@ -455,6 +471,32 @@ try {
                 });
                 check(got.b === b && got.contrast >= 3, `[${dark ? 'dark' : 'light'}] band ${b}: the focus ring is ${got.contrast?.toFixed(2)}:1 on the orange (${got.ring})`);
             }
+        }
+
+        // A SplitBar on the band: every segment and its legend square stands out from the orange at
+        // 3:1, by its fill or its ring. The band turns the card surface orange, so a card share drawn
+        // in that surface alone was orange on orange.
+        for (const dark of [false, true]) {
+            await p.goto(split);
+            await p.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark);
+            const got = await p.evaluate(() => {
+                const band = __rgb(getComputedStyle(document.querySelector('section')).backgroundColor);
+                const edge = (el) => {
+                    const cs = getComputedStyle(el);
+                    const fill = __contrast(__rgb(cs.backgroundColor, `rgb(${band.join()})`), band);
+                    const ring = __ring(cs.boxShadow);
+                    return Math.max(fill, ring ? __contrast(__rgb(ring, `rgb(${band.join()})`), band) : 1);
+                };
+                const fig = document.querySelector('figure');
+                return {
+                    segments: [...fig.querySelector('div').children].map(edge),
+                    squares: [...fig.querySelectorAll('dl span[aria-hidden]')].map(edge),
+                };
+            });
+            const mode = dark ? 'dark' : 'light';
+            check(got.segments.length === 2 && got.squares.length === 2, `[${mode}] split: ${show(got)} is not two segments and two squares`);
+            got.segments.forEach((r, i) => check(r >= 3, `[${mode}] split on the band: the ${i ? 'ink' : 'card'} segment is ${r.toFixed(2)}:1 against the orange, needs 3:1`));
+            got.squares.forEach((r, i) => check(r >= 3, `[${mode}] split on the band: the ${i ? 'ink' : 'card'} legend square is ${r.toFixed(2)}:1 against the orange, needs 3:1`));
         }
 
         // Text on a dark or orange ground reads at 4.5:1: a Card tone that set only its ground and
@@ -993,4 +1035,4 @@ if (failures) {
     console.error(`\n${failures} focus failure(s)`);
     process.exit(1);
 }
-console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, text at 4.5:1 on every dark and orange ground, skip links that land, sections a link brings up under the bar, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
+console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, split bar shares at 3:1 on it, text at 4.5:1 on every dark and orange ground, skip links that land, sections a link brings up under the bar, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
