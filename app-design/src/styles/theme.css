@@ -654,7 +654,9 @@
 
 /* Reduced motion: every animation and transition ends at once, delays too. A
    delayed entrance otherwise held its first frame for the delay (a hero's h1
-   sat 14px low for 70 ms, then snapped up). */
+   sat 14px low for 70 ms, then snapped up). Transitions take no time at all:
+   at 0.01ms every changed property, since transition-property is all, kept
+   its old value for a frame (a list's gap drew 12px, then 40px). */
 @media (prefers-reduced-motion: reduce) {
     [data-oc-app='ochk'] *,
     [data-oc-app='ochk'] *::before,
@@ -662,7 +664,7 @@
         animation-duration: 0.01ms !important;
         animation-delay: 0ms !important;
         animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        transition-duration: 0s !important;
         transition-delay: 0ms !important;
     }
 }

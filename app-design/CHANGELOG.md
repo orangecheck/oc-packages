@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- Under reduced motion a transition takes no time at all: 0s, where it was
+  0.01ms. With `transition-property` at its default, `all`, any change to
+  a property on a drawn element ran that 0.01ms transition and showed the
+  old value for a frame, so a list whose gap grew as it loaded drew it at
+  the old gap, then the new one, and moved the list under it 28px, then
+  56px (ochk.app's Activity at 390). check-layout sets a row gap from 12px
+  to 40px and reads 40px in the same frame, with and without reduced
+  motion.
+
 ## [2.14.0] — 2026-11-08
 
 - `CodeBlock`'s caption wraps onto a second line where it does not fit,
