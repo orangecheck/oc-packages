@@ -10,6 +10,7 @@ export default defineConfig({
         analytics: 'src/analytics/index.tsx',
         rate: 'src/rate/index.ts',
         document: 'src/document/index.tsx',
+        csp: 'src/csp/index.ts',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],

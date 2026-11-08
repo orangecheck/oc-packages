@@ -152,25 +152,40 @@ export interface FamilyAnalyticsProps {
     origins?: readonly string[];
 }
 
+/** The two scripts FamilyAnalytics writes; an empty string for a beacon that is off. */
+export interface FamilyAnalyticsScripts {
+    plausible: string;
+    ocpulse: string;
+}
+
 /**
- * The analytics scripts for `_document`'s `<Head>`. Values are validated as
- * the sites validated them: a bad one turns that beacon off rather than
- * reaching the page.
+ * The text of each script FamilyAnalytics writes for these props, which is
+ * also what a Content-Security-Policy hashes (`@orangecheck/site-kit/csp`).
+ * Values are validated as the sites validated them: a bad one turns that
+ * beacon off rather than reaching the page.
  */
-export function FamilyAnalytics({
+export function familyAnalyticsScripts({
     domain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? 'ochk.io',
     api = process.env.NEXT_PUBLIC_PLAUSIBLE_API ?? '/oc-insights/event',
     pulseSrc = process.env.NEXT_PUBLIC_OCPULSE_SRC ?? 'https://insights.ochk.io/oc-pulse.js',
     pulseApi = process.env.NEXT_PUBLIC_OCPULSE_API ?? 'https://insights.ochk.io/oc-pulse/event',
     enabled = process.env.NODE_ENV === 'production',
     origins,
-}: FamilyAnalyticsProps) {
-    if (!enabled) return null;
+}: FamilyAnalyticsProps = {}): FamilyAnalyticsScripts {
+    if (!enabled) return { plausible: '', ocpulse: '' };
     const gate = (script: string) => (origins ? onlyOnOrigins(origins, script) : script);
     const plausibleApi = DOMAIN_RE.test(domain) ? safeRef(api) : '';
     const src = safeRef(pulseSrc);
-    const sender = plausibleApi ? gate(plausibleSenderScript(domain, plausibleApi)) : '';
-    const loader = src ? gate(pulseLoaderScript(src, safeRef(pulseApi))) : '';
+    return {
+        plausible: plausibleApi ? gate(plausibleSenderScript(domain, plausibleApi)) : '',
+        ocpulse: src ? gate(pulseLoaderScript(src, safeRef(pulseApi))) : '',
+    };
+}
+
+/** The analytics scripts for `_document`'s `<Head>`: `familyAnalyticsScripts`, each in a script element. */
+export function FamilyAnalytics(props: FamilyAnalyticsProps) {
+    const { plausible: sender, ocpulse: loader } = familyAnalyticsScripts(props);
+    if (!sender && !loader) return null;
     return (
         <>
             {sender ? (

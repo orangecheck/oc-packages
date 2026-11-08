@@ -4,7 +4,10 @@
  * family does (pages router, site-kit left out of transpilePackages, so Next
  * loads it outside its bundle on the server), and asks a static page and a
  * getServerSideProps page for a 200 with the analytics scripts in the HTML,
- * and the og route for a 1200×630 PNG.
+ * and the og route for a 1200×630 PNG. Its next.config.ts hashes the page's
+ * inline scripts with ./csp while the config loads (app-design's theme script
+ * and the analytics) in place of 'unsafe-inline', and `oc-site-kit csp-check`
+ * must find every page's scripts in its header.
  * Also refuses any Next import in the built analytics entry: 0.3.0 imported
  * `next/router.js`, a second copy of the router's module, and a bare
  * `next/router` does not resolve under Node's ESM loader. Run after `yarn build`.
@@ -50,13 +53,22 @@ try {
     symlinkSync(pkg, join(site, 'node_modules', '@orangecheck', 'site-kit'));
     mkdirSync(join(site, 'pages'));
     writeFileSync(join(site, 'package.json'), '{"private":true}\n');
-    writeFileSync(join(site, 'next.config.mjs'), 'export default {};\n');
+    // TypeScript, so next's config loader compiles it and what it requires, as a family site's does.
+    writeFileSync(
+        join(site, 'next.config.ts'),
+        "import { familyAnalyticsScripts } from '@orangecheck/site-kit/analytics';\n" +
+            "import { inlineHashes, themeScript } from '@orangecheck/site-kit/csp';\n" +
+            "import { siteHeaders } from '@orangecheck/site-kit/headers';\n" +
+            'const scriptHashes = inlineHashes([themeScript(), ...Object.values(familyAnalyticsScripts())]);\n' +
+            "export default { transpilePackages: ['@orangecheck/app-design'], async headers() { return siteHeaders({ csp: { scriptHashes } }); } };\n"
+    );
     writeFileSync(
         join(site, 'pages', '_app.js'),
-        "import { useFamilyPageviews } from '@orangecheck/site-kit/analytics';\n" +
+        "import { ThemeProvider } from '@orangecheck/app-design/chrome';\n" +
+            "import { useFamilyPageviews } from '@orangecheck/site-kit/analytics';\n" +
             'export default function App({ Component, pageProps }) {\n' +
             '    useFamilyPageviews();\n' +
-            '    return <Component {...pageProps} />;\n' +
+            '    return <ThemeProvider><Component {...pageProps} /></ThemeProvider>;\n' +
             '}\n'
     );
     writeFileSync(
@@ -111,6 +123,12 @@ try {
             fail('/ssr does not share its own card in og:image');
         }
     }
+    const csp = (await fetch(base)).headers.get('content-security-policy') ?? '';
+    if (/script-src[^;]*'unsafe-inline'/.test(csp) || !/script-src[^;]*'sha256-/.test(csp)) {
+        fail(`script-src is not on hashes: ${csp}`);
+    }
+    const check = spawnSync(process.execPath, [join(pkg, 'dist', 'cli.js'), 'csp-check', '--min-pages', '2'], { cwd: site, encoding: 'utf8', env });
+    if (check.status !== 0) fail(`csp-check exited ${check.status}\n${check.stdout}\n${check.stderr}`);
     const pngs = {};
     for (const path of ['/api/og', '/api/og?title=hello&eyebrow=x', '/api/og?page=create']) {
         const res = await fetch(base + path);
@@ -123,6 +141,7 @@ try {
     if (!pngs['/api/og?title=hello&eyebrow=x'].equals(pngs['/api/og'])) fail("/api/og drew a request's own text");
     if (pngs['/api/og?page=create'].equals(pngs['/api/og'])) fail('/api/og?page=create did not draw its card');
     console.log("✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, og:image naming the page's card by key, and /api/og a 1200×630 PNG that draws only the site's cards");
+    console.log(`✓ next: script-src runs the theme and analytics scripts by hash, and csp-check reads every page clean (${check.stdout.trim().split('\n').pop()})`);
 } finally {
     server?.kill();
     rmSync(site, { recursive: true, force: true });

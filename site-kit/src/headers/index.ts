@@ -14,8 +14,16 @@ export interface Header {
 }
 
 export interface CspOptions {
-    /** Extra script-src hosts, after `'self' 'unsafe-inline'`. https hosts only. */
+    /** Extra script-src hosts, after `'self'` and the inline sources. https hosts only. */
     script?: readonly string[];
+    /**
+     * The page's inline scripts by hash (`'sha256-…'`, from `inlineHashes` in
+     * `@orangecheck/site-kit/csp`), listed in place of `'unsafe-inline'`: no
+     * other inline script runs. An empty list runs none. Absent: `'unsafe-inline'`,
+     * as before. `dev` keeps `'unsafe-inline'` and lists no hash, since any hash
+     * turns `'unsafe-inline'` off and next dev reprints the theme script.
+     */
+    scriptHashes?: readonly string[];
     /** connect-src sources after `'self'`: https/wss hosts, or the `https:`/`wss:` schemes. */
     connect?: readonly string[];
     /** Nostr relay URLs; each is appended to connect-src as its wss:// origin. */
@@ -79,12 +87,28 @@ export function relayOrigin(url: string): string {
 
 const dedupe = (xs: string[]) => [...new Set(xs)];
 
+// A script-src hash source: SHA-256, base64 with its padding, quoted.
+const HASH = /^'sha256-[A-Za-z0-9+/]{43}='$/;
+
+/**
+ * script-src's inline sources: the hashes, else `'unsafe-inline'`, and
+ * `'unsafe-inline'` alone under `dev`. `buildCsp` uses it; a site that
+ * writes its own policy calls it for the same rule.
+ */
+export function inlineSources(o: Pick<CspOptions, 'scriptHashes' | 'dev'>): string[] {
+    if (o.dev || o.scriptHashes === undefined) return ["'unsafe-inline'"];
+    for (const h of o.scriptHashes) {
+        if (!HASH.test(h)) throw new TypeError(`site-kit csp: ${JSON.stringify(h)} is not a 'sha256-…' script hash`);
+    }
+    return [...o.scriptHashes];
+}
+
 /** The Content-Security-Policy value. */
 export function buildCsp(o: CspOptions): string {
     const list = (d: Directive, xs: readonly string[] | undefined) => (xs ?? []).map((s) => checkSource(d, s));
     const script = dedupe([
         "'self'",
-        "'unsafe-inline'",
+        ...inlineSources(o),
         ...(o.dev ? ["'unsafe-eval'"] : []),
         ...list('script', o.script),
     ]);

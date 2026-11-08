@@ -61,6 +61,11 @@
       "import": "./dist/document.mjs",
       "require": "./dist/document.js"
     },
+    "./csp": {
+      "types": "./dist/csp.d.ts",
+      "import": "./dist/csp.mjs",
+      "require": "./dist/csp.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": {
@@ -107,7 +112,9 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^29.0.2",
+    "lucide-react": "^0.544.0",
     "next": "16.3.8",
+    "next-themes": "^0.4.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tsup": "^8.3.5",

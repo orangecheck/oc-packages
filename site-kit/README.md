@@ -14,12 +14,13 @@ Each site keeps its own deploy and passes its own values.
 | Entry | What it gives a site |
 |---|---|
 | `./seo` | `Seo`, `createSeo(site)`, `generateMetaTags`, `jsonLd` (escapes `<` `>` `&` U+2028 U+2029), and schema.org builders: `webSite`, `organization`, `softwareApplication`, `techArticle`, `webPage`. Every page names its `canonical`. A site with `ogRoute: '/api/og'` shares the route's default card, or `?page=<key>` for a page whose card title is one of its `ogCards`. No title rides the URL. |
-| `./headers` | `siteHeaders(opts)` for next.config `headers()`, `securityHeaders`, `buildCsp`. Every CSP source is validated: no `*`, no plain http, no injected directive. Relay URLs reduce to their wss origin. |
+| `./headers` | `siteHeaders(opts)` for next.config `headers()`, `securityHeaders`, `buildCsp`, `inlineSources`. Every CSP source is validated: no `*`, no plain http, no injected directive. Relay URLs reduce to their wss origin. `csp.scriptHashes` lists the page's inline scripts by hash in place of `'unsafe-inline'`; `dev` keeps `'unsafe-inline'`. |
 | `./auth` | `createSessionReader`, `createMeHandler`, `refuseCookieSession` (same-site only from a listed family site), `FAMILY_ORIGINS`. |
 | `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime. It draws only cards the site issues: `?page=<key>` from its `cards` map (a title, or `{ title, eyebrow }`), the default card for anything else. A request's own text is never drawn. Each card has one URL, the route or the route with `?page=<key>`, and any other query gets a 308 there; cards and redirects are `public, max-age=86400, s-maxage=86400`. `resolve: { name: lookup }` adds cards the site looks up, at `?name=<value>`, each kept as long as its lookup says (one that finds nothing: a 307 to the default card, kept as long but at most a day; a failed lookup: the default card, `no-store`); `basePath` puts a Next base path back on the 308. `home: { hero, top, wide }` draws app-design's `OgBento` at `?page=home`, for the site's home page to share (`cards` cannot then name `home`). Needs `@orangecheck/app-design` ^2.0.0. |
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
 | `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `hostOf(ip)`: the one requester behind it, an IPv4 address itself or an IPv6 /64, always inside its `networkOf`. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
-| `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`. Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
+| `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`, `familyAnalyticsScripts(props)` (the text `FamilyAnalytics` writes, for a policy to hash). Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
+| `./csp` | Node only, for next.config and tests. `scriptHash(text)`, `inlineHashes(scripts)`, `themeScript(props)` (the script app-design's `ThemeProvider` writes, rendered in a node of its own), and `cspCheck`, also the `oc-site-kit csp-check` CLI. |
 | `./document` | `ThemeColorMeta` for `_document`'s `<Head>`: the two `theme-color` metas, light and dark, from app-design's `THEME_COLOR` (the page's ground, generated from its tokens). Needs `@orangecheck/app-design` ^2.0.0. |
 
 ## Usage
@@ -53,6 +54,42 @@ useFamilyPageviews();
 ```json
 "build": "oc-site-kit sitemap --site https://stamp.ochk.io --exclude /dashboard && next build --webpack"
 ```
+
+## Inline scripts by hash
+
+A site's script-src can drop `'unsafe-inline'` once it lists every inline
+script its pages run. List the text of each, then hash them in next.config:
+
+```ts
+// src/lib/inline-scripts.ts: what _document renders, and nothing else
+import { logoScript } from '@orangecheck/app-design/brand';
+import { familyAnalyticsScripts } from '@orangecheck/site-kit/analytics';
+export const ANALYTICS = { origins: ['https://stamp.ochk.io'] } as const;
+export const HEAD_SCRIPTS = [logoScript(), ...Object.values(familyAnalyticsScripts(ANALYTICS))];
+
+// next.config.ts
+import { inlineHashes, themeScript } from '@orangecheck/site-kit/csp';
+import { siteHeaders } from '@orangecheck/site-kit/headers';
+const scriptHashes = inlineHashes([...HEAD_SCRIPTS, themeScript()]);
+siteHeaders({ csp: { scriptHashes, dev: process.env.NODE_ENV === 'development' } });
+```
+
+Import from relative paths in that module: next.config's loader does not map
+tsconfig paths. `themeScript()` renders next-themes in a node of its own,
+because the loader reprints every module it requires while the config loads,
+and next-themes' script is a function's source. `next dev` prints that script
+unminified, so `dev` keeps `'unsafe-inline'` and lists no hash.
+
+After the build, read every page against its header (a CI step after `next build`):
+
+```sh
+oc-site-kit csp-check              # next start on a free port; exit 1 on a gap, 2 under 10 pages
+oc-site-kit csp-check --min-pages 2 --base http://127.0.0.1:3000
+```
+
+It fails a page whose script-src allows `'unsafe-inline'`, runs an inline
+script whose hash is not listed, or carries a handler attribute or a
+`javascript:` URL, which no hash allows.
 
 ## `/api/auth/me` answers
 
