@@ -14,8 +14,8 @@ import type { TocItem } from './hero';
 /** The text's gutter, the frame's own. */
 const GUTTER = 'px-[var(--oca-frame-gutter)]';
 
-/** Where the site's sticky bar ends from 900px (its rule counts 4.5rem), with room under it. */
-const UNDER_HEADER = 'top-[calc(4.5rem+1px+2.5rem)] max-h-[calc(100svh-4.5rem-1px-2.5rem)]';
+/** Where the site's sticky bar ends (--oca-site-bar-h), with room under it. */
+const UNDER_HEADER = 'top-[calc(var(--oca-site-bar-h)+2.75rem)] max-h-[calc(100svh-var(--oca-site-bar-h)-2.75rem)]';
 
 /**
  * Which entry is being read, from where its headings sit on screen: the last one whose top has

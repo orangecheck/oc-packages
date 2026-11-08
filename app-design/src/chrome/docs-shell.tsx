@@ -222,7 +222,7 @@ export function DocsShell({
                 (56px and its hairline, 68 from 900), so nothing shows between them. */}
             <div
                 data-oca-sticky="docs-bar"
-                className="sticky top-[calc(3.5rem+1px)] z-30 border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 min-[900px]:top-[calc(4.25rem+1px)] lg:hidden"
+                className="sticky top-[var(--oca-site-bar-h)] z-30 border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 lg:hidden"
             >
                 <div className="oca-container flex h-12 items-center gap-2">
                     <Sheet open={menu} onOpenChange={setMenu}>
@@ -253,7 +253,7 @@ export function DocsShell({
             {/* The page's framed column, its rules from the header to the footer; the content on its axis. */}
             <PageFrame as="div" className="flex-1">
                 <div className="oca-container lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-x-10 xl:grid-cols-[13.5rem_minmax(0,1fr)_11rem]">
-                    <div className="sticky top-[calc(4.25rem+1px)] hidden max-h-[calc(100dvh-4.25rem-1px)] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
+                    <div className="sticky top-[var(--oca-site-bar-h)] hidden max-h-[calc(100dvh-var(--oca-site-bar-h))] self-start overflow-y-auto overscroll-contain py-8 pr-1 lg:block">
                         <DocsNav sections={nav} current={marked} />
                     </div>
                     <main id="main-content" tabIndex={-1} className="min-w-0 pb-16 pt-6 outline-none md:pt-8">
@@ -275,7 +275,7 @@ export function DocsShell({
                         </article>
                         {pager ? <div className="mt-16 max-w-[46rem]">{pager}</div> : null}
                     </main>
-                    <div className="sticky top-[calc(4.25rem+1px)] hidden max-h-[calc(100dvh-4.25rem-1px)] self-start overflow-y-auto py-10 xl:block">
+                    <div className="sticky top-[var(--oca-site-bar-h)] hidden max-h-[calc(100dvh-var(--oca-site-bar-h))] self-start overflow-y-auto py-10 xl:block">
                         {items.length > 1 ? <OnThisPage items={items} activeId={activeId} /> : null}
                     </div>
                 </div>

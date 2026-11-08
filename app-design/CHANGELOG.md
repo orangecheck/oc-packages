@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- `--oca-site-bar-h` is the site's sticky bar, its hairline in it:
+  3.5rem + 1px, 4.25rem + 1px from 900px, where the bar grows. The bar is
+  that tall, and the page's scroll-padding reads it, as do the docs' section
+  bar and sidebars, `ToolShell` and `Contents`. A page's own element that
+  sticks under the bar sets its top from it. The padding stepped up at md
+  for a bar that grows at 900px, so from 768 to 899 a linked section
+  landed 28px under the bar. Now a section lands 1rem under the site's bar,
+  and under the docs' bars, at every width; at 390 that is 16px, where it
+  was 20. check-focus measures it at 390, 768, 1024 and 1440.
+
 ## [2.12.1] — 2026-11-08
 
 - `LoadingBlock`'s notice past its deadline says "The server or the

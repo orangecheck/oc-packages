@@ -193,6 +193,9 @@
     --oca-frame-max: 82.5rem;
     --oca-frame-gutter: clamp(1rem, 0.333rem + 2.857vw, 3rem);
     --oca-frame-rule: 1px;
+    /* The site's sticky bar, its 1px hairline in it: 3.5rem, 4.25rem from 900px, where it grows. The bar
+       is this tall, and the page's scroll-padding and everything that sticks under the bar read it. */
+    --oca-site-bar-h: calc(3.5rem + 1px);
     /* How far a focus ring reaches outside its control: ring-2 plus ring-offset-2.
        A box that clips (a framed Section) keeps this much room past its edge. */
     --oca-focus-reach: 4px;
@@ -272,6 +275,14 @@
     [data-oc-app='ochk'],
     [data-oc-app='ochk'] [data-oca-depict] {
         --oc-wallet-min-height: 2.75rem;
+    }
+}
+
+@media (width >= 900px) {
+    :root[data-oc-app='ochk'],
+    [data-oc-app='ochk'],
+    [data-oc-app='ochk'] [data-oca-depict] {
+        --oca-site-bar-h: calc(4.25rem + 1px);
     }
 }
 
