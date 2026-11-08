@@ -37,4 +37,5 @@ export function appDesignVitest(root: string = process.cwd()): AppDesignVitest {
     return { resolve: { alias }, test: { server: { deps: { inline: [/@orangecheck[\\/]app-design/] } } } };
 }
 
+export { scrollMargins, type ScrollMargins } from './scroll-margins';
 export { squarePage, type SquarePage } from './square-page';

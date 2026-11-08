@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+The scroll-margin rule ships once.
+
+- `scrollMargins` from `./vitest` reads a site's source directory and names
+  each scroll-margin in it: a utility on any side, a stylesheet property, or
+  an inline style, in code, stylesheets and pages (md, mdx, html). The
+  theme's scroll-padding already keeps a linked section clear of the sticky
+  bar, so a margin lands it that much lower. It returns how many files it
+  read, how many of them are stylesheets, and each margin as `src/file:
+  match`, with no line, so a site that allows one under a second sticky band
+  keeps it through edits above it. Eight sites held a copy of this rule as a
+  test; a site now calls it and expects the list empty. check-margins plants
+  each form, a margin a stylesheet sets alone, and the files it must not read,
+  and compiles every path the package ships as a site's Tailwind reads it, to
+  no scroll-margin rule.
+
 ## [2.14.2] — 2026-11-08
 
 - A `standalone` `TextLink` keeps its 44px target when it wraps. It was

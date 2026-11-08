@@ -67,8 +67,9 @@ const CEILING = {
     // 16,314 bytes on 2026-11-06 with the pixel lockup beside the classic one (1.9 KB). The ceiling 15% over.
     './signin': 18_800,
     './acknowledgement': 11_000,
-    // 945 bytes on 2026-11-06 (2.4.0's squarePage beside the preset; a site's tests load it, never a page), 15% over.
-    './vitest': 1_100,
+    // 945 bytes on 2026-11-06 (2.4.0's squarePage beside the preset; a site's tests load it, never a page); 1,134 bytes
+    // on 2026-11-08 with scrollMargins beside them. The ceiling 15% over.
+    './vitest': 1_300,
     // 171.6 KB on 2026-11-04, 191.8 KB before its mono font was cut: og's JetBrains Mono 400 for the card labels, cut
     // to the 98 characters a family caller's mono field can draw (6.2 KB, from 27.0 KB), and its eleven baked dither
     // PNGs, 2x included (6.0 KB), inlined for Satori. The ceiling 15% over.
