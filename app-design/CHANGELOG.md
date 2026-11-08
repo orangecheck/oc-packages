@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.11.0] — 2026-11-08
+
 - `Closing` takes `links`, the band's other ways on after its one button:
   `{ href, label, external? }[]`, drawn as text links in the actions row.
   Each is as wide as its words where a phone stacks the actions, so a
