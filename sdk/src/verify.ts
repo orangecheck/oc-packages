@@ -19,7 +19,13 @@ import type {
 
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
-import { generateAttestationId, parseIdentities, readBondExtension, readMessageValue } from './canonical';
+import {
+    generateAttestationId,
+    isCanonicalAttestation,
+    parseIdentities,
+    readBondExtension,
+    readMessageValue,
+} from './canonical';
 import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
@@ -468,8 +474,8 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
         // Compute attestation ID
         const attestation_id = await generateAttestationId(input.msg);
 
-        // One value per key (SPEC §2.2).
-        if (parsed.repeated.length > 0) {
+        // One value per key (SPEC §2.2), in an attestation's canonical form (SPEC §7.1 step 1).
+        if (parsed.repeated.length > 0 || !isCanonicalAttestation(input.msg)) {
             codes.push('decode_error');
             return { ok: false, codes, network, attestation_id };
         }

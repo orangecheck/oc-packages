@@ -162,6 +162,51 @@ export function readBondExtension(value: string): number | null {
     return Number.isSafeInteger(n) ? n : null;
 }
 
+const HEADER = 'orangecheck';
+const PURPOSE = 'portable reputation attestation (non-custodial)';
+const ACK = 'I attest control of this address and bind it to my identities.';
+/** The keyed core lines after the header, in SPEC §2.1 order. */
+const CORE_KEYS = ['identities', 'address', 'purpose', 'nonce', 'issued_at', 'ack'];
+/** An extension key: printable ASCII with no colon, in lowercase (SPEC §2.2). */
+const EXTENSION_KEY = /^[!-9;-@[-~]+$/;
+
+/**
+ * Whether `message` is an attestation in canonical form (SPEC §7.1 step 1):
+ * LF line ends with exactly one trailing LF, the header and the six core lines
+ * in order with their exact literals, a 32-hex nonce, identities that parse
+ * and are written sorted, then extensions with lowercase keys in ascending
+ * order, each with a value. Nothing else is an attestation, however validly
+ * signed. The address, issue time, expiry and bond are verify()'s own checks.
+ */
+export function isCanonicalAttestation(message: string): boolean {
+    if (!message.endsWith('\n') || message.includes('\r')) return false;
+    const [header, ...rest] = message.slice(0, -1).split('\n');
+    if (header !== HEADER || rest.length < CORE_KEYS.length) return false;
+    const fields: Array<[string, string]> = [];
+    for (const line of rest) {
+        const at = line.indexOf(': ');
+        if (at < 1) return false;
+        fields.push([line.slice(0, at), line.slice(at + 2)]);
+    }
+    const core = Object.fromEntries(fields.slice(0, CORE_KEYS.length));
+    if (fields.slice(0, CORE_KEYS.length).some(([key], i) => key !== CORE_KEYS[i])) return false;
+    if (core.purpose !== PURPOSE || core.ack !== ACK || !core.address || !core.issued_at) return false;
+    if (!/^[0-9a-f]{32}$/.test(core.nonce!)) return false;
+    try {
+        if (formatIdentities(parseIdentities(core.identities!)) !== core.identities) return false;
+    } catch {
+        return false;
+    }
+    let previous = '';
+    for (const [key, value] of fields.slice(CORE_KEYS.length)) {
+        if (!EXTENSION_KEY.test(key) || key <= previous || CORE_KEYS.includes(key) || !value) {
+            return false;
+        }
+        previous = key;
+    }
+    return true;
+}
+
 /**
  * Build a canonical message following OrangeCheck Protocol v0 specification
  * @param input - Canonical input with address and identities
@@ -185,13 +230,13 @@ export function buildCanonicalMessage(
 
     // Core (strict wording + order per SPEC.md §2)
     const core = [
-        'orangecheck',
+        HEADER,
         `identities: ${identitiesStr}`,
         `address: ${address}`,
-        'purpose: portable reputation attestation (non-custodial)',
+        `purpose: ${PURPOSE}`,
         `nonce: ${nonce}`,
         `issued_at: ${issuedAt}`,
-        'ack: I attest control of this address and bind it to my identities.',
+        `ack: ${ACK}`,
     ];
 
     // Normalize and sort extensions
@@ -201,6 +246,10 @@ export function buildCanonicalMessage(
             continue;
         }
         const key = k.toLowerCase();
+        // Each extension is one line verify() reads: a key it takes and a value with no line break.
+        if (!EXTENSION_KEY.test(key) || CORE_KEYS.includes(key) || /[\r\n]/.test(String(v))) {
+            throw new Error(`invalid extension ${JSON.stringify(k)}: a lowercase ASCII key that is not a core key, a value on one line`);
+        }
         // A bond is written as SPEC §2.2 reads it, so no verifier refuses it as bond_malformed.
         if (key === 'bond' && readBondExtension(String(v)) === null) {
             throw new Error(`invalid bond: ${String(v)} is not a whole number of sats up to 2^53 - 1`);
