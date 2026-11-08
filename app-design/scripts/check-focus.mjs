@@ -1067,12 +1067,17 @@ try {
                 await p.focus(`[data-s="${way}"]`);
                 const trigger = await nameOf(`[data-s="${way}"]`);
                 await p.keyboard.press('Enter');
-                await p.waitForSelector('[role="listbox"]');
+                // The list this trigger opened, by the id its aria-controls names (set while open), not whichever listbox is first.
+                const own = `[role="listbox"][id="${await (await p.waitForSelector(`[data-s="${way}"][aria-controls]`)).getAttribute('aria-controls')}"]`;
+                await p.waitForSelector(own);
                 await p.waitForTimeout(200);
-                const list = await nameOf('[role="listbox"]');
+                const list = await nameOf(own);
                 check(trigger.startsWith(named) && list === trigger, `Select named by ${way}: its trigger is ${show(trigger)} and its open list ${show(list)}`);
                 await p.keyboard.press('Escape');
-                await p.waitForSelector('[role="listbox"]', { state: 'detached' });
+                await p.waitForSelector(own, { state: 'detached' });
+                // Radix hands focus back to the trigger a moment after its list goes. Under load that came after the next
+                // trigger took focus, and Enter reopened this one: wait for it.
+                await p.waitForFunction((w) => document.activeElement?.getAttribute('data-s') === w, way);
             }
             await cdp.detach();
         }
