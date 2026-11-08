@@ -46,7 +46,8 @@
  *   are 44px targets; a mouse sees them unchanged. A small field is drawn
  *   44px tall to a thumb and 36px to a mouse. A HashChip's link is a 44px
  *   target to a thumb, at least 44px wide, and its line keeps its height; so
- *   is a standalone TextLink, and a TextLink in a sentence is not.
+ *   is a standalone TextLink, one target across every line it wraps to, and
+ *   a TextLink in a sentence is not.
  * - SignInFrame holds still while its ceremony grows past the window: the
  *   title stays put, and the ink column is one screen tall with its art in
  *   place.
@@ -1332,6 +1333,8 @@ try {
                     // A link standing alone after a "·" is a 44px target to a thumb; the same link in a sentence is not.
                     h('p', { 'data-t': 'link-alone', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x', standalone: true }, 'Your public record')),
                     h('p', { 'data-t': 'link-prose', className: 'text-[0.8125rem]' }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x' }, 'Your public record')),
+                    // One long enough to wrap in its column: the target holds every line it takes.
+                    h('p', { 'data-t': 'link-wrap', className: 'text-[0.8125rem]', style: { width: '12rem' } }, 'Created 2 days ago · ', h(C.TextLink, { href: 'https://ochk.io/u/x', standalone: true }, 'Download every receipt and add them up yourself')),
                     // An overlay over a scene, placed absolutely as globe places one: bordered, and still a 44px target.
                     h('div', { className: 'relative h-16 w-56 bg-oca-ink' }, h(P.Button, { size: 'sm', variant: 'overlay', className: 'absolute top-3 left-4', 'data-t': 'sm-o' }, 'Data')),
                     // Disabled, as a form's Save is until something changes: its border counts, as a bordered variant's does.
@@ -2087,6 +2090,26 @@ try {
                 check(!prose.reach, `[${width}] TextLink in a sentence: its target grew to 44px`);
                 if (width < 768) check(alone.reach, `[${width} touch] TextLink standalone: link ${alone.w}×${alone.h}px, 44px target ${alone.reach}`);
                 else check(!alone.reach, `[${width} mouse] TextLink standalone: its target grew past the text`);
+                // A standalone link that wraps is one target: every point of the box its lines span is the link's, and
+                // that box reaches 44px to a thumb (24 to a mouse) from its centre. Inline, it was a strip per line.
+                const wrap = await t.evaluate(() => {
+                    const el = document.querySelector('[data-t="link-wrap"] a');
+                    // Its words only: an offsite link's sr-only note sits apart and would count as a line.
+                    const range = document.createRange();
+                    range.selectNodeContents([...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE));
+                    const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
+                    const parts = [...el.getClientRects()];
+                    const [left, right] = [Math.min(...parts.map((r) => r.left)), Math.max(...parts.map((r) => r.right))];
+                    const [top, bottom] = [Math.min(...parts.map((r) => r.top)), Math.max(...parts.map((r) => r.bottom))];
+                    const lands = (x, y) => el.contains(document.elementFromPoint(x, y));
+                    let holes = 0;
+                    for (let x = left + 2; x < right - 1; x += 6) for (let y = top + 2; y < bottom - 1; y += 3) if (!lands(x, y)) holes++;
+                    const [cx, cy] = [(left + right) / 2, (top + bottom) / 2];
+                    const reach = (d) => lands(cx, cy - d) && lands(cx, cy + d) && lands(cx - d, cy) && lands(cx + d, cy);
+                    return { lines, w: Math.round(right - left), h: Math.round(bottom - top), holes, thumb: reach(21.5), mouse: reach(11.5) };
+                });
+                check(wrap.lines >= 2, `[${width}] TextLink standalone in a 12rem column: ${wrap.lines} line, so the wrap is not tested`);
+                check(wrap.holes === 0 && (width < 768 ? wrap.thumb : wrap.mouse), `[${width}${width < 768 ? ' touch' : ' mouse'}] TextLink standalone across ${wrap.lines} lines: ${wrap.holes} points of its ${wrap.w}×${wrap.h}px box miss it, ${width < 768 ? 44 : 24}px reach ${width < 768 ? wrap.thumb : wrap.mouse}`);
                 // A disabled button's target is a thumb's 44px as an enabled one's is. It takes no pointer, so its ::before is read.
                 const off = await t.$$eval('[data-d]', (els) =>
                     els.map((el) => {

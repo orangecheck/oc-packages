@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- A `standalone` `TextLink` keeps its 44px target when it wraps. It was
+  inline, and an absolute `::before` on an inline that breaks across
+  lines takes the box from the first line's start to the last line's
+  end, so the target shrank to a strip per line: 161x18 at 390. It is now
+  one box (`inline-block`, its vertical padding dropped so the line keeps
+  its height): it moves to the next line whole rather than break after a
+  "·", and a link longer than its line is one target across every line.
+  As a flex item it is now its text's height; `Closing` gives its links
+  the padding back, since that padding spaces its stacked actions.
+  check-layout wraps one in a 12rem line at 390 and 1440 and finds no
+  point in its box that misses it.
+
 ## [2.14.1] — 2026-11-08
 
 - Under reduced motion a transition takes no time at all: 0s, where it was
