@@ -21,6 +21,15 @@
   stack is now `--oca-stack-z` in the stylesheet rather than an inline
   `z-index`. check-focus Tabs into a covered card's link at 390 and 1440
   and finds the link, its corners and its ring on top.
+- A `Select`'s open list has its trigger's name. Radix names the trigger
+  and leaves the `listbox` it opens unnamed, so a screen reader announced
+  an unnamed list (ochk.app's filters and form selects). `SelectContent`
+  now takes the trigger's `aria-labelledby` or `aria-label`, or else the
+  labels that point at it. A `Field`'s label carries an id (`<id>-label`),
+  so the list's name matches the trigger's, "Optional" included. An
+  `aria-label` or `aria-labelledby` given to `SelectContent` still wins.
+  check-focus opens a select named each way and compares the names Chrome
+  computes for the list and for its trigger.
 
 ## [2.14.1] — 2026-11-08
 
