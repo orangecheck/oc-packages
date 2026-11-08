@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.10.1] — 2026-11-08
+
 - `AppShell`'s JSDoc says how script reads `--oca-app-bar-h`: its value is
   a CSS length (4.5rem, or a calc), so the number in pixels comes from a
   probe's computed height, never from parseFloat.
