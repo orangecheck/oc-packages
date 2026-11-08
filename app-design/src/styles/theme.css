@@ -611,6 +611,16 @@
     display: none;
 }
 
+/* AppShell's switcher room (SwitchRoom): drawn only while the root carries data-oca-switch, set by an app's head
+   script before the body paints. Unlayered, so no utility shows it without the mark. */
+[data-oc-app='ochk'] [data-oca-switch-room] {
+    display: none;
+}
+:root[data-oc-app='ochk'][data-oca-switch] [data-oca-switch-room],
+:root[data-oca-switch] [data-oc-app='ochk'] [data-oca-switch-room] {
+    display: flex;
+}
+
 /* A field in focus: a 2px edge in the ring colour (3.56:1 on the light card, 6.17:1 on the
    dark) and the soft halo outside it. Keyed on [data-oca-field], so a field styled inline
    (the sign-in ceremony) wears the same look; important, so its inline border cannot hide it.

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- `AppShell`'s desk sidebar holds the section switcher's room while the
+  root carries `data-oca-switch`: an app that keeps the account's
+  sections from its last visit sets it in a head script before the body
+  paints, and takes it off once its sections are known. The page rows
+  then stand where the switcher will put them, rather than moving down
+  when it arrives after first paint. With no mark the room takes no
+  space. check-layout holds it.
+
 ## [2.11.0] — 2026-11-08
 
 - `Closing` takes `links`, the band's other ways on after its one button:
