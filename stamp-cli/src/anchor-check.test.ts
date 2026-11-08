@@ -2,7 +2,7 @@ import type { StampEnvelope } from '@orangecheck/stamp-core';
 import { hexDecode, makeAnchorVerifier } from '@orangecheck/stamp-ots';
 import { describe, expect, it } from 'vitest';
 
-import { advanceOts } from './anchor-check';
+import { advanceOts, otsFailure } from './anchor-check';
 
 // opentimestamps-client examples/incomplete.txt.ots, pending at alice, and
 // alice's real answer for its commitment, which reaches block 428648.
@@ -73,5 +73,25 @@ describe('advanceOts', () => {
     it('keeps the existing pending proof while the calendar has no upgrade', async () => {
         const next = await advanceOts(pending, { headers: chain, fetch: calendar(null) });
         expect(next.ots).toEqual(pending.ots);
+    });
+
+    it('says the calendars could not be reached when none answers, instead of reporting pending', async () => {
+        const down = (async () => {
+            throw new Error('connect ECONNREFUSED');
+        }) as unknown as typeof fetch;
+        const failed = await advanceOts(pending, { headers: chain, fetch: down }).then(
+            () => null,
+            (e: unknown) => e
+        );
+        expect(failed).not.toBeNull();
+        const said = otsFailure(failed, true);
+        expect(said).toMatch(/^no calendar this stamp names could be reached, so its proof is unchanged/);
+        expect(said).toContain(`${INC_CALENDAR}: `);
+        expect(said).toContain('ECONNREFUSED');
+    });
+
+    it('keeps the plain wording for any other failure', () => {
+        expect(otsFailure(new Error('bad proof'), true)).toBe('OTS upgrade failed: bad proof');
+        expect(otsFailure('down', false)).toBe('OTS submission failed: down');
     });
 });
