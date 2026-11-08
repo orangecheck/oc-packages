@@ -197,9 +197,9 @@
     "@scure/base" "^1.2.6"
 
 "@orangecheck/nostr-core@^0.8.2":
-  version "0.8.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.2.tgz#a0be7dd4fb4e492866c00074aca698c1bf189701"
-  integrity sha512-USJBT1js3CH5/5Tb6SIJnmWGRYNgYGmYPeuuEGATDKavBZ/i6ZpWqkhdeZGkaAX4urFoe4DYBoiPiilfBR54lg==
+  version "0.8.3"
+  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.3.tgz#75415fc70794ae42948731be3823d147dce1e977"
+  integrity sha512-YSqOiL8iLkgwFWQ7yL16d1iO7yYAM1QpNgoSB9q3ZuBP80yppKI/E8zCXQurjf1DhGdgv3TscxXZY8W6b5WLUA==
   dependencies:
     "@noble/curves" "^1.9.0"
     "@noble/hashes" "^1.8.0"
