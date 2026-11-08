@@ -64,6 +64,31 @@ The provider hits `GET /api/auth/me` (same origin) to load the current
 session. Your app is responsible for implementing that endpoint using
 `@orangecheck/auth-core`'s `verifySessionToken()`.
 
+The provider sends that read once your bundle has loaded and hydrated. A
+static page can start it sooner, from the document head, and hand it over
+with `firstRead`; the provider then reads nothing itself on its first check,
+and reads again on its own if that read fails, times out, answers other than
+2xx, or has a body without an `account`:
+
+```tsx
+// pages/_document.tsx, in <Head>
+<script
+    dangerouslySetInnerHTML={{
+        __html: "window.__ocMe=fetch('/api/auth/me',{credentials:'include',headers:{Accept:'application/json'}});window.__ocMe.catch(function(){});",
+    }}
+/>
+
+// pages/_app.tsx
+<OcSessionProvider
+    config={config}
+    firstRead={() => {
+        const started = window.__ocMe;
+        window.__ocMe = undefined;
+        return started;
+    }}
+>
+```
+
 ## Read the session
 
 ```tsx
@@ -112,7 +137,7 @@ me-client's button (see "Not an `ochk.io` site?" above).
 ## API
 
 ```ts
-OcSessionProvider({ children, config?, defaultReturnTo? })
+OcSessionProvider({ children, config?, defaultReturnTo?, firstRead? })
 
 useOcSession(): {
     status: 'loading' | 'authenticated' | 'anonymous' | 'error';

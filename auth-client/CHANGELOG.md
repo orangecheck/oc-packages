@@ -9,6 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `<OcSessionProvider firstRead>`: a page can start its first session read
+  itself, from a script in the document head, before the bundle loads, and
+  hand the response over. The provider takes it once, for its first check,
+  and sends no read of its own. It reads again itself when that read fails,
+  takes longer than the check's ten seconds, answers other than 2xx, has a
+  body that is not the session read's shape (an object whose `account` is
+  null or an object), or arrives in a tab that carries a pin, since the
+  page's read carries no pin. Without the prop nothing changes.
+
 ## [2.42.4] — 2026-11-08
 
 ### Fixed

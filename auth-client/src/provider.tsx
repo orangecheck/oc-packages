@@ -162,6 +162,32 @@ function isTimeout(err: unknown): boolean {
     return name === 'TimeoutError' || name === 'AbortError';
 }
 
+/**
+ * A session read the page started itself, kept when it answered 2xx within
+ * the timeout with a body of the session read's shape (an object with an
+ * `account`, null or an object). Anything else is null, and the provider
+ * reads again on its own.
+ */
+async function adoptStarted(started: Promise<Response>): Promise<Response | null> {
+    try {
+        const signal = timeoutSignal(ME_TIMEOUT_MS);
+        const res = await Promise.race([
+            started,
+            new Promise<never>((_, reject) =>
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+            ),
+        ]);
+        if (!res.ok) return null;
+        const body: unknown = await res.clone().json();
+        if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
+        const account = (body as { account?: unknown }).account;
+        if (typeof account !== 'object' || Array.isArray(account)) return null;
+        return res;
+    } catch {
+        return null;
+    }
+}
+
 async function fetchHostRoster(cfg: Required<OcAuthConfig>): Promise<OcAccountSummary[]> {
     try {
         // Per-tab · carry the pin so the host computes "peers" relative
@@ -212,6 +238,15 @@ export interface OcSessionProviderProps {
      * restored on return (./return-to).
      */
     defaultReturnTo?: string;
+    /**
+     * The page's own start on the first session check: a script in the
+     * document head can send the same `GET mePath` with credentials before
+     * the bundle loads, and hand its response here. Called once, for the
+     * first check only. A read that fails, times out, answers other than 2xx,
+     * has a body without an `account` (null or an object), or arrives while
+     * this tab carries a pin, is dropped and the provider reads again itself.
+     */
+    firstRead?: () => Promise<Response> | null | undefined;
 }
 
 /**
@@ -222,6 +257,7 @@ export function OcSessionProvider({
     children,
     config,
     defaultReturnTo,
+    firstRead,
 }: OcSessionProviderProps): React.ReactElement {
     const cfg = React.useMemo(() => resolveConfig(config), [config]);
     // Back from a sign-in or a check: put back the fragment its return
@@ -241,6 +277,8 @@ export function OcSessionProvider({
     const [status, setStatus] = React.useState<OcSessionState['status']>('loading');
     const [error, setError] = React.useState<Error | null>(null);
     const [tabPinned, setTabPinned] = React.useState(false);
+    // Taken by the first check only; every later check reads for itself.
+    const firstReadRef = React.useRef(firstRead);
 
     // Per-tab · mint a pin for this tab via the host. Called once per
     // tab on first authenticated resolve, so a later switch in ANOTHER
@@ -289,14 +327,27 @@ export function OcSessionProvider({
         if (typeof window === 'undefined') return;
         try {
             let pin = readTabSession();
-            // A check that never answers would leave the page loading for good;
-            // past the timeout it is an error, which every site already shows.
-            let res = await fetch(cfg.mePath, {
-                method: 'GET',
-                credentials: 'include',
-                headers: { Accept: 'application/json', ...tabSessionHeader() },
-                signal: timeoutSignal(ME_TIMEOUT_MS),
-            });
+            const take = firstReadRef.current;
+            firstReadRef.current = undefined;
+            let started: Promise<Response> | null = null;
+            try {
+                const got = take?.();
+                started = got ? Promise.resolve(got) : null;
+            } catch {
+                started = null;
+            }
+            // The page's own start carries no pin, so a pinned tab reads again.
+            if (started && pin) started.catch(() => undefined);
+            let res =
+                (started && !pin ? await adoptStarted(started) : null) ??
+                // A check that never answers would leave the page loading for good;
+                // past the timeout it is an error, which every site already shows.
+                (await fetch(cfg.mePath, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { Accept: 'application/json', ...tabSessionHeader() },
+                    signal: timeoutSignal(ME_TIMEOUT_MS),
+                }));
             // Per-tab · 401 with a pin present means the pinned token is
             // dead (expired, or revoked and rejected by the host). Drop
             // the pin and retry once as the browser-default account.
