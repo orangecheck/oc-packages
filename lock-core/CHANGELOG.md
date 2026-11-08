@@ -7,6 +7,14 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+## [1.5.1] — 2026-11-08
+
+### Dependencies
+
+- `@orangecheck/stamp-ots` ^0.7.0, so a project on stamp-ots 0.7 installs one copy.
+
 ## [1.5.0] — 2026-10-31
 
 ### Added — `computeEnvelopeId`

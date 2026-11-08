@@ -8,6 +8,12 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
 
 ## [Unreleased]
 
+## [0.2.7] — 2026-11-08
+
+### Dependencies
+
+- `@orangecheck/stamp-ots` ^0.7.0, so a project on stamp-ots 0.7 installs one copy.
+
 ## [0.2.6] — 2026-11-06
 
 ### Changed

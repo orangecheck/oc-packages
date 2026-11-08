@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-08
+
 ### Changed
 
 - `stamp anchor` says when no calendar a pending stamp names could be
@@ -19,7 +21,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Dependencies
 
-- `@orangecheck/stamp-ots` ^0.7.0.
+- `@orangecheck/stamp-ots` ^0.7.0: a block-header read from mempool.space, in
+  `stamp verify` and `stamp anchor`, times out after 15 s instead of waiting.
 
 ## [0.3.2] — 2026-11-02
 
