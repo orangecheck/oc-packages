@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.14.2] — 2026-11-08
+
 - A `standalone` `TextLink` keeps its 44px target when it wraps. It was
   inline, and an absolute `::before` on an inline that breaks across
   lines takes the box from the first line's start to the last line's
