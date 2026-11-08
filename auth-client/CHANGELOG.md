@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.43.0] — 2026-11-08
+
 ### Added
 
 - `<OcSessionProvider firstRead>`: a page can start its first session read
