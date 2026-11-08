@@ -326,6 +326,33 @@ test('the ochk.app terms say when a payout is held and what releases it', () => 
     assert.match(text, /for 24 hours after you change your payout destination/);
 });
 
+// While payouts are in testing no one can start a cash-out: a balance above zero is settled by
+// hand before the account is deleted (lead decision, 2026-11-08).
+test('the ochk.app terms and privacy say a balance is settled by hand before deletion', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        assert.doesNotMatch(text, /instruct a cash-out|settle a non-zero balance first/i, name);
+        assert.match(
+            text,
+            /While payouts are in testing there is no cash-out to start yourself: if your balance is above zero, \[contact us\]\(\/contact\) before you delete, and we settle it by hand first\./,
+            name
+        );
+    }
+});
+
+// The decided words: in testing, what you earn, account id (lead decision, 2026-11-08).
+// The terms' summary line is all lowercase on purpose, product names too.
+test('the ochk.app terms and privacy use the decided words', () => {
+    for (const name of ['me/terms', 'me/privacy']) {
+        const text = DOCS.find(([n]) => n === name)[1];
+        assert.doesNotMatch(text, /bring-?up/i, `${name}: in testing`);
+        assert.doesNotMatch(text, /cash-?back/i, `${name}: what you earn`);
+        assert.doesNotMatch(text, /did_oc/, `${name}: account id`);
+    }
+    const { summary } = buildDoc('me', 'terms');
+    assert.equal(summary, summary.toLowerCase());
+});
+
 test('ochk.io privacy says who completes a deletion, what blocks it, and what stays', () => {
     const text = DOCS.find(([n]) => n === 'www/privacy')[1];
     for (const fact of [
@@ -357,8 +384,11 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
         me: {
-            first: '29 October',
+            first: '8 November',
+            updated: '2026-11-08',
+            lead: /^\*\*What changed, 8 October to 8 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
             facts: [
+                'a balance above zero is settled by hand before your account is deleted',
                 'the contact form sends your email address',
                 'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
                 'me.ochk.io records which sites you sign in to or share data with, and when',
@@ -378,11 +408,13 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     };
     // 0.7.29 changed ochk.app's wording only; 0.7.30 lists the logo cookie, a preference like oc_theme
     // that says nothing about you. Neither changed what is kept about you, so neither adds a note.
-    for (const [site, { first, facts, updated = '2026-11-06' }] of Object.entries(notes)) {
+    // 0.7.32 says how ochk.app settles a balance before deletion, so its note and date move to 8 November.
+    const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
+    for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
         const [lead, list] = doc.preamble ?? [];
         assert.equal(lead?.kind, 'callout', site);
-        assert.match(lead.text, /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./, site);
+        assert.match(lead.text, heading, site);
         assert.match(lead.text, /the \[changelog\]\(https:\/\/github\.com\/orangecheck\/oc-packages\/blob\/main\/legal\/CHANGELOG\.md\) lists every change\.$/, site);
         assert.equal(list?.kind, 'bullets', site);
         assert.equal(list.items[0].k, first, site);

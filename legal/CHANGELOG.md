@@ -8,6 +8,22 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app says how a balance is settled before deletion
+
+The `me` profile's Terms (termination) told a person with a balance above zero
+to bind a payout destination and instruct a cash-out before deleting, or to
+contact us. Its Privacy policy (identity & account deletion) said to settle a
+non-zero balance first. While payouts are in testing there is no cash-out to
+start yourself, so both now say: if your balance is above zero, contact us
+before you delete, and we settle it by hand first. The Privacy policy's "What
+changed" note gains an entry for 8 November, and both documents are dated
+2026-11-08.
+
+Both documents also use the words ochk.app uses elsewhere: "while ochk.app is
+in testing" where they said "during bring-up", "what you earn" where they said
+"cashback", and "an opaque account id (did:oc)" where the Privacy policy said
+"opaque did_oc". No other claim changes.
+
 ## [0.7.31] — 2026-11-07
 
 ### Changed — ochk.app's links name the pages that hold them
