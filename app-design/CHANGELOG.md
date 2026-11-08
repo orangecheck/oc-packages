@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.14.1] — 2026-11-08
+
 - Under reduced motion a transition takes no time at all: 0s, where it was
   0.01ms. With `transition-property` at its default, `all`, any change to
   a property on a drawn element ran that 0.01ms transition and showed the
