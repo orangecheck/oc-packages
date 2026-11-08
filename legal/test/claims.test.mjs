@@ -348,6 +348,8 @@ test('the ochk.app terms and privacy use the decided words', () => {
         assert.doesNotMatch(text, /bring-?up/i, `${name}: in testing`);
         assert.doesNotMatch(text, /cash-?back/i, `${name}: what you earn`);
         assert.doesNotMatch(text, /did_oc/, `${name}: account id`);
+        assert.doesNotMatch(text, /your settings/i, `${name}: ochk.app calls it the Account page`);
+        assert.match(text, /your Account page/, `${name}: names the Account page`);
     }
     const { summary } = buildDoc('me', 'terms');
     assert.equal(summary, summary.toLowerCase());
