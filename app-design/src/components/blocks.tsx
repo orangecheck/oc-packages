@@ -9,6 +9,7 @@ import { ClosingField, ClosingMark } from './closing-art';
 import { HERO_ACTIONS } from './hero';
 import { Reveal } from './motion';
 import { Section, SectionIntro, type SectionProps } from './section';
+import { TextLink } from './text-link';
 import { Display, Eyebrow } from './typography';
 
 /**
@@ -219,8 +220,12 @@ export function ProofStrip({ items, className }: { items: { icon?: ReactNode; la
     );
 }
 
+/** A closing link's look: its words' width on a phone, where the actions stack, and 24px after the button from sm. */
+const CLOSING_LINK = 'self-start text-[1.0625rem] font-medium sm:ml-3 sm:self-center';
+
 /**
- * The last band of a page: one large line, the actions, and the check settling beside them.
+ * The last band of a page: one large line, the actions, and the check settling beside them. Its one button goes in
+ * `actions`; any other way on goes in `links`, which draws it as a text link that keeps its own width and target.
  * `art="dither"` draws the family's closing: on burnt, the check in ordered dither rising out of
  * the dither field at the band's foot.
  */
@@ -228,6 +233,7 @@ export function Closing({
     title,
     lead,
     actions,
+    links,
     fineprint,
     art,
     as: Tag = 'h2',
@@ -237,6 +243,11 @@ export function Closing({
     title: ReactNode;
     lead?: ReactNode;
     actions?: ReactNode;
+    /**
+     * The band's other ways on, after its one button, as text links: as wide as their words, with a 44px target
+     * to a thumb. Another site opens in a new tab unless `external` is false (a family site, in this one).
+     */
+    links?: { href: string; label: ReactNode; external?: boolean }[];
     /** Small print under the actions: a credit (Acknowledgement), what a button commits you to. */
     fineprint?: ReactNode;
     /**
@@ -265,7 +276,16 @@ export function Closing({
                         {lead ? <p className="oca-lead max-w-[34rem]">{lead}</p> : null}
                     </div>
                     {/* The page's CTA pair, as in the hero: stacked full width on a phone, in DOM order. */}
-                    {actions ? <div className={HERO_ACTIONS}>{actions}</div> : null}
+                    {actions || links?.length ? (
+                        <div className={HERO_ACTIONS}>
+                            {actions}
+                            {links?.map((l) => (
+                                <TextLink key={l.href} href={l.href} external={l.external} standalone className={CLOSING_LINK}>
+                                    {l.label}
+                                </TextLink>
+                            ))}
+                        </div>
+                    ) : null}
                     {/* 52ch in em: a ch is the face's 0, which the fallback draws 6% narrower, so the measure moved at the swap. */}
                     {fineprint ? <div className="max-w-[32.7em] text-[0.875rem] leading-relaxed text-muted-foreground">{fineprint}</div> : null}
                 </Reveal>

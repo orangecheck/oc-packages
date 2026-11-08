@@ -190,6 +190,31 @@ export const ClosingDither: StoryObj = {
     ),
 };
 
+/**
+ * One button, then the band's other ways on as `links`: on a phone each is as wide as its words under the stacked
+ * button, with a 44px target to a thumb; from 640 they sit on the button's line, 24px after it.
+ */
+export const ClosingLinks: StoryObj = {
+    name: 'Closing, a button and links',
+    render: () => (
+        <Closing
+            art="dither"
+            title="Open protocols. Checked against Bitcoin."
+            lead="Read a spec, add a package, or try a tool. Nothing to sign up for."
+            actions={
+                <Button size="lg" plus>
+                    Read the docs
+                </Button>
+            }
+            links={[
+                { href: '/signin', label: 'Get an account' },
+                { href: 'https://ochk.app', label: 'Open ochk.app', external: false },
+            ]}
+            fineprint={<Acknowledgement />}
+        />
+    ),
+};
+
 /** Excerpted from the family's privacy policy in @orangecheck/legal, which renders as-is. */
 const PRIVACY: LegalSource = {
     eyebrow: 'privacy',
