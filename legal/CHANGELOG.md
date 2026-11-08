@@ -8,6 +8,8 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.33] — 2026-11-08
+
 ### Changed — ochk.app's deletion page is called by its name
 
 The `me` profile's Terms (termination) and Privacy policy (its summary and
