@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
 A site's script-src can run its inline scripts by hash instead of
 `'unsafe-inline'`. `buildCsp` takes `scriptHashes` and lists them in its
