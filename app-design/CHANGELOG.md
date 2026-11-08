@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.12.1] — 2026-11-08
+
 - `LoadingBlock`'s notice past its deadline says "The server or the
   connection is slow. Try again in a moment." under its title, in place
   of "Check your connection, then try again.", which put a slow server on
