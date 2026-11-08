@@ -2455,6 +2455,31 @@ try {
                 check(!still.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] under reduced motion a Reveal still waits out a delay: ${still.reveal}`);
                 check(moving.animated.some(([, delay]) => delay !== '0s') && moving.reveal.split(',').some((t) => parseFloat(t) > 0), `[${width}] no entrance or Reveal has a delay without reduced motion, so this check reads nothing: ${moving.reveal}`);
             }
+            // Reduced motion: a change lands in the frame it is made. Any transition, even 0.01ms, kept every changed
+            // property (transition-property is all) at its old value for a frame. Without reduced motion nothing here
+            // declares a transition, so the control reads the new gap too.
+            {
+                const gapNow = async (reduce) => {
+                    const c = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: reduce ? 'reduce' : 'no-preference' });
+                    await visit(c, heroes);
+                    const g = await c.evaluate(() => {
+                        const el = document.createElement('div');
+                        el.style.cssText = 'display:flex;flex-direction:column;row-gap:12px';
+                        el.append(document.createElement('div'), document.createElement('div'));
+                        document.body.append(el);
+                        getComputedStyle(el).rowGap;
+                        el.style.rowGap = '40px';
+                        const now = getComputedStyle(el).rowGap;
+                        el.remove();
+                        return now;
+                    });
+                    await c.close();
+                    return g;
+                };
+                const [still, moving] = [await gapNow(true), await gapNow(false)];
+                check(still === '40px', `[${width}] under reduced motion a change waits a frame: a row gap set from 12px to 40px reads ${still}`);
+                check(moving === '40px', `[${width}] the gap control reads ${moving} without reduced motion, so the check reads nothing`);
+            }
             // A hero's CTA pair, and the closing band's: full width and stacked on a phone (at 320 as at 390), a row of
             // their own widths from 640px.
             for (const w of width < 768 ? [320, width] : [width]) {
