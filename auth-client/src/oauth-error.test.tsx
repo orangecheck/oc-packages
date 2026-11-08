@@ -2,7 +2,8 @@
 /**
  * A provider sign-in the auth host refused comes back as `?oauth_error=…`.
  * Two refusals have a next step the person can take, so OcSignIn says what
- * happened and what to do; anything else keeps the general line.
+ * happened and what to do; anything else keeps the general line. The host
+ * names the provider as `oauth_provider`, shown only when it is one we know.
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
 import * as React from 'react';
@@ -23,8 +24,13 @@ afterEach(() => {
     window.history.replaceState({}, '', '/');
 });
 
-async function bannerFor(reason: string, family = false): Promise<string | null> {
-    window.history.replaceState({}, '', `/signin?oauth_error=${encodeURIComponent(reason)}`);
+async function bannerFor(
+    reason: string,
+    family = false,
+    provider?: string
+): Promise<string | null> {
+    const named = provider === undefined ? '' : `&oauth_provider=${encodeURIComponent(provider)}`;
+    window.history.replaceState({}, '', `/signin?oauth_error=${encodeURIComponent(reason)}${named}`);
     render(
         family ? (
             <OcSignIn providersFirst={false} onSuccess={vi.fn()} />
@@ -55,6 +61,33 @@ describe('OcSignIn after a refused provider sign-in', () => {
     });
 
     it('keeps the general line for anything else', async () => {
-        expect(await bannerFor('access_denied')).toMatch(/didn.t finish/);
+        expect(await bannerFor('access_denied')).toBe(
+            "That sign-in didn't finish. Try again, or use another way below."
+        );
+    });
+
+    it('names the provider the sign-in went through', async () => {
+        expect(await bannerFor('access_denied', false, 'google')).toBe(
+            "That Google sign-in didn't finish. Try again, or use another way below."
+        );
+        cleanup();
+        expect(await bannerFor('1', true, 'github')).toBe(
+            "That GitHub sign-in didn't finish. Try again, or use another way below."
+        );
+    });
+
+    it('names the one provider whose other account is linked', async () => {
+        expect(await bannerFor('account_mismatch', false, 'github')).toBe(
+            'A different GitHub account is already linked to this email. Use that one, or sign in with an email code below.'
+        );
+    });
+
+    it('shows no provider name it does not know', async () => {
+        for (const provider of ['Your bank', 'GOOGLE', '', 'constructor', '__proto__']) {
+            expect(await bannerFor('access_denied', false, provider)).toBe(
+                "That sign-in didn't finish. Try again, or use another way below."
+            );
+            cleanup();
+        }
     });
 });

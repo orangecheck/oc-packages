@@ -9,6 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `<OcSignIn>` names the provider a refused sign-in went through. The auth
+  host can add `oauth_provider=google` or `oauth_provider=github` beside
+  `oauth_error`, and the line reads "That Google sign-in didn't finish"
+  instead of "That sign-in didn't finish". An `account_mismatch` names that
+  one provider in place of "Google or GitHub". Any other value names none,
+  so the URL cannot put words of its own in the line.
+
 ## [2.42.3] — 2026-11-05
 
 ### Fixed
