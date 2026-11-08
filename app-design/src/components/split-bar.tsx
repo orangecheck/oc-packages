@@ -4,7 +4,8 @@ import { cn } from '../lib/cn';
 
 /*
  * Where a payment goes, as one bar: each segment's width is its share. Made for
- * the orange band ("What it costs"), where ink and white both clear contrast.
+ * the orange band ("What it costs"). The band turns the card surface orange, so a
+ * card share and its legend square draw a ring in the text colour (ink there).
  */
 export interface SplitSegment {
     pct: number;
@@ -30,7 +31,7 @@ export function SplitBar({
                         key={i}
                         className={cn(
                             'flex min-w-[4.25rem] items-end rounded-none px-3 pb-2.5 md:px-4 md:pb-3',
-                            s.tone === 'card' ? 'bg-oca-surface text-oca-surface-foreground' : 'bg-oca-ink text-oca-ink-foreground'
+                            s.tone === 'card' ? 'bg-oca-surface text-oca-surface-foreground ring-2 ring-current ring-inset' : 'bg-oca-ink text-oca-ink-foreground'
                         )}
                         style={{ flexBasis: `${s.pct}%` }}
                     >
@@ -51,7 +52,7 @@ export function SplitBar({
                             aria-hidden
                             className={cn(
                                 'inline-block size-2.5 shrink-0 translate-y-[-1px] rounded-none',
-                                s.tone === 'card' ? 'bg-oca-surface ring-1 ring-border' : 'bg-oca-ink'
+                                s.tone === 'card' ? 'bg-oca-surface ring-1 ring-current' : 'bg-oca-ink'
                             )}
                         />
                         <dd className="text-[0.9375rem] leading-snug">{s.label}</dd>
