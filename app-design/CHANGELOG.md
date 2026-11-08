@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.13.1] — 2026-11-08
+
 - `SplitBar`'s card share reads on the orange band. The band makes the card
   surface orange, so the share and its legend square were orange on orange
   (1:1, and 1.4:1 for the square's ring). Both now draw a ring in the text
