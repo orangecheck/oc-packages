@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.15.0] — 2026-11-08
+
 The scroll-margin rule ships once.
 
 - `scrollMargins` from `./vitest` reads a site's source directory and names
