@@ -13,6 +13,14 @@
   the padding back, since that padding spaces its stacked actions.
   check-layout wraps one in a 12rem line at 390 and 1440 and finds no
   point in its box that misses it.
+- `StackCards` brings a card up over the stack while the keyboard's focus
+  is in it, upright and opaque, and puts it back when focus leaves.
+  The next card used to lie over a link the keyboard had reached, and the
+  covered card had faded to nothing, so neither the link nor its ring
+  showed (ochk.app's home at 390, WCAG 2.4.11). Each card's place in the
+  stack is now `--oca-stack-z` in the stylesheet rather than an inline
+  `z-index`. check-focus Tabs into a covered card's link at 390 and 1440
+  and finds the link, its corners and its ring on top.
 
 ## [2.14.1] — 2026-11-08
 

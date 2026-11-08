@@ -443,6 +443,7 @@
 [data-oc-app='ochk'] .oca-stack-item {
     position: sticky;
     top: var(--oca-stack-top, 5rem);
+    z-index: var(--oca-stack-z);
 }
 [data-oc-app='ochk'] .oca-stack-panel {
     --tilt: 1.25deg;
@@ -453,6 +454,14 @@
 }
 [data-oc-app='ochk'] .oca-stack-item:nth-child(even) .oca-stack-panel {
     --tilt: -1.25deg;
+}
+/* The keyboard's focus in a card brings it up over the card that slid over it, upright and opaque. */
+[data-oc-app='ochk'] .oca-stack-item:has(:focus-visible) {
+    z-index: calc(var(--oca-stack-n) + 1);
+}
+[data-oc-app='ochk'] .oca-stack-item:has(:focus-visible) .oca-stack-panel {
+    transform: none;
+    opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
     [data-oc-app='ochk'] .oca-stack-item {

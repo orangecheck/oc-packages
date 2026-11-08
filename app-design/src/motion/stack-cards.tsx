@@ -12,6 +12,10 @@ import { schedule } from './scheduler';
  * transform: no filter, no blur, nothing repainted. Three or more cards make
  * the pattern; under reduced motion they are an ordinary column.
  *
+ * Where the keyboard's focus is in a card, that card comes up over the
+ * stack, upright and opaque, so a link the next card had covered shows with
+ * its ring (WCAG 2.4.11); it goes back when focus leaves it.
+ *
  * The stack keeps its scroll state: in a full-page screenshot the cards a
  * reader has scrolled past show covered. Set data-flat on the stack to lay it
  * out as the ordinary column first.
@@ -55,11 +59,13 @@ export function StackCards({ children, top = '5rem', as = 'ol', className, style
         ticket.wake();
         return () => ticket.stop();
     }, [setting]);
+    const cards = Children.toArray(children);
+    // Each card over the one before; the stylesheet lifts a card the keyboard is in over them all (--oca-stack-n + 1).
     return createElement(
         as,
-        { ...rest, ref, className: cn('oca-stack', className), style: { '--oca-stack-top': top, ...style } as CSSProperties },
-        Children.toArray(children).map((child, i) =>
-            createElement(as === 'div' ? 'div' : 'li', { key: i, className: 'oca-stack-item', style: { zIndex: i + 1 } }, <div className="oca-stack-panel">{child}</div>)
+        { ...rest, ref, className: cn('oca-stack', className), style: { '--oca-stack-top': top, '--oca-stack-n': cards.length, ...style } as CSSProperties },
+        cards.map((child, i) =>
+            createElement(as === 'div' ? 'div' : 'li', { key: i, className: 'oca-stack-item', style: { '--oca-stack-z': i + 1 } as CSSProperties }, <div className="oca-stack-panel">{child}</div>)
         )
     );
 }
