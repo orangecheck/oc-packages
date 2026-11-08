@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.25.0] — 2026-11-08
+
 ### Changed
 
 - `verify()` reads a message as an attestation only in its canonical form
