@@ -62,6 +62,26 @@ describe('identity-line smuggling (canonical.ts)', () => {
     });
 });
 
+describe('extension-line smuggling (canonical.ts)', () => {
+    const input = { address: 'bc1qexample', identities: [] };
+    it.each([
+        ['a value with a newline', { aud: 'https://a.example\naddress: bc1qother' }],
+        ['a value with a carriage return', { aud: 'https://a.example\rnetwork: testnet' }],
+        ['a key with a space', { 'my key': 'x' }],
+        ['a key with a colon', { 'a:b': 'x' }],
+        ['a key outside ASCII', { 'clé': 'x' }],
+        ['a core key', { address: 'bc1qother' }],
+    ])('buildCanonicalMessage refuses %s', (_, ext) => {
+        expect(() => buildCanonicalMessage(input, ext)).toThrow(/invalid extension/);
+    });
+
+    it('still writes a key given in capitals in lowercase, and drops an empty value', () => {
+        const msg = buildCanonicalMessage(input, { AUD: 'https://a.example', expires: '' });
+        expect(msg.endsWith('\naud: https://a.example\n')).toBe(true);
+        expect(msg).not.toContain('expires:');
+    });
+});
+
 describe('buildCanonicalMessage nonce generation', () => {
     it('produces a 32-char lowercase-hex nonce', () => {
         const msg = buildCanonicalMessage(

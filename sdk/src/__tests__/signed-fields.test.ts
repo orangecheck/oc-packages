@@ -44,7 +44,7 @@ function publish(
 ) {
     const id = createHash('sha256').update(msg).digest('hex');
     const address = /\naddress: (\S+)/.exec(msg)![1]!;
-    const identities = sdk.parseIdentities(/\nidentities: ([^\n]*)/.exec(msg)![1]!);
+    const identities = sdk.parseIdentities(/\nidentities: ([^\n]*)/.exec(msg)?.[1] ?? '');
     const issued_at = /\nissued_at: (\S+)/.exec(msg)![1]!;
     const envelope = { attestation_id: id, scheme: 'bip322', address, identities, message: msg, signature, issued_at, ...beside };
     const tags = [
@@ -202,12 +202,21 @@ describe('the newest attestation is the newest signed one', () => {
 });
 
 describe('an expiry that is not a time', () => {
-    it.each(['soon', '2027-13-45T00:00:00Z', ''])('refuses expires: %j as expired', async (expires) => {
+    it.each(['soon', '2027-13-45T00:00:00Z'])('refuses expires: %j as expired', async (expires) => {
         const msg = message(OWNER, [], '2026-01-01T00:00:00Z') + `expires: ${expires}\n`;
         const sig = signMessage(OWNER, msg, OWNER_KEY);
         const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
         expect(r.ok).toBe(false);
         expect(r.codes).toContain('expired');
+    });
+
+    // A canonical message omits an empty extension (SPEC tv15), so one signed with it is not canonical.
+    it('refuses an empty expires: as decode_error', async () => {
+        const msg = message(OWNER, [], '2026-01-01T00:00:00Z') + 'expires: \n';
+        const sig = signMessage(OWNER, msg, OWNER_KEY);
+        const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
+        expect(r.ok).toBe(false);
+        expect(r.codes).toContain('decode_error');
     });
 
     it('still accepts an RFC 3339 expiry ahead of now', async () => {
@@ -291,5 +300,28 @@ describe('a key signed twice', () => {
         const id = publish(msg, sig);
         const r = await sdk.check({ addr: OWNER, relays: RELAYS });
         expect(r).toMatchObject({ ok: true, attestation_id: id });
+    });
+});
+
+describe('a signed message that is not an attestation in canonical form', () => {
+    // Signed text with an attestation's address, identities and issue time, in no attestation's form.
+    const lookalike = (identities: string, issuedAt: string) =>
+        `Sign in to example.com\nidentities: ${identities}\naddress: ${OWNER}\nissued_at: ${issuedAt}\n`;
+
+    it('binds no identity in check()', async () => {
+        const msg = lookalike('github:other', '2026-03-01T00:00:00Z');
+        publish(msg, signMessage(OWNER, msg, OWNER_KEY));
+        const r = await sdk.check({ identity: { protocol: 'github', identifier: 'other' }, relays: RELAYS });
+        expect(r).toMatchObject({ ok: false, reasons: ['not_found'] });
+    });
+
+    it('is not an attestation of its address, and hides none that is', async () => {
+        const challenge = sdk.issueChallenge({ address: OWNER, audience: 'https://a.example' }).message;
+        publish(challenge, signMessage(OWNER, challenge, OWNER_KEY), {}, 'ab', 1_700_000_500);
+        expect(await sdk.check({ addr: OWNER, relays: RELAYS })).toMatchObject({ ok: false, reasons: ['not_found'] });
+
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z');
+        const id = publish(msg, sig);
+        expect(await sdk.check({ addr: OWNER, relays: RELAYS })).toMatchObject({ ok: true, attestation_id: id });
     });
 });

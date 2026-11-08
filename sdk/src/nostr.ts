@@ -15,6 +15,7 @@ import {
 
 import type { AttestationEnvelope, IdentityBinding, NostrEvent } from './types';
 
+import { isCanonicalAttestation } from './canonical';
 import { nostrEventSignatureValid } from './nostr-crypto';
 import { nostrIdentifierForms } from './nostr-pubkey';
 import { createLogger } from './utils/logger';
@@ -734,8 +735,9 @@ function base64Url(text: string): string {
  *
  * Only `message` and `signature` are signed. `address`, `identities`,
  * `issued_at`, `expires_at` and `message_b64url` are copies beside them, so
- * they are taken from the message here. Null when the message names no address
- * or no RFC 3339 `issued_at`, or signs any key twice.
+ * they are taken from the message here. Null when the message is not an
+ * attestation in canonical form, names no address or no RFC 3339 `issued_at`,
+ * or signs any key twice.
  */
 export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelope | null {
     let parsed: ReturnType<typeof parseCanonicalMessage>;
@@ -745,7 +747,7 @@ export function signedEnvelope(envelope: AttestationEnvelope): AttestationEnvelo
         return null;
     }
     if (!parsed.core.address || rfc3339Ms(parsed.core.issued_at) === null) return null;
-    if (parsed.repeated.length > 0) return null;
+    if (parsed.repeated.length > 0 || !isCanonicalAttestation(envelope.message)) return null;
     const { expires_at: _copy, ...rest } = envelope;
     return {
         ...rest,

@@ -9,6 +9,24 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `verify()` reads a message as an attestation only in its canonical form
+  (SPEC §7.1 step 1), and answers `decode_error` for anything else: LF line
+  ends with exactly one trailing LF; the `orangecheck` header, then the six
+  core lines in order, `purpose:` and `ack:` with their exact text; a nonce of
+  32 lowercase hex; an `identities:` line that parses and is written sorted;
+  then extensions with lowercase ASCII keys, in ascending order, each with a
+  value. Every message `buildCanonicalMessage` writes is in that form.
+- `buildCanonicalMessage` throws on an extension it cannot write as one such
+  line: a key that is not lowercase ASCII without a colon or space (after
+  lowercasing), a core key, or a value with a CR or LF in it.
+- An empty extension such as `expires: ` is `decode_error`, no longer
+  `expired`: a canonical message omits it (vector tv15).
+- Discovery (`check()`, `readAttestations`, `discoverAttestations` and the
+  `queryBy*` helpers) leaves a message in any other form out, as it leaves out
+  one that signs a key twice.
+
 ## [1.24.0] — 2026-11-06
 
 ### Changed
