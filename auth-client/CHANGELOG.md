@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.42.4] — 2026-11-08
+
 ### Fixed
 
 - `<OcSignIn>` names the provider a refused sign-in went through. The auth
