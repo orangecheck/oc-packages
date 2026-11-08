@@ -1,14 +1,14 @@
 import type { FilterDecision, FilterOptions, MinimalNostrEvent } from './types';
-import type { Scheme } from '@orangecheck/sdk';
+import type { AttestationEnvelope, Scheme } from '@orangecheck/sdk';
 
 import { createHash } from 'node:crypto';
 
 import {
     DEFAULT_RELAYS,
     nostrPubkeyToHex,
-    parseIdentities,
     queryByIdentity,
     signatureIsValid,
+    signedEnvelope,
     verify,
 } from '@orangecheck/sdk';
 
@@ -26,7 +26,6 @@ const LOOKUP_AGAIN_AFTER_MS = 10 * 60_000;
 const MAX_LOOKUPS_REMEMBERED = 10_000;
 // A signed issued_at further ahead of this clock is not valid yet (OC Attest SPEC §7.2).
 const ISSUED_AHEAD_MS = 120_000;
-const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 interface Attestation {
     id: string;
@@ -59,11 +58,6 @@ export interface IndexOptions {
     minSats?: number;
 }
 
-function signedLine(message: string, key: string): string | undefined {
-    const hit = message.split('\n').find((l) => l.trim().toLowerCase().startsWith(key + ':'));
-    return hit?.slice(hit.indexOf(':') + 1).trim();
-}
-
 /** Parse a kind-30078 event into an attestation, or null if it is not a sound one. */
 export function parseAttestationEvent(event: {
     tags?: string[][];
@@ -79,24 +73,20 @@ export function parseAttestationEvent(event: {
     if (typeof id !== 'string' || typeof address !== 'string' || typeof message !== 'string') return null;
     if (typeof signature !== 'string' || (scheme !== 'bip322' && scheme !== 'legacy')) return null;
     if (createHash('sha256').update(message).digest('hex') !== id) return null;
-    if (signedLine(message, 'address') !== address) return null;
+    // The fields the address signed, read by the sdk's own rule: null unless the message is an
+    // attestation in canonical form (OC Attest SPEC §7.1 step 1).
+    const signed = signedEnvelope({ attestation_id: id, address, message, signature, scheme } as AttestationEnvelope);
+    if (!signed || signed.address !== address) return null;
     const tags = event.tags ?? [];
     const d = tags.find((t) => t[0] === 'd')?.[1];
     if (d !== id && d !== `orangecheck:${id}`) return null;
     if (!tags.some((t) => t[0] === 't' && t[1] === address)) return null;
 
-    let keys: string[] = [];
-    try {
-        keys = parseIdentities(signedLine(message, 'identities') ?? '')
-            .filter((b) => b.protocol.toLowerCase() === 'nostr')
-            .map((b) => nostrPubkeyToHex(b.identifier))
-            .filter((k): k is string => k !== null);
-    } catch {
-        return null;
-    }
-    // The issue time the address signed, not the envelope's copy of it.
-    const issued = signedLine(message, 'issued_at') ?? '';
-    const issuedAt = RFC3339.test(issued) ? Date.parse(issued) : NaN;
+    const keys = signed.identities
+        .filter((b) => b.protocol.toLowerCase() === 'nostr')
+        .map((b) => nostrPubkeyToHex(b.identifier))
+        .filter((k): k is string => k !== null);
+    const issuedAt = Date.parse(signed.issued_at);
     if (Number.isNaN(issuedAt)) return null;
     return { id, address, message, signature, scheme, issuedAt, keys: [...new Set(keys)] };
 }

@@ -11,6 +11,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [0.7.0] — 2026-11-08
+
+### Changed
+
+- `AttestationIndex` and `parseAttestationEvent` read an attestation's address,
+  identities and issue time through `@orangecheck/sdk`'s `signedEnvelope`, so
+  only a message in canonical form (OC Attest SPEC §7.1 step 1) binds a Nostr
+  key: any other signed text is not an attestation and is not indexed. The
+  index and `filterEvent` now read attestations by one rule, the sdk's.
+- Requires `@orangecheck/sdk` ^1.25.0 (it was ^1.21.0), whose `check()` and
+  `verify()` read the same form.
+
 ## [0.6.0] — 2026-11-03
 
 ### Fixed
