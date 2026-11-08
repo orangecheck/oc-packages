@@ -15,7 +15,9 @@
  *   plain <main>, even on a page that handles its own hash. On a desk,
  *   AppShell's next stop is the account bar, then the sidebar.
  * - A code block's scroll area and a tab's panel ring when reached; a
- *   focused control never sits under a sticky bar.
+ *   focused control never sits under a sticky bar, nor under the next
+ *   stacked card: StackCards brings the card with the keyboard's focus up
+ *   over it, upright and opaque.
  * - A link to a section (a heading, a block, a docs row, a step) brings it
  *   up where the page's scroll-padding leaves it, under the site's, the
  *   docs' or an app's bar and no lower: nothing in the package's source sets
@@ -139,6 +141,11 @@ try {
                 `const SIGNED = ${JSON.stringify(SIGNED)};`,
             `<div className="mx-auto flex max-w-[40rem] flex-col gap-6 p-4"><div data-sign=""><SignMessage address="bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t" message={SIGNED} onSignature={() => {}} /></div>` +
                 `<div data-nolf=""><CodeBlock code={SIGNED.slice(0, -1)} caption="Message to sign" wrap /></div><div data-lf=""><CodeBlock code={SIGNED} caption="Message to sign" wrap /></div></div>`
+        ),
+        // Numbered cards that stack as the page scrolls, each ending in a link, as ochk.app's home stacks its steps.
+        stack: mount(
+            `import { StackCards } from '${src('motion/stack-cards.tsx')}';`,
+            `<div><div style={{ height: 200 }} /><StackCards top="1rem">{[1, 2, 3].map((n) => <div key={n} className="flex flex-col justify-end bg-card p-6" style={{ height: 500 }}><a href={'#card-' + n} data-card={n}>{'The link in card ' + n}</a></div>)}</StackCards><div style={{ height: 2400 }} /></div>`
         ),
         ownmain: mount(`import { SkipLink } from '${src('chrome/site.tsx')}';`, `<><SkipLink /><header><a href="/">Home</a></header><main id="main-content"><p>The page</p><a href="/next">Next</a></main></>`),
         // A page that handles its own hash, as Swagger UI does: the browser never moves focus for the link.
@@ -760,6 +767,37 @@ try {
             await q.close();
         }
 
+        // A link in a stacked card that the keyboard reaches is on top at its centre, its corners and its ring, though
+        // the next card had slid over its card; Tab on to that card's link and that card is on top again.
+        for (const vw of [390, 1440]) {
+            const q = await browser.newPage({ viewport: { width: vw, height: 844 } });
+            await q.goto(client('stack'));
+            // Past the third card's start: all three stuck at the top, the third over the second.
+            await q.evaluate(() => window.scrollTo(0, 1260));
+            await q.waitForTimeout(300);
+            await q.focus('[data-card="1"]');
+            const seen = [];
+            for (const want of ['2', '3']) {
+                await q.keyboard.press('Tab');
+                await q.waitForTimeout(300);
+                seen.push(
+                    await q.evaluate((want) => {
+                        const a = document.activeElement;
+                        const card = a.closest('.oca-stack-item');
+                        const b = a.getBoundingClientRect();
+                        const [cx, cy] = [b.left + b.width / 2, b.top + b.height / 2];
+                        const link = [[cx, cy], [b.left + 1, b.top + 1], [b.right - 1, b.top + 1], [b.left + 1, b.bottom - 1], [b.right - 1, b.bottom - 1]].every(([x, y]) => a.contains(document.elementFromPoint(x, y)));
+                        // The ring is drawn outside the link: just past each side is its own card, not the next one.
+                        const ring = [[b.left - 3, cy], [b.right + 3, cy], [cx, b.top - 3], [cx, b.bottom + 3]].every(([x, y]) => card.contains(document.elementFromPoint(x, y)));
+                        const panel = getComputedStyle(a.closest('.oca-stack-panel'));
+                        return { want, card: a.dataset.card, link, ring, opacity: panel.opacity, top: Math.round(b.top), y: Math.round(scrollY) };
+                    }, want)
+                );
+            }
+            check(seen.every((r) => r.card === r.want && r.link && r.ring && Number(r.opacity) === 1), `StackCards at ${vw}: a link the keyboard reaches lies under the next card (${show(seen)})`);
+            await q.close();
+        }
+
         // A long page's contents from the keyboard: on a desk, Tab reaches the sticky list's first entry with a ring and
         // Enter brings its heading up under the site's bar; on a phone, Tab reaches the fold, Enter opens it and the
         // next Tab is its first entry.
@@ -1035,4 +1073,4 @@ if (failures) {
     console.error(`\n${failures} focus failure(s)`);
     process.exit(1);
 }
-console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, split bar shares at 3:1 on it, text at 4.5:1 on every dark and orange ground, skip links that land, sections a link brings up under the bar, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
+console.log(`✓ focus: ${checks} checks in Chrome; field edges at 3:1, ink rings on the band, split bar shares at 3:1 on it, text at 4.5:1 on every dark and orange ground, skip links that land, sections a link brings up under the bar, stacked cards that come up for the keyboard, a docs section that closes, focus back from dialogs, Tab past toasts, highlighted items at 3:1, tabs ringed only from the keyboard`);
