@@ -9,6 +9,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `stamp anchor` says when no calendar a pending stamp names could be
+  reached, leaves the file as it was and exits 1. With stamp-ots 0.6 that
+  read the same as every calendar saying "not yet" and printed
+  `status: pending`, though the proof may be anchored already. A calendar's
+  "not yet" still prints `status: pending`.
+
+### Dependencies
+
+- `@orangecheck/stamp-ots` ^0.7.0.
+
 ## [0.3.2] — 2026-11-02
 
 ### Fixed

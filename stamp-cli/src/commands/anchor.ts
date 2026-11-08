@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 import type { StampEnvelope } from '@orangecheck/stamp-core';
 import { mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
-import { advanceOts } from '../anchor-check.js';
+import { advanceOts, otsFailure } from '../anchor-check.js';
 import { die, emit, pathExists, readStamp } from '../util.js';
 
 export interface AnchorOptions {
@@ -36,7 +36,7 @@ export async function runAnchor(opts: AnchorOptions): Promise<void> {
             headers: mempoolHeaderSource({ baseUrl: opts.headersUrl }),
         });
     } catch (e) {
-        die(`OTS ${envelope.ots ? 'upgrade' : 'submission'} failed: ${e instanceof Error ? e.message : String(e)}`);
+        die(otsFailure(e, Boolean(envelope.ots)));
     }
     const changed = JSON.stringify(next.ots) !== JSON.stringify(envelope.ots);
     if (changed) {

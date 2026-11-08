@@ -2,6 +2,7 @@
 
 import type { StampEnvelope } from '@orangecheck/stamp-core';
 import {
+    CalendarsUnreadError,
     fromStampOts,
     submitToCalendars,
     toStampOts,
@@ -27,4 +28,13 @@ export async function advanceOts(
         fetch: opts.fetch,
     });
     return { ...env, ots: toStampOts(next) };
+}
+
+/** What `stamp anchor` says when advancing the proof threw. */
+export function otsFailure(e: unknown, upgrading: boolean): string {
+    if (e instanceof CalendarsUnreadError) {
+        const why = e.failures.map((f) => `${f.calendar}: ${f.reason}`).join('; ');
+        return `no calendar this stamp names could be reached, so its proof is unchanged and may already be anchored; try again later (${why})`;
+    }
+    return `OTS ${upgrading ? 'upgrade' : 'submission'} failed: ${e instanceof Error ? e.message : String(e)}`;
 }
