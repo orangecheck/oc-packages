@@ -8,6 +8,8 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.32] — 2026-11-08
+
 ### Changed — ochk.app says how a balance is settled before deletion
 
 The `me` profile's Terms (termination) told a person with a balance above zero
