@@ -207,6 +207,22 @@ try {
             `  <div className="flex flex-col gap-6 p-4"><CodeBlock code={'curl https://' + host + '/digest/' + 'f'.repeat(64)} caption="A long line" /><CodeTabs items={[{ label: 'curl', lang: 'bash', code: 'curl https://' + host + '/digest/' + 'e'.repeat(64) }, { label: 'node', lang: 'js', code: 'fetch(url)' }]} /></div>\n` +
             `);\n`
     );
+    // Settings in a code panel, as ochk.app's quickstart draws them (its own lines): sentences that wrap between words,
+    // in a box as narrow as its card at 390 and as wide as its card at 1440, and the same lines with no wrap, which scroll.
+    writeFileSync(
+        join(dir, 'codewrap.jsx'),
+        `import { createRoot } from 'react-dom/client';\n` +
+            `import { CodeBlock } from '${join(pkg, 'src/components/code-block.tsx')}';\n` +
+            `const goLive = '# your project \u00b7 Paying \u00b7 Go live\\n\u00b7 domain verified    a DNS TXT record or a meta tag\\n\u00b7 balance funded     top up under Paying\\n\u00b7 settlement open    not yet: it opens for every app at once';\n` +
+            `const when = '# your project \u00b7 Paying \u00b7 When you pay\\nOff       people sign in, nobody is paid\\nAlways    every event you price pays your user\\nPromos    only between a start and an end you set';\n` +
+            `const panel = (k, width, props) => <div data-case={k} style={{ width }}><CodeBlock lang="yaml" {...props} /></div>;\n` +
+            `createRoot(document.getElementById('root')).render(<div className="flex flex-col gap-6 p-4">\n` +
+            `  {panel('narrow', 290, { wrap: 'words', code: goLive, caption: 'Your project, before it can go live' })}\n` +
+            `  {panel('narrow-when', 290, { wrap: 'words', code: when, caption: 'On your project, under Paying' })}\n` +
+            `  {panel('wide', 720, { wrap: 'words', code: goLive, caption: 'Your project, before it can go live' })}\n` +
+            `  {panel('scrolls', 290, { code: goLive, caption: 'Go live' })}\n` +
+            `</div>);\n`
+    );
     writeFileSync(
         join(dir, 'dialogclose.jsx'),
         `import { createRoot } from 'react-dom/client';\n` +
@@ -365,6 +381,18 @@ try {
         logLevel: 'error',
     });
     esbuild.buildSync({
+        entryPoints: [join(dir, 'codewrap.jsx')],
+        outfile: join(dir, 'codewrap.js'),
+        bundle: true,
+        loader: { '.png': 'base64' },
+        format: 'iife',
+        jsx: 'automatic',
+        nodePaths: [join(pkg, 'node_modules')],
+        define: { 'process.env.NODE_ENV': '"production"' },
+        banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+        logLevel: 'error',
+    });
+    esbuild.buildSync({
         entryPoints: [join(dir, 'coderegion.jsx')],
         outfile: join(dir, 'coderegion.js'),
         bundle: true,
@@ -432,7 +460,7 @@ try {
     // A site's own rounded steps, in its source as a site writes them: the theme squares every one.
     const RADII = ['rounded', 'rounded-xs', 'rounded-sm', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rounded-4xl'];
     writeFileSync(join(dir, 'radii.js'), `export const radii = ${JSON.stringify(RADII.join(' '))};\n`);
-    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'dialogclose', 'scrollnames', 'census', 'portrait', 'radii']);
+    compileCss(dir, ['client', 'menu', 'toolmenu', 'loaderr', 'coderegion', 'codewrap', 'dialogclose', 'scrollnames', 'census', 'portrait', 'radii']);
     // No custom property in the compiled CSS refers to itself: that is a cycle, invalid wherever nothing
     // overrides it. 2.3.2's theme emitted --radius: var(--radius) for a bare rounded.
     {
@@ -976,6 +1004,7 @@ try {
         )
     );
     const codeRegion = page('code-region', '<div id="root"></div>', '<script src="coderegion.js"></script>');
+    const codeWrap = page('code-wrap', '<div id="root"></div>', '<script src="codewrap.js"></script>');
     const dialogClose = page('dialog-close', '<div id="root"></div>', '<script src="dialogclose.js"></script>');
     const scrollNames = page('scroll-names', '<div id="root"></div>', '<script src="scrollnames.js"></script>');
     const portraitPage = page('portrait', '<div id="root"></div>', '<script src="portrait.js"></script>');
@@ -3865,6 +3894,69 @@ try {
             );
             check(regions.length === 2 && regions.every((r) => r.role === 'region' && r.name), `[390] a code block that scrolls is a tab stop with no region name: ${JSON.stringify(regions)}`);
             check(regions.map((r) => r.name).join('|') === 'A long line|curl', `[390] the code regions are named ${JSON.stringify(regions.map((r) => r.name))}, not by the caption and the tab's label`);
+            await c.close();
+        }
+        // Settings in a code panel (R6 P2-5): with wrap 'words' a line breaks only between words and its continuation
+        // hangs two characters in, so nothing is cut and nothing scrolls; a caption wraps rather than being cut. Where
+        // every line fits, as at 1440, the panel is drawn as before: no line breaks and the caption row is 44px.
+        for (const vw of [390, 1440]) {
+            const c = await browser.newPage({ viewport: { width: vw, height: 900 } });
+            await visit(c, codeWrap);
+            const drawn = await c.waitForFunction(() => document.querySelectorAll('[data-case] pre').length === 4, null, { timeout: 10000 }).then(() => true, () => false);
+            check(drawn, `[${vw}] the code wrap page did not render its four panels`);
+            await c.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
+            const panels = await c.evaluate(() =>
+                [...document.querySelectorAll('[data-case]')].map((box) => {
+                    const cap = box.querySelector('figcaption');
+                    const label = cap.querySelector('span');
+                    const button = cap.querySelector('button');
+                    const pre = box.querySelector('pre');
+                    const breaks = [];
+                    const hangs = [];
+                    for (const line of pre.querySelectorAll('[data-line]')) {
+                        const chars = [];
+                        const walk = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+                        for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+                            for (let i = 0; i < n.length; i++) {
+                                const range = document.createRange();
+                                range.setStart(n, i);
+                                range.setEnd(n, i + 1);
+                                const b = range.getClientRects()[0];
+                                if (b) chars.push({ ch: n.data[i], top: b.top, left: b.left, w: b.width });
+                            }
+                        }
+                        for (let i = 1; i < chars.length; i++) {
+                            if (chars[i].top > chars[i - 1].top + 2) {
+                                breaks.push(JSON.stringify(chars[i - 1].ch + chars[i].ch));
+                                hangs.push(Math.round((chars[i].left - chars[0].left) / chars[0].w));
+                            }
+                        }
+                    }
+                    return {
+                        k: box.dataset.case,
+                        capH: Math.round(cap.getBoundingClientRect().height),
+                        capCut: label.scrollWidth > label.clientWidth + 1 || label.scrollHeight > label.clientHeight + 1,
+                        capClear: !button || label.getBoundingClientRect().right <= button.getBoundingClientRect().left + 0.5,
+                        over: Math.round(pre.scrollWidth - pre.parentElement.clientWidth),
+                        breaks,
+                        hangs,
+                    };
+                })
+            );
+            const at = (k) => panels.find((p) => p.k === k);
+            for (const p of panels) {
+                check(!p.capCut && p.capClear, `[${vw}] ${p.k}: the code panel's caption is cut or runs under its copy button (${p.capH}px row)`);
+            }
+            for (const k of vw === 390 ? ['narrow', 'narrow-when'] : ['narrow', 'narrow-when', 'wide']) {
+                const p = at(k);
+                check(p.over <= 0, `[${vw}] ${k}: a settings panel with wrap 'words' still runs ${p.over}px past its well`);
+                check(p.breaks.length > 0 || k === 'wide', `[${vw}] ${k}: the settings lines did not wrap in a 290px panel`);
+                check(p.breaks.every((b) => /^" [^ ]/.test(b)), `[${vw}] ${k}: a settings line breaks inside a word: ${p.breaks.join(' ')}`);
+                check(p.hangs.every((h) => h === 2), `[${vw}] ${k}: a wrapped line's continuation does not hang two characters in: ${p.hangs.join(' ')}`);
+            }
+            const wide = at('wide');
+            check(wide.breaks.length === 0 && wide.capH === 44, `[${vw}] wide: where every line fits, a panel with wrap 'words' is not drawn as before (${wide.breaks.length} breaks, a ${wide.capH}px caption row)`);
+            check(at('scrolls').over > 0, `[${vw}] scrolls: a panel with no wrap no longer scrolls sideways`);
             await c.close();
         }
         // A depiction is the product, so on any band it is drawn in the page's own colours, light and dark: a window
