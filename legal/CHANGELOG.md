@@ -8,6 +8,13 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app's deletion page is called by its name
+
+The `me` profile's Terms (termination) and Privacy policy (its summary and
+identity & account deletion) sent a person to "your settings" to delete their
+account. ochk.app calls that page Account, and the link already went there, so
+all three now say "your Account page". No claim changes.
+
 ## [0.7.32] — 2026-11-08
 
 ### Changed — ochk.app says how a balance is settled before deletion
