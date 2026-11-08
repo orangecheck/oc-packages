@@ -21,7 +21,10 @@
  * - A link to a section (a heading, a block, a docs row, a step) brings it
  *   up where the page's scroll-padding leaves it, under the site's, the
  *   docs' or an app's bar and no lower: nothing in the package's source sets
- *   a scroll-margin to add to that padding.
+ *   a scroll-margin to add to that padding. src/vitest is not read: it ships
+ *   to a site's test runner, never to a page, and names the rule it checks.
+ *   A planted src proves the scan still finds one in a component or a
+ *   stylesheet.
  * - The docs sidebar's open section closes from its own button.
  * - A dialog opened without a Trigger (confirm(), a dialog or sheet opened
  *   from state) hands focus back to what opened it.
@@ -51,10 +54,10 @@
  * Run after `yarn build`.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 
 import { bundle, COLOUR_KIT, compileCss, findChrome, pkg, writePage } from './browser.mjs';
 
@@ -850,9 +853,32 @@ try {
         // at 900px, which is neither md nor lg, so 768 and 1024 are measured too. The site's bar is as tall as
         // --oca-site-bar-h, the one height its padding and every element sticking under it read.
         const MARGIN = /\bscroll-m[trblxyse]?-[^\s"'`]+|\bscroll-margin[\w-]*\s*:|\bscrollMargin\w*/g;
-        const sources = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(d, e.name)) : /\.(tsx?|css|mjs)$/.test(e.name) ? [join(d, e.name)] : []));
-        const scanned = sources(join(pkg, 'src'));
-        const margins = scanned.flatMap((f) => (readFileSync(f, 'utf8').match(MARGIN) ?? []).map((m) => `${relative(pkg, f)}: ${m}`));
+        // What reaches a page. src/vitest ships to a site's test runner, never to a page, and names the rule it checks.
+        const marginsIn = (src) => {
+            const sources = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? (d === src && e.name === 'vitest' ? [] : sources(join(d, e.name))) : /\.(tsx?|css|mjs)$/.test(e.name) ? [join(d, e.name)] : []));
+            const scanned = sources(src);
+            return { scanned, margins: scanned.flatMap((f) => (readFileSync(f, 'utf8').match(MARGIN) ?? []).map((m) => `${relative(dirname(src), f)}: ${m}`)) };
+        };
+        {
+            // The scan still finds a margin a component or a stylesheet sets, a nested directory named vitest included;
+            // it leaves out only src/vitest. The classes are assembled, so this file holds none for Tailwind to find.
+            const planted = mkdtempSync(join(tmpdir(), 'app-design-focus-margins-'));
+            const m = 'scroll-m';
+            for (const [name, text] of [
+                ['components/a.tsx', `export const A = () => <section className="${m}t-24" />;\n`],
+                ['styles/b.css', `.b { ${m}argin-top: 1rem; }\n`],
+                ['motion/vitest/c.ts', `export const c = '${m}y-4';\n`],
+                ['vitest/d.ts', `export const d = '${m}t-24';\n`],
+            ]) {
+                mkdirSync(dirname(join(planted, 'src', name)), { recursive: true });
+                writeFileSync(join(planted, 'src', name), text);
+            }
+            const found = marginsIn(join(planted, 'src')).margins.sort();
+            rmSync(planted, { recursive: true, force: true });
+            const want = [`src/components/a.tsx: ${m}t-24`, `src/motion/vitest/c.ts: ${m}y-4`, `src/styles/b.css: ${m}argin-top:`];
+            check(JSON.stringify(found) === JSON.stringify(want), `the package's scroll-margin scan finds ${show(found)} in a planted src, not ${show(want)}`);
+        }
+        const { scanned, margins } = marginsIn(join(pkg, 'src'));
         check(scanned.length > 150 && margins.length === 0, `a scroll-margin in the package's source adds to the page's scroll-padding (${scanned.length} files read): ${show(margins)}`);
         for (const [url, ids, room] of anchored) {
             for (const vw of [390, 768, 1024, 1440]) {
