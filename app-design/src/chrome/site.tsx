@@ -264,7 +264,7 @@ export function SiteHeader({
             <div
                 className={cn(
                     // The page's gutter at left, the CTA or the account at the right end.
-                    'flex h-14 w-full items-center justify-between gap-4 pl-[var(--oca-frame-gutter)] min-[900px]:h-[4.25rem]',
+                    'flex h-[calc(var(--oca-site-bar-h)-1px)] w-full items-center justify-between gap-4 pl-[var(--oca-frame-gutter)]',
                     // In the frame, between its rules; `tool`, the window's width.
                     framed && 'mx-auto max-w-[var(--oca-frame-max)] border-x-[length:var(--oca-frame-rule)] border-border',
                     headerCta || account

@@ -543,9 +543,9 @@
 
 /* A focused control is never left under a sticky bar: the page scrolls it into view below the
    bar, with a little room. The bars say what they are (data-oca-sticky); their heights are the
-   shells' own: the site's bar 3.5rem, 4.25rem from 900px (its rule counts 4rem, 4.5rem from md,
-   for room), an app's bar 3.5rem below lg (5.75rem with its place strip) and 4.5rem from it, the
-   docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the page's
+   shells' own: the site's bar --oca-site-bar-h (3.5rem, 4.25rem from 900px), with 1rem of room,
+   an app's bar 3.5rem below lg (5.75rem with its place strip) and 4.5rem from it, with 0.75rem,
+   the docs' section bar a further 3rem below lg. Each with its 1px hairline. The scope is the page's
    root itself or an element under it, so each rule names both. An app's bar publishes its height as
    --oca-app-bar-h, so a page's own sticky element sits under it: top: calc(var(--oca-app-bar-h, 0px) + 1.5rem). */
 :root[data-oc-app='ochk']:has([data-oca-sticky='app-bar']),
@@ -561,24 +561,12 @@
 }
 :root[data-oc-app='ochk']:has([data-oca-sticky='site']),
 :root:has([data-oc-app='ochk'] [data-oca-sticky='site']) {
-    scroll-padding-top: calc(4rem + 1px + 0.75rem);
+    scroll-padding-top: calc(var(--oca-site-bar-h) + 1rem);
 }
-@media (width >= 48rem) {
-    :root[data-oc-app='ochk']:has([data-oca-sticky='site']),
-    :root:has([data-oc-app='ochk'] [data-oca-sticky='site']) {
-        scroll-padding-top: calc(4.5rem + 1px + 0.75rem);
-    }
-}
-@media (width < 48rem) {
+@media (width < 64rem) {
     :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
     :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
-        scroll-padding-top: calc(4rem + 3rem + 2px + 0.75rem);
-    }
-}
-@media (48rem <= width < 64rem) {
-    :root[data-oc-app='ochk']:has([data-oca-sticky='docs-bar']),
-    :root:has([data-oc-app='ochk'] [data-oca-sticky='docs-bar']) {
-        scroll-padding-top: calc(4.5rem + 3rem + 2px + 0.75rem);
+        scroll-padding-top: calc(var(--oca-site-bar-h) + 3rem + 1px + 1rem);
     }
 }
 /* And never under the phone's TabBar at the bottom, below md where it is shown, on a page that has one. Its

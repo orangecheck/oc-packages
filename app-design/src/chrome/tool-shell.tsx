@@ -136,11 +136,11 @@ export function ToolShell({
                         app
                             ? 'min-h-0 flex-1'
                             : // In the frame, its rules under the header's; the header is 56px and 68 from 900, each with its hairline.
-                              'min-h-[calc(100dvh-3.5rem-1px)] max-w-[var(--oca-frame-max)] flex-1 border-x-[length:var(--oca-frame-rule)] border-border min-[900px]:min-h-[calc(100dvh-4.25rem-1px)]'
+                              'min-h-[calc(100dvh-var(--oca-site-bar-h))] max-w-[var(--oca-frame-max)] flex-1 border-x-[length:var(--oca-frame-rule)] border-border'
                     )}
                 >
                     {rail ? (
-                        <aside className="sticky top-[calc(4.25rem+1px)] hidden h-[calc(100dvh-4.25rem-1px)] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
+                        <aside className="sticky top-[var(--oca-site-bar-h)] hidden h-[calc(100dvh-var(--oca-site-bar-h))] w-60 shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:flex">
                             <SideNav groups={[{ label: 'Tools', items: tools.map(({ href, label, icon, active }) => ({ href, label, icon, active })) }]} />
                             {railFooter ? (
                                 // Its links (Docs, the spec) are 33px to a mouse and 44 to a thumb.

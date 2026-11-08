@@ -324,6 +324,7 @@ try {
                 )
             ),
             ['heading', 'split', 'facts', 'prose', 'question', 'principles'],
+            16,
         ],
         [
             ssr(
@@ -343,6 +344,7 @@ try {
                 )
             ),
             ['properties', 'step', 'property-sticky', 'returns'],
+            16,
         ],
         [
             ssr(
@@ -358,6 +360,7 @@ try {
                 )
             ),
             ['keys', 'domain'],
+            12,
         ],
     ];
 
@@ -751,13 +754,16 @@ try {
 
         // A link to a section brings it up where the page's scroll-padding leaves it, under its sticky bars and no
         // lower: a scroll-margin of its own would add to the padding. At 390 the docs have their section bar too.
+        // The padding is the bars' own height plus one room, at every width a bar changes at: the site's bar grows
+        // at 900px, which is neither md nor lg, so 768 and 1024 are measured too. The site's bar is as tall as
+        // --oca-site-bar-h, the one height its padding and every element sticking under it read.
         const MARGIN = /\bscroll-m[trblxyse]?-[^\s"'`]+|\bscroll-margin[\w-]*\s*:|\bscrollMargin\w*/g;
         const sources = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? sources(join(d, e.name)) : /\.(tsx?|css|mjs)$/.test(e.name) ? [join(d, e.name)] : []));
         const scanned = sources(join(pkg, 'src'));
         const margins = scanned.flatMap((f) => (readFileSync(f, 'utf8').match(MARGIN) ?? []).map((m) => `${relative(pkg, f)}: ${m}`));
         check(scanned.length > 150 && margins.length === 0, `a scroll-margin in the package's source adds to the page's scroll-padding (${scanned.length} files read): ${show(margins)}`);
-        for (const [url, ids] of anchored) {
-            for (const vw of [390, 1440]) {
+        for (const [url, ids, room] of anchored) {
+            for (const vw of [390, 768, 1024, 1440]) {
                 const q = await browser.newPage({ viewport: { width: vw, height: 800 } });
                 await q.goto(url);
                 for (const id of ids) {
@@ -767,7 +773,14 @@ try {
                         await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
                         const root = document.documentElement;
                         const bars = [...document.querySelectorAll('[data-oca-sticky]')].map((b) => b.getBoundingClientRect()).filter((b) => b.height > 0);
+                        const site = document.querySelector('[data-oca-sticky="site"]');
+                        const probe = document.body.appendChild(document.createElement('div'));
+                        probe.style.height = 'var(--oca-site-bar-h)';
+                        const siteVar = probe.getBoundingClientRect().height;
+                        probe.remove();
                         return {
+                            site: site ? Math.round(site.getBoundingClientRect().height * 10) / 10 : null,
+                            siteVar: site ? Math.round(siteVar * 10) / 10 : null,
                             top: Math.round(document.getElementById(id).getBoundingClientRect().top),
                             padding: Math.round(parseFloat(getComputedStyle(root).scrollPaddingTop)),
                             bar: Math.round(Math.max(0, ...bars.map((b) => b.bottom))),
@@ -777,6 +790,14 @@ try {
                     check(
                         !r.end && r.bar >= 48 && r.top >= r.bar && Math.abs(r.top - r.padding) <= 1,
                         `[${vw}] a link to #${id} lands it ${r.top - r.bar}px under the sticky bar, not where the page's scroll-padding leaves it (${r.padding}px from the top): ${show(r)}`
+                    );
+                    check(
+                        Math.abs(r.padding - r.bar - room) <= 1,
+                        `[${vw}] the page's scroll-padding (${r.padding}px) is not its sticky bars' height (${r.bar}px) plus ${room}px, so a link to #${id} lands ${r.padding - r.bar}px under them: ${show(r)}`
+                    );
+                    check(
+                        r.site === null || (r.site > 0 && Math.abs(r.site - r.siteVar) < 0.5),
+                        `[${vw}] the site's bar is ${r.site}px tall, but --oca-site-bar-h is ${r.siteVar}px: ${show(r)}`
                     );
                 }
                 await q.close();
