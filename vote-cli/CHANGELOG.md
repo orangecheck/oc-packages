@@ -9,6 +9,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.8.2] — 2026-11-08
+
+### Dependencies
+
+- `@orangecheck/stamp-ots` ^0.7.0: a block-header read from mempool.space times out
+  after 15 s instead of waiting, and a project on stamp-ots 0.7 installs one copy.
+
 ## [0.8.1] — 2026-11-06
 
 ### Changed

@@ -9,6 +9,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.5.6] — 2026-11-08
+
+### Dependencies
+
+- `@orangecheck/stamp-ots` ^0.7.0, so a project on stamp-ots 0.7 installs one copy.
+
 ## [0.5.5] — 2026-11-06
 
 - Requires `@orangecheck/chat-core` ^0.2.6, which judges a channel's version
