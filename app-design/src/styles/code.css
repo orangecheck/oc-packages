@@ -38,6 +38,12 @@
     padding-inline: 1.25rem;
 }
 
+/* Wrapped between words: a line's continuation hangs two characters in, so it reads as the same line. */
+[data-oc-app='ochk'] .oca-code[data-wrap='words']:not([data-diff], [data-line-numbers]) [data-line] {
+    padding-left: calc(1.25rem + 2ch);
+    text-indent: -2ch;
+}
+
 [data-oc-app='ochk'] .oca-code [data-mark] {
     background: var(--oca-code-mark);
     box-shadow: inset 2px 0 0 var(--oca-orange);

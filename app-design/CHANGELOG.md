@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- `CodeBlock`'s caption wraps onto a second line where it does not fit,
+  rather than being cut with an ellipsis; where it fits, its row is 44px
+  as before. `wrap` takes `'words'`: a long line breaks only between
+  words, and its continuation hangs two characters in, for settings or
+  sentences in a panel. `wrap` alone still breaks anywhere, for a message
+  to sign or an id. ochk.app's quickstart cut both at 390, its captions
+  and its settings lines. check-layout draws those lines in a 290px and a
+  720px panel at 390 and 1440.
+
 ## [2.13.1] — 2026-11-08
 
 - `SplitBar`'s card share reads on the orange band. The band makes the card

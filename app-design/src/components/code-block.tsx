@@ -107,7 +107,7 @@ function Well({
     maxLines?: number;
     diff?: boolean;
     lineNumbers?: boolean;
-    wrap?: boolean;
+    wrap?: boolean | 'words';
 }) {
     const foldable = maxLines !== undefined && lines > maxLines + 2;
     const [open, setOpen] = useState(false);
@@ -125,9 +125,10 @@ function Well({
                         ref={preRef}
                         data-diff={diff ? '' : undefined}
                         data-line-numbers={lineNumbers ? '' : undefined}
+                        data-wrap={wrap === 'words' ? 'words' : undefined}
                         className={cn(
                             'oca-code py-4 font-mono text-[0.875rem] leading-[1.625] text-oca-ink-muted [font-variant-ligatures:none]',
-                            wrap ? 'whitespace-pre-wrap break-all' : 'w-max min-w-full',
+                            wrap === 'words' ? 'whitespace-pre-wrap break-words' : wrap ? 'whitespace-pre-wrap break-all' : 'w-max min-w-full',
                             !lined && 'px-5'
                         )}
                     >
@@ -193,10 +194,12 @@ export interface CodeBlockProps {
     /** Number the lines. */
     lineNumbers?: boolean;
     /**
-     * Break long lines at any character instead of scrolling: a message to
-     * sign, a 64-character id. Copying still takes the exact bytes.
+     * Break long lines instead of scrolling. `true` breaks at any character:
+     * a message to sign, a 64-character id. `'words'` breaks only between
+     * words, and a line's continuation hangs two characters in: settings or
+     * sentences in a panel. Copying still takes the exact bytes.
      */
-    wrap?: boolean;
+    wrap?: boolean | 'words';
     /** Beside the copy button: a download, a raw/pretty switch. */
     actions?: ReactNode;
     className?: string;
@@ -253,8 +256,8 @@ export function CodeBlock({
     };
     return (
         <figure className={cn(FRAME, className)} onCopy={onCopy}>
-            <figcaption className="flex h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
-                <span className="oca-label truncate leading-normal text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
+            <figcaption className="flex min-h-11 items-center justify-between gap-3 border-b border-[var(--oca-code-line)] pl-5 pr-2">
+                <span className="oca-label min-w-0 break-words py-2.5 leading-normal text-oca-ink-subtle">{caption ?? languageName(lang) ?? 'Code'}</span>
                 <span className="flex shrink-0 items-center gap-1">
                     {actions}
                     {copy ? <CopyButton value={read} label="Copy code" clearAfter={clearAfter} className={COPY_ON_INK} /> : null}
