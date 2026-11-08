@@ -996,7 +996,7 @@ const html = (el) => renderToStaticMarkup(el);
     const toc = dom(h(C.Toc, { entries, aside: h('p', { 'data-aside': '' }, 'Aside') }));
     const [sticky, folded] = toc.querySelectorAll('nav[aria-label="On this page"]');
     const details = toc.querySelector('details');
-    check(sticky && [' sticky ', ' hidden ', ' min-[900px]:flex ', ' top-[calc(4.5rem+1px+2.5rem)] ', ' overflow-y-auto '].every((c) => cls(sticky).includes(c)) && sticky.querySelector('[data-aside]'), `Toc: the contents are not sticky under the site's bar from 900px with the aside: ${cls(sticky)}`);
+    check(sticky && [' sticky ', ' hidden ', ' min-[900px]:flex ', ' top-[calc(var(--oca-site-bar-h)+2.75rem)] ', ' overflow-y-auto '].every((c) => cls(sticky).includes(c)) && sticky.querySelector('[data-aside]'), `Toc: the contents are not sticky under the site's bar from 900px with the aside: ${cls(sticky)}`);
     check(details && cls(details).includes(' min-[900px]:hidden ') && details.contains(folded) && !details.querySelector('[data-aside]') && details.querySelector('summary')?.textContent === 'On this page+' && details.querySelector('summary span[aria-hidden]')?.textContent === '+', 'Toc: the phone fold is not "On this page" and its + over the list');
     for (const [name, nav] of [['sticky', sticky], ['folded', folded]]) {
         const links = [...(nav?.querySelectorAll('ol.border-l > li > a') ?? [])];
