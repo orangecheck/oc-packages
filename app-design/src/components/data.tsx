@@ -651,7 +651,8 @@ const rowsHeight = (rows: number) => (rows > 0 ? `calc(${rows} * 4rem + ${rows -
 /**
  * Placeholder rows while something loads, and a way out if it never does:
  * after `timeoutMs` the skeleton turns into a message with a retry, holding
- * at least the rows' height.
+ * at least the rows' height. The message names the server and the connection
+ * both: nothing failed yet, so it cannot know which is slow.
  */
 export function LoadingBlock({
     rows = 3,
@@ -679,7 +680,7 @@ export function LoadingBlock({
                         </Button>
                     }
                 >
-                    Check your connection, then try again.
+                    The server or the connection is slow. Try again in a moment.
                 </Notice>
             </div>
         );
