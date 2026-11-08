@@ -332,7 +332,7 @@ jobs:
             - name: Packed files load only what installing the package brings
               run: node "$GITHUB_WORKSPACE/scripts/check-packed-imports.mjs" .
 
-            # app-design's 17-minute checks are skipped by a pull request or queue entry whose every change sits in another package's directory; a push to main runs them.
+            # app-design's 17-minute checks are skipped by a pull request or queue entry whose every change sits in another package's directory; a push to main runs them. A queue entry's base is the entry ahead's head, so this rests on the queue's ALLGREEN grouping: every entry passes its own checks.
             - name: Test (if present)
               env:
                   BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
@@ -341,7 +341,7 @@ jobs:
                       echo "no test script; skipping"
                   elif [ "${{ matrix.pkg }}" = app-design ] && [ -n "$BASE" ] \
                       && bash ../scripts/app-design-unreached.sh "$BASE"; then
-                      echo "every change since $BASE sits in another package's directory: app-design's checks passed on the same input"
+                      echo "every change since $BASE sits in another package's directory: app-design's checks ran on that base"
                   else
                       yarn test
                   fi
