@@ -7,6 +7,7 @@
  * without reading the matching audit entry.
  */
 
+import { addressFromPrivateKey, signMessage, verifySignature } from '@orangecheck/bip322';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -147,6 +148,34 @@ describe('signed-challenge duplicate-core-key defence', () => {
             expectedNonce: '2'.repeat(32),
         });
         expect(r.reason).toBe('nonce_mismatch');
+    });
+});
+
+describe('the challenge verifier and a signed attestation', () => {
+    // An attestation is not a sign-in: verifyChallenge refuses its bytes, however validly
+    // signed, even when its extensions carry every challenge field.
+    const key = '44'.repeat(32);
+    const address = addressFromPrivateKey(key, 'p2wpkh');
+    const now = new Date('2026-06-01T00:00:00Z');
+    const attestation = buildCanonicalMessage(
+        { address, identities: [{ protocol: 'github', identifier: 'owner' }] },
+        { audience: 'https://a.example', expires_at: '2026-06-01T00:05:00Z' },
+        { nonce: 'd'.repeat(32), issuedAt: '2026-05-31T23:59:00Z' }
+    );
+
+    it('refuses it as malformed', async () => {
+        const signature = signMessage(address, attestation, key);
+        expect(verifySignature(address, attestation, signature)).toBe(true);
+        const r = await verifyChallenge({ message: attestation, signature, now });
+        expect(r).toEqual({ ok: false, reason: 'malformed' });
+    });
+
+    it('refuses it with the auth header in place of the attestation header', async () => {
+        // The ack line still names an attestation, not this session.
+        const message = attestation.replace(/^orangecheck\n/, 'orangecheck-auth\n');
+        const signature = signMessage(address, message, key);
+        const r = await verifyChallenge({ message, signature, now });
+        expect(r).toEqual({ ok: false, reason: 'malformed' });
     });
 });
 
