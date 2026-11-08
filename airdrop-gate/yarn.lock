@@ -158,7 +158,7 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@noble/curves@^1.9.7":
+"@noble/curves@^1.9.0", "@noble/curves@^1.9.7":
   version "1.9.7"
   resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.9.7.tgz#79d04b4758a43e4bca2cbdc62e7771352fa6b951"
   integrity sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==
@@ -191,14 +191,23 @@
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
 
+"@orangecheck/nostr-core@^0.8.2":
+  version "0.8.3"
+  resolved "https://registry.yarnpkg.com/@orangecheck/nostr-core/-/nostr-core-0.8.3.tgz#75415fc70794ae42948731be3823d147dce1e977"
+  integrity sha512-YSqOiL8iLkgwFWQ7yL16d1iO7yYAM1QpNgoSB9q3ZuBP80yppKI/E8zCXQurjf1DhGdgv3TscxXZY8W6b5WLUA==
+  dependencies:
+    "@noble/curves" "^1.9.0"
+    "@noble/hashes" "^1.8.0"
+
 "@orangecheck/sdk@^1.21.0":
-  version "1.23.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.23.1.tgz#6d7838b5cce129e133c4603ca320604545719238"
-  integrity sha512-Uxnr33JE1z07wvbgQvalOW2sX+7GMGvqXAPksFKfNSvyMERdC2i72mCp4yYzW0OtJHPWtAtV5r9rc7+t78sWsQ==
+  version "1.24.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.24.0.tgz#30d018fb89d0d0132ac08a7777435ece6c7b4d21"
+  integrity sha512-jjeQmB6GH3VDaz7rR3KSCRpJ/CDBJu6FuDVOBfk6daqSt0UmKxFIDVLXivyVtEZrYK5FmlAIqu74ntAypPLKDQ==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
     "@orangecheck/bip322" "^1.1.3"
+    "@orangecheck/nostr-core" "^0.8.2"
     "@scure/base" "^1.1.9"
     buffer "^6.0.3"
 
