@@ -51,6 +51,11 @@
       "import": "./dist/analytics.mjs",
       "require": "./dist/analytics.js"
     },
+    "./analytics-event": {
+      "types": "./dist/analytics-event.d.ts",
+      "import": "./dist/analytics-event.mjs",
+      "require": "./dist/analytics-event.js"
+    },
     "./rate": {
       "types": "./dist/rate.d.ts",
       "import": "./dist/rate.mjs",
