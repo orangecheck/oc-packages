@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { SCOPE_IDS } from '../index';
 import { parseTrustAttestationCount, scope } from '../scope';
 import { getOrigin, setOrigin } from '../transport';
 
@@ -82,6 +83,61 @@ describe('scope.request', () => {
         expect(go({ origin: 'https://app-staging.example' }).origin).toBe(
             'https://app-staging.example'
         );
+    });
+});
+
+describe('the scopes me.ochk.io knows', () => {
+    // The same ids, in the same order, as SCOPE_IDS in oc-me-web/src/lib/privacy/scopes.ts.
+    const ME_WEB = [
+        'bitcoin_address',
+        'email',
+        'attest_tier',
+        'display_name',
+        'cross_integrator_event_count',
+        'cross_integrator_human_event_count',
+        'cross_integrator_lifetime_sats',
+        'cross_integrator_distinct_count',
+        'cross_integrator_oldest_event_at',
+        'cross_integrator_active_days',
+        'trust_attestation_count',
+        'trust_attestations_bundle',
+    ];
+    const FIVE = [
+        'cross_integrator_lifetime_sats',
+        'cross_integrator_distinct_count',
+        'cross_integrator_oldest_event_at',
+        'cross_integrator_active_days',
+        'trust_attestations_bundle',
+    ] as const;
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('exports every id, and nobody can change the list scope.request checks', () => {
+        expect(SCOPE_IDS).toEqual(ME_WEB);
+        expect(Object.isFrozen(SCOPE_IDS)).toBe(true);
+    });
+
+    it('asks for each of the five that 0.57.0 refused', () => {
+        const assign = vi.fn();
+        vi.stubGlobal('window', { location: { assign } });
+        expect(() =>
+            scope.request([...FIVE], { project_key: 'pk_live_x', return_to: 'https://app.example/after' })
+        ).toThrow('redirected to consent prompt');
+        const url = new URL(assign.mock.calls[0]![0] as string);
+        expect(url.searchParams.get('scopes')).toBe(FIVE.join(','));
+    });
+
+    it('still refuses an id me.ochk.io does not know, before any redirect', () => {
+        const assign = vi.fn();
+        vi.stubGlobal('window', { location: { assign } });
+        expect(() =>
+            scope.request(['email', 'wallet_keys' as never], {
+                project_key: 'pk_live_x',
+                return_to: 'https://app.example/after',
+            })
+        ).toThrow(`oc.scope.request: unknown scope "wallet_keys" · valid: ${ME_WEB.join(', ')}`);
+        expect(assign).not.toHaveBeenCalled();
     });
 });
 

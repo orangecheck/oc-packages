@@ -16,6 +16,17 @@ this file tracks the package's TS / Node / runtime API surface.
   `oc.event.fire`. `setBearerToken` holds one token for the whole process, so a
   server serving many people passes each person's token per call instead. It
   is sent as Authorization and never in the body. `setBearerToken` still works.
+- The five scopes me.ochk.io already knows and `oc.scope.request` refused:
+  `cross_integrator_lifetime_sats`, `cross_integrator_distinct_count`,
+  `cross_integrator_oldest_event_at`, `cross_integrator_active_days` and
+  `trust_attestations_bundle`. `Scope` has all twelve, and `SCOPE_IDS` exports
+  them, frozen, in the order me.ochk.io lists them; a me.ochk.io test fails when
+  the two lists differ.
+
+### Changed
+
+- `WebhookPayload.scopes` is keyed by `Scope`, so it names the four cross-app
+  scopes a delivery can carry beside the ones it already listed.
 
 ## [0.57.0] — 2026-11-09
 
