@@ -204,9 +204,9 @@
     "@scure/base" "^1.2.6"
 
 "@orangecheck/chat-core@^0.2.6":
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.2.6.tgz#a7d64d9d85ddeb3286590bdbb2e790c212ff0d81"
-  integrity sha512-ZOvf4w6OkwBWAupSyiuiZujqcwSS4oKZGwK/oD+KDnP43RdUlpbGPRfBYc2VZnRuLJtfMwTurP5sgV/h0GaWbw==
+  version "0.2.7"
+  resolved "https://registry.yarnpkg.com/@orangecheck/chat-core/-/chat-core-0.2.7.tgz#84e64de6812eb4da2c367e598f7db8a35a8501bb"
+  integrity sha512-cqta8m29Y5THrh2QpI+RZMHgz0xlCvv5fnOkgIOPmrFrMEr80rT1n82HaSvzW/66Vgk+Yk0/2/XR2voS2z2xyg==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
@@ -216,15 +216,15 @@
     "@orangecheck/lock-crypto" "^0.1.0"
     "@orangecheck/lock-device" "^0.8.0"
     "@orangecheck/nostr-core" "^0.8.2"
-    "@orangecheck/stamp-ots" "^0.6.1"
+    "@orangecheck/stamp-ots" "^0.7.0"
 
 "@orangecheck/lock-core@^1.4.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.5.0.tgz#c269e563c4c083a7e0189e08bdde49bd5e276435"
-  integrity sha512-Ifb5ZR/3VuqCULXXUChybjVK1gBoHyCx5XbA1LIJwwg7bdMv3anAHB2nQCpoh1M5AgPZkGxTR1zdzK0skvluCQ==
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-core/-/lock-core-1.5.1.tgz#9771d5183a502065de8e098e7a3c8390a53227c9"
+  integrity sha512-/9QVT/iXL82aVBL8wCZkuBKI7juoUSQRnHrbzDUSKcAlfheYztykpy/2e0lZqOic9QvvBqTGCcHkcd0lkjPr6g==
   dependencies:
     "@orangecheck/lock-crypto" "^0.1.0"
-    "@orangecheck/stamp-ots" "^0.6.1"
+    "@orangecheck/stamp-ots" "^0.7.0"
 
 "@orangecheck/lock-crypto@^0.1.0":
   version "0.1.0"
@@ -276,14 +276,6 @@
   integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==
   dependencies:
     "@noble/hashes" "^1.5.0"
-
-"@orangecheck/stamp-ots@^0.6.1":
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-ots/-/stamp-ots-0.6.1.tgz#2fde945e1ad9fc493445920ab97a2aeae1b25d12"
-  integrity sha512-Sc5Wzhki8dvIK9TnmQ9qxClpqL2cOVAT2TaK4QtiCD/gqJ9dUVTH3gfWnxnJ4SGfVEoibU3w34hbtv/MA+MsQA==
-  dependencies:
-    "@noble/hashes" "^1.8.0"
-    "@orangecheck/stamp-core" "^1.0.0"
 
 "@orangecheck/stamp-ots@^0.7.0":
   version "0.7.0"
@@ -761,9 +753,9 @@ ieee754@^1.2.1:
   integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
 
 jose@^6.2.2:
-  version "6.2.13"
-  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.13.tgz#4e16bf3cc81b5641ef5025cb2c9f61edfa92572f"
-  integrity sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==
+  version "6.2.16"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.16.tgz#11fd1900f82468404655da57bebd00f9f7456656"
+  integrity sha512-4LSJpbuBuPdGrONCdZUy0xnxtLf8eEz+EY0SMXdHQEBU7bgUHDVblU/JAjryv3wID9/LK7/YuwFwq+AQNfMscQ==
 
 joycon@^3.1.1:
   version "3.1.1"
