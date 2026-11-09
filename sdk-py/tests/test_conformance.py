@@ -274,6 +274,46 @@ def test_challenge_form_signatures(vector: dict) -> None:
         assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
 
 
+# ─── value_form (SPEC §2.2) ────────────────────────────────────────────────
+# This package has no attestation verifier, so the reasons are the TS SDK's to
+# check. Here every signature verifies, and the builder refuses each value that
+# is not one line and writes the control.
+
+
+@pytest.mark.parametrize("vector", vectors_of("value_form"), ids=ids_for("value_form"))
+def test_value_form_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    inp = vector["input"]
+    for case in inp["cases"]:
+        got = verify_bip322_signature(inp["address"], case["message"], case["signature"])
+        assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
+
+
+@pytest.mark.parametrize("vector", vectors_of("value_form"), ids=ids_for("value_form"))
+def test_value_form_builder(vector: dict) -> None:
+    inp = vector["input"]
+    for case in inp["cases"]:
+
+        def build() -> str:
+            return build_canonical_message(
+                address=case.get("address", inp["address"]),
+                identities=case["identities"],
+                extensions=case["extensions"],
+                nonce=inp["nonce"],
+                issued_at=case.get("issued_at", inp["issued_at"]),
+            )
+
+        if case["reason"] is None:
+            assert build() == case["message"], f"{vector['id']}: {case['name']}"
+        else:
+            with pytest.raises(ValueError, match="one line"):
+                build()
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -295,6 +335,7 @@ def test_vector_set_complete() -> None:
         "bond_extension",
         "canonical_form",
         "challenge_form",
+        "value_form",
     }
     assert len(VECTORS) >= 28
 

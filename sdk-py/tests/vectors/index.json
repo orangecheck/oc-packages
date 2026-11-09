@@ -153,5 +153,10 @@
     "id": "tv31",
     "category": "challenge_form",
     "description": "orangecheck-auth challenges validly BIP-322 signed by burn key #1 that are not in their canonical form (SPEC Appendix A.1): each case's reason is malformed; the canonical control's is null"
+  },
+  {
+    "id": "tv32",
+    "category": "value_form",
+    "description": "attestations validly BIP-322 signed by burn key #1 with a value that is not one line (SPEC §2.2): each case's reason is decode_error and a builder refuses its identities and extensions, with its address or issued_at when the case gives one; the control holds a value outside ASCII, which a builder writes and a verifier takes"
   }
 ]
