@@ -4,6 +4,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.18.1] — 2026-11-09
+
+### Changed
+
+- **`challenge_issue` refuses a value a wallet could show as two lines**
+  (SPEC Appendix A.1). It raises `ValueError` before any request when `addr`,
+  `audience` or `purpose` holds a C0 control character, DEL, U+0085, U+2028
+  or U+2029. Other text is sent as given, untrimmed.
+
 ## [3.18.0] — 2026-11-08
 
 ### Changed

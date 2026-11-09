@@ -153,6 +153,28 @@ def test_challenge_issue_and_verify() -> None:
 
 
 @respx.mock
+@pytest.mark.parametrize("code", [0x00, 0x09, 0x0A, 0x0D, 0x1B, 0x7F, 0x85, 0x2028, 0x2029])
+@pytest.mark.parametrize("field", ["addr", "audience", "purpose"])
+def test_challenge_issue_refuses_a_value_a_wallet_could_split(field: str, code: int) -> None:
+    route = respx.get(f"{BASE}/api/challenge").respond(200, json={})
+    args = {"addr": "bc1qtest", "audience": "https://example.com", "purpose": "login"}
+    args[field] += chr(code) + "audience: https://other.example"
+    with pytest.raises(ValueError, match="must be one line"):
+        Client().challenge_issue(**args)
+    assert not route.called
+
+
+@respx.mock
+def test_challenge_issue_sends_other_text_as_given() -> None:
+    route = respx.get(f"{BASE}/api/challenge").respond(
+        200,
+        json={"message": "m", "nonce": "a" * 32, "expiresAt": 0, "expiresAtIso": "x"},
+    )
+    Client().challenge_issue(addr="bc1qtest", purpose="sign in at the café ")
+    assert route.calls.last.request.url.params["purpose"] == "sign in at the café "
+
+
+@respx.mock
 def test_challenge_verify_failure() -> None:
     respx.post(f"{BASE}/api/challenge").respond(
         401, json={"ok": False, "reason": "sig_invalid"}
