@@ -508,6 +508,12 @@
         border-color: var(--border);
     }
 
+    /* A placeholder is read as text: the muted token (4.5:1 on every field ground) where preflight drew half the
+       field's colour (3.39:1 on the light card). In the base layer, so a placeholder colour utility still wins. */
+    [data-oc-app='ochk'] ::placeholder {
+        color: var(--muted-foreground);
+    }
+
     [data-oc-app='ochk'] ::selection {
         background-color: color-mix(in oklab, var(--oca-orange) 28%, transparent);
     }

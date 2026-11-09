@@ -7,6 +7,8 @@
  *   does a composite field's box (chips and a bare input) while focus is
  *   inside it. An invalid one keeps its red. Under forced colours a field
  *   keeps an outline.
+ * - A field's placeholder is 4.5:1 on the field, in light and dark, one
+ *   styled inline too: it is read as text.
  * - On the orange closing band the focus ring is ink, not orange on orange.
  * - A SplitBar on the band: each segment and legend square stands out from
  *   the orange at 3:1, by its fill or its ring.
@@ -448,6 +450,19 @@ try {
                 check(got.card >= 3 && got.page >= 3, `[${mode}] ${f} in focus: its edge is ${got.card.toFixed(2)}:1 on the field, ${got.page.toFixed(2)}:1 on the page (${got.edge})`);
                 check(!got.second, `[${mode}] ${f} in focus: the page's outline rings it a second time`);
                 check(got.ringed >= 3, `[${mode}] ${f} in focus: no ring of 3:1 drawn round it (strongest ${got.ringed.toFixed(2)}:1)`);
+            }
+            // Placeholders are read as text: 4.5:1 on the field's own ground, an inline-styled field's too.
+            const hints = await p.evaluate(() =>
+                [...document.querySelectorAll('[data-f][placeholder]')].map((el) => {
+                    const page = __rgb(getComputedStyle(el.closest('.bg-background')).backgroundColor);
+                    const ground = __rgb(getComputedStyle(el).backgroundColor, `rgb(${page.join()})`);
+                    const colour = getComputedStyle(el, '::placeholder').color;
+                    return { f: el.getAttribute('data-f'), colour, ratio: __contrast(__rgb(colour, `rgb(${ground.join()})`), ground) };
+                })
+            );
+            check(hints.length >= 3, `[${dark ? 'dark' : 'light'}] only ${hints.length} fields with a placeholder to measure`);
+            for (const h of hints) {
+                check(h.ratio >= 4.5, `[${dark ? 'dark' : 'light'}] the ${h.f} field's placeholder is ${h.ratio.toFixed(2)}:1 on the field (${h.colour}), needs 4.5:1`);
             }
             // The invalid field keeps the destructive edge in focus.
             const red = await p.evaluate(() => {

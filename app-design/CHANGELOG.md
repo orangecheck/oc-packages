@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- A field's placeholder is drawn in the muted text token, 4.5:1 on every
+  field ground in both themes. Tailwind's preflight drew it at half the
+  field's own colour: 3.39:1 on the light card, where a field styled
+  inline (the sign-in's) shows it. A placeholder colour utility still wins,
+  so `Input` and `Textarea` keep theirs. check-focus measures each field's
+  placeholder on its ground in Chrome.
+
 ## [2.15.0] — 2026-11-08
 
 The scroll-margin rule ships once.
