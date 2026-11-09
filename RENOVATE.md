@@ -131,8 +131,7 @@ every repo reads it on the next run (land it like any change here).
   with `"matchRepositories"`, `"matchPackageNames"` and `"allowedVersions"`
   (for example `"<=1.18.2"`), with a description naming the unit that lifts
   it. The repo's own unit bumps the package and takes its name out of the
-  rule. Holds today: `@orangecheck/sdk` at 1.18.2 for oc-www, until it
-  decodes the reasons sdk 1.19.0 to 1.21.0 add.
+  rule. Holds today: none.
 
 Tweak one repo's behaviour in that repo's `renovate.json`:
 
