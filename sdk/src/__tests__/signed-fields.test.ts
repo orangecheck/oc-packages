@@ -220,7 +220,9 @@ describe('an expiry that is not a time', () => {
     });
 
     it('still accepts an RFC 3339 expiry ahead of now', async () => {
-        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z', { expires: '2030-01-01T00:00:00Z' });
+        // A year from this run's clock, never a fixed date that passes.
+        const expires = new Date(Date.now() + 365 * 86_400_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+        const { msg, sig } = signed(OWNER_KEY, OWNER, [], '2026-01-01T00:00:00Z', { expires });
         const r = await sdk.verify({ addr: OWNER, msg, sig, scheme: 'bip322' });
         expect(r.ok).toBe(true);
     });
