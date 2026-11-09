@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.16.0] — 2026-11-09
+
 - A `DataTable` column takes `valign: 'top'`, for a cell that grows: an
   actions cell whose refused write is said under its buttons. Every cell
   sat in the middle of its row, so words under a button lifted the button
