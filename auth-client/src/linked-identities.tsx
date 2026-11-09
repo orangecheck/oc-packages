@@ -45,6 +45,7 @@ import {
 } from './appearance';
 import { addressInputValue } from './address';
 import { capText } from './caps';
+import { failureMessage } from './refusal';
 import { tabSessionHeader } from './tab-session';
 
 const DEFAULT_AUTH_ORIGIN = 'https://ochk.io';
@@ -337,11 +338,13 @@ function IdentityRow({
             );
             if (!r.ok) {
                 const j = (await r.json().catch(() => ({}))) as { reason?: string };
+                if (handleSudoRequired(j, { purpose: 'remove a way to sign in' })) return;
+                if (isSudoAccountMismatch(j)) throw new Error(SUDO_ACCOUNT_MISMATCH_MESSAGE);
                 throw new Error(j.reason ?? `http_${r.status}`);
             }
             onChange();
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'unlink failed');
+            setErr(failureMessage(e, 'wallet', 'challenge', authOrigin));
             setBusy(false);
             setConfirming(false);
         }
@@ -617,7 +620,7 @@ function EmailLinkForm({
             setToken(j.token);
             setStep('code');
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'could not send code');
+            setErr(failureMessage(e, 'email', 'challenge', authOrigin));
         } finally {
             setBusy(false);
         }
@@ -638,7 +641,7 @@ function EmailLinkForm({
                     ...(confirmTransfer ? { confirm_transfer: true } : {}),
                 }),
             });
-            const j = (await r.json()) as { ok?: boolean; reason?: string };
+            const j = (await r.json()) as { ok?: boolean; reason?: string; retry_at?: unknown };
             if (r.status === 409 && j.reason === 'email_linked_elsewhere') {
                 setTransfer(true);
                 setBusy(false);
@@ -650,10 +653,13 @@ function EmailLinkForm({
                 setBusy(false);
                 return;
             }
-            if (!r.ok || !j.ok) throw new Error(j.reason ?? `http_${r.status}`);
+            if (!r.ok || !j.ok) {
+                const reason = j.reason ?? `http_${r.status}`;
+                throw new Error(capText(reason, j.retry_at, 'link a Bitcoin wallet instead') ?? reason);
+            }
             onDone();
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'link failed');
+            setErr(failureMessage(e, 'email', 'submit', authOrigin));
             setBusy(false);
         }
     }
@@ -785,7 +791,7 @@ function BtcLinkForm({
             setChallenge(j.message);
             setStep('sign');
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'challenge failed');
+            setErr(failureMessage(e, 'wallet', 'challenge', authOrigin));
         } finally {
             setBusy(false);
         }
@@ -820,7 +826,7 @@ function BtcLinkForm({
             if (!r.ok || !j.ok) throw new Error(j.reason ?? `http_${r.status}`);
             onDone();
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'link failed');
+            setErr(failureMessage(e, 'wallet', 'submit', authOrigin));
             setBusy(false);
         }
     }

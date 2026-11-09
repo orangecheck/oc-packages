@@ -23,10 +23,12 @@ function readableRetry(retryAt: unknown): string | null {
 /**
  * A network past its hour of sign-in codes (`otp_network_cap`, #344): its
  * next code frees only as the hour rolls, so "wait a minute" would be false.
+ * `instead` is '' when no other way would help.
  */
 export function otpNetworkCapText(retryAt: unknown, instead = 'Sign in another way'): string {
     const at = readableRetry(retryAt);
-    return `Too many codes were sent from your network in the last hour. ${instead}, or try again ${at ? `after ${at}` : 'within the hour'}.`;
+    const when = at ? `after ${at}` : 'within the hour';
+    return `Too many codes were sent from your network in the last hour. ${instead ? `${instead}, or try again ${when}` : `Try again ${when}`}.`;
 }
 
 /**
@@ -42,12 +44,13 @@ export function newAccountsCapText(retryAt: unknown): string {
 /**
  * The sentence for a cap's reason code, or null when `reason` is not one.
  * `alternative` is what else the reader can do, as a clause ("sign in another
- * way"); a cap on new accounts offers none, since every way makes the account
- * from the same network.
+ * way"), or '' when nothing else would help; a cap on new accounts offers
+ * none, since every way makes the account from the same network.
  */
 export function capText(reason: string, retryAt: unknown, alternative = 'sign in another way'): string | null {
     const at = readableRetry(retryAt);
     const retry = at ? `Try again after ${at}` : 'Try again later';
+    const or = alternative ? `, or ${alternative}` : '';
     switch (reason) {
         case 'otp_network_cap':
             return otpNetworkCapText(retryAt, alternative.charAt(0).toUpperCase() + alternative.slice(1));
@@ -56,11 +59,15 @@ export function capText(reason: string, retryAt: unknown, alternative = 'sign in
         case 'new_account_cap_unavailable':
             return "We couldn't finish making your account just now. Try again in a minute.";
         case 'challenges_capped':
-            return `Too many wallet sign-in attempts from this connection. ${retry}, or ${alternative}.`;
+            return `Too many wallet sign-in attempts from this connection. ${retry}${or}.`;
         case 'network_challenges_capped':
-            return `Too many wallet sign-in attempts from this network. ${retry}, or ${alternative}.`;
+            return `Too many wallet sign-in attempts from this network. ${retry}${or}.`;
         case 'cap_unavailable':
-            return `We couldn't start a wallet sign-in just now. Try again in a minute, or ${alternative}.`;
+            return `We couldn't start a wallet sign-in just now. Try again in a minute${or}.`;
+        case 'otp_wrong_code_cap':
+            return `Too many wrong codes were entered for this email. ${retry}${or}.`;
+        case 'code_check_unavailable':
+            return "We couldn't check your code just now. It still works: try it again in a minute.";
         default:
             return null;
     }

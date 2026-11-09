@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { bondRefusal } from './bond';
-import { humanSigninError } from './signin';
+import { humanSigninError } from './refusal';
 
 // A reason code the auth host sends is read from the tables' own keys: an
 // inherited name gets the general sentence.

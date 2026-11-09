@@ -45,7 +45,7 @@ import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
 import { DesignCheckbox } from './controls';
 import { LinkPromptStep } from './linked-identities';
-import { ownWord } from './own-word';
+import { failureMessage, humanSigninError, networkError } from './refusal';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
@@ -287,101 +287,10 @@ function hardNavigate(target: string): void {
 
 /* --- failures people can act on --- */
 
-/**
- * The auth host answers with machine reasons. Its /api/auth/signin says it
- * exposes them "so the /signin UI can give an actionable message", and this
- * form printed them verbatim instead: typing "hello" as an address showed
- * `bad_request`. Each reason maps to what happened and what to do next.
- */
-const SIGNIN_ERRORS: Record<string, string> = {
-    bad_request: "That doesn't look like a Bitcoin address.",
-    invalid_challenge:
-        "That signature doesn't match this address. Sign with the wallet that holds it.",
-    sig_invalid: "That signature doesn't match this address. Sign with the wallet that holds it.",
-    sig_unsupported_scheme:
-        "We can't check this wallet's signature format yet. Try another wallet, or use email.",
-    expired: 'That request timed out. Try again for a fresh one.',
-    not_yet_valid: 'That request is not valid yet. Check your device clock, then try again.',
-    nonce_mismatch: "That request didn't match. Try again for a fresh one.",
-    audience_mismatch: "That request didn't match this site. Reload the page and try again.",
-    purpose_mismatch: "That request didn't match. Try again for a fresh one.",
-    malformed: "That signature couldn't be read. Copy it again, whole.",
-    challenge_mismatch:
-        'That sign-in message changed after it was issued. Get a new one and sign it again.',
-    mainnet_only: 'Sign in with a mainnet Bitcoin address.',
-    cross_site_blocked: 'Your browser blocked this request. Reload the page and try again.',
-    rate_limited: 'Too many tries. Wait a minute, then try again.',
-    invalid_email: "That email address doesn't look right.",
-    mailer_unavailable: "We couldn't send the email right now. Try again in a minute.",
-    mailer_error: "We couldn't send the email right now. Try again in a minute.",
-    wrong_code: "That code isn't right. Check the newest email from us.",
-    replay: 'That code was already used. Send a new one.',
-    invalid_token: 'That code is no longer valid. Send a new one.',
-    email_mismatch: 'That code was sent to a different address. Send a new one.',
-};
-
-const EMAIL_ERRORS: Record<string, string> = {
-    expired: 'That code expired. Send a new one.',
-};
-
-/**
- * `bad_request` means the host's body schema failed. Fetching a challenge
- * that is the address; submitting a signature it is the pasted signature
- * (under 10 characters, say), which is not an address problem at all.
- */
-const SUBMIT_ERRORS: Record<string, string> = {
-    bad_request: "That signature couldn't be read. Copy it again, whole.",
-};
-
 /** The sentence a refused sign-in throws: a cap says when, any other reason stays a code. */
 function signinRefusal(json: SigninJsonErr, fallback: string): string {
     const reason = json.reason || json.error || fallback;
     return capText(reason, json.retry_at) ?? reason;
-}
-
-/** The auth host by name, so an outage reads as theirs and not the page's. */
-export function networkError(authOrigin: string): string {
-    let host = authOrigin;
-    try {
-        host = new URL(authOrigin).host;
-    } catch {
-        // not a URL: name it as given
-    }
-    return `We couldn't reach the orangecheck sign-in service at ${host}. Check your connection, then try again.`;
-}
-
-export function humanSigninError(
-    reason: string,
-    path: 'wallet' | 'email',
-    step: 'challenge' | 'submit' = 'challenge'
-): string {
-    // A reason that is not a code is already a sentence.
-    if (!/^[a-z0-9_]+$/.test(reason)) return reason;
-    const own =
-        (path === 'wallet' && step === 'submit' && ownWord(SUBMIT_ERRORS, reason)) ||
-        (path === 'email' && ownWord(EMAIL_ERRORS, reason));
-    if (own) return own;
-    return (
-        ownWord(SIGNIN_ERRORS, reason) ??
-        (path === 'email'
-            ? "That didn't work. Try again, or send a new code."
-            : "That didn't work. Try again.")
-    );
-}
-
-/**
- * A failed fetch ("Failed to fetch") or an HTML error page parsed as JSON
- * (a SyntaxError) is not prose meant for a person; everything else thrown
- * here carries a host reason code. A wallet's failure never comes here.
- */
-function failureMessage(
-    err: unknown,
-    path: 'wallet' | 'email',
-    step: 'challenge' | 'submit',
-    authOrigin: string
-): string {
-    if (err instanceof TypeError || err instanceof SyntaxError) return networkError(authOrigin);
-    return humanSigninError(err instanceof Error ? err.message : 'failed', path, step);
 }
 
 const BECH32_ADDRESS = /^(bc1|tb1|bcrt1)[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{8,87}$/i;

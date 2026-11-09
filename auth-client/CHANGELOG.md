@@ -9,6 +9,28 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `capText(reason, retryAt, alternative?)` is exported: the sentence for any
+  ochk.io cap reason, or null when the reason is not a cap, so a site with its
+  own forms reads caps the same way. An `alternative` of `''` (and an
+  `instead` of `''` for `otpNetworkCapText`) leaves out the "or …" clause,
+  for a page where no other way would help.
+
+### Fixed
+
+- A code check ochk.io refuses reads as words in `<OcSignIn>` and
+  `<OcLinkedIdentities>`: an address past its wrong codes
+  (`otp_wrong_code_cap`: "Too many wrong codes were entered for this email.
+  Try again after HH:MM, or sign in another way.") and a count that could not
+  be read (`code_check_unavailable`: "We couldn't check your code just now.
+  It still works: try it again in a minute.").
+- `<OcLinkedIdentities>` shows words, not reason codes, for every refused
+  link, unlink or code, and names ochk.io when it can't be reached instead of
+  "Failed to fetch". Unlinking an identity sends you to confirm it's you when
+  ochk.io asks, as linking one already did, instead of showing
+  `sudo_required`.
+
 ## [2.43.2] — 2026-11-09
 
 ### Fixed

@@ -28,7 +28,7 @@ export { OcSignIn } from './signin';
 // hand-copies, already drifted in two — and 14 of them shared the prefix-check
 // flaw that let `/\evil.example` through as a "same-origin path".
 export { familyReturnTarget, safeReturnTo } from './signin';
-export { newAccountsCapText, otpNetworkCapText } from './caps';
+export { capText, newAccountsCapText, otpNetworkCapText } from './caps';
 export type { OcSignInProps } from './signin';
 export { OcLinkedIdentities, fetchOcLinkedIdentities } from './linked-identities';
 export type { OcLinkedIdentitiesProps, OcLinkedIdentity } from './linked-identities';
