@@ -23,6 +23,13 @@ this file tracks the package's TS / Node / runtime API surface.
   them, frozen, in the order me.ochk.io lists them; a me.ochk.io test fails when
   the two lists differ.
 
+### Deprecated
+
+- The `attest_tier` scope, as me.ochk.io already marks it. ochk.app no longer
+  asks for it, so a request for it asks the person nothing; a backed account
+  tells your site what backs it at sign-in. Old grants still resolve. The
+  `oc.scope` example asks for `email` and `bitcoin_address` instead.
+
 ### Changed
 
 - `WebhookPayload.scopes` is keyed by `Scope`, so it names the four cross-app

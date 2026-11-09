@@ -5,9 +5,9 @@
  *   Signing in gives your site the person's orangecheck id (`did_oc`),
  *   which is the same on every site, and events carry a per-project
  *   subject (`sub`). Their Bitcoin address and email stay private. To read
- *   additional fields (their email, attest tier, bitcoin address, display
- *   name), you must explicitly request the matching scope and the user
- *   must explicitly consent.
+ *   additional fields (their email, their Bitcoin address, or one of the
+ *   counts below), you must explicitly request the matching scope and the
+ *   user must explicitly consent.
  *
  *   Guide: https://ochk.io/docs/me/sdk
  *
@@ -31,7 +31,7 @@
  *   return_to. Subsequent oc.scope.granted() calls reflect their
  *   decisions.
  *
- *     await oc.scope.request(['email', 'attest_tier'], {
+ *     await oc.scope.request(['email', 'bitcoin_address'], {
  *       project_key: 'pk_live_yourcompany',
  *       return_to: window.location.href,
  *     });
@@ -76,6 +76,9 @@ const CONSENT_ORIGIN = 'https://ochk.app';
  *    and when it ends. You choose which ones in Apps." A JSON array of
  *    envelope ids: fetch each from /api/envelope/<id> and verify it.
  *
+ *  attest_tier · deprecated: "backing (old form)". ochk.app no longer asks
+ *    for it, so a request for it asks the person nothing; a backed account
+ *    tells your site what backs it at sign-in. Old grants still resolve.
  *  display_name · deprecated: it shares nothing. Signing in already gives your
  *    site the person's display name, so ochk.app no longer offers it; asking
  *    for it still works, and it never appears in `scopes`. */
