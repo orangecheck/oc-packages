@@ -11,6 +11,7 @@ from typing import Any
 
 import httpx
 
+from ._text import is_one_line_value
 from .errors import OrangeCheckError, RateLimitError, VerificationError
 from .types import (
     AttestationSummary,
@@ -25,9 +26,6 @@ from .types import (
 DEFAULT_BASE_URL = "https://ochk.io"
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_UA = "orangecheck-py/0.1.0"
-
-# What no challenge value holds (SPEC Appendix A.1): C0 controls, DEL, NEL, line and paragraph separators.
-_NOT_IN_A_CHALLENGE_VALUE = frozenset(map(chr, [*range(0x20), 0x7F, 0x85, 0x2028, 0x2029]))
 
 
 def _raise_for_status(status: int, body: Any) -> None:
@@ -112,9 +110,9 @@ class _Common:
         if not addr:
             raise ValueError("addr is required")
         for name, value in (("addr", addr), ("audience", audience), ("purpose", purpose)):
-            if value and not _NOT_IN_A_CHALLENGE_VALUE.isdisjoint(value):
+            if value and not is_one_line_value(value):
                 raise ValueError(
-                    f"{name} must be one line, with no control character or line separator"
+                    f"{name} must be one line, with no control character, line separator or surrogate"
                 )
         q: dict[str, str] = {"addr": addr}
         if audience:

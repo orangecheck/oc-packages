@@ -153,7 +153,9 @@ def test_challenge_issue_and_verify() -> None:
 
 
 @respx.mock
-@pytest.mark.parametrize("code", [0x00, 0x09, 0x0A, 0x0D, 0x1B, 0x7F, 0x85, 0x2028, 0x2029])
+@pytest.mark.parametrize(
+    "code", [0x00, 0x09, 0x0A, 0x0D, 0x1B, 0x7F, 0x85, 0x2028, 0x2029, 0xD800, 0xDFFF]
+)
 @pytest.mark.parametrize("field", ["addr", "audience", "purpose"])
 def test_challenge_issue_refuses_a_value_a_wallet_could_split(field: str, code: int) -> None:
     route = respx.get(f"{BASE}/api/challenge").respond(200, json={})

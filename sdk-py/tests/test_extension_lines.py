@@ -48,3 +48,39 @@ def test_writes_a_key_given_in_capitals_in_lowercase_and_drops_an_empty_value() 
 def test_writes_every_printable_key_a_verifier_takes() -> None:
     msg = build({"x-net_2.0~!": "v", "[a]": "w"})
     assert msg.endswith("\n[a]: w\nx-net_2.0~!: v\n")
+
+
+SPLITTERS = [0x00, 0x09, 0x0B, 0x0C, 0x1B, 0x1F, 0x7F, 0x85, 0x2028, 0x2029, 0xD800, 0xDFFF]
+
+
+@pytest.mark.parametrize("code", SPLITTERS, ids=[f"U+{c:04X}" for c in SPLITTERS])
+def test_refuses_any_value_that_is_not_one_line(code: int) -> None:
+    # A wallet may show a control character or separator as a line break; a
+    # surrogate has no UTF-8 form. Each value, core or extension (SPEC §2.2).
+    splitter = chr(code) + "network: testnet"
+    with pytest.raises(ValueError, match="one line"):
+        build({"aud": "https://a.example" + splitter})
+    with pytest.raises(ValueError, match="one line"):
+        build_canonical_message(
+            address="bc1qexample",
+            identities=[{"protocol": "github", "identifier": "alice" + splitter}],
+            nonce="0011223344556677889900aabbccddee",
+            issued_at="2026-04-22T12:00:00Z",
+        )
+    with pytest.raises(ValueError, match="one line"):
+        build_canonical_message(
+            address="bc1qexample" + splitter,
+            nonce="0011223344556677889900aabbccddee",
+            issued_at="2026-04-22T12:00:00Z",
+        )
+    with pytest.raises(ValueError, match="one line"):
+        build_canonical_message(
+            address="bc1qexample",
+            nonce="0011223344556677889900aabbccddee",
+            issued_at="2026-04-22T12:00:00Z" + splitter,
+        )
+
+
+def test_writes_a_value_outside_ascii_as_given() -> None:
+    value = "web:caf" + chr(0xE9) + chr(0x80) + chr(0x86) + chr(0x2027) + chr(0x1F600)
+    assert build({"scope": value}).endswith(f"\nscope: {value}\n")

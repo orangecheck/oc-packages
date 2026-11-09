@@ -4,6 +4,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.18.2] — 2026-11-09
+
+### Changed
+
+- **`build_canonical_message` writes every value on one line** (SPEC §2.2,
+  vector `tv32`). It raises `ValueError` for an extension value, identity,
+  address or `issued_at` holding a C0 control character, DEL, U+0085, U+2028,
+  U+2029 or a surrogate, as `@orangecheck/sdk` 1.26.0's builder does.
+  `challenge_issue` refuses a surrogate too.
+
 ## [3.18.1] — 2026-11-09
 
 ### Changed
