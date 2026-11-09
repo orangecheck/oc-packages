@@ -16,7 +16,8 @@ vi.mock('@orangecheck/wallet-adapter', () => ({
 
 import { inputStyle as linkedInputStyle, LinkPromptStep } from '../linked-identities';
 import { newAccountsCapText, otpNetworkCapText } from '../caps';
-import { humanSigninError, looksLikeBitcoinAddress, OcSignIn } from '../signin';
+import { humanSigninError } from '../refusal';
+import { looksLikeBitcoinAddress, OcSignIn } from '../signin';
 
 type Route = (url: string, init?: RequestInit) => { status?: number; body: unknown } | undefined;
 
