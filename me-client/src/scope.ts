@@ -13,11 +13,16 @@
  *
  * Two functions:
  *
- *   oc.scope.granted(project_key) — read what the currently-signed-in
- *   user has already granted. Returns sub + per-scope values they've
- *   consented to.
+ *   oc.scope.granted(options) — read what a person has already granted
+ *   your project. Returns sub + per-scope values they've consented to.
+ *   Call it from your backend, naming the person and signing with your
+ *   project's secret:
  *
- *     const { sub, scopes } = await oc.scope.granted({ project_key: 'pk_live_yourcompany' });
+ *     const { sub, scopes } = await oc.scope.granted({
+ *       project_key: 'pk_live_yourcompany',
+ *       accountId: session.did_oc,
+ *       signingSecret: process.env.OC_SIGNING_SECRET,
+ *     });
  *     console.log(sub);            // "sub_3K7xQ2mN1pYwB8tRvE…"
  *     console.log(scopes.email);   // "user@example.com" or undefined
  *
@@ -32,6 +37,9 @@
  *     });
  */
 
+import { isDidOc } from '@orangecheck/auth-core/identifiers';
+
+import { signBody } from './event';
 import { api } from './transport';
 
 /** Where people decide what to share. The API stays on me.ochk.io; its
@@ -101,6 +109,14 @@ export function parseTrustAttestationCount(value: string): TrustAttestationCount
 export interface GrantedOptions {
     /** Your project_key. Required. */
     project_key: string;
+    /** Who to ask about: their did:oc, as `event.fire`'s `accountId`. Needs
+     *  `signingSecret`. Without both, the call reads the session the request
+     *  carries, which only ochk.app's own pages have: a browser on your site
+     *  sends no session me.ochk.io accepts. */
+    accountId?: string;
+    /** The project's signing secret, which signs the question so it is your
+     *  project asking. SERVER-SIDE ONLY: never ship it to a browser. */
+    signingSecret?: string;
     signal?: AbortSignal;
 }
 
@@ -121,9 +137,29 @@ async function granted(options: GrantedOptions): Promise<GrantedResult> {
     if (!options.project_key) {
         throw new Error('oc.scope.granted: project_key is required');
     }
+    const { accountId, signingSecret } = options;
+    if (accountId !== undefined && !signingSecret) {
+        throw new Error('oc.scope.granted: accountId names the person, so it requires signingSecret');
+    }
+    if (signingSecret && accountId === undefined) {
+        throw new Error('oc.scope.granted: signingSecret signs a question about one person, so it requires accountId');
+    }
+    if (accountId !== undefined && !isDidOc(accountId)) {
+        throw new Error('oc.scope.granted: accountId must be a did:oc exactly as issued (did:oc: and 32 lowercase hex)');
+    }
+    let path = `/api/integrator/scopes/${encodeURIComponent(options.project_key)}`;
+    const headers: Record<string, string> = {};
+    if (accountId !== undefined && signingSecret) {
+        path += `?user=${encodeURIComponent(accountId)}`;
+        // The route signs these two values in this order, not the URL.
+        headers['x-oc-signature'] = await signBody(
+            signingSecret,
+            `project_key=${options.project_key}&user=${accountId}`
+        );
+    }
     const r = await api<{ ok: boolean; sub: string; scopes_granted: Scope[]; scopes: Partial<Record<Scope, string>> }>(
-        `/api/integrator/scopes/${encodeURIComponent(options.project_key)}`,
-        { method: 'GET', signal: options.signal }
+        path,
+        { method: 'GET', signal: options.signal, headers }
     );
     return {
         sub: r.sub,

@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { parseTrustAttestationCount, scope } from '../scope';
@@ -80,5 +82,76 @@ describe('scope.request', () => {
         expect(go({ origin: 'https://app-staging.example' }).origin).toBe(
             'https://app-staging.example'
         );
+    });
+});
+
+describe('scope.granted from your backend (R11 P1-1)', () => {
+    const DID = 'did:oc:0123456789abcdef0123456789abcdef';
+    const SECRET = 'project-signing-secret';
+    let sent: Array<{ url: URL; headers: Headers; credentials?: RequestCredentials }> = [];
+    const answer = { ok: true, sub: 'sub_x', scopes_granted: ['email'], scopes: { email: 'a@b.example' } };
+    const stubFetch = () => {
+        sent = [];
+        vi.stubGlobal('fetch', async (url: RequestInfo | URL, init?: RequestInit) => {
+            sent.push({ url: new URL(String(url)), headers: new Headers(init?.headers), credentials: init?.credentials });
+            return Response.json(answer);
+        });
+    };
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('asks about the named person, signed the way the route checks it', async () => {
+        stubFetch();
+        const before = Math.floor(Date.now() / 1000);
+        const r = await scope.granted({ project_key: 'pk_live_x', accountId: DID, signingSecret: SECRET });
+        expect(sent).toHaveLength(1);
+        const { url, headers } = sent[0]!;
+        expect(url.pathname).toBe('/api/integrator/scopes/pk_live_x');
+        expect([...url.searchParams.keys()]).toEqual(['user']);
+        expect(url.searchParams.get('user')).toBe(DID);
+        const m = /^t=(\d+),v1=([0-9a-f]{64})$/.exec(headers.get('x-oc-signature') ?? '');
+        expect(m).not.toBeNull();
+        const t = Number(m![1]);
+        expect(t).toBeGreaterThanOrEqual(before);
+        expect(t).toBeLessThanOrEqual(Math.floor(Date.now() / 1000));
+        const expected = createHmac('sha256', SECRET)
+            .update(`${m![1]}.project_key=pk_live_x&user=${DID}`)
+            .digest('hex');
+        expect(m![2]).toBe(expected);
+        expect(r).toEqual({ sub: 'sub_x', scopes_granted: ['email'], scopes: { email: 'a@b.example' } });
+    });
+
+    it('never puts the secret on the wire', async () => {
+        stubFetch();
+        await scope.granted({ project_key: 'pk_live_x', accountId: DID, signingSecret: SECRET });
+        const { url, headers } = sent[0]!;
+        expect(url.toString()).not.toContain(SECRET);
+        for (const [, v] of headers) expect(v).not.toContain(SECRET);
+    });
+
+    it('needs the secret and the person together, and says so before any request', async () => {
+        stubFetch();
+        await expect(scope.granted({ project_key: 'pk_live_x', accountId: DID })).rejects.toThrow(/signingSecret/);
+        await expect(scope.granted({ project_key: 'pk_live_x', signingSecret: SECRET })).rejects.toThrow(/accountId/);
+        expect(sent).toEqual([]);
+    });
+
+    it('refuses an accountId that is not a did:oc, before any request', async () => {
+        stubFetch();
+        for (const bad of [` ${DID}`, DID.toUpperCase(), 'bc1qexample', `${DID}0`]) {
+            await expect(
+                scope.granted({ project_key: 'pk_live_x', accountId: bad, signingSecret: SECRET })
+            ).rejects.toThrow(/did:oc/);
+        }
+        expect(sent).toEqual([]);
+    });
+
+    it('with neither, reads the signed-in session and signs nothing', async () => {
+        stubFetch();
+        await scope.granted({ project_key: 'pk_live_x' });
+        const { url, headers } = sent[0]!;
+        expect(url.search).toBe('');
+        expect(headers.get('x-oc-signature')).toBeNull();
     });
 });
