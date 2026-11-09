@@ -9,6 +9,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `familyReturnTarget` and `safeReturnTo` return the target without its
+  fragment, on a path and on a family URL alike. A return address this
+  package builds already carries none: its fragment is kept in the tab and
+  put back on return. Now an address from anywhere else follows the same rule.
+
 ## [2.44.0] — 2026-11-09
 
 ### Added

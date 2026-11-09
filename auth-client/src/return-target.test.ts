@@ -46,7 +46,7 @@ const OFF_ORIGIN_PATHS = [
     'data:text/html,<script>alert(1)</script>',
 ];
 
-const SAME_ORIGIN_PATHS = ['/', '/dashboard', '/a/abc?x=1#y', '/deep/nested/path'];
+const SAME_ORIGIN_PATHS = ['/', '/dashboard', '/a/abc?x=1', '/deep/nested/path'];
 
 describe('safeReturnTo', () => {
     it.each(OFF_ORIGIN_PATHS)('falls back to / for %j', (candidate) => {
@@ -55,6 +55,12 @@ describe('safeReturnTo', () => {
 
     it.each(SAME_ORIGIN_PATHS)('passes %j through', (candidate) => {
         expect(safeReturnTo(candidate)).toBe(candidate);
+    });
+
+    it('never keeps a fragment', () => {
+        expect(safeReturnTo('/a/abc?x=1#y')).toBe('/a/abc?x=1');
+        expect(safeReturnTo('/#top')).toBe('/');
+        expect(safeReturnTo('/me#')).toBe('/me');
     });
 
     it('falls back for absent or non-string input', () => {
@@ -102,6 +108,16 @@ describe('familyReturnTarget', () => {
         expect(process.env.NODE_ENV).toBe('test');
         expect(familyReturnTarget('http://localhost:3000/x')).toBeUndefined();
         expect(familyReturnTarget('http://127.0.0.1:3000/x')).toBeUndefined();
+    });
+
+    it('never keeps a fragment, on a path or a family URL', () => {
+        // The package's own builders keep a page's fragment in the tab and restore it (return-to.ts).
+        expect(familyReturnTarget('/a/abc?x=1#y')).toBe('/a/abc?x=1');
+        expect(familyReturnTarget('https://vault.ochk.io/s/1?x=1#k=secret')).toBe(
+            'https://vault.ochk.io/s/1?x=1'
+        );
+        expect(familyReturnTarget('https://ochk.io/#top')).toBe('https://ochk.io/');
+        expect(familyReturnTarget('https://ochk.io/me#')).toBe('https://ochk.io/me');
     });
 
     it('refuses empty, null and non-string input', () => {

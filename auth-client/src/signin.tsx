@@ -254,7 +254,7 @@ export function safeReturnTo(input: string | undefined): string {
     const candidate = input ?? '/';
     if (typeof candidate !== 'string') return '/';
     if (!candidate.startsWith('/')) return '/';
-    return isSameOriginPath(candidate, resolutionOrigin()) ? candidate : '/';
+    return isSameOriginPath(candidate, resolutionOrigin()) ? stripFragment(candidate) : '/';
 }
 
 /**
@@ -263,17 +263,18 @@ export function safeReturnTo(input: string | undefined): string {
  * (`isFamilyOrigin` from `@orangecheck/auth-core/family-origins`; a name under
  * .ochk.io that is not listed, such as btcpay.ochk.io, is not one). Returns
  * `undefined` when the input is neither, so callers can layer fallbacks.
+ * Either way the target comes back without its fragment (return-to.ts).
  */
 export function familyReturnTarget(input: string | undefined | null): string | undefined {
     if (typeof input !== 'string' || input.length === 0) return undefined;
     // Same-origin relative path — resolved, not prefix-matched. See
     // isSameOriginPath for why `/\evil.example` defeated the old check.
     if (input.startsWith('/') && isSameOriginPath(input, resolutionOrigin())) {
-        return input;
+        return stripFragment(input);
     }
     try {
         const u = new URL(input);
-        if (isFamilyOrigin(u.origin, false)) return u.toString();
+        if (isFamilyOrigin(u.origin, false)) return stripFragment(u.toString());
     } catch {
         // not an absolute URL either
     }
