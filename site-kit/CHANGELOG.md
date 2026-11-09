@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0
 
 A site's Plausible proxy can send Plausible only what it counts. The new
 `./analytics-event` entry's default export is a pages API route: it posts the
