@@ -46,12 +46,6 @@
       "automerge": false,
       "minimumReleaseAge": "1 day",
       "labels": ["renovate", "major-bump"]
-    },
-    {
-      "description": "Hold @orangecheck/sdk at 1.18.2, the version oc-www locks, until it decodes the reasons the newer minors add: attestation_unread (1.19.0), the signature budget (1.20.0), and chain_unread, utxo_cap_unread and provider_refused_unread (1.21.0). They are minors, so the family rule above would merge them a day after publish, before the site reads them; a bare bump makes attest's report of a capped address worse than today. oc-www's decode unit bumps the sdk itself and takes it out of this rule (WW-1/WW-2, lane-lock). oc-attest-web left it with A2, on 1.21.0, and oc-pledge-web with PL1, bumped straight to 1.25.0. See lane-sweep/chain-read-failures.md.",
-      "matchRepositories": ["orangecheck/oc-www"],
-      "matchPackageNames": ["@orangecheck/sdk"],
-      "allowedVersions": "<=1.18.2"
     }
   ]
 }
