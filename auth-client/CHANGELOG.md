@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.45.0] — 2026-11-09
+
 ### Changed
 
 - `familyReturnTarget` and `safeReturnTo` return the target without its
