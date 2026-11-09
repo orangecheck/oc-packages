@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.57.0] — 2026-11-09
+
 ### Deprecated
 
 - The `display_name` scope. Signing in already gives your site the person's
@@ -832,6 +834,8 @@ Two independent defects, either of which was fatal:
   reference on docs.ochk.io, so a stale one is a false published claim.
 
 ## [Unreleased]
+
+## [0.57.0] — 2026-11-09
 
 - _(no pending changes)_
 
