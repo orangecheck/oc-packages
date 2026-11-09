@@ -105,7 +105,9 @@ const DAY = 86_400;
 const T0 = Date.parse('2026-10-10T00:00:00Z') / 1000;
 /** A ballot as its voter's client publishes it: a fresh key per event. */
 const asEvent = (b: Ballot, at: number) => signAt(buildBallotEvent(b), at);
-const pollEvent = buildPollEvent(poll);
+/** A poll's event dated when the poll was made, never by this run's clock: the junk below sits after it. */
+const asPollEvent = (p: Poll) => signAt(buildPollEvent(p), Date.parse(p.created_at) / 1000);
+const pollEvent = asPollEvent(poll);
 const aliceYesEv = asEvent(aliceYes, T0);
 const bobNoEv = asEvent(bobNo, T0 + DAY);
 const aliceNoEv = asEvent(aliceNo, T0 + 2 * DAY);
@@ -390,7 +392,7 @@ const reveal: Reveal = {
     sig: { alg: 'bip322', pubkey: CREATOR, value: '' },
 };
 reveal.sig.value = signMessage(CREATOR, revealId(reveal), kCreator);
-const secretPollEvent = buildPollEvent(secretPoll);
+const secretPollEvent = asPollEvent(secretPoll);
 const revealEvent = signAt(buildRevealEvent(reveal), T0 + 12 * DAY);
 /** n events under the reveal's d-tag, each from its own key, after the reveal: in one second, or a second apart. */
 const revealJunk = (n: number, apart = false) =>
