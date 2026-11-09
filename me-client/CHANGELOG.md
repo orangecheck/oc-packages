@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.58.0] — 2026-11-09
+
 ### Added
 
 - `bearerToken` on `oc.payment.authorize`, for that call only, as on
