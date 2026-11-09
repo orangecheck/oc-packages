@@ -35,6 +35,8 @@ export { nostrIdentifierForms, nostrPubkeyToHex } from './nostr-pubkey';
 
 // ─── Signed-challenge auth (for gates that can't trust the address source) ─
 export { issueChallenge, verifyChallenge } from './challenge';
+// The one-line rule every signed value meets (SPEC §2.2, Appendix A.1).
+export { isOneLineValue } from './one-line';
 export type {
     Challenge,
     IssueChallengeOptions,
