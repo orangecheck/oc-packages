@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.25.1] — 2026-11-09
+
 ### Changed
 
 - `verifyChallenge()` reads a challenge only in its canonical form (SPEC
