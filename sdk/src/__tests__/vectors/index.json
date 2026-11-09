@@ -148,5 +148,10 @@
     "id": "tv30",
     "category": "canonical_form",
     "description": "messages validly BIP-322 signed by burn key #1 that are not attestations in canonical form (SPEC §7.1 step 1): each case's reason is decode_error; the canonical control's is null"
+  },
+  {
+    "id": "tv31",
+    "category": "challenge_form",
+    "description": "orangecheck-auth challenges validly BIP-322 signed by burn key #1 that are not in their canonical form (SPEC Appendix A.1): each case's reason is malformed; the canonical control's is null"
   }
 ]

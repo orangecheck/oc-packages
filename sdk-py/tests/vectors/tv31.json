@@ -1,0 +1,156 @@
+{
+  "id": "tv31",
+  "category": "challenge_form",
+  "description": "orangecheck-auth challenges validly BIP-322 signed by burn key #1 that are not in their canonical form (SPEC Appendix A.1): each case's reason is malformed; the canonical control's is null",
+  "input": {
+    "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+    "scheme": "bip322",
+    "now": "2026-04-22T12:01:00Z",
+    "expected_nonce": "0011223344556677889900aabbccddee",
+    "expected_audience": "https://example.com",
+    "expected_purpose": "login",
+    "cases": [
+      {
+        "name": "canonical (control)",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgC2eRYl2Srt0hV9IMU8kNwZkWU609mNOnQhdkH/VN08ICIAf1OVJ5iEj/M57aA3L1v653k4lPpUihR6lBRAsJEamKASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": null
+      },
+      {
+        "name": "a repeated audience line",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://other.example\npurpose: login\naudience: https://example.com\n",
+        "signature": "AkcwRAIgcwcubw33pZUqzHrpwuvJTIXhtIZqz4g5oVIg/ijqL+cCID/L2W72Dw8V2VT1RbPHPzmBf7YWFptNVw/Udcx+hCftASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a repeated audience line after blank lines",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://other.example\npurpose: login\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\naudience: https://example.com\n",
+        "signature": "AkcwRAIgIO8JYWcI+bpffTsbbkQjIWbjm5Q8QJSAnZY4qr7iH1MCIBhAb5ywsDO8pr/y5Cecxv3Z+oUjZebojfWvisRRyuKgASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a repeated purpose line",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: link\npurpose: login\n",
+        "signature": "AkcwRAIgAifArJkzaZkJBCvroOUMec0YzGaUVc4bAfsLYI2jv0YCIARcPJxsaFJleN/OW39FJxOTDGLkiofy4FT/PxCFb8DUASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "an extension line written twice",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\npurpose: login\n",
+        "signature": "AkgwRQIhAMeNxz+z3hTnt+ssyFT62VEJS9f+68s4t9Npy1+uiQzTAiAb1pLh7fTaAaZOgdvsL+8cismAWvkAR6lLGS5J3U2+BQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "a core line written twice",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nnonce: 0011223344556677889900aabbccddee\n",
+        "signature": "AkgwRQIhAMuQjMSFI6/UnxdAQldhy++TQL8swFLaiYz0NtDRLSN0AiBUmlpQ8j+XN+6ABzjohGQAjfHFeNeVJTroAW3T4lb5BQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "two trailing LFs",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n\n",
+        "signature": "AkcwRAIgEBDcOH6YYKCrs2e7rB1clhfTVqRUpZLR7bmaC3EaPScCIEr3m1hKeIrbHu3rvfKv6VhQOX9zUJ5+Wrgh0DhES7h/ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "no final LF, with a line added",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nSign in to example.com",
+        "signature": "AkgwRQIhANgfuTJ90IKYOICdP3CKqLhmwoKI0WSb12Qr3CFKK7EEAiAbLXXkmxlWvOVC/GyQP5FgQnhjBqAQre4tqi++vvmuJAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "CRLF line ends",
+        "message": "orangecheck-auth\r\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\r\nnonce: 0011223344556677889900aabbccddee\r\nissued_at: 2026-04-22T12:00:00Z\r\nexpires_at: 2026-04-22T12:05:00Z\r\nack: I authorize this session under the OrangeCheck auth challenge.\r\naudience: https://example.com\r\npurpose: login\r\n",
+        "signature": "AkcwRAIgJD4m+96qGMPsXRCXvvGBwPRx15tlN1yg+VWerJW7w2gCICYvaHyzmEUKgtZU0KcbtHe9ZdPzy/nj3HYKuGS6UEcjASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a CR inside a value",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\rpurpose: link\npurpose: login\n",
+        "signature": "AkcwRAIgZ085yP9WOFCzbU276UHOfn+F2WTUNqVlVlMrP47x0wwCIDZ+cloKCD7tqXez5GIUWigZgS39Nb3AB7l6GnJnM6xsASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a blank line",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\n\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgNaRj8I7OfSdipzEF+BOGZXe0w8XlhxeZifNSz49ZjXcCIEhPDQ0KhUKM56RVyWySqbbX6q2niqZl8CnjyT16ihN9ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a line that is not key: value",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nSign in to example.com\n",
+        "signature": "AkcwRAIgblwpTbpNdGfpxTkVMgl9xeePfF7/jQkYhVGlM48sRxwCIBtn+ZbuUSI4ChZxhGpg/F85d0Eh7tQWciAFsYs2n/7NASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "core lines out of order",
+        "message": "orangecheck-auth\nnonce: 0011223344556677889900aabbccddee\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgIc7gaGG0tsVux/OJIQSu6tHoFj8Cz4yoXVnAmqLjYoQCIFPliDaN031UEGR6rsPYv0VO9ufs+Ml1Ikse1KZHMF8tASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "an extension among the core lines",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\naudience: https://example.com\nack: I authorize this session under the OrangeCheck auth challenge.\npurpose: login\n",
+        "signature": "AkcwRAIgRWSsfIy0LKu+imHPjGpYIXwD7j9yvA4x4WynQrsTFRgCIG4VvrJbRUBdNaLCSZ+gjvFsQw14WPjw1esSpZXZpwXEASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "extension keys out of order",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\npurpose: login\naudience: https://example.com\n",
+        "signature": "AkgwRQIhAIeXDAXcEiKor9g9v1SkPApTjXtdNKUZyY0jB5JeJOQSAiB2FtcyNPNVcS4Sx3eJCR9lDtJ2y0ZHsYqSu+dgVx2ArgEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "an extension key in capitals",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\nPurpose: login\n",
+        "signature": "AkcwRAIgRJO6Z/LCb8Dm/jo7vzUYn7rsZY6boqQ+RXHEfC9ivgoCIAyOTknvElLAyg3LYCPh+uG28ikx5TeOJuFn1zOoeUhJASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "an extension with no value",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nmemo: \n",
+        "signature": "AkgwRQIhALpyj/IjDj06kkDMb84wJyXsQNiY5nWJRAVFcK7lKB4/AiAt5nUQCm7E0/NB32oHNWE8DNlj1AqFDCZOxam/mBZWSAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "a time with milliseconds",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00.000Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgf4KK8V0dwFtiDiTg7sEPEJq58CNtvThdzqqfLF7+sc0CICvIIleVHNUVtliTh0yeVIczd++/kEBVfLJKYoMyep6nASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a time with an offset",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00+00:00\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkgwRQIhAOMqbxWJEEyKL+hk2Z2S4X3uVSrF4zohP8/+Z63c7emnAiAasem73Xlci637I0+2vXMdjKna1TeZ92FfSkvzzdIHRwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      },
+      {
+        "name": "an issued_at in an extended year",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: -000001-01-01T00:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgURb1rqoCGLr3qcG16zlzTutW3wXohi9VDkx4coAlvvwCIGhddkR5RLowlkgFSCChXWTCMyqbPDKo4phTHkBWZeNvASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "an expires_at in an extended year",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: +010000-01-01T00:00:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgc3mdLmmq72nusflrvHFUCUhluVouICXjmQqyZg/9gPQCIHAmkxE1nuK9sqymAvOOyd/1R5TsUuJJ0oesDwwsadc6ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a line separator (U+2028) in the audience",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\u2028audience: https://other.example\npurpose: login\n",
+        "signature": "AkcwRAIgYTyteoowOePObslXOO8DtSCR1SR0UD/Y8lurDtadWkUCIH87w8CkR7Mm+ANu5mQAcjjRfFdNvuH1okJM2cQVvh9yASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "malformed"
+      },
+      {
+        "name": "a next line (U+0085) in an extension value",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\nmemo: a\u0085b\npurpose: login\n",
+        "signature": "AkgwRQIhAK956BtLloSJYCVQ3dMsuJM2QnAOkSxVPRvrSNybevsCAiAeUzhX2WrnLlvWD6tDeAO5eOaic93RZU1qaN7eTwCnwwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "malformed"
+      }
+    ]
+  },
+  "expected": {
+    "signatures_valid": true
+  }
+}
