@@ -16,9 +16,11 @@ async function authorize(opts: PaymentAuthorizeOptions): Promise<PaymentResult> 
     if (opts.amount_sats == null && opts.usd_cents == null) {
         throw new Error('payment.authorize requires amount_sats or usd_cents');
     }
+    const { bearerToken, ...body } = opts;
     return api<PaymentResult>('/api/payment/authorize', {
         method: 'POST',
-        body: opts,
+        body,
+        bearerToken,
     });
 }
 

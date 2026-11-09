@@ -10,6 +10,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `bearerToken` on `oc.payment.authorize`, for that call only, as on
+  `oc.event.fire`. `setBearerToken` holds one token for the whole process, so a
+  server serving many people passes each person's token per call instead. It
+  is sent as Authorization and never in the body. `setBearerToken` still works.
+
 ## [0.57.0] — 2026-11-09
 
 ### Deprecated

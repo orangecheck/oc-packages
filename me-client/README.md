@@ -177,9 +177,10 @@ Class B billable event. Sub-Stripe rates (0.5–1.0% percentage-based). The pers
 import { oc } from '@orangecheck/me-client';
 
 const payment = await oc.payment.authorize({
-    identity: session.identity,
     amount_sats: 240_000,
     description: 'breez · march invoice',
+    // On a server, the person's oc_session token for this call only.
+    bearerToken: token,
 });
 ```
 
