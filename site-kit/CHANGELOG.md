@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+A site's Plausible proxy can send Plausible only what it counts. The new
+`./analytics-event` entry's default export is a pages API route: it posts the
+event with its body, its Content-Type, the User-Agent and the client IP as
+`X-Forwarded-For`, and copies no other header. A site points its
+`/oc-insights/event` rewrite at `/api/oc-insights/event`, which re-exports
+it, in place of plausible.io. `createAnalyticsEvent(upstream)` builds one for
+another upstream, and `clientIp(req)` reads the visitor's address.
+check-next serves it under next start and reads what reaches the upstream.
+
 ## 0.10.0
 
 A site's script-src can run its inline scripts by hash instead of

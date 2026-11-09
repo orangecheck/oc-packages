@@ -20,6 +20,7 @@ Each site keeps its own deploy and passes its own values.
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
 | `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `hostOf(ip)`: the one requester behind it, an IPv4 address itself or an IPv6 /64, always inside its `networkOf`. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
 | `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`, `familyAnalyticsScripts(props)` (the text `FamilyAnalytics` writes, for a policy to hash). Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
+| `./analytics-event` | Server only. The default export is a pages API route for a site's `src/pages/api/oc-insights/event.ts`: it posts the page view to Plausible with the body, its Content-Type, the User-Agent and the client IP as `X-Forwarded-For`, and no other header. `createAnalyticsEvent(upstream)` points one elsewhere; `clientIp(req)` reads `x-real-ip`, then the first `x-forwarded-for` hop, then the socket, and only an address. |
 | `./csp` | Node only, for next.config and tests. `scriptHash(text)`, `inlineHashes(scripts)`, `themeScript(props)` (the script app-design's `ThemeProvider` writes, rendered in a node of its own), and `cspCheck`, also the `oc-site-kit csp-check` CLI. |
 | `./document` | `ThemeColorMeta` for `_document`'s `<Head>`: the two `theme-color` metas, light and dark, from app-design's `THEME_COLOR` (the page's ground, generated from its tokens). Needs `@orangecheck/app-design` ^2.0.0. |
 
@@ -126,6 +127,21 @@ Link: Click" (the target's origin and path). `plausible_ignore` and
 automation are honoured as Plausible's script honours them. What it drops:
 Plausible's engagement events (time on page, scroll depth). oc-pulse already
 sends origin and path.
+
+The proxy is a route of the site's own, not a rewrite to plausible.io. The
+event is sent from the page's origin, so the browser attaches that origin's
+cookies, and what a rewrite to another host passes on is the platform's
+choice. The route sends Plausible a request built from an allowlist: the body, its
+Content-Type, the User-Agent and the client IP. A session cookie, a bearer,
+the tab's session pin, the referer and every other header stay on the site.
+
+```ts
+// src/pages/api/oc-insights/event.ts
+export { default } from '@orangecheck/site-kit/analytics-event';
+
+// next.config.ts, rewrites()
+{ source: '/oc-insights/event', destination: '/api/oc-insights/event' }
+```
 
 ## Rate keys
 
