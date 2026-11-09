@@ -271,8 +271,9 @@ export interface OcSessionOptions extends VerifyOcTokenOptions {
      * `OC_PROJECT_KEY` and `OC_SIGNING_SECRET`; none when they are unset. For a
      * family session (no `aud`, the ochk.io cookie a *.ochk.io site reads):
      * auth-core's `familyRevocationCheck`, from `OC_REVOCATION_FEED_TOKEN`, and
-     * with that unset the call throws rather than read the session by its
-     * signature alone (0.44.0). `false` turns the check off for both.
+     * with that unset a family session is `unavailable` (503,
+     * `revocation_feed_unconfigured`) rather than read by its signature alone.
+     * `false` turns the check off for both.
      */
     revocation?: RevocationCheck | false;
 }
@@ -280,19 +281,31 @@ export interface OcSessionOptions extends VerifyOcTokenOptions {
 /** One check per me.ochk.io and project key, shared by every request in this process. */
 const sessionChecks = new Map<string, RevocationCheck | null>();
 let warnedUnchecked = false;
+let warnedNoFeed = false;
 
-function revocationFor(options: OcSessionOptions, session: SessionPayload): RevocationCheck | null {
+/** A family session with no feed to check it against. */
+const NO_FEED = 'no_feed';
+
+function revocationFor(
+    options: OcSessionOptions,
+    session: SessionPayload
+): RevocationCheck | null | typeof NO_FEED {
     if (options.revocation === false) return null;
     if (options.revocation) return options.revocation;
     // A family session is ended on ochk.io's own feed, never on a project's list.
     if (isFamily(session)) {
         const token = typeof process !== 'undefined' ? process.env?.OC_REVOCATION_FEED_TOKEN?.trim() : undefined;
         if (!token) {
-            throw new Error(
-                '@orangecheck/me-client: a family session (no aud) is checked against ochk.io\'s ' +
-                    'revocation feed, and OC_REVOCATION_FEED_TOKEN is not set. Set it, or pass ' +
-                    '`revocation: false` to read family sessions by signature alone.'
-            );
+            if (!warnedNoFeed) {
+                warnedNoFeed = true;
+                console.error(
+                    '[@orangecheck/me-client] a family session (no aud) is checked against ochk.io\'s ' +
+                        'revocation feed, and OC_REVOCATION_FEED_TOKEN is not set, so each one is refused ' +
+                        '(503 revocation_feed_unconfigured). Set it, or pass `revocation: false` to read ' +
+                        'family sessions by signature alone.'
+                );
+            }
+            return NO_FEED;
         }
         return familyRevocationCheck();
     }
@@ -323,6 +336,7 @@ function revocationFor(options: OcSessionOptions, session: SessionPayload): Revo
 export function _resetSessionChecksForTests(): void {
     sessionChecks.clear();
     warnedUnchecked = false;
+    warnedNoFeed = false;
     warnedHandle = false;
 }
 
@@ -351,8 +365,15 @@ export async function getOcSession(
     return checked.status === 'signed_in' ? checked.session : null;
 }
 
-/** Why a session can't be told right now: the key set, or the list of ended sessions. */
-export type OcSessionUnavailable = 'key_set_unavailable' | 'revocations_unavailable';
+/**
+ * Why a session can't be told right now: the key set, the list of ended
+ * sessions, or, for a family session, no `OC_REVOCATION_FEED_TOKEN` to read
+ * ochk.io's feed with.
+ */
+export type OcSessionUnavailable =
+    | 'key_set_unavailable'
+    | 'revocations_unavailable'
+    | 'revocation_feed_unconfigured';
 
 /**
  * A request's session: signed in, signed out, or not checkable right now.
@@ -372,8 +393,10 @@ export type OcSessionCheck =
  * of ended sessions can't vouch for this request (a write while the list can't
  * be read). A token the person ended is `signed_out`, and so is one bound to
  * your site with no revocation handle (`reason: 'no_session_handle'`, unless
- * `requireHandle: false`). The adapters answer `unavailable` with 503 and that
- * reason, so a client retries instead of signing the person out.
+ * `requireHandle: false`). A family session with no `OC_REVOCATION_FEED_TOKEN`
+ * is `unavailable` with `'revocation_feed_unconfigured'`. The adapters answer
+ * `unavailable` with 503 and that reason, so a client retries instead of
+ * signing the person out.
  */
 export async function checkOcSession(
     headers: SessionRequestHeaders | Headers,
@@ -396,6 +419,7 @@ export async function checkOcSession(
         return { status: 'signed_out', reason: 'no_session_handle' };
     }
     const check = revocationFor(options, session);
+    if (check === NO_FEED) return { status: 'unavailable', reason: 'revocation_feed_unconfigured' };
     if (check) {
         // One read of the list, so the answer can't change between two.
         const state = await check.status(session);

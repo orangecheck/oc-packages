@@ -8,13 +8,21 @@ import {
     type RevocationCheck,
 } from '@orangecheck/auth-core';
 
-import { _resetSessionChecksForTests, checkOcSession, getOcSession, ocAuthExpress, withOcAuth } from '../server';
+import {
+    _resetSessionChecksForTests,
+    checkOcSession,
+    getOcSession,
+    ocAuthExpress,
+    ocAuthHono,
+    withOcAuth,
+} from '../server';
 
 /**
  * A family session (no `aud`, the ochk.io cookie a *.ochk.io site reads) is
  * ended on ochk.io's own feed, never on a project's list. The server helpers
- * check it there by default, with the site's OC_REVOCATION_FEED_TOKEN, and
- * throw when no feed is configured rather than read it by signature alone.
+ * check it there by default, with the site's OC_REVOCATION_FEED_TOKEN. With no
+ * feed configured they refuse it by name (503 revocation_feed_unconfigured)
+ * rather than read it by signature alone, and say once which setting is missing.
  */
 
 const ISSUER = 'https://ochk.io';
@@ -74,31 +82,70 @@ async function token(aud?: string) {
 const bearer = async (aud?: string) => ({ authorization: `Bearer ${await token(aud)}`, cookie: null });
 
 describe('a family session with no feed configured', () => {
-    it('is refused, with an error that names the setting, never let through', async () => {
+    const UNCONFIGURED = { status: 'unavailable', reason: 'revocation_feed_unconfigured' };
+    const quiet = () => vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    it('is refused by name, reads and writes alike, never let through', async () => {
+        quiet();
         const headers = await bearer();
-        await expect(checkOcSession(headers, { method: 'GET' })).rejects.toThrow(/OC_REVOCATION_FEED_TOKEN/);
-        await expect(getOcSession(headers)).rejects.toThrow(/OC_REVOCATION_FEED_TOKEN/);
+        expect(await checkOcSession(headers, { method: 'GET' })).toEqual(UNCONFIGURED);
+        expect(await checkOcSession(headers, { method: 'POST' })).toEqual(UNCONFIGURED);
+        expect(await getOcSession(headers)).toBeNull();
         expect(feedAuth).toEqual([]);
     });
 
-    it('stops the wrapped handler and the Express middleware too', async () => {
+    it('says once which setting is missing', async () => {
+        const said = quiet();
+        await checkOcSession(await bearer(), { method: 'GET' });
+        await checkOcSession(await bearer(), { method: 'GET' });
+        expect(said).toHaveBeenCalledTimes(1);
+        expect(String(said.mock.calls[0]![0])).toMatch(/OC_REVOCATION_FEED_TOKEN/);
+    });
+
+    it('answers 503 with the reason from every adapter, and the route never runs', async () => {
+        quiet();
         const headers = await bearer();
+        const sent: Array<{ status: number; body: unknown }> = [];
+        let status = 0;
+        const res = {
+            status: (code: number) => {
+                status = code;
+                return res;
+            },
+            json: (body: unknown) => {
+                sent.push({ status, body });
+            },
+            setHeader: () => undefined,
+        };
         let ran = false;
-        const res = { status: () => res, json: () => undefined, setHeader: () => undefined };
-        await expect(
-            withOcAuth(async () => {
-                ran = true;
-            })({ method: 'GET', headers: { authorization: headers.authorization } }, res)
-        ).rejects.toThrow(/OC_REVOCATION_FEED_TOKEN/);
-        expect(ran).toBe(false);
+        await withOcAuth(async () => {
+            ran = true;
+        })({ method: 'GET', headers: { authorization: headers.authorization } }, res);
         let passed: unknown = 'not called';
         await ocAuthExpress()({ method: 'GET', headers: { authorization: headers.authorization } }, res, (err?: unknown) => {
             passed = err;
         });
-        expect(String(passed)).toMatch(/OC_REVOCATION_FEED_TOKEN/);
+        const hono: Array<{ status?: number; body: unknown }> = [];
+        await ocAuthHono()(
+            {
+                req: { raw: { headers: new Headers({ authorization: headers.authorization }), method: 'GET' } },
+                set: () => undefined,
+                json: (body: unknown, code?: number) => hono.push({ status: code, body }),
+                header: () => undefined,
+            },
+            async () => {
+                ran = true;
+            }
+        );
+        const refused = { status: 503, body: { ok: false, reason: 'revocation_feed_unconfigured' } };
+        expect(sent).toEqual([refused, refused]);
+        expect(hono).toEqual([refused]);
+        expect(passed).toBe('not called');
+        expect(ran).toBe(false);
     });
 
     it('counts an empty aud list as a family session, as verification does', async () => {
+        quiet();
         const iat = nowSec();
         const listless = await new SignJWT({ did_oc: 'did:oc:0123456789abcdef0123456789abcdef', aud: [] })
             .setProtectedHeader({ alg: 'EdDSA', kid: KID })
@@ -109,7 +156,7 @@ describe('a family session with no feed configured', () => {
             .setExpirationTime(iat + 300)
             .sign(privateKey);
         const headers = { authorization: `Bearer ${listless}`, cookie: null };
-        await expect(checkOcSession(headers, { method: 'GET' })).rejects.toThrow(/OC_REVOCATION_FEED_TOKEN/);
+        expect(await checkOcSession(headers, { method: 'GET' })).toEqual(UNCONFIGURED);
     });
 
     it('is read by signature alone only when the site says so', async () => {
