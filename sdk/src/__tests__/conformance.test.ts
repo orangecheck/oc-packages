@@ -231,6 +231,49 @@ describe('conformance: challenge_form (SPEC Appendix A.1)', () => {
     }
 });
 
+describe('conformance: value_form (SPEC §2.2)', () => {
+    // Every signature verifies, so only the one-line rule decides each answer.
+    // The control goes on to read the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    for (const v of vectors.filter((x) => x.category === 'value_form')) {
+        const input = v.input as {
+            address: string;
+            nonce: string;
+            issued_at: string;
+            cases: {
+                name: string;
+                identities: { protocol: string; identifier: string }[];
+                extensions: Record<string, string>;
+                address?: string;
+                issued_at?: string;
+                message: string;
+                signature: string;
+                reason: string | null;
+            }[];
+        };
+        const expected = v.expected as { signatures_valid: boolean };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            expect(verifySignature(input.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            const r = await verify({ addr: input.address, msg: c.message, sig: c.signature, scheme: 'bip322' });
+            expect(r.codes.includes('decode_error') ? 'decode_error' : null).toBe(c.reason);
+            const build = () =>
+                buildCanonicalMessage({ address: c.address ?? input.address, identities: c.identities }, c.extensions, {
+                    nonce: input.nonce,
+                    issuedAt: c.issued_at ?? input.issued_at,
+                });
+            if (c.reason === null) expect(build()).toBe(c.message);
+            else expect(build).toThrow(/one line/);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -326,6 +369,7 @@ describe('conformance: vector index loaded', () => {
                 'bond_extension',
                 'canonical_form',
                 'challenge_form',
+                'value_form',
             ])
         );
     });
