@@ -9,6 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `<OcSignIn>` by keyboard and screen reader. A submit button keeps focus
+  while it works, instead of going disabled and dropping focus to the page,
+  and a status line reads out what it is doing ("Waiting for wallet…",
+  "Sending…"). "Use a different address" and "Use a different email" put
+  focus back in that field. The signature field is described by the
+  instruction and the message to sign, since focus lands past both. Each
+  error is part of its field's description, and a malformed email gets the
+  form's own error rather than the browser's bubble.
+
 ## [2.43.0] — 2026-11-08
 
 ### Added
