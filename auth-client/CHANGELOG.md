@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.44.0] — 2026-11-09
+
 ### Added
 
 - `capText(reason, retryAt, alternative?)` is exported: the sentence for any
