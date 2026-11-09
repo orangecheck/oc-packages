@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.46.0] — 2026-11-09
+
 ### Added
 
 - The email form reads `also_listed_unconfirmed` from the sign-in host's
