@@ -57,7 +57,11 @@ const CONSENT_ORIGIN = 'https://ochk.app';
  *    bot-padded counts.
  *  trust_attestation_count · per OCHK-V3-PLAN §6 phase-2 · four-int
  *    selective-disclosure quad summarizing reputation-graph attestations.
- *    Use parseTrustAttestationCount() to decode the wire-format string. */
+ *    Use parseTrustAttestationCount() to decode the wire-format string.
+ *
+ *  display_name · deprecated: it shares nothing. Signing in already gives your
+ *    site the person's display name, so ochk.app no longer offers it; asking
+ *    for it still works, and it never appears in `scopes`. */
 export type Scope =
     | 'bitcoin_address'
     | 'email'

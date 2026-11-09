@@ -10,6 +10,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Deprecated
+
+- The `display_name` scope. Signing in already gives your site the person's
+  display name, so ochk.app no longer offers the scope and me.ochk.io resolves
+  it to nothing. `oc.scope.request` still accepts it, so nothing that asks for
+  it breaks; read the name from the sign-in instead.
+
 ### Changed
 
 - With `OC_REVOCATION_FEED_TOKEN` unset, a family session (no `aud`) is now
