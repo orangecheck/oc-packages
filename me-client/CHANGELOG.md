@@ -833,12 +833,6 @@ Two independent defects, either of which was fatal:
   that project into their own ledger. The docstring is published as SDK
   reference on docs.ochk.io, so a stale one is a false published claim.
 
-## [Unreleased]
-
-## [0.57.0] — 2026-11-09
-
-- _(no pending changes)_
-
 ## [0.38.3] — 2026-10-23
 
 ### Changed
