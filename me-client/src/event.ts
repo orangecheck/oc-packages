@@ -158,7 +158,7 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
  *  `${t}.${body}`)`. The `body` MUST be the exact JSON string the transport
  *  transmits: the server verifies the raw bytes it received. `t` must be
  *  within the last 300 seconds and at most 60 ahead of the server's clock. */
-async function signBody(secret: string, serializedBody: string): Promise<string> {
+export async function signBody(secret: string, serializedBody: string): Promise<string> {
     const t = Math.floor(Date.now() / 1000);
     const mac = await hmacSha256Hex(secret, `${t}.${serializedBody}`);
     return `t=${t},v1=${mac}`;

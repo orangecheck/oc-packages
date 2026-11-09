@@ -19,6 +19,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Fixed
 
+- `oc.scope.granted` works for an integrator: call it from your backend with
+  `accountId` (the person's did:oc) and `signingSecret`, and it signs the
+  question the way me.ochk.io's scopes route checks it. With neither, it reads
+  the session the request carries, which only ochk.app's own pages have, so a
+  browser on your site gets 401. Either option without the other, or an
+  `accountId` that is not a did:oc, throws before any request.
 - A refusal whose words are in `detail` now carries them as the
   `MeClientError`'s `message`: the event routes' `project_auth_required` 401
   and any route's `row_busy` 503. The message used to be the bare code.
