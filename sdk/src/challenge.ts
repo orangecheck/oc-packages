@@ -28,6 +28,7 @@ import type { Scheme } from './types';
 
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
+import { EXTENSION_KEY } from './canonical';
 import { checkChallengeOptions } from './options';
 import { signatureScheme, toBase64Maybe } from './utils/signature';
 
@@ -50,6 +51,38 @@ function randomNonce(): string {
 
 function iso(date: Date): string {
     return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/** A challenge time as written: UTC, whole seconds, a year from 0000 to 9999. */
+const CHALLENGE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+/** What no value holds: a C0 control, DEL, NEL, or a line or paragraph separator (SPEC A.1). */
+const NOT_IN_A_VALUE = /[\x00-\x1f\x7f\x85\u2028\u2029]/;
+
+const CORE_KEYS = ['address', 'nonce', 'issued_at', 'expires_at', 'ack'] as const;
+
+interface ChallengeFields {
+    address: string;
+    nonce: string;
+    issuedAt: Date;
+    expiresAt: Date;
+    ack: string;
+    extensions: Array<[string, string]>;
+}
+
+/** The one text a challenge has: core lines in order, then extensions sorted by key, LF-ended. */
+function challengeText(f: ChallengeFields): string {
+    const extensions = [...f.extensions].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    const lines = [
+        AUTH_HEADER,
+        `address: ${f.address}`,
+        `nonce: ${f.nonce}`,
+        `issued_at: ${iso(f.issuedAt)}`,
+        `expires_at: ${iso(f.expiresAt)}`,
+        `ack: ${f.ack}`,
+        ...extensions.map(([k, v]) => `${k}: ${v}`),
+    ];
+    return lines.join('\n') + '\n';
 }
 
 export interface IssueChallengeOptions {
@@ -93,24 +126,30 @@ export function issueChallenge(opts: IssueChallengeOptions): Challenge {
     if (!/^[0-9a-f]{32}$/.test(nonce)) {
         throw new Error('nonce must be 32 lowercase hex characters');
     }
-
-    const coreLines = [
-        AUTH_HEADER,
-        `address: ${opts.address}`,
-        `nonce: ${nonce}`,
-        `issued_at: ${iso(now)}`,
-        `expires_at: ${iso(expiresAt)}`,
-        `ack: ${AUTH_ACK}`,
-    ];
+    for (const [name, value] of [
+        ['address', opts.address],
+        ['audience', opts.audience],
+        ['purpose', opts.purpose],
+    ] as const) {
+        if (value !== undefined && NOT_IN_A_VALUE.test(value)) {
+            throw new Error(`${name} must be one line, with no control character or line separator`);
+        }
+    }
+    if (!CHALLENGE_TIME.test(iso(now)) || !CHALLENGE_TIME.test(iso(expiresAt))) {
+        throw new Error('issued_at and expires_at must fall in the years 0000 to 9999');
+    }
 
     const extensions: Array<[string, string]> = [];
     if (opts.audience) extensions.push(['audience', opts.audience]);
     if (opts.purpose) extensions.push(['purpose', opts.purpose]);
-    // Lexicographic sort by key — matches OCP canonicalization rules.
-    extensions.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-
-    const extLines = extensions.map(([k, v]) => `${k}: ${v}`);
-    const message = [...coreLines, ...extLines].join('\n') + '\n';
+    const message = challengeText({
+        address: opts.address,
+        nonce,
+        issuedAt: now,
+        expiresAt,
+        ack: AUTH_ACK,
+        extensions,
+    });
 
     return {
         message,
@@ -131,50 +170,70 @@ interface ParsedChallenge {
     extensions: Array<[string, string]>;
 }
 
+/**
+ * Read a challenge in its one canonical text (SPEC Appendix A.1): the header, the five core lines
+ * in order, then extensions with lowercase keys in strictly ascending order, each with a value,
+ * LF-ended, no value holding a control character or line separator, and the times as issueChallenge
+ * writes them, with four-digit years. That text without its final LF (a shell's
+ * command substitution drops it) reads the same. Anything else throws, however validly signed, so
+ * no two readers can take different values from the same signed text.
+ */
 function parseChallenge(message: string): ParsedChallenge {
-    const lines = message.endsWith('\n') ? message.slice(0, -1).split('\n') : message.split('\n');
-
-    if (lines[0] !== AUTH_HEADER) {
+    const text = message.endsWith('\n') ? message : message + '\n';
+    const [header, ...rest] = text.slice(0, -1).split('\n');
+    if (header !== AUTH_HEADER) {
         throw new Error('not an orangecheck-auth challenge');
     }
 
-    const out: ParsedChallenge = { extensions: [] };
-    const coreKeys = ['address', 'nonce', 'issued_at', 'expires_at', 'ack'] as const;
-    const coreKeySet = new Set<string>(coreKeys);
-    // Duplicate detection: a challenge with two `address:` lines would
-    // previously let the second overwrite the first. A signer who saw both
-    // lines would still sign the whole text — which means the verifier and
-    // the signer disagree about what the message "said". Refuse instead.
-    const seenCore = new Set<string>();
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i] ?? '';
-        const sep = line.indexOf(': ');
-        if (sep === -1) continue;
-        const key = line.slice(0, sep);
-        const val = line.slice(sep + 2);
-
-        if (coreKeySet.has(key)) {
-            if (seenCore.has(key)) {
-                throw new Error(`duplicate core key in challenge: ${key}`);
-            }
-            seenCore.add(key);
-            if (key === 'address') out.address = val;
-            else if (key === 'nonce') out.nonce = val;
-            else if (key === 'issued_at') out.issuedAt = new Date(val);
-            else if (key === 'expires_at') out.expiresAt = new Date(val);
-            else if (key === 'ack') out.ack = val;
-        } else {
-            out.extensions.push([key, val]);
-            if (key === 'audience') out.audience = val;
-            if (key === 'purpose') out.purpose = val;
+    const fields: Array<[string, string]> = [];
+    for (const line of rest) {
+        const at = line.indexOf(': ');
+        if (at < 1) throw new Error('challenge line is not "key: value"');
+        // The value is every byte after the first ": ", untrimmed.
+        const value = line.slice(at + 2);
+        if (NOT_IN_A_VALUE.test(value)) {
+            throw new Error('challenge value holds a control character or line separator');
         }
+        fields.push([line.slice(0, at), value]);
+    }
+    if (fields.length < CORE_KEYS.length || CORE_KEYS.some((key, i) => fields[i]![0] !== key)) {
+        throw new Error('challenge core lines are missing, repeated or out of order');
+    }
+    const core = Object.fromEntries(fields.slice(0, CORE_KEYS.length)) as Record<
+        (typeof CORE_KEYS)[number],
+        string
+    >;
+    const extensions = fields.slice(CORE_KEYS.length);
+    let previous = '';
+    for (const [key, value] of extensions) {
+        const isCore = (CORE_KEYS as readonly string[]).includes(key);
+        if (!EXTENSION_KEY.test(key) || key <= previous || isCore || !value) {
+            throw new Error(`challenge extension is not in canonical form: ${key}`);
+        }
+        previous = key;
+    }
+    // Date also reads extended years (+010000-...), which the rebuild below would write back.
+    if (!CHALLENGE_TIME.test(core.issued_at) || !CHALLENGE_TIME.test(core.expires_at)) {
+        throw new Error('challenge times are not YYYY-MM-DDTHH:MM:SSZ');
     }
 
-    if (seenCore.size !== coreKeys.length) {
-        throw new Error(`challenge missing core lines (${seenCore.size}/${coreKeys.length})`);
+    const fieldsRead = {
+        address: core.address,
+        nonce: core.nonce,
+        issuedAt: new Date(core.issued_at),
+        expiresAt: new Date(core.expires_at),
+        ack: core.ack,
+        extensions,
+    };
+    // The text must be the one these fields write, which also pins how the times are spelled.
+    if (challengeText(fieldsRead) !== text) {
+        throw new Error('challenge is not in canonical form');
     }
-    return out;
+    return {
+        ...fieldsRead,
+        audience: extensions.find(([key]) => key === 'audience')?.[1],
+        purpose: extensions.find(([key]) => key === 'purpose')?.[1],
+    };
 }
 
 export interface VerifyChallengeOptions {

@@ -168,7 +168,7 @@ const ACK = 'I attest control of this address and bind it to my identities.';
 /** The keyed core lines after the header, in SPEC §2.1 order. */
 const CORE_KEYS = ['identities', 'address', 'purpose', 'nonce', 'issued_at', 'ack'];
 /** An extension key: printable ASCII with no colon, in lowercase (SPEC §2.2). */
-const EXTENSION_KEY = /^[!-9;-@[-~]+$/;
+export const EXTENSION_KEY = /^[!-9;-@[-~]+$/;
 
 /**
  * Whether `message` is an attestation in canonical form (SPEC §7.1 step 1):
