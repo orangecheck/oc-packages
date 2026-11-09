@@ -11,7 +11,16 @@ from __future__ import annotations
 
 import re
 
-__all__ = ["JS_DOT", "JS_WHITESPACE", "NOT_WS", "WS", "js_pattern", "js_regex", "js_strip"]
+__all__ = [
+    "JS_DOT",
+    "JS_WHITESPACE",
+    "NOT_WS",
+    "WS",
+    "is_one_line_value",
+    "js_pattern",
+    "js_regex",
+    "js_strip",
+]
 
 JS_WHITESPACE = "\t\n\v\f\r \xa0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
 #: One whitespace character, as a regex class.
@@ -38,3 +47,13 @@ def js_pattern(pattern: str) -> str:
 def js_regex(pattern: str) -> re.Pattern[str]:
     """``js_pattern(pattern)``, compiled."""
     return re.compile(js_pattern(pattern))
+
+
+# What no signed value holds (SPEC §2.2, Appendix A.1): a C0 control, DEL, NEL, a line or
+# paragraph separator, or a surrogate, which UTF-8 cannot encode. As @orangecheck/sdk's isOneLineValue.
+_NOT_IN_A_VALUE = re.compile("[\x00-\x1f\x7f\x85\u2028\u2029\ud800-\udfff]")
+
+
+def is_one_line_value(value: str) -> bool:
+    """Whether ``value`` can be one value of a signed line, which a wallet shows as one line."""
+    return _NOT_IN_A_VALUE.search(value) is None

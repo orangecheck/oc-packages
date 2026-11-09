@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from typing import Mapping, Optional, Sequence, Union
 
 from . import types as _types
-from ._text import js_strip
+from ._text import is_one_line_value, js_strip
 
 # ─── Identity safety rules ─────────────────────────────────────────────────
 
@@ -61,10 +61,14 @@ def _assert_safe_identity(id: IdentityBinding) -> None:
         raise ValueError(
             f"invalid identity protocol: {id.protocol!r} — must match ^[a-z][a-z0-9_-]*$"
         )
-    if not id.identifier or _IDENTITY_FORBIDDEN.search(id.identifier):
+    if (
+        not id.identifier
+        or _IDENTITY_FORBIDDEN.search(id.identifier)
+        or not is_one_line_value(id.identifier)
+    ):
         raise ValueError(
-            f"invalid identity identifier: {id.identifier!r} — "
-            "must be non-empty and contain no newlines or commas"
+            f"invalid identity identifier: {id.identifier!r} — must be non-empty, "
+            "contain no commas, and be one line with no newline or other control character"
         )
 
 
@@ -178,7 +182,7 @@ def build_canonical_message(
         dropped. Keys are lowercased and sorted lexicographically in the
         output. Non-string values are ``str()``-ified. Raises ``ValueError``
         for a key that is not printable ASCII without a colon, a core key, or
-        a value with a line break.
+        a value that is not one line (SPEC §2.2).
     nonce:
         Optional 32-lowercase-hex override. Tests only; production callers
         should let this default to a fresh cryptographic nonce.
@@ -193,6 +197,8 @@ def build_canonical_message(
     if not _NONCE_RE.fullmatch(final_nonce):
         raise ValueError(f"invalid nonce: {final_nonce!r} — must be 32 lowercase hex chars")
     final_issued_at = issued_at if issued_at is not None else _now_rfc3339_utc()
+    if not is_one_line_value(address) or not is_one_line_value(final_issued_at):
+        raise ValueError("invalid address or issued_at: each must be one line")
 
     identities_str = format_identities(identities)
 
@@ -212,8 +218,8 @@ def build_canonical_message(
         if v is None or v == "":
             continue
         key = k.lower()
-        # Each extension is one line a verifier reads: a key it takes and a value with no line break.
-        if not _EXTENSION_KEY_RE.fullmatch(key) or key in _CORE_KEYS or re.search(r"[\r\n]", str(v)):
+        # Each extension is one line a verifier reads: a key it takes and a one-line value (SPEC §2.2).
+        if not _EXTENSION_KEY_RE.fullmatch(key) or key in _CORE_KEYS or not is_one_line_value(str(v)):
             raise ValueError(
                 f"invalid extension {k!r}: a lowercase ASCII key that is not a core key, a value on one line"
             )
