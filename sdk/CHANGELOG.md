@@ -9,6 +9,32 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.26.0] — 2026-11-09
+
+### Added
+
+- `isOneLineValue(value)`: whether a value can stand as one value of a signed
+  line (SPEC §2.2, Appendix A.1). It holds no C0 control character, DEL,
+  U+0085, U+2028 or U+2029, which a wallet may show as a line break, and no
+  lone surrogate, which has no UTF-8 form.
+
+### Changed
+
+- `issueChallenge()` and `verifyChallenge()` read `isOneLineValue()`, so a
+  challenge value holding a lone surrogate is refused when issued and
+  `malformed` when verified.
+- `buildCanonicalMessage()` refuses an extension value, identity, address or
+  `issuedAt` that is not one line, and `verify()` answers `decode_error` for an
+  attestation that holds one (SPEC §2.2, §7.1 step 1.j, vector `tv32`). Every
+  message it writes from one-line values is unchanged.
+- `parseIdentities()` and `formatIdentities()` throw for an identifier that is
+  not one line, as they already did for one holding CR, LF or a comma.
+- `signedEnvelope()` answers `null` for an envelope whose message holds a value
+  that is not one line, so discovery (`discoverAttestations()`,
+  `readAttestations()`, `queryRecent()` and the readers built on them) and
+  `check()` leave such an envelope out, as they leave out any message that is
+  not in canonical form.
+
 ## [1.25.1] — 2026-11-09
 
 ### Changed
