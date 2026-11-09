@@ -10,6 +10,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- With `OC_REVOCATION_FEED_TOKEN` unset, a family session (no `aud`) is now
+  `unavailable` with `reason: 'revocation_feed_unconfigured'`, and the adapters
+  answer it 503 with that reason, where `checkOcSession`, `getOcSession`,
+  `withOcAuth`, `ocAuthExpress` and `ocAuthHono` used to throw (0.44.0). It is
+  still never read by its signature alone, reads and writes alike, and the
+  first one logs which setting is missing. `OcSessionUnavailable` gains the
+  reason.
+
 ### Added
 
 - A rejected entry in `event.fireBatch`'s results can carry `code`, a

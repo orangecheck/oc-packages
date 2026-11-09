@@ -197,7 +197,9 @@ export async function exchangeNativeCode(
         }
     );
     if (checked.status === 'unavailable') {
-        return { status: 'unavailable', reason: checked.reason ?? 'revocations_unavailable' };
+        // A family session never verifies for your own audience, so its feed is never read here.
+        const reason = checked.reason === 'key_set_unavailable' ? checked.reason : 'revocations_unavailable';
+        return { status: 'unavailable', reason };
     }
     if (checked.status === 'signed_out') return { status: 'invalid', reason: checked.reason ?? 'session_ended' };
 
