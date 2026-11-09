@@ -306,6 +306,9 @@ const SIGNIN_ERRORS: Record<string, string> = {
     audience_mismatch: "That request didn't match this site. Reload the page and try again.",
     purpose_mismatch: "That request didn't match. Try again for a fresh one.",
     malformed: "That signature couldn't be read. Copy it again, whole.",
+    challenge_mismatch:
+        'That sign-in message changed after it was issued. Get a new one and sign it again.',
+    mainnet_only: 'Sign in with a mainnet Bitcoin address.',
     cross_site_blocked: 'Your browser blocked this request. Reload the page and try again.',
     rate_limited: 'Too many tries. Wait a minute, then try again.',
     invalid_email: "That email address doesn't look right.",
