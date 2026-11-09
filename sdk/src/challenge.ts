@@ -29,6 +29,7 @@ import type { Scheme } from './types';
 import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 
 import { EXTENSION_KEY } from './canonical';
+import { isOneLineValue } from './one-line';
 import { checkChallengeOptions } from './options';
 import { signatureScheme, toBase64Maybe } from './utils/signature';
 
@@ -55,9 +56,6 @@ function iso(date: Date): string {
 
 /** A challenge time as written: UTC, whole seconds, a year from 0000 to 9999. */
 const CHALLENGE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
-
-/** What no value holds: a C0 control, DEL, NEL, or a line or paragraph separator (SPEC A.1). */
-const NOT_IN_A_VALUE = /[\x00-\x1f\x7f\x85\u2028\u2029]/;
 
 const CORE_KEYS = ['address', 'nonce', 'issued_at', 'expires_at', 'ack'] as const;
 
@@ -131,8 +129,8 @@ export function issueChallenge(opts: IssueChallengeOptions): Challenge {
         ['audience', opts.audience],
         ['purpose', opts.purpose],
     ] as const) {
-        if (value !== undefined && NOT_IN_A_VALUE.test(value)) {
-            throw new Error(`${name} must be one line, with no control character or line separator`);
+        if (value !== undefined && !isOneLineValue(value)) {
+            throw new Error(`${name} must be one line, with no control character, line separator or lone surrogate`);
         }
     }
     if (!CHALLENGE_TIME.test(iso(now)) || !CHALLENGE_TIME.test(iso(expiresAt))) {
@@ -191,8 +189,8 @@ function parseChallenge(message: string): ParsedChallenge {
         if (at < 1) throw new Error('challenge line is not "key: value"');
         // The value is every byte after the first ": ", untrimmed.
         const value = line.slice(at + 2);
-        if (NOT_IN_A_VALUE.test(value)) {
-            throw new Error('challenge value holds a control character or line separator');
+        if (!isOneLineValue(value)) {
+            throw new Error('challenge value holds a control character, line separator or lone surrogate');
         }
         fields.push([line.slice(0, at), value]);
     }

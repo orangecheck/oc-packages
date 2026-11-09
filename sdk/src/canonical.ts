@@ -8,6 +8,8 @@
 
 import type { AttestationEnvelope, IdentityBinding, Scheme } from './types';
 
+import { isOneLineValue } from './one-line';
+
 /**
  * Input for building a canonical message
  */
@@ -76,9 +78,9 @@ function assertSafeIdentity({ protocol, identifier }: IdentityBinding): void {
             `invalid identity protocol: ${JSON.stringify(protocol)} — must match /^[a-z][a-z0-9_-]*$/`
         );
     }
-    if (!identifier || IDENTITY_FORBIDDEN_CHARS.test(identifier)) {
+    if (!identifier || IDENTITY_FORBIDDEN_CHARS.test(identifier) || !isOneLineValue(identifier)) {
         throw new Error(
-            `invalid identity identifier: ${JSON.stringify(identifier)} — must be non-empty and contain no newlines or commas`
+            `invalid identity identifier: ${JSON.stringify(identifier)} — must be non-empty, contain no commas, and be one line with no newline or other control character`
         );
     }
 }
@@ -185,7 +187,7 @@ export function isCanonicalAttestation(message: string): boolean {
     const fields: Array<[string, string]> = [];
     for (const line of rest) {
         const at = line.indexOf(': ');
-        if (at < 1) return false;
+        if (at < 1 || !isOneLineValue(line.slice(at + 2))) return false;
         fields.push([line.slice(0, at), line.slice(at + 2)]);
     }
     const core = Object.fromEntries(fields.slice(0, CORE_KEYS.length));
@@ -224,6 +226,9 @@ export function buildCanonicalMessage(
         throw new Error(`invalid nonce: must be 32 lowercase hex chars`);
     }
     const issuedAt = options.issuedAt ?? new Date().toISOString();
+    if (!isOneLineValue(address) || !isOneLineValue(issuedAt)) {
+        throw new Error('invalid address or issued_at: each must be one line');
+    }
 
     // Format identities
     const identitiesStr = formatIdentities(identities);
@@ -246,8 +251,8 @@ export function buildCanonicalMessage(
             continue;
         }
         const key = k.toLowerCase();
-        // Each extension is one line verify() reads: a key it takes and a value with no line break.
-        if (!EXTENSION_KEY.test(key) || CORE_KEYS.includes(key) || /[\r\n]/.test(String(v))) {
+        // Each extension is one line verify() reads: a key it takes and a one-line value (SPEC §2.2).
+        if (!EXTENSION_KEY.test(key) || CORE_KEYS.includes(key) || !isOneLineValue(String(v))) {
             throw new Error(`invalid extension ${JSON.stringify(k)}: a lowercase ASCII key that is not a core key, a value on one line`);
         }
         // A bond is written as SPEC §2.2 reads it, so no verifier refuses it as bond_malformed.
