@@ -25,6 +25,12 @@ this file tracks the package's TS / Node / runtime API surface.
   the session the request carries, which only ochk.app's own pages have, so a
   browser on your site gets 401. Either option without the other, or an
   `accountId` that is not a did:oc, throws before any request.
+- `Session` and `SessionPolicy` say what me.ochk.io sends and takes:
+  `issued_at` (the type said `opens_at`, which never arrived), `refresh`
+  `'sliding' | 'rolling' | 'fixed'` and `sensitive_actions` `'re-auth' |
+  'allow'`. Code that read `opens_at` read `undefined`; read `issued_at`.
+  `oc.session.*`'s doc and the README say these calls work only from
+  ochk.app's own pages.
 - A refusal whose words are in `detail` now carries them as the
   `MeClientError`'s `message`: the event routes' `project_auth_required` 401
   and any route's `row_busy` 503. The message used to be the bare code.
