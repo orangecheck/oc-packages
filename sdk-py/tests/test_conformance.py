@@ -256,6 +256,24 @@ def test_canonical_form_control_is_what_the_builder_writes(vector: dict) -> None
     assert rebuilt == message
 
 
+# ─── challenge_form (SPEC Appendix A.1) ────────────────────────────────────
+# This package verifies challenges through the auth host, so the reasons are
+# the TS SDK's to check. Here every signature verifies.
+
+
+@pytest.mark.parametrize("vector", vectors_of("challenge_form"), ids=ids_for("challenge_form"))
+def test_challenge_form_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    inp = vector["input"]
+    for case in inp["cases"]:
+        got = verify_bip322_signature(inp["address"], case["message"], case["signature"])
+        assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -276,6 +294,7 @@ def test_vector_set_complete() -> None:
         "bond_floors",
         "bond_extension",
         "canonical_form",
+        "challenge_form",
     }
     assert len(VECTORS) >= 28
 

@@ -31,10 +31,12 @@ import {
     computeScore,
     formatIdentities,
     generateAttestationId,
+    issueChallenge,
     parseBondMessage,
     readBondExtension,
     verify,
     verifyBondSignature,
+    verifyChallenge,
     type BondFields,
 } from '../index';
 
@@ -187,6 +189,48 @@ describe('conformance: canonical_form (SPEC §7.1 step 1)', () => {
     }
 });
 
+describe('conformance: challenge_form (SPEC Appendix A.1)', () => {
+    // Every signature verifies, so only the challenge's form decides each answer.
+    for (const v of vectors.filter((x) => x.category === 'challenge_form')) {
+        const input = v.input as {
+            address: string;
+            now: string;
+            expected_nonce: string;
+            expected_audience: string;
+            expected_purpose: string;
+            cases: { name: string; message: string; signature: string; reason: string | null }[];
+        };
+        const expected = v.expected as { signatures_valid: boolean };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            expect(verifySignature(input.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            const r = await verifyChallenge({
+                message: c.message,
+                signature: c.signature,
+                now: new Date(input.now),
+                expectedNonce: input.expected_nonce,
+                expectedAudience: input.expected_audience,
+                expectedPurpose: input.expected_purpose,
+            });
+            expect(r.ok ? null : r.reason).toBe(c.reason);
+        });
+        it(`${v.id}: issueChallenge writes the control`, () => {
+            const accepted = input.cases.filter((c) => c.reason === null).map((c) => c.message);
+            const control = accepted[0]!;
+            const at = (key: string) => new RegExp(`\\n${key}: (\\S+)\\n`).exec(control)![1]!;
+            const issuedAt = new Date(at('issued_at'));
+            const issued = issueChallenge({
+                address: input.address,
+                nonce: input.expected_nonce,
+                audience: input.expected_audience,
+                purpose: input.expected_purpose,
+                now: issuedAt,
+                ttlSeconds: (Date.parse(at('expires_at')) - issuedAt.getTime()) / 1000,
+            });
+            expect(accepted).toEqual([issued.message]);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -281,6 +325,7 @@ describe('conformance: vector index loaded', () => {
                 'bond_floors',
                 'bond_extension',
                 'canonical_form',
+                'challenge_form',
             ])
         );
     });
