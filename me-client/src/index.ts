@@ -68,7 +68,7 @@ export { config } from './config';
 export { webhook } from './webhook';
 export type { OcPublicJwk, VerifyOptions, VerifyResult } from './webhook';
 export { federations } from './federations';
-export { scope, parseTrustAttestationCount } from './scope';
+export { scope, parseTrustAttestationCount, SCOPE_IDS } from './scope';
 export type {
     Scope,
     GrantedOptions,

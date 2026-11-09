@@ -46,8 +46,10 @@ import { api } from './transport';
  *  pages moved to ochk.app, so setOrigin() does not move this. */
 const CONSENT_ORIGIN = 'https://ochk.app';
 
-/** Catalog of valid scopes · keep in sync with SCOPE_IDS in
- *  oc-me-web/src/lib/privacy/scopes.ts.
+/** Every scope me.ochk.io knows: the same ids, in the same order, as SCOPE_IDS
+ *  in oc-me-web/src/lib/privacy/scopes.ts, whose test fails when the two
+ *  differ. `oc.scope.request` refuses any other id. Every value arrives as a
+ *  string. The quoted words are what ochk.app's consent page tells the person.
  *
  *  cross_integrator_event_count · per OCHK-V2-PLAN §7 · low-info
  *    sybil signal aggregating event count across every integrator.
@@ -55,31 +57,44 @@ const CONSENT_ORIGIN = 'https://ochk.app';
  *    aggregate filtered to is_agent !== true (human-fired only).
  *    Use when you want to gate on real human activity rather than
  *    bot-padded counts.
+ *  cross_integrator_lifetime_sats · "your total earned": "one number: the sats
+ *    apps have paid you, added up across every app. Not which apps paid, how
+ *    much each, or when."
+ *  cross_integrator_distinct_count · "how many apps you use": "one number: how
+ *    many different apps have recorded events for you. No names."
+ *  cross_integrator_oldest_event_at · "how long you have been active": "the
+ *    date and time of your first recorded event in any app. Not which app, and
+ *    nothing else." An ISO 8601 time, or "" before the first event.
+ *  cross_integrator_active_days · "how often you are active": "one number: on
+ *    how many different days you have done something in any app. Not which
+ *    days or which apps."
  *  trust_attestation_count · per OCHK-V3-PLAN §6 phase-2 · four-int
  *    selective-disclosure quad summarizing reputation-graph attestations.
  *    Use parseTrustAttestationCount() to decode the wire-format string.
+ *  trust_attestations_bundle · "your statements": "the statements other apps
+ *    have made about you, each one in full: which app made it, what it says
+ *    and when it ends. You choose which ones in Apps." A JSON array of
+ *    envelope ids: fetch each from /api/envelope/<id> and verify it.
  *
  *  display_name · deprecated: it shares nothing. Signing in already gives your
  *    site the person's display name, so ochk.app no longer offers it; asking
  *    for it still works, and it never appears in `scopes`. */
-export type Scope =
-    | 'bitcoin_address'
-    | 'email'
-    | 'attest_tier'
-    | 'display_name'
-    | 'cross_integrator_event_count'
-    | 'cross_integrator_human_event_count'
-    | 'trust_attestation_count';
-
-const VALID_SCOPES: ReadonlyArray<Scope> = [
+export const SCOPE_IDS = Object.freeze([
     'bitcoin_address',
     'email',
     'attest_tier',
     'display_name',
     'cross_integrator_event_count',
     'cross_integrator_human_event_count',
+    'cross_integrator_lifetime_sats',
+    'cross_integrator_distinct_count',
+    'cross_integrator_oldest_event_at',
+    'cross_integrator_active_days',
     'trust_attestation_count',
-];
+    'trust_attestations_bundle',
+] as const);
+
+export type Scope = (typeof SCOPE_IDS)[number];
 
 /** Decoded shape of the `trust_attestation_count` scope value. The wire
  *  format is a comma-separated quad: total,good,distinct_good_issuers,caution.
@@ -214,9 +229,9 @@ export function request(scopes: Scope[], options: RequestOptions): never {
         throw new Error('oc.scope.request: scopes must be a non-empty array');
     }
     for (const s of scopes) {
-        if (!VALID_SCOPES.includes(s)) {
+        if (!SCOPE_IDS.includes(s)) {
             throw new Error(
-                `oc.scope.request: unknown scope "${s}" · valid: ${VALID_SCOPES.join(', ')}`
+                `oc.scope.request: unknown scope "${s}" · valid: ${SCOPE_IDS.join(', ')}`
             );
         }
     }

@@ -14,6 +14,7 @@
  * events never instantiate a BillableEvent.
  */
 
+import type { Scope } from './scope';
 import { EVENT_SUBTYPES } from './subtypes';
 
 // ── platform constants (fixed by OC) ──────────────────────────────────────
@@ -473,19 +474,7 @@ export interface WebhookPayload extends BillableEvent {
     /** Resolved scoped fields · only present for scopes the user has
      *  granted to this project. Wire format is string-keyed (every
      *  value is stringified · ints stringified, addresses as-is). */
-    scopes?: Partial<
-        Record<
-            | 'bitcoin_address'
-            | 'email'
-            | 'attest_tier'
-            | 'display_name'
-            | 'cross_integrator_event_count'
-            | 'cross_integrator_human_event_count'
-            | 'trust_attestation_count'
-            | 'trust_attestations_bundle',
-            string
-        >
-    >;
+    scopes?: Partial<Record<Scope, string>>;
 }
 
 /**
