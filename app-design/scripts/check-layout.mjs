@@ -574,6 +574,27 @@ try {
             )
         )
     );
+    // A table whose actions grow: words appear under the buttons, as a refused write's do.
+    const growTable = (valign) =>
+        h(C.DataTable, {
+            phone: 'scroll',
+            columns: [
+                { key: 'name', header: 'Name', cell: () => h('span', null, 'Ada', h('br'), 'Lovelace', h('br'), 'Byron'), primary: true },
+                {
+                    key: 'act',
+                    header: 'Actions',
+                    valign,
+                    cell: () =>
+                        h('div', { className: 'flex flex-col gap-2' }, h('div', { className: 'flex gap-2' }, h('button', { type: 'button', 'data-act': '', className: 'h-9 px-3' }, 'Settle')), h('div', { 'data-note': '' })),
+                },
+            ],
+            rows: [{ id: 'a1' }],
+            rowKey: (r) => r.id,
+        });
+    const grows = page(
+        'table-grows',
+        renderToStaticMarkup(h('div', { className: 'flex flex-col gap-6 p-4' }, h('div', { 'data-t': 'top' }, growTable('top')), h('div', { 'data-t': 'middle' }, growTable(undefined))))
+    );
     const productShell = page(
         'product-shell',
         renderToStaticMarkup(h(Ch.AppShell, { product: 'vault', family: 'vault', nav: [{ items: [{ href: '/a', label: 'Entries', active: true }] }] }, h('p', null, 'page')))
@@ -1718,6 +1739,19 @@ try {
             check(b190.copyOwn, `[${width}] DataTable: a control in a linked row lost its press to the row`);
             check(b190.line < 32 && b190.chipTarget, `[${width}] HashChip compact: the line is ${Math.round(b190.line)}px, or its copy is not a 44px target`);
             check(b190.tabsIn && b190.over <= 0, `[${width}] TabsList wrap: a tab sits off the screen (overflow ${b190.over})`);
+            // A top-aligned actions column keeps its button where it was when words grow under it; a middle one moves it.
+            await visit(p, grows);
+            const gr = await p.evaluate(() =>
+                Object.fromEntries(
+                    ['top', 'middle'].map((t) => {
+                        const box = document.querySelector(`[data-t="${t}"]`);
+                        const before = box.querySelector('[data-act]').getBoundingClientRect().top;
+                        box.querySelector('[data-note]').innerHTML = '<p>The invoice was not settled.</p><p>Try again.</p><p>Or later.</p><p>Or not.</p>';
+                        return [t, box.querySelector('[data-act]').getBoundingClientRect().top - before];
+                    })
+                )
+            );
+            check(Math.abs(gr.top) < 0.5 && Math.abs(gr.middle) >= 1, `[${width}] DataTable valign top: the button moved ${gr.top.toFixed(1)}px as words grew under it (a middle cell's moved ${gr.middle.toFixed(1)}px)`);
             if (width >= 1024) {
                 await visit(p, productShell);
                 const side = await p.evaluate(() => {

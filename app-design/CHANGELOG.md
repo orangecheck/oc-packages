@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- A `DataTable` column takes `valign: 'top'`, for a cell that grows: an
+  actions cell whose refused write is said under its buttons. Every cell
+  sat in the middle of its row, so words under a button lifted the button
+  by half their height (3px on ochk.app's treasury Settle). A top-aligned
+  cell keeps its buttons where they were; the rest of the row stays in the
+  middle. check-render reads the class on each cell, and check-layout grows
+  words under a button in each kind of cell and measures that it does not
+  move in a top one and does in a middle one.
+
 ## [2.15.1] — 2026-11-09
 
 - A field's placeholder is drawn in the muted text token, 4.5:1 on every

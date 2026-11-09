@@ -322,6 +322,11 @@ export interface Column<T> {
     header: ReactNode;
     cell: (row: T) => ReactNode;
     align?: 'start' | 'end';
+    /**
+     * Where the cell's content sits in a taller row. 'top' for a cell that grows,
+     * such as actions with words under them, so its buttons stay where they were.
+     */
+    valign?: 'middle' | 'top';
     /** A number: right-aligned, tabular, never wrapped. */
     numeric?: boolean;
     /** Hide below md in the table (the phone card list still shows it). */
@@ -460,7 +465,7 @@ export function DataTable<T>({
                                             key={c.key}
                                             style={{ minWidth: c.minWidth }}
                                             className={cn(
-                                                'align-middle',
+                                                c.valign === 'top' ? 'align-top' : 'align-middle',
                                                 // A compact row is 41px; to a thumb 46, so a link's 44px target (a HashChip's) stays in its row.
                                                 tight ? 'px-4 py-2 pointer-coarse:py-2.5' : 'px-5 py-3.5',
                                                 right(c) && 'text-right',
