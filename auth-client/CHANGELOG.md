@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.43.2] — 2026-11-09
+
 ### Fixed
 
 - `<OcSignIn>` says what to do for two auth-host refusals it showed as
