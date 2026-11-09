@@ -9,6 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `<OcSignIn>` says what to do for two auth-host refusals it showed as
+  "That didn't work. Try again.": a signed text that is not the one the host
+  issued (`challenge_mismatch`: "That sign-in message changed after it was
+  issued. Get a new one and sign it again.") and a test-network address
+  (`mainnet_only`: "Sign in with a mainnet Bitcoin address.").
+
 ## [2.43.1] — 2026-11-09
 
 ### Fixed

@@ -228,6 +228,48 @@ describe('OcSignIn · a network past its hour of codes', () => {
     });
 });
 
+describe('OcSignIn · the auth host refuses the address or the signed text', () => {
+    function wallet(challenge: { status: number; body: unknown }, signin: { status: number; body: unknown }) {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.includes('/api/challenge')) return challenge;
+            if (url.endsWith('/api/auth/signin')) return signin;
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+    }
+
+    async function askForMessage() {
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+    }
+
+    it('a challenge refused for a test-network address asks for a mainnet one', async () => {
+        wallet({ status: 400, body: { error: 'mainnet_only' } }, { status: 500, body: {} });
+        await askForMessage();
+        expect(screen.getByRole('alert').textContent).toBe('Sign in with a mainnet Bitcoin address.');
+    });
+
+    it('a signed text that is not the one issued asks for a new message', async () => {
+        wallet(
+            { status: 200, body: { message: 'sign this', nonce: 'n1' } },
+            { status: 401, body: { ok: false, reason: 'challenge_mismatch' } }
+        );
+        await askForMessage();
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9kAiBvOvnMEzFhPq' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
+        });
+        expect(screen.getByRole('alert').textContent).toBe(
+            'That sign-in message changed after it was issued. Get a new one and sign it again.'
+        );
+    });
+});
+
 describe('OcSignIn · a network past its count of new accounts or sign-in attempts', () => {
     const RETRY = Math.floor(Date.now() / 1000) + 3600;
     const AT = new Date(RETRY * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
