@@ -597,14 +597,14 @@ export interface WebhookHeaders {
 
 export interface SessionPolicy {
     duration_seconds: number;
-    refresh: 'sliding' | 'rolling' | 'none';
-    sensitive_actions?: 're-auth' | 'none';
+    refresh: 'sliding' | 'rolling' | 'fixed';
+    sensitive_actions?: 're-auth' | 'allow';
 }
 
 export interface Session {
     id: string;
     identity: string;
-    opens_at: string;
+    issued_at: string;
     expires_at: string;
     policy: SessionPolicy;
     scope: string[];

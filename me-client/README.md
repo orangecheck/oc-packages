@@ -139,6 +139,8 @@ if (!res.earned) {
 
 Sessions are the billable atom on ochk.app: your server fires one `session_creation` event per real session with `oc.event.fire`. `oc.session.create` opens a session and records no charge, and a signin within a still-valid session is **free**. Site declares the policy at integration time; the OC verifier enforces it both client-side and server-side.
 
+`oc.session.create`, `refresh` and `invalidate` need a session me.ochk.io accepts, which only ochk.app's own pages carry; from another site they answer 401. Your own site reads its sign-in with `withOcAuth` (or `ocAuthExpress`, `ocAuthHono`) and keeps its own session.
+
 ```ts
 import { oc } from '@orangecheck/me-client';
 
