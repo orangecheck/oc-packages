@@ -17,6 +17,8 @@ import { OcSignIn } from './signin';
 
 type Call = { url: string; init?: RequestInit };
 let calls: Call[] = [];
+/** Fields the host adds to its email-code answer in a test. */
+let verifyExtra: Record<string, unknown> = {};
 
 const ACCOUNT = { id: 'acct-1', did_oc: 'did:oc:0123456789abcdef0123456789abcdef' };
 
@@ -29,6 +31,7 @@ function json(body: unknown, status = 200): Response {
 
 beforeEach(() => {
     calls = [];
+    verifyExtra = {};
     sessionStorage.clear();
     vi.stubGlobal(
         'fetch',
@@ -40,7 +43,7 @@ beforeEach(() => {
             }
             if (u.endsWith('/api/auth/email-otp/start')) return json({ ok: true, token: 't'.repeat(48) });
             if (u.endsWith('/api/auth/email-otp/verify')) {
-                return json({ ok: true, token: 'app-token', account: ACCOUNT });
+                return json({ ok: true, token: 'app-token', account: ACCOUNT, ...verifyExtra });
             }
             if (u.endsWith('/api/auth/me')) return json({ account: ACCOUNT });
             if (u.endsWith('/api/auth/tab')) return json({ ok: false });
@@ -67,6 +70,38 @@ async function signInByEmail(): Promise<void> {
         fireEvent.submit(code.closest('form')!);
     });
 }
+
+const ALSO_LISTED =
+    'An account made with Google or GitHub also lists this email. If that account is yours, sign in with Google or GitHub and add this email there to confirm it.';
+
+describe('a new account whose email another account lists', () => {
+    it.each([
+        ['first-party', { mode: 'first-party' as const, audience: 'https://ochk.app' }],
+        ['family', { audience: 'https://ochk.io' }],
+    ])('says so before it goes on (%s)', async (_label, props) => {
+        verifyExtra = { also_listed_unconfirmed: true };
+        const onSuccess = vi.fn();
+        render(<OcSignIn {...props} authOrigin="https://ochk.io" onSuccess={onSuccess} linkPrompt={false} />);
+        await signInByEmail();
+        expect(await screen.findByText(ALSO_LISTED)).toBeTruthy();
+        expect(onSuccess).not.toHaveBeenCalled();
+        const go = screen.getByRole('button', { name: /Continue/ });
+        expect(go.getAttribute('aria-describedby')).toBe(screen.getByText(ALSO_LISTED).id);
+        fireEvent.click(go);
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+        expect(onSuccess.mock.calls[0]![0]).toEqual(ACCOUNT);
+        expect(onSuccess.mock.calls[0]![1]).toBe('app-token');
+    });
+
+    it('goes straight on when the host names no such listing', async () => {
+        verifyExtra = { also_listed_unconfirmed: false };
+        const onSuccess = vi.fn();
+        render(<OcSignIn mode="first-party" audience="https://ochk.app" onSuccess={onSuccess} />);
+        await signInByEmail();
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+        expect(screen.queryByText(ALSO_LISTED)).toBeNull();
+    });
+});
 
 describe('OcSignIn mode="first-party"', () => {
     it('signs in on the page, sends no credentials, and hands over the token', async () => {
