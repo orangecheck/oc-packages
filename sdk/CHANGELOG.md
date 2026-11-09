@@ -9,6 +9,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `verifyChallenge()` reads a challenge only in its canonical form (SPEC
+  Appendix A.1) and answers `malformed` for anything else: LF line ends with
+  one trailing LF, or that same text without it, as a shell's command
+  substitution passes it; the `orangecheck-auth` header, then the five core
+  lines in order; then extensions with lowercase ASCII keys in ascending
+  order, each once and with a value; no value holding a C0 control
+  character, DEL, U+0085, U+2028 or U+2029, which a wallet may show as a line
+  break; each value read as every byte after the first `: `, untrimmed; and
+  `issued_at` and `expires_at` written as `issueChallenge()` writes them
+  (`YYYY-MM-DDTHH:MM:SSZ`, years 0000 to 9999). Every challenge
+  `issueChallenge()` writes is in that form.
+- `issueChallenge()` throws on an `address`, `audience` or `purpose` that
+  holds any of those characters, and on a time outside the years 0000 to
+  9999.
+
 ## [1.25.0] — 2026-11-08
 
 ### Changed
