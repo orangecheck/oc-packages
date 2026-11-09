@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.15.1] — 2026-11-09
+
 - A field's placeholder is drawn in the muted text token, 4.5:1 on every
   field ground in both themes. Tailwind's preflight drew it at half the
   field's own colour: 3.39:1 on the light card, where a field styled
