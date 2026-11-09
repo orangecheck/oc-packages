@@ -319,6 +319,10 @@ const html = (el) => renderToStaticMarkup(el);
     check((linked.match(/href="\/people\/a1"/g) ?? []).length === 2, 'DataTable rowHref: the phone card has no link');
     check(/<button type="button"(?=[^>]*class="[^"]*after:inset-0)[^>]*>Ada<\/button>/.test(html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, onRowSelect: () => {} }))), 'DataTable onRowSelect: no row button');
     check(!html(h(C.DataTable, { columns: cols, rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id })).includes('after:inset-0'), 'DataTable: a plain table grew row links');
+    // A column that grows sits at the top of its row; the rest stay in the middle.
+    const grows = html(h(C.DataTable, { columns: [cols[0], { ...cols[1], valign: 'top' }], rows: [{ name: 'Ada', id: 'a1' }], rowKey: (r) => r.id, phone: 'scroll' }));
+    const tds = [...grows.matchAll(/<td[^>]*class="([^"]*)"/g)].map((m) => m[1].split(' '));
+    check(tds.length === 2 && tds[0].includes('align-middle') && tds[1].includes('align-top') && !tds[1].includes('align-middle'), `DataTable valign: the cells' alignments are ${JSON.stringify(tds.map((t) => t.filter((x) => x.startsWith('align-'))))}`);
     // Its heads, in the table and the phone card, are the one label.
     check(/<th scope="col" class="oca-label[^"]*">Name<\/th>/.test(linked) && /<dt class="oca-label[^"]*">Id<\/dt>/.test(linked), 'DataTable: a column head or the phone card\'s term is not oca-label');
     // ComparisonTable: a last row of actions; Closing: small print.
