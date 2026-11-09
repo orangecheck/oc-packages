@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.43.1] — 2026-11-09
+
 ### Fixed
 
 - `<OcSignIn>` by keyboard and screen reader. A submit button keeps focus
