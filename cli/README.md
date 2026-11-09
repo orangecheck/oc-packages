@@ -66,8 +66,9 @@ oc challenge issue --addr bc1q... --json > challenge.json
 Verify a signed challenge:
 
 ```bash
+# The signed text ends in a newline, which "$(cat ...)" drops: add it back.
 oc challenge verify \
-  --msg "$(cat challenge-message.txt)" \
+  --msg "$(cat challenge-message.txt)"$'\n' \
   --sig "$(cat signature.b64)" \
   --expected-nonce a1b2c3d4e5f6789012345678901234ab
 
