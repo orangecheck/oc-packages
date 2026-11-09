@@ -522,3 +522,179 @@ describe('OcSignIn · fields show the page focus ring', () => {
         expect(linkedInputStyle.outlineStyle).toBeUndefined();
     });
 });
+
+describe('OcSignIn · focus and what a screen reader hears', () => {
+    /** The accessible description: each referenced node's text, a text field's value. */
+    const described = (el: Element) =>
+        (el.getAttribute('aria-describedby') ?? '')
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((id) => {
+                const n = document.getElementById(id);
+                return n instanceof HTMLTextAreaElement ? n.value : (n?.textContent ?? '');
+            })
+            .join(' ');
+
+    /** A fetch whose challenge or code request waits until the test lets it go. */
+    function held(route: Route, holdWhen: (url: string) => boolean) {
+        let release!: () => void;
+        const gate = new Promise<void>((r) => (release = r));
+        const calls: string[] = [];
+        globalThis.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+            calls.push(String(url));
+            if (holdWhen(String(url))) await gate;
+            const hit = route(String(url), init) ?? { status: 404, body: {} };
+            return new Response(JSON.stringify(hit.body), { status: hit.status ?? 200 });
+        }) as unknown as typeof fetch;
+        return { calls, release };
+    }
+
+    const walletRoute: Route = (url) => {
+        if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+        if (url.includes('/api/challenge')) return { body: { message: 'sign this', nonce: 'n1' } };
+        if (url.endsWith('/api/auth/signin')) return { status: 400, body: { error: 'bad_request' } };
+        return undefined;
+    };
+
+    async function walletMessage() {
+        stubFetch(walletRoute);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+    }
+
+    it('the signature field is described by the instruction and the message to sign', async () => {
+        await walletMessage();
+        const sig = screen.getByLabelText('Signature');
+        expect(document.activeElement).toBe(sig);
+        expect(described(sig)).toMatch(/sign the\s+text below/);
+        expect(described(sig)).toContain('sign this');
+    });
+
+    it('"Use a different address" puts focus in the address field, with the address kept', async () => {
+        await walletMessage();
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Use a different address' }));
+        });
+        const field = screen.getByLabelText('Bitcoin address') as HTMLInputElement;
+        expect(document.activeElement).toBe(field);
+        expect(field.value).toBe(ADDR);
+    });
+
+    it('an error is part of its field\'s description: address, then signature', async () => {
+        stubFetch(walletRoute);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        const address = screen.getByLabelText('Bitcoin address');
+        expect(described(address)).toBe('');
+        fireEvent.change(address, { target: { value: 'notanaddress' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        expect(described(address)).toBe(screen.getByRole('alert').textContent);
+
+        fireEvent.change(address, { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        const sig = screen.getByLabelText('Signature');
+        fireEvent.change(sig, { target: { value: 'AkcwRAIg' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
+        });
+        expect(described(sig)).toContain(screen.getByRole('alert').textContent);
+    });
+
+    it('the wallet button keeps focus while it works, says so, and works once', async () => {
+        const { calls, release } = held(walletRoute, (u) => u.includes('/api/challenge'));
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        const form = document.querySelector<HTMLFormElement>('[data-oc-signin-wallet]')!;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        const status = form.querySelector('[role="status"]');
+        expect(status?.textContent).toBe('');
+        await act(async () => {
+            fireEvent.click(button);
+        });
+        // A disabled button drops the keyboard's focus to the page; this one stays a stop.
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-disabled')).toBe('true');
+        expect(status?.textContent).toBe('Waiting for wallet…');
+        await act(async () => {
+            fireEvent.click(button);
+        });
+        expect(calls.filter((u) => u.includes('/api/challenge'))).toHaveLength(1);
+        await act(async () => release());
+        expect(screen.getByLabelText('Message to sign')).toBeTruthy();
+    });
+
+    describe('email', () => {
+        const emailRoute: Route = (url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.endsWith('/email-otp/start')) return { body: { ok: true, token: 't1' } };
+            return undefined;
+        };
+
+        it('the send button keeps focus while it sends, says so, and sends once', async () => {
+            const { calls, release } = held(emailRoute, (u) => u.endsWith('/email-otp/start'));
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+            fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+            const form = document.querySelector<HTMLFormElement>('[data-oc-signin-email]')!;
+            const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+            await act(async () => {
+                fireEvent.click(button);
+            });
+            expect(button.disabled).toBe(false);
+            expect(button.getAttribute('aria-disabled')).toBe('true');
+            expect(form.querySelector('[role="status"]')?.textContent).toBe('Sending…');
+            await act(async () => {
+                fireEvent.click(button);
+            });
+            expect(calls.filter((u) => u.endsWith('/email-otp/start'))).toHaveLength(1);
+            await act(async () => release());
+            expect(screen.getByLabelText('One-time code')).toBeTruthy();
+        });
+
+        it('a refused email is its field\'s description', async () => {
+            stubFetch(emailRoute);
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+            const field = screen.getByRole('textbox', { name: 'Email' });
+            fireEvent.change(field, { target: { value: 'a@b' } });
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+            });
+            expect(described(field)).toBe(screen.getByRole('alert').textContent);
+        });
+
+        it('a malformed email is refused in the form\'s own words, not the browser\'s bubble', async () => {
+            stubFetch(emailRoute);
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+            const field = screen.getByRole('textbox', { name: 'Email' });
+            fireEvent.change(field, { target: { value: 'notanemail' } });
+            const form = document.querySelector<HTMLFormElement>('[data-oc-signin-email]')!;
+            await act(async () => form.requestSubmit());
+            expect(screen.getByRole('alert').textContent).toMatch(/email/i);
+            expect(described(field)).toBe(screen.getByRole('alert').textContent);
+        });
+
+        it('"Use a different email" puts focus in the email field', async () => {
+            stubFetch(emailRoute);
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+            fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+            });
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Use a different email' }));
+            });
+            expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Email' }));
+        });
+    });
+});

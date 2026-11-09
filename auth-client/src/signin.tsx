@@ -1124,10 +1124,14 @@ function WalletFlow({
         wallet: `${uid}-wallet`,
         message: `${uid}-message`,
         signature: `${uid}-signature`,
+        prompt: `${uid}-prompt`,
+        error: `${uid}-error`,
     };
     const [address, setAddress] = React.useState('');
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
+    // Back from the message to sign: the address field takes focus, or it would fall to the page.
+    const [back, setBack] = React.useState(false);
     // Browser wallets on this device; null until the adapter has loaded.
     const [wallets, setWallets] = React.useState<DetectedWallet[] | null>(null);
     const [walletId, setWalletId] = React.useState<string | null>(null);
@@ -1207,6 +1211,7 @@ function WalletFlow({
 
     async function signIn(e: React.FormEvent): Promise<void> {
         e.preventDefault();
+        if (submitting) return;
         const addr = address.trim();
         if (!addr) {
             setError('Paste your Bitcoin address.');
@@ -1255,7 +1260,7 @@ function WalletFlow({
 
     async function signInManual(e: React.FormEvent): Promise<void> {
         e.preventDefault();
-        if (!manual) return;
+        if (!manual || submitting) return;
         const sig = pasted.trim();
         if (!sig) {
             setError('Paste the signature your wallet gave you.');
@@ -1284,7 +1289,7 @@ function WalletFlow({
     if (manual) {
         return (
             <form onSubmit={signInManual} data-oc-signin-wallet-manual="">
-                <FlowHeader>
+                <FlowHeader id={ids.prompt}>
                     In your wallet, use “sign message” (BIP-322) with {address.trim()}, sign the
                     text below, and paste the signature back here. Nothing is spent.
                 </FlowHeader>
@@ -1319,20 +1324,25 @@ function WalletFlow({
                         spellCheck={false}
                         autoFocus
                         aria-invalid={error ? true : undefined}
+                        // Focus lands here, past the instruction and the message: both are read with it.
+                        aria-describedby={describedBy(ids.prompt, ids.message, error && ids.error)}
                         style={{ ...inputStyle, resize: 'vertical' }}
                     />
                 </div>
-                {error && <ErrorLine>{error}</ErrorLine>}
+                {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
                 <button
                     type="submit"
-                    disabled={submitting || !pasted.trim()}
+                    disabled={!pasted.trim()}
+                    aria-disabled={submitting || undefined}
                     style={submitStyle(submitting || !pasted.trim())}
                 >
                     {submitting ? 'Checking…' : <Submit>Sign me in</Submit>}
                 </button>
+                <Busy>{submitting ? 'Checking…' : null}</Busy>
                 <button
                     type="button"
                     onClick={() => {
+                        setBack(true);
                         setManual(null);
                         setPasted('');
                         setError(null);
@@ -1369,7 +1379,9 @@ function WalletFlow({
                 autoCapitalize="none"
                 spellCheck={false}
                 required
+                autoFocus={back}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={describedBy(error && ids.error)}
                 style={inputStyle}
             />
             {wallets && wallets.length > 1 && (
@@ -1389,10 +1401,11 @@ function WalletFlow({
                     </select>
                 </div>
             )}
-            {error && <ErrorLine>{error}</ErrorLine>}
+            {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
             <button
                 type="submit"
-                disabled={submitting || !address.trim()}
+                disabled={!address.trim()}
+                aria-disabled={submitting || undefined}
                 style={submitStyle(submitting || !address.trim())}
             >
                 {submitting
@@ -1401,6 +1414,7 @@ function WalletFlow({
                       ? <Submit>Get the message to sign</Submit>
                       : <Submit>Sign in with wallet</Submit>}
             </button>
+            <Busy>{submitting ? 'Waiting for wallet…' : null}</Busy>
             {noBrowserWallet && (
                 <Hint>No browser wallet found here. You can sign with any wallet and paste.</Hint>
             )}
@@ -1422,6 +1436,9 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
     const [token, setToken] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
     const [resent, setResent] = React.useState(false);
+    // Back from the code step: the email field takes focus, or it would fall to the page.
+    const [back, setBack] = React.useState(false);
+    const ids = { emailError: `${uid}-email-error`, codeError: `${uid}-code-error` };
 
     /** Ask the host to email a code. Returns a human error, or null on success. */
     async function sendCode(address: string): Promise<string | null> {
@@ -1449,6 +1466,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
 
     async function start(e: React.FormEvent): Promise<void> {
         e.preventDefault();
+        if (submitting) return;
         const trimmed = normalizeEmail(email);
         if (!trimmed || !/.+@.+\..+/.test(trimmed)) {
             setEmailError(humanSigninError('invalid_email', 'email'));
@@ -1467,6 +1485,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
     }
 
     async function resend(): Promise<void> {
+        if (submitting) return;
         setCodeError(null);
         setResent(false);
         setSubmitting(true);
@@ -1479,7 +1498,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
 
     async function verify(e: React.FormEvent): Promise<void> {
         e.preventDefault();
-        if (!token) return;
+        if (!token || submitting) return;
         if (code.length !== 6) {
             setCodeError('The code is 6 digits.');
             return;
@@ -1513,7 +1532,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
 
     if (stage === 'enter') {
         return (
-            <form onSubmit={start} data-oc-signin-email="">
+            <form key="enter" onSubmit={start} noValidate data-oc-signin-email="">
                 <FlowHeader>
                     We email you a 6-digit code. No password, and no wallet needed to start. Add a
                     Bitcoin address any time: a way in that only you hold.
@@ -1531,19 +1550,26 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                     }}
                     placeholder="you@example.com"
                     required
+                    autoFocus={back}
                     aria-invalid={emailError ? true : undefined}
+                    aria-describedby={describedBy(emailError && ids.emailError)}
                     style={inputStyle}
                 />
-                {emailError && <ErrorLine>{emailError}</ErrorLine>}
-                <button type="submit" disabled={submitting} style={submitStyle(submitting)}>
+                {emailError && <ErrorLine id={ids.emailError}>{emailError}</ErrorLine>}
+                <button
+                    type="submit"
+                    aria-disabled={submitting || undefined}
+                    style={submitStyle(submitting)}
+                >
                     {submitting ? 'Sending…' : <Submit>Send one-time code</Submit>}
                 </button>
+                <Busy>{submitting ? 'Sending…' : null}</Busy>
             </form>
         );
     }
 
     return (
-        <form onSubmit={verify} data-oc-signin-email-verify="">
+        <form key="code" onSubmit={verify} data-oc-signin-email-verify="">
             <FlowHeader>
                 {resent ? 'Sent a new code to ' : 'Sent a 6-digit code to '}
                 <span style={{ color: 'var(--foreground, #fafafa)' }}>{email}</span>. It expires in
@@ -1567,21 +1593,24 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 required
                 autoFocus
                 aria-invalid={codeError ? true : undefined}
+                aria-describedby={describedBy(codeError && ids.codeError)}
                 style={{ ...inputStyle, letterSpacing: '0.4em', fontSize: 16 }}
             />
-            {codeError && <ErrorLine>{codeError}</ErrorLine>}
+            {codeError && <ErrorLine id={ids.codeError}>{codeError}</ErrorLine>}
             <button
                 type="submit"
-                disabled={submitting || code.length !== 6}
+                disabled={code.length !== 6}
+                aria-disabled={submitting || undefined}
                 style={submitStyle(submitting || code.length !== 6)}
             >
                 {submitting ? 'Verifying…' : <Submit>Verify · sign me in</Submit>}
             </button>
+            <Busy>{submitting ? 'Verifying…' : null}</Busy>
             <div>
                 <button
                     type="button"
                     onClick={() => void resend()}
-                    disabled={submitting}
+                    aria-disabled={submitting || undefined}
                     style={linkButtonStyle}
                 >
                     Send a new code
@@ -1589,6 +1618,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 <button
                     type="button"
                     onClick={() => {
+                        setBack(true);
                         setStage('enter');
                         setCode('');
                         setToken(null);
@@ -1618,9 +1648,12 @@ function Submit({ children }: { children: string }): React.ReactElement {
 }
 
 function FlowHeader({
+    id,
     label,
     children,
 }: {
+    /** For a field to be described by the instruction. */
+    id?: string;
     /** Omitted where the active tab already names the method. */
     label?: string;
     children: React.ReactNode;
@@ -1642,6 +1675,7 @@ function FlowHeader({
                 </div>
             )}
             <p
+                id={id}
                 style={{
                     color: 'var(--muted-foreground, #a1a1aa)',
                     fontSize: signinRoleSize('text', '13px'),
@@ -1752,9 +1786,10 @@ function submitStyle(disabled: boolean): React.CSSProperties {
     };
 }
 
-function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElement {
+function ErrorLine({ id, children }: { id?: string; children: React.ReactNode }): React.ReactElement {
     return (
         <p
+            id={id}
             role="alert"
             style={{
                 marginTop: 6,
@@ -1767,6 +1802,33 @@ function ErrorLine({ children }: { children: React.ReactNode }): React.ReactElem
         >
             {children}
         </p>
+    );
+}
+
+/** The ids that describe a field, or none. */
+function describedBy(...ids: Array<string | false | null | undefined>): string | undefined {
+    return ids.filter(Boolean).join(' ') || undefined;
+}
+
+/** Reads out what a busy button is doing: a label change on the focused button may not be. */
+function Busy({ children }: { children: string | null }): React.ReactElement {
+    return (
+        <span
+            role="status"
+            style={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                margin: -1,
+                padding: 0,
+                overflow: 'hidden',
+                clip: 'rect(0 0 0 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+            }}
+        >
+            {children ?? ''}
+        </span>
     );
 }
 
