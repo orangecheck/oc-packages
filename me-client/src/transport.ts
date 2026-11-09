@@ -25,7 +25,9 @@ export function getOrigin(): string {
 
 /** Cross-domain integrators: store the JWT returned by `signInWithOc()`
  *  here so subsequent SDK calls can authenticate via Authorization
- *  header. Same-origin integrators don't need this (the cookie rides). */
+ *  header. Same-origin integrators don't need this (the cookie rides).
+ *  It is one value for the whole process: a server serving many people
+ *  passes `bearerToken` per call (event.fire, payment.authorize) instead. */
 export function setBearerToken(token: string | null): void {
     bearerToken = token && token.length > 0 ? token : null;
 }

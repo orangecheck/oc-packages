@@ -623,6 +623,11 @@ export interface PaymentAuthorizeOptions {
     usd_cents?: number;
     description: string;
     external_ref?: string;
+    /** The person's oc_session JWT (the `token` from the sign-in result), for
+     *  this call only. Pass it on a server that serves many people:
+     *  setBearerToken is one value for the whole process, so two payments in
+     *  flight would share it. Sent as Authorization, never in the body. */
+    bearerToken?: string;
 }
 
 export interface PaymentResult {
