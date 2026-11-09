@@ -201,6 +201,12 @@ interface SigninJsonOk {
      * `.ochk.io` sites ignore it and rely on the cookie.
      */
     token?: string;
+    /**
+     * An email code that started a new account, for an address an account
+     * made with Google or GitHub lists without having confirmed it. Names no
+     * account; the form says so before it goes on.
+     */
+    also_listed_unconfirmed?: boolean;
 }
 
 interface SigninJsonErr {
@@ -1337,7 +1343,10 @@ function WalletFlow({
 
 /* --- email flow --- */
 
-type EmailStage = 'enter' | 'code';
+type EmailStage = 'enter' | 'code' | 'listed';
+
+const ALSO_LISTED_TEXT =
+    'An account made with Google or GitHub also lists this email. If that account is yours, sign in with Google or GitHub and add this email there to confirm it.';
 
 function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): React.ReactElement {
     const uid = React.useId();
@@ -1351,7 +1360,15 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
     const [resent, setResent] = React.useState(false);
     // Back from the code step: the email field takes focus, or it would fall to the page.
     const [back, setBack] = React.useState(false);
-    const ids = { emailError: `${uid}-email-error`, codeError: `${uid}-code-error` };
+    // Signed in, held until the person has read that another account lists this email.
+    const [listed, setListed] = React.useState<{ account: OcAccount; token?: string } | null>(
+        null
+    );
+    const ids = {
+        emailError: `${uid}-email-error`,
+        codeError: `${uid}-code-error`,
+        listed: `${uid}-listed`,
+    };
 
     /** Ask the host to email a code. Returns a human error, or null on success. */
     async function sendCode(address: string): Promise<string | null> {
@@ -1435,12 +1452,34 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             if (!res.ok || !('ok' in json) || !json.ok || !json.account) {
                 throw new Error(signinRefusal(json as SigninJsonErr, 'server_error'));
             }
+            if (json.also_listed_unconfirmed === true) {
+                setListed({ account: json.account, token: json.token });
+                setStage('listed');
+                return;
+            }
             onSuccess(json.account, json.token);
         } catch (err) {
             setCodeError(failureMessage(err, 'email', 'submit', authOrigin));
         } finally {
             setSubmitting(false);
         }
+    }
+
+    if (stage === 'listed' && listed) {
+        return (
+            <div data-oc-signin-email="" data-oc-signin-listed="">
+                <FlowHeader id={ids.listed}>{ALSO_LISTED_TEXT}</FlowHeader>
+                <button
+                    type="button"
+                    autoFocus
+                    aria-describedby={ids.listed}
+                    onClick={() => onSuccess(listed.account, listed.token)}
+                    style={submitStyle(false)}
+                >
+                    <Submit>Continue</Submit>
+                </button>
+            </div>
+        );
     }
 
     if (stage === 'enter') {

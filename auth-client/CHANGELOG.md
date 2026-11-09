@@ -9,6 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- The email form reads `also_listed_unconfirmed` from the sign-in host's
+  answer. When an email code starts a new account for an address that an
+  account made with Google or GitHub also lists, the form says so and goes on
+  when the person presses Continue. The answer names no account, and neither
+  does the form.
+
 ## [2.45.0] — 2026-11-09
 
 ### Changed
