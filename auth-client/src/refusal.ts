@@ -5,10 +5,16 @@
 
 import { ownWord } from './own-word';
 
-/** A sign-in the person's own sign-out or account deletion ended while it ran, by any way in. */
+/**
+ * A sign-in the person's own sign-out or account deletion ended while it ran,
+ * by any way in. `no_roster`: a sign-out elsewhere in this browser replaced
+ * the account list this sign-in was joining, so the host kept no session.
+ */
 const ENDED_ERRORS: Record<string, string> = {
     signed_out: 'You were signed out while signing in. Sign in again.',
     account_deleted: "This account is being deleted, so you can't sign in to it.",
+    no_roster:
+        "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Sign in again.",
 };
 
 export function endedSigninText(reason: string): string | undefined {
@@ -52,6 +58,8 @@ const SIGNIN_ERRORS: Record<string, string> = {
 const EMAIL_ERRORS: Record<string, string> = {
     expired: 'That code expired. Send a new one.',
     signed_out: 'You were signed out while signing in. Send a new code to sign in again.',
+    no_roster:
+        "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Send a new code to sign in again.",
 };
 
 /**
