@@ -63,12 +63,14 @@ def _assert_safe_identity(id: IdentityBinding) -> None:
         )
     if (
         not id.identifier
+        or js_strip(id.identifier) != id.identifier
         or _IDENTITY_FORBIDDEN.search(id.identifier)
         or not is_one_line_value(id.identifier)
     ):
         raise ValueError(
             f"invalid identity identifier: {id.identifier!r} — must be non-empty, "
-            "contain no commas, and be one line with no newline or other control character"
+            "contain no commas, start and end with no space, and be one line with no "
+            "newline or other control character"
         )
 
 

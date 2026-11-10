@@ -4,6 +4,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.18.3] — 2026-11-10
+
+### Changed
+
+- **`build_canonical_message` and `format_identities` refuse an identifier
+  with whitespace at either end** (SPEC §2.1.1, vector `tv33`), which a
+  verifier answers `decode_error` for, as `@orangecheck/sdk` 1.26.1's builder
+  does.
+
 ## [3.18.2] — 2026-11-09
 
 ### Changed

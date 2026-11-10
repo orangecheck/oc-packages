@@ -84,3 +84,24 @@ def test_refuses_any_value_that_is_not_one_line(code: int) -> None:
 def test_writes_a_value_outside_ascii_as_given() -> None:
     value = "web:caf" + chr(0xE9) + chr(0x80) + chr(0x86) + chr(0x2027) + chr(0x1F600)
     assert build({"scope": value}).endswith(f"\nscope: {value}\n")
+
+
+@pytest.mark.parametrize("pad", [0x20, 0xA0, 0x3000, 0xFEFF])
+def test_refuses_an_identifier_that_whitespace_pads(pad: int) -> None:
+    # A verifier reads identities as written, so a padded identifier is not
+    # the one inside it (SPEC §2.1.1); an inner space is the identifier's own.
+    for identifier in ("alice" + chr(pad), chr(pad) + "alice"):
+        with pytest.raises(ValueError, match="start and end with no space"):
+            build_canonical_message(
+                address="bc1qexample",
+                identities=[{"protocol": "github", "identifier": identifier}],
+                nonce="0011223344556677889900aabbccddee",
+                issued_at="2026-04-22T12:00:00Z",
+            )
+    inner = "al" + chr(pad) + "ice"
+    assert f"identities: github:{inner}\n" in build_canonical_message(
+        address="bc1qexample",
+        identities=[{"protocol": "github", "identifier": inner}],
+        nonce="0011223344556677889900aabbccddee",
+        issued_at="2026-04-22T12:00:00Z",
+    )
