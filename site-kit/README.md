@@ -23,6 +23,7 @@ Each site keeps its own deploy and passes its own values.
 | `./analytics-event` | Server only. The default export is a pages API route for a site's `src/pages/api/oc-insights/event.ts`: it posts the page view to Plausible with the body, its Content-Type, the User-Agent and the client IP as `X-Forwarded-For`, and no other header. `createAnalyticsEvent(upstream)` points one elsewhere; `clientIp(req)` reads `x-real-ip`, then the first `x-forwarded-for` hop, then the socket, and only an address. |
 | `./csp` | Node only, for next.config and tests. `scriptHash(text)`, `inlineHashes(scripts)`, `themeScript(props)` (the script app-design's `ThemeProvider` writes, rendered in a node of its own), and `cspCheck`, also the `oc-site-kit csp-check` CLI. |
 | `./document` | `ThemeColorMeta` for `_document`'s `<Head>`: the two `theme-color` metas, light and dark, from app-design's `THEME_COLOR` (the page's ground, generated from its tokens). Needs `@orangecheck/app-design` ^2.0.0. |
+| `./rewrites` | For a site's tests. `externalRewrites(nextConfig)` lists every rewrite, from every phase, whose destination is not a path on the site (a URL, `//host` or `/\host`); `isSitePath(destination)` is the test it applies. A family site keeps it empty. |
 
 ## Usage
 
@@ -141,6 +142,16 @@ export { default } from '@orangecheck/site-kit/analytics-event';
 
 // next.config.ts, rewrites()
 { source: '/oc-insights/event', destination: '/api/oc-insights/event' }
+```
+
+No rewrite goes to another origin, Plausible's script included: the kit's
+sender is inline, so no page loads one. A site's test holds that:
+
+```ts
+import { externalRewrites } from '@orangecheck/site-kit/rewrites';
+import nextConfig from '../../next.config';
+
+expect(await externalRewrites(nextConfig)).toEqual([]);
 ```
 
 ## Rate keys

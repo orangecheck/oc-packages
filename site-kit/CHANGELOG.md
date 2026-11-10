@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+A site's tests can require that its next.config rewrites nothing to
+another origin. Such a rewrite sends the visitor's request on, and under
+next start the cookie, authorization and x-oc-tab-session go with it. The
+new `./rewrites` entry's `externalRewrites(nextConfig)` lists every
+rewrite, from every phase, whose destination is not a path on the site,
+and `isSitePath(destination)` is the test it applies: a URL, `//host` and
+`/\host` are another origin.
+
 ## 0.11.0
 
 A site's Plausible proxy can send Plausible only what it counts. The new

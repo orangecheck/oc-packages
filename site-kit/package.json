@@ -71,6 +71,11 @@
       "import": "./dist/csp.mjs",
       "require": "./dist/csp.js"
     },
+    "./rewrites": {
+      "types": "./dist/rewrites.d.ts",
+      "import": "./dist/rewrites.mjs",
+      "require": "./dist/rewrites.js"
+    },
     "./package.json": "./package.json"
   },
   "bin": {
