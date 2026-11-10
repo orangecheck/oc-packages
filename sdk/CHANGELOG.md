@@ -9,6 +9,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.26.1] — 2026-11-10
+
+### Changed
+
+- `verify()` reads each value of an attestation as written: every character
+  after the first `: ` on its line, with its key matched exactly, never
+  trimmed (SPEC §2.2, vector `tv33`). A value that whitespace pads is not the
+  value inside it: a padded `bond:` is `bond_malformed`, an `aud:` ending in
+  U+00A0 is `aud_mismatch` against `expectedAud`, a padded `expires:` is
+  `expired`, a padded `issued_at:` is `decode_error` and a padded `address:`
+  is `bad_request`. `createAttestationEnvelope()` and `signedEnvelope()` copy
+  `issued_at` and `expires_at` from the message as `verify()` reads them.
+- `buildCanonicalMessage()` and `formatIdentities()` throw for an identifier
+  with whitespace at either end, which `verify()` answers `decode_error` for
+  (SPEC §2.1.1). Every other message the builder writes is unchanged.
+
 ## [1.26.0] — 2026-11-09
 
 ### Added
