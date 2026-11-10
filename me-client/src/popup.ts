@@ -38,6 +38,8 @@ import { inheritedKeys } from './own-options';
 const DEFAULT_POPUP_ORIGIN = 'https://me.ochk.io';
 const DEFAULT_POPUP_PATH = '/popup/signin';
 const DEFAULT_FEATURES = 'width=480,height=720,resizable=yes,scrollbars=yes';
+/** The popup's challenge nonce: base64url, 16 to 128 characters. */
+const CHALLENGE_NONCE = /^[A-Za-z0-9_-]{16,128}$/;
 
 /** The account the sign-in popup hands your page, the same on every way of
  *  signing in: who signed in, and nothing more. An email or a Bitcoin address
@@ -49,7 +51,10 @@ export interface OcPopupAccount {
     /** Opaque public identity, `did:oc:<32-hex>`: the same at every site and
      *  stable across linking. */
     did_oc: string;
+    /** The name the person set, for a family site (*.ochk.io) only. Always
+     *  null for any other site: the popup never tells it a name. */
     display_name: string | null;
+    /** The person's Nostr npub, for a family site only, like `display_name`. */
     nostr_npub: string | null;
 }
 
@@ -172,14 +177,29 @@ export function signInWithOcOutcome(options: SignInWithOcOptions = {}): Promise<
             if (event.origin !== popupOrigin) return;
             if (event.source !== popup) return;
             const data = event.data as
-                | { type?: string; account?: OcPopupAccount; token?: string }
+                | { type?: string; account?: OcPopupAccount; token?: string; nonce?: unknown }
                 | null;
+            if (data?.type === 'oc-signin-challenge') {
+                answerChallenge(data.nonce);
+                return;
+            }
             if (!data || data.type !== 'oc-signin-success') return;
             if (!data.account || !data.token) {
                 settle({ status: 'failed' });
                 return;
             }
             settle({ status: 'signed_in', account: data.account, token: data.token });
+        }
+
+        // The popup proves its opener is this page before it signs anything: only this page
+        // receives the nonce it posts to opener_origin, so sending it back is the proof.
+        function answerChallenge(nonce: unknown) {
+            if (typeof nonce !== 'string' || !CHALLENGE_NONCE.test(nonce)) return;
+            try {
+                popup?.postMessage({ type: 'oc-signin-echo', nonce }, popupOrigin);
+            } catch {
+                /* the popup closed first */
+            }
         }
 
         function onAbort() {
