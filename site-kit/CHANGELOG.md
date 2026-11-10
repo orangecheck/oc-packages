@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.0
 
 A site's tests can require that its next.config rewrites nothing to
 another origin. Such a rewrite sends the visitor's request on, and under
