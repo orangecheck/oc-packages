@@ -76,7 +76,7 @@ export const STATUS_META: Record<StatusCode, StatusMeta> = {
     },
     bad_request: {
         label: 'Verification error',
-        detail: 'Unable to verify the signature due to invalid or inconsistent data. Please ensure the address in the message matches the address you entered, and try again.',
+        detail: 'Unable to verify the signature due to invalid or inconsistent data. Please ensure the address in the message matches the address you entered and is on the network the message names, and try again.',
         severity: 'error',
     },
     chain_unread: {
