@@ -45,7 +45,7 @@ import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
 import { DesignCheckbox } from './controls';
 import { LinkPromptStep } from './linked-identities';
-import { failureMessage, humanSigninError, networkError } from './refusal';
+import { endedSigninText, failureMessage, humanSigninError, networkError } from './refusal';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
@@ -330,6 +330,8 @@ const OAUTH_PROVIDER_NAMES = new Map([
 function oauthErrorText(reason: string, retryAt: unknown, provider: string | null): string {
     const cap = capText(reason, retryAt);
     if (cap) return cap;
+    const ended = endedSigninText(reason);
+    if (ended) return ended;
     if (reason === 'email_code_required') {
         return 'This email already has an orangecheck account. Sign in to it with an email code below.';
     }

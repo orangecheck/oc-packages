@@ -271,6 +271,67 @@ describe('OcSignIn · the auth host refuses the address or the signed text', () 
     });
 });
 
+describe('OcSignIn · a sign-in that a sign-out or deletion ends while it mints', () => {
+    const SIGNED_OUT = { status: 401, body: { ok: false, reason: 'signed_out' } };
+    const DELETED = { status: 410, body: { ok: false, reason: 'account_deleted' } };
+
+    async function walletAnswered(signin: { status: number; body: unknown }): Promise<string | null> {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.includes('/api/challenge')) return { body: { message: 'sign this', nonce: 'n1' } };
+            if (url.endsWith('/api/auth/signin')) return signin;
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9kAiBvOvnMEzFhPq' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Sign me in/ }));
+        });
+        return screen.getByRole('alert').textContent;
+    }
+
+    async function emailAnswered(verify: { status: number; body: unknown }): Promise<string | null> {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+            if (url.endsWith('/email-otp/start')) return { body: { ok: true, token: 't1' } };
+            if (url.endsWith('/email-otp/verify')) return verify;
+            return undefined;
+        });
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        fireEvent.change(screen.getByLabelText('One-time code'), { target: { value: '123456' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Verify/ }));
+        });
+        return screen.getByRole('alert').textContent;
+    }
+
+    it('a Bitcoin sign-in says the person was signed out, and to sign in again', async () => {
+        expect(await walletAnswered(SIGNED_OUT)).toBe('You were signed out while signing in. Sign in again.');
+    });
+
+    it('an email sign-in says so, and that the next try needs a new code', async () => {
+        expect(await emailAnswered(SIGNED_OUT)).toBe(
+            'You were signed out while signing in. Send a new code to sign in again.'
+        );
+    });
+
+    it('says the account is being deleted, on either path', async () => {
+        expect(await walletAnswered(DELETED)).toBe("This account is being deleted, so you can't sign in to it.");
+        cleanup();
+        expect(await emailAnswered(DELETED)).toBe("This account is being deleted, so you can't sign in to it.");
+    });
+});
+
 describe('OcSignIn · a network past its count of new accounts or sign-in attempts', () => {
     const RETRY = Math.floor(Date.now() / 1000) + 3600;
     const AT = new Date(RETRY * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
