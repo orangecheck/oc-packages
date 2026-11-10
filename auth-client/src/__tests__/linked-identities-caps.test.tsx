@@ -58,7 +58,7 @@ describe('OcLinkedIdentities · a capped network', () => {
     });
 
     it('linking an email: a capped code says when, and offers the wallet', async () => {
-        stub({ path: '/api/auth/email-otp/start', body: { ok: false, reason: 'otp_network_cap', retry_at: RETRY } });
+        stub({ path: '/api/auth/link/email-code', body: { ok: false, reason: 'otp_network_cap', retry_at: RETRY } });
         render(<OcLinkedIdentities authOrigin="https://ochk.io" />);
         await act(async () => {});
         fireEvent.click(screen.getByRole('button', { name: '+ link an email' }));
