@@ -449,12 +449,23 @@ const html = (el) => renderToStaticMarkup(el);
     check(html(h(C.TextLink, { href: '../README' }, 'up')).includes('href="../README"'), 'TextLink: a relative href is changed without a router');
 }
 
+// An ErrorPage names a code only when it is given one.
+{
+    const eyebrow = (o) => o.match(/<p class="oca-eyebrow[^"]*">(.*?)<\/p>/)?.[1].replace(/<[^>]+>/g, '');
+    check(eyebrow(html(h(C.ErrorPage, { code: 404 }))) === '404 · Not found', 'ErrorPage: a 404 does not say so');
+    check(eyebrow(html(h(C.ErrorPage, { code: 403 }))) === '403 · Not available', 'ErrorPage: a 403 does not say so');
+    check(eyebrow(html(h(C.ErrorPage, { code: 503 }))) === '503 · Error', 'ErrorPage: a 503 does not say so');
+    const none = html(h(C.ErrorPage, { title: 'Not signed in to ochk.io', detail: 'There is nothing left to end here.' }));
+    check(!none.includes('oca-eyebrow') && !/404|Not found|isn.t here/.test(none), 'ErrorPage: a page given no code claims one');
+    check(none.includes('>Not signed in to ochk.io</h1>') && none.includes('There is nothing left to end here.'), 'ErrorPage: a page given no code loses its words');
+}
+
 // 1.4.1: home off a tool site's own /, phones, and the signing scheme in words.
 {
     const href = (o) => o.match(/<a [^>]*href="([^"]*)"[^>]*>Go home</)?.[1];
-    check(href(html(h(C.ErrorPage, {}))) === 'https://ochk.io', 'ErrorPage: home is not ochk.io by default');
-    check(href(html(h(C.ErrorPage, { protocol: 'vote' }))) === 'https://ochk.io/vote', 'ErrorPage: protocol does not set home');
-    const inShell = html(h(Ch.ToolShell, { protocol: 'lock', tools: [] }, h(C.ErrorPage, {})));
+    check(href(html(h(C.ErrorPage, { code: 404 }))) === 'https://ochk.io', 'ErrorPage: home is not ochk.io by default');
+    check(href(html(h(C.ErrorPage, { code: 404, protocol: 'vote' }))) === 'https://ochk.io/vote', 'ErrorPage: protocol does not set home');
+    const inShell = html(h(Ch.ToolShell, { protocol: 'lock', tools: [] }, h(C.ErrorPage, { code: 404 })));
     check(href(inShell) === 'https://ochk.io/lock', 'ErrorPage inside ToolShell: home is not the protocol page');
     const frame = html(h(Ch.SignInFrame, { protocol: 'attest' }, h('p', null, 'x')));
     check(/href="https:\/\/ochk.io\/attest"[^>]*>Back to home</.test(frame), 'SignInFrame: protocol does not set home');
