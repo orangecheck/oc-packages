@@ -328,6 +328,61 @@ describe('conformance: value_as_written (SPEC §2.2)', () => {
     }
 });
 
+describe('conformance: network_prefix (SPEC §7.1 step 3)', () => {
+    // Every signature verifies, so only the address's network and the message's decide each answer.
+    // Each case that gets that far reads the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+    const REASONS: StatusCode[] = ['bad_request', 'network_testmode'];
+
+    for (const v of vectors.filter((x) => x.category === 'network_prefix')) {
+        const input = v.input as {
+            identities: { protocol: string; identifier: string }[];
+            nonce: string;
+            issued_at: string;
+            now: string;
+            cases: {
+                name: string;
+                address: string;
+                extensions: Record<string, string>;
+                test_mode: boolean;
+                message: string;
+                signature: string;
+                reason: string | null;
+                builder: 'writes' | 'refuses';
+            }[];
+        };
+        const expected = v.expected as { signatures_valid: boolean };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date(input.now));
+            expect(verifySignature(c.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            const r = await verify(
+                { addr: c.address, msg: c.message, sig: c.signature, scheme: 'bip322' },
+                { testMode: c.test_mode }
+            );
+            expect(REASONS.find((code) => r.codes.includes(code)) ?? null).toBe(c.reason);
+            // A control reaches the signature, so nothing before it refused the address.
+            if (c.reason === null) expect(r.codes).toContain('sig_ok_bip322');
+            const build = () =>
+                buildCanonicalMessage({ address: c.address, identities: input.identities }, c.extensions, {
+                    nonce: input.nonce,
+                    issuedAt: input.issued_at,
+                });
+            if (c.builder === 'writes') expect(build()).toBe(c.message);
+            else expect(build).toThrow(/^invalid network/);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -425,6 +480,7 @@ describe('conformance: vector index loaded', () => {
                 'challenge_form',
                 'value_form',
                 'value_as_written',
+                'network_prefix',
             ])
         );
     });

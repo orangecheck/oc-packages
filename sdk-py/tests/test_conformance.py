@@ -355,6 +355,45 @@ def test_value_as_written_builder(vector: dict) -> None:
                 build()
 
 
+# ─── network_prefix (SPEC §7.1 step 3) ─────────────────────────────────────
+# The reasons are the TS SDK's to check, as above. Here every signature
+# verifies, and the builder writes or refuses each case.
+
+
+@pytest.mark.parametrize("vector", vectors_of("network_prefix"), ids=ids_for("network_prefix"))
+def test_network_prefix_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    for case in vector["input"]["cases"]:
+        got = verify_bip322_signature(case["address"], case["message"], case["signature"])
+        assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
+
+
+@pytest.mark.parametrize("vector", vectors_of("network_prefix"), ids=ids_for("network_prefix"))
+def test_network_prefix_builder(vector: dict) -> None:
+    inp = vector["input"]
+    assert {case["builder"] for case in inp["cases"]} == {"writes", "refuses"}
+    for case in inp["cases"]:
+
+        def build() -> str:
+            return build_canonical_message(
+                address=case["address"],
+                identities=inp["identities"],
+                extensions=case["extensions"],
+                nonce=inp["nonce"],
+                issued_at=inp["issued_at"],
+            )
+
+        if case["builder"] == "writes":
+            assert build() == case["message"], f"{vector['id']}: {case['name']}"
+        else:
+            with pytest.raises(ValueError, match="^invalid network"):
+                build()
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -378,6 +417,7 @@ def test_vector_set_complete() -> None:
         "challenge_form",
         "value_form",
         "value_as_written",
+        "network_prefix",
     }
     assert len(VECTORS) >= 28
 
