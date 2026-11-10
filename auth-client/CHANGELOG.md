@@ -15,9 +15,9 @@ this file tracks the package's TS / Node / runtime API surface.
   an address held by its wrong-code cap to the browser that asked for it. The
   browser keeps a random key in the site's localStorage (`oc-signin-link-key`)
   and sends its SHA-256 as `link_bind` with the email start. Opened on the
-  site's `/signin#oc-link=…`, the link shows a sign-in step that sends nothing
-  until it is pressed, then signs in with the key, without credentials, and
-  hands the session token to `onSuccess` as a code does. Opened in another
+  site's `/signin` with `#oc-link=…`, the link shows a sign-in step that sends
+  nothing until it is pressed, then signs in with the key, without credentials,
+  and hands the session token to `onSuccess` as a code does. Opened in another
   browser it is refused (`wrong_browser`), and the step says to open it where
   the sign-in was asked, or to ask for a new one. Until ochk.io binds its
   links, it ignores `link_bind` and its links still open on ochk.io.

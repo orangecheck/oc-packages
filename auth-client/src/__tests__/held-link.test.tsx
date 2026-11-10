@@ -71,6 +71,19 @@ describe('linkBind', () => {
         expect(readLinkKey()).toBe(key);
     });
 
+    it('makes the key from exactly 32 random bytes, nothing added', async () => {
+        const spy = vi
+            .spyOn(globalThis.crypto, 'getRandomValues')
+            .mockImplementation(<T extends ArrayBufferView | null>(a: T) => {
+                (a as unknown as Uint8Array).fill(7);
+                return a;
+            });
+        await linkBind();
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect((spy.mock.calls[0]![0] as Uint8Array).length).toBe(32);
+        expect(window.localStorage.getItem(KEY_STORAGE)).toBe(Buffer.alloc(32, 7).toString('base64url'));
+    });
+
     it('sends nothing when the browser keeps no storage', async () => {
         vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
             throw new Error('denied');
@@ -219,6 +232,21 @@ describe('OcSignIn · first-party, opened from the link', () => {
             fireEvent.click(screen.getByRole('button', { name: /^Sign in/ }));
         });
         expect(screen.getByRole('alert').textContent).toBe('Too many tries just now. Wait a minute, then press it again.');
+        expect(screen.getByRole('button', { name: /^Sign in/ })).toBeTruthy();
+    });
+
+    it('a request that never reached ochk.io keeps the button, to press again', async () => {
+        const { calls, onSuccess } = openLink({ body: {} });
+        globalThis.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+            calls.push({ url: String(url), init, body: null });
+            throw new TypeError('Failed to fetch');
+        }) as unknown as typeof fetch;
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /^Sign in/ }));
+        });
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(posts(calls, '/email-otp/verify')).toHaveLength(1);
+        expect(screen.getByRole('alert').textContent).toBe("That didn't work. Press it again in a minute.");
         expect(screen.getByRole('button', { name: /^Sign in/ })).toBeTruthy();
     });
 
