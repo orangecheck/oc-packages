@@ -9,6 +9,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.48.0] — 2026-11-10
+
+### Fixed
+
+- `OcLinkedIdentities` can move an email or a Bitcoin address that is linked
+  to another account. ochk.io spends a link's proof on any try it answers, the
+  "linked to another account" answer included, and "transfer link here" sent
+  the spent code or signature again, so the move was always refused. A move now
+  sends a new code to the email, or asks for one more signature over a new
+  message, and sends that with `confirm_transfer`.
+- After a refused wallet signature, linking a Bitcoin address fetches a new
+  message to sign, so the next signature can succeed. Nothing typed or chosen
+  in the wallet button carries over to a new message.
+
+### Changed
+
+- `OcSignIn` names the two new ochk.io refusals: a sign-in that a sign-out
+  ended while it was finishing says to sign in again, and an account being
+  deleted says it cannot be signed in to. The provider banner says the same.
+
 ## [2.47.0] — 2026-11-10
 
 ### Changed
