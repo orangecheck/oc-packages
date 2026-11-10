@@ -82,6 +82,11 @@ describe('OcSignIn after a refused provider sign-in', () => {
         );
     });
 
+    it('is an alert, so a screen reader says the sign-in failed', async () => {
+        const text = await bannerFor('access_denied', false, 'google');
+        expect(screen.getByRole('alert').textContent).toBe(text);
+    });
+
     it('shows no provider name it does not know', async () => {
         for (const provider of ['Your bank', 'GOOGLE', '', 'constructor', '__proto__']) {
             expect(await bannerFor('access_denied', false, provider)).toBe(
