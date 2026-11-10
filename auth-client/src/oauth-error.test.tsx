@@ -60,6 +60,16 @@ describe('OcSignIn after a refused provider sign-in', () => {
         expect(text).toMatch(/email code/);
     });
 
+    it('says a sign-out or deletion that landed while it ran ended it', async () => {
+        expect(await bannerFor('signed_out', false, 'google')).toBe(
+            'You were signed out while signing in. Sign in again.'
+        );
+        cleanup();
+        expect(await bannerFor('account_deleted', true, 'github')).toBe(
+            "This account is being deleted, so you can't sign in to it."
+        );
+    });
+
     it('keeps the general line for anything else', async () => {
         expect(await bannerFor('access_denied')).toBe(
             "That sign-in didn't finish. Try again, or use another way below."
