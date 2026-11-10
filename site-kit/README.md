@@ -101,6 +101,7 @@ script whose hash is not listed, or carries a handler attribute or a
 | Signed out | `200 { ok: true, account: null }`, as ochk.app answers |
 | A per-tab token that does not verify, or an ended session's | `401 { ok: false, reason }`; auth-client drops the tab's pin only on a 401, then retries on the cookie |
 | A cookie for a session the auth host has ended | `200 { ok: true, account: null }`: signed out |
+| A session the list of ended sessions can't vouch for yet, on a reader made with `refuseUnverifiedReads` | `503 { ok: false, error: 'session_unverified' }`, `Retry-After: 60`; auth-client keeps the account and the tab's pin |
 | Any method but GET | `405`, `Allow: GET` |
 
 Always `Cache-Control: no-store, private` and `Vary: Cookie, X-OC-Tab-Session`.
@@ -114,6 +115,11 @@ cut off with every session of its account, or deleted). It asks
 workspace). If the list cannot be refreshed for 10 minutes, reads still pass
 and writes are refused with reason `unverified`. Without the token, a
 production site refuses every write on a session.
+
+A site that holds a person's data makes its reader with
+`createSessionReader({ refuseUnverifiedReads: true })`: while the list can't
+vouch for a session, reads are refused too, and its `/api/auth/me` answers
+503 `session_unverified` until the auth host answers again.
 
 ## Analytics
 

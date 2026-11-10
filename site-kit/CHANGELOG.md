@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+A site that holds a person's data can refuse reads too while the auth
+host's list of ended sessions can't vouch for a session.
+`createSessionReader({ refuseUnverifiedReads: true })` refuses every method
+with reason `unverified` in that state, and `createMeHandler` answers that
+reason with 503 `{ ok: false, error: 'session_unverified' }`,
+`Retry-After: 60` and no-store, for a cookie or a per-tab token alike,
+without asking the fallback. auth-client reads the 503 as an error and keeps
+the account and the tab's pin. A reader made without the option is
+unchanged: reads pass, writes are refused.
+
 ## 0.12.0
 
 A site's tests can require that its next.config rewrites nothing to

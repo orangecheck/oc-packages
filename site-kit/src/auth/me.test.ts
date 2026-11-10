@@ -80,6 +80,35 @@ describe('createMeHandler', () => {
         expect(out).toMatchObject({ status: 200, body: { ok: true, account: null } });
     });
 
+    it('a session the feed cannot vouch for is 503 session_unverified, to ask again in a minute', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const tab = await mint(keys, 'did:oc:bb');
+        const unverified = { status: async () => 'unverified' as const, refuses: async () => true };
+        const fallback = vi.fn(async () => null);
+        const handler = createMeHandler({
+            reader: createSessionReader({ revocation: unverified, refuseUnverifiedReads: true }),
+            fallback,
+        });
+        const callers: Record<string, string>[] = [{ cookie: `oc_session=${cookie}` }, { 'x-oc-tab-session': tab }];
+        for (const headers of callers) {
+            const out = await call(handler, headers);
+            expect(out.status).toBe(503);
+            expect(out.body).toEqual({ ok: false, error: 'session_unverified' });
+            expect(out.headers['retry-after']).toBe('60');
+            expect(out.headers['cache-control']).toBe('no-store, private');
+        }
+        expect(fallback).not.toHaveBeenCalled();
+    });
+
+    it('a reader that keeps reads open still answers the account while the feed cannot vouch for it', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const unverified = { status: async () => 'unverified' as const, refuses: async () => true };
+        const out = await call(createMeHandler({ reader: createSessionReader({ revocation: unverified }) }), {
+            cookie: `oc_session=${cookie}`,
+        });
+        expect(out).toMatchObject({ status: 200, body: { ok: true, account: { did_oc: 'did:oc:aa' } } });
+    });
+
     it.each(['POST', 'PUT', 'DELETE', 'HEAD'])('%s is 405 with Allow: GET', async (method) => {
         const out = await call(createMeHandler({ reader: reader() }), {}, method);
         expect(out.status).toBe(405);
