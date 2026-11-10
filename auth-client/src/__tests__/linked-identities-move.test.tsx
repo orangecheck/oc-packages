@@ -49,7 +49,7 @@ beforeEach(() => {
         if (u.includes('/api/auth/identities'))
             return json({ ok: true, did_oc: `did:oc:${'a'.repeat(32)}`, linked: [] });
         if (u.includes('/api/challenge')) return json({ message: `message ${++issued}` });
-        if (u.includes('/api/auth/email-otp/start')) return json({ ok: true, token: `token ${++issued}` });
+        if (u.includes('/api/auth/link/email-code')) return json({ ok: true, token: `token ${++issued}` });
         const link = /\/api\/auth\/link\/(btc|email)$/.exec(u);
         if (link) {
             const body = JSON.parse(String(init?.body)) as {

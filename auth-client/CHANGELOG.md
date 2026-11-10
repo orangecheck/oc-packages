@@ -9,6 +9,12 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `OcLinkedIdentities` asks ochk.io for its email code at
+  `POST /api/auth/link/email-code`: a code issued to the signed-in account for
+  that address, which can only link it to that account.
+
 ## [2.48.0] — 2026-11-10
 
 ### Fixed

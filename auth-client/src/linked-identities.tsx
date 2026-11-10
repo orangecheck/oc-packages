@@ -603,7 +603,8 @@ function EmailLinkForm({
         setBusy(true);
         setErr(null);
         try {
-            const r = await fetch(`${authOrigin}/api/auth/email-otp/start`, {
+            // A code for this account and this address, which can only link it.
+            const r = await fetch(`${authOrigin}/api/auth/link/email-code`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
