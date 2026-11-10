@@ -200,9 +200,9 @@
     "@noble/hashes" "^1.8.0"
 
 "@orangecheck/sdk@^1.25.0":
-  version "1.25.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.25.0.tgz#7377a1031a44a9c6afe4e46fdd021a5d1d32347a"
-  integrity sha512-sIRPVtgcKwkeKH5PllRIQqF+axs9bpl4J2tkEZEEpnef+EoL1nO0ZfLqo+sQYMI8lnpjaq/Hd2XV2C2MDxIgPg==
+  version "1.26.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.26.2.tgz#90664318a6322f8c98e45f0416151206a06b0b93"
+  integrity sha512-5D/ywP6vmV69ai+dqEjRu+lTJ2Qspjq5JAa8M2uqAf6f070bxq4gFQtpQSfv23EScBYScdRC3OXR2JFm2JhoJA==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
