@@ -20,7 +20,8 @@ export type SessionResult =
            * `revoked` · a valid token the auth host has ended (signed out,
            * replaced, its account cut off or deleted), or one `isRevoked` names.
            * `unverified` · an unsafe method while the revocation feed is too
-           * stale to vouch for the token. Reads still pass.
+           * stale to vouch for the token. Reads still pass, unless the reader
+           * was made with `refuseUnverifiedReads`.
            */
           reason: 'no_session' | 'tab_invalid' | 'refused' | 'revoked' | 'unverified';
           /** True when the request carried a per-tab token. */
@@ -41,6 +42,11 @@ export interface SessionReaderOptions {
      * caller out.
      */
     isRevoked?: (session: SessionPayload) => boolean | Promise<boolean>;
+    /**
+     * For a site that holds a person's data: while the feed is too stale to
+     * vouch for a token, reads are refused too, with reason `unverified`.
+     */
+    refuseUnverifiedReads?: boolean;
     /** Passed to the origin gate. Default: true unless NODE_ENV is production. */
     developing?: boolean;
 }
@@ -92,7 +98,8 @@ export function createSessionReader(opts: SessionReaderOptions = {}): SessionRea
         if (revocation) {
             const status = await revocation.status(r.payload);
             if (status === 'revoked') return { ok: false, reason: 'revoked', tab };
-            if (status === 'unverified' && !SAFE_METHODS.has((req.method ?? '').toUpperCase())) {
+            const read = SAFE_METHODS.has((req.method ?? '').toUpperCase());
+            if (status === 'unverified' && (opts.refuseUnverifiedReads || !read)) {
                 return { ok: false, reason: 'unverified', tab };
             }
         }

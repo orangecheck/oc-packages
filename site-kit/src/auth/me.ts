@@ -22,7 +22,10 @@ export interface MeAccount {
     is_owner: boolean;
 }
 
-export type MeBody = { ok: true; account: MeAccount | null } | { ok: false; reason: string };
+export type MeBody =
+    | { ok: true; account: MeAccount | null }
+    | { ok: false; reason: string }
+    | { ok: false; error: 'session_unverified' };
 
 export function accountFromSession(session: SessionPayload, opts: { ownerHint?: boolean } = {}): MeAccount {
     return {
@@ -61,6 +64,10 @@ export interface MeHandlerOptions {
  * A per-tab token that cannot be honoured still answers **401**: auth-client
  * drops a tab's pin only on a 401 and then retries on the cookie, so a 200
  * there would leave that tab signed out for good.
+ *
+ * A session the auth host's list can't vouch for yet (reason `unverified`)
+ * answers **503 `session_unverified`** with `Retry-After: 60`: auth-client keeps
+ * the account and the tab's pin, and reads again.
  */
 export function createMeHandler(opts: MeHandlerOptions) {
     return async function meHandler(req: NextApiRequest, res: NextApiResponse<MeBody | { error: string }>): Promise<void> {
@@ -78,6 +85,11 @@ export function createMeHandler(opts: MeHandlerOptions) {
         if (r.ok) {
             res.status(200).json({ ok: true, account: accountFromSession(r.session, { ownerHint: opts.ownerHint }) });
             opts.after?.(r.session, req);
+            return;
+        }
+        if (r.reason === 'unverified') {
+            res.setHeader('Retry-After', '60');
+            res.status(503).json({ ok: false, error: 'session_unverified' });
             return;
         }
         if (r.tab) {

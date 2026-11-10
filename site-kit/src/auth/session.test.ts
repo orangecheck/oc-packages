@@ -116,6 +116,26 @@ describe('createSessionReader · ended sessions', () => {
         expect(await reader.resolve({ method: 'POST', headers: same })).toEqual({ ok: false, reason: 'unverified', tab: false });
     });
 
+    it('with refuseUnverifiedReads, refuses a read too while the feed cannot vouch for the token', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const tab = await mint(keys, 'did:oc:bb');
+        const reader = createSessionReader({ revocation: fixed('unverified'), refuseUnverifiedReads: true });
+        for (const method of ['GET', 'HEAD', 'OPTIONS', 'POST']) {
+            const same = { cookie: `oc_session=${cookie}`, 'sec-fetch-site': 'same-origin' };
+            expect(await reader.resolve({ method, headers: same })).toEqual({ ok: false, reason: 'unverified', tab: false });
+        }
+        expect(await reader.resolve(get({ 'x-oc-tab-session': tab }))).toEqual({ ok: false, reason: 'unverified', tab: true });
+        expect(await reader.read(get({ cookie: `oc_session=${cookie}` }))).toBeNull();
+    });
+
+    it('with refuseUnverifiedReads, a token the feed vouches for still reads, and an ended one is still ended', async () => {
+        const cookie = await mint(keys, 'did:oc:aa');
+        const live = createSessionReader({ revocation: fixed('live'), refuseUnverifiedReads: true });
+        expect(await live.read(get({ cookie: `oc_session=${cookie}` }))).toMatchObject({ did_oc: 'did:oc:aa' });
+        const ended = createSessionReader({ revocation: fixed('revoked'), refuseUnverifiedReads: true });
+        expect(await ended.resolve(get({ cookie: `oc_session=${cookie}` }))).toEqual({ ok: false, reason: 'revoked', tab: false });
+    });
+
     it('asks the site’s own tombstones with the whole payload, after the family check', async () => {
         const cookie = await mint(keys, 'did:oc:aa');
         const isRevoked = vi.fn(async () => false);
