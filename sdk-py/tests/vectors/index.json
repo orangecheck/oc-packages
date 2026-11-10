@@ -158,5 +158,10 @@
     "id": "tv32",
     "category": "value_form",
     "description": "attestations validly BIP-322 signed by burn key #1 with a value that is not one line (SPEC §2.2): each case's reason is decode_error and a builder refuses its identities and extensions, with its address or issued_at when the case gives one; the control holds a value outside ASCII, which a builder writes and a verifier takes"
+  },
+  {
+    "id": "tv33",
+    "category": "value_as_written",
+    "description": "attestations validly BIP-322 signed by burn key #1 with one value that whitespace pads (SPEC §2.2): a verifier reads each value as written, at input.now and against input.expected_aud, so each case's reason is the code its padded value gives (bond_malformed, aud_mismatch, expired, decode_error for an identity or an issued_at, bad_request for an address that is not input.address), and the control's is null; a case's builder says whether a builder writes its identities and extensions as given or refuses them"
   }
 ]

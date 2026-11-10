@@ -38,6 +38,7 @@ import {
     verifyBondSignature,
     verifyChallenge,
     type BondFields,
+    type StatusCode,
 } from '../index';
 
 const VECTORS_DIR = join(__dirname, 'vectors');
@@ -274,6 +275,59 @@ describe('conformance: value_form (SPEC §2.2)', () => {
     }
 });
 
+describe('conformance: value_as_written (SPEC §2.2)', () => {
+    // Every signature verifies at input.now, so only the padded value decides each answer.
+    // Each case that gets that far reads the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+    const REASONS: StatusCode[] = ['decode_error', 'bad_request', 'aud_mismatch', 'expired', 'bond_malformed'];
+
+    for (const v of vectors.filter((x) => x.category === 'value_as_written')) {
+        const input = v.input as {
+            address: string;
+            nonce: string;
+            issued_at: string;
+            now: string;
+            expected_aud: string;
+            cases: {
+                name: string;
+                identities: { protocol: string; identifier: string }[];
+                extensions: Record<string, string>;
+                message: string;
+                signature: string;
+                reason: string | null;
+                builder?: 'writes' | 'refuses';
+            }[];
+        };
+        const expected = v.expected as { signatures_valid: boolean };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date(input.now));
+            expect(verifySignature(input.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            const r = await verify(
+                { addr: input.address, msg: c.message, sig: c.signature, scheme: 'bip322' },
+                { expectedAud: input.expected_aud }
+            );
+            expect(REASONS.find((code) => r.codes.includes(code)) ?? null).toBe(c.reason);
+            const build = () =>
+                buildCanonicalMessage({ address: input.address, identities: c.identities }, c.extensions, {
+                    nonce: input.nonce,
+                    issuedAt: input.issued_at,
+                });
+            if (c.builder === 'writes') expect(build()).toBe(c.message);
+            if (c.builder === 'refuses') expect(build).toThrow(/^invalid (bond|identity identifier)/);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -370,6 +424,7 @@ describe('conformance: vector index loaded', () => {
                 'canonical_form',
                 'challenge_form',
                 'value_form',
+                'value_as_written',
             ])
         );
     });
