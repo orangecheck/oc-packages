@@ -25,14 +25,20 @@ const WORDS: Record<number, { name: string; title: string; detail: string }> = {
     },
 };
 
+/** With a code, the words default to that code's. Without one, nothing claims a code: say what happened. */
+type ErrorPageWords =
+    | { code: number; title?: ReactNode; detail?: ReactNode }
+    | { code?: undefined; title: ReactNode; detail: ReactNode };
+
 /**
  * A 404, a 500 or any other error, inside the site's own header and footer:
  * the code, one sentence, one line and a way on. A server error offers a
- * retry as well as the way home. Beside it on a wide screen, the check drawn
+ * retry as well as the way home. A page that is not an HTTP error passes no
+ * code and draws no code line. Beside it on a wide screen, the check drawn
  * in hairlines: there, but not filled in.
  */
 export function ErrorPage({
-    code = 404,
+    code,
     title,
     detail,
     actions,
@@ -40,10 +46,7 @@ export function ErrorPage({
     protocol,
     art,
     className,
-}: {
-    code?: number;
-    title?: ReactNode;
-    detail?: ReactNode;
+}: ErrorPageWords & {
     /** Replaces the default ways on. */
     actions?: ReactNode;
     /**
@@ -63,17 +66,19 @@ export function ErrorPage({
     // Inside a shell's column the gutter is drawn already: a second one indented it 33px.
     const inColumn = useInColumn();
     const homeHref = home ?? (protocol ? protocolSite(protocol).pageHref : (shellHome ?? OCHK_IO));
-    const words = WORDS[code] ?? (code >= 500 ? WORDS[500]! : WORDS[404]!);
-    const server = code >= 500;
+    const server = code !== undefined && code >= 500;
+    const words = code === undefined ? null : (WORDS[code] ?? (server ? WORDS[500]! : WORDS[404]!));
     return (
         <Section space="none" contained={!inColumn} className={cn('flex min-h-[min(40rem,72dvh)] items-center py-16 md:py-24', className)}>
             <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-12">
                 <div className="flex max-w-[40rem] flex-col items-start gap-6 md:col-span-7">
-                    <p className="oca-eyebrow oca-enter">
-                        <span className="oca-tabular">{code}</span> · {WORDS[code]?.name ?? (server ? 'Error' : 'Not available')}
-                    </p>
-                    <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title ?? words.title}</h1>
-                    <p className="oca-lead oca-enter-lift [--enter-delay:150ms]">{detail ?? words.detail}</p>
+                    {code !== undefined ? (
+                        <p className="oca-eyebrow oca-enter">
+                            <span className="oca-tabular">{code}</span> · {WORDS[code]?.name ?? (server ? 'Error' : 'Not available')}
+                        </p>
+                    ) : null}
+                    <h1 className="oca-display-2 oca-enter-lift [--enter-delay:70ms]">{title ?? words?.title}</h1>
+                    <p className="oca-lead oca-enter-lift [--enter-delay:150ms]">{detail ?? words?.detail}</p>
                     <div className={cn('oca-enter [--enter-delay:230ms]', HERO_ACTIONS)}>
                         {actions ?? (
                             <>

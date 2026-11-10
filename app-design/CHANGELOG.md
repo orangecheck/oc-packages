@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- `ErrorPage` names a code only when it is given one. Without `code` it
+  drew "404 · Not found" over any words, so a page that is not an error
+  (ochk.io's sign-out note, a 200) said it was missing. Now a page with no
+  code draws no code line and must pass its own `title` and `detail`; with
+  a code, the words still default to that code's. Every family caller
+  already passes a code or both words. check-render reads the code line
+  for 404, 403 and 503 and its absence without a code; a type test refuses
+  an `ErrorPage` with neither a code nor both words.
+
 ## [2.16.0] — 2026-11-09
 
 - A `DataTable` column takes `valign: 'top'`, for a cell that grows: an
