@@ -35,9 +35,15 @@ describe('createAttestationEnvelope issued_at', () => {
         expect((await envelope(decoy)).issued_at).toBe(SIGNED_AT);
     });
 
-    it('reads the key in any case, as verify() does, ignoring a decoy after it', async () => {
-        const upper =
-            base().replace('issued_at: ', 'ISSUED_AT: ') + 'zz: issued_at: 2001-01-01T00:00:00Z\n';
-        expect((await envelope(upper)).issued_at).toBe(SIGNED_AT);
+    it('reads the key as written, as verify() does, past an ISSUED_AT line and a decoy after it', async () => {
+        const shadowed =
+            base().replace('orangecheck\n', 'orangecheck\nISSUED_AT: 2001-01-01T00:00:00Z\n') +
+            'zz: issued_at: 2001-01-01T00:00:00Z\n';
+        expect((await envelope(shadowed)).issued_at).toBe(SIGNED_AT);
+    });
+
+    it('copies the value as written, as verify() reads it', async () => {
+        const padded = base().replace(`issued_at: ${SIGNED_AT}\n`, `issued_at: ${SIGNED_AT} \n`);
+        expect((await envelope(padded)).issued_at).toBe(`${SIGNED_AT} `);
     });
 });

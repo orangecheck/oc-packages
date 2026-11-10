@@ -22,6 +22,7 @@ import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 import {
     generateAttestationId,
     isCanonicalAttestation,
+    messageFields,
     parseIdentities,
     readBondExtension,
     readMessageValue,
@@ -93,8 +94,7 @@ export async function signatureIsValid(input: SignatureVerifyInput): Promise<boo
 
 // Canonical message parsing per SPEC + our builder (lowercase keys, extensions)
 export function parseCanonicalMessage(msg: string) {
-    const lines = msg.split('\n').map((l) => l.trim());
-    // Split at the first colon: values can hold colons (URLs, npubs).
+    // Each value as written, from the first ": " on its line (SPEC §2.2): values can hold colons.
     const getVal = (key: string) => readMessageValue(msg, key);
 
     const address = getVal('address') || '';
@@ -125,11 +125,7 @@ export function parseCanonicalMessage(msg: string) {
     // A key signed twice has two meanings, and readers could pick either one.
     const keys = new Set<string>();
     const repeated: string[] = [];
-    for (const line of lines) {
-        const idx = line.indexOf(':');
-        if (idx === -1) continue;
-        const key = line.slice(0, idx).trim().toLowerCase();
-        const val = line.slice(idx + 1).trim();
+    for (const [key, val] of messageFields(msg)) {
         if (keys.has(key)) repeated.push(key);
         keys.add(key);
         if (!coreKeys.has(key) && val) extensions[key] = val;

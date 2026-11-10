@@ -78,9 +78,14 @@ function assertSafeIdentity({ protocol, identifier }: IdentityBinding): void {
             `invalid identity protocol: ${JSON.stringify(protocol)} — must match /^[a-z][a-z0-9_-]*$/`
         );
     }
-    if (!identifier || IDENTITY_FORBIDDEN_CHARS.test(identifier) || !isOneLineValue(identifier)) {
+    if (
+        !identifier ||
+        identifier !== identifier.trim() ||
+        IDENTITY_FORBIDDEN_CHARS.test(identifier) ||
+        !isOneLineValue(identifier)
+    ) {
         throw new Error(
-            `invalid identity identifier: ${JSON.stringify(identifier)} — must be non-empty, contain no commas, and be one line with no newline or other control character`
+            `invalid identity identifier: ${JSON.stringify(identifier)} — must be non-empty, contain no commas, start and end with no space, and be one line with no newline or other control character`
         );
     }
 }
@@ -293,17 +298,20 @@ export async function generateAttestationId(message: string): Promise<string> {
 }
 
 /**
- * A signed line's value as verify() reads it: the first trimmed line whose key,
- * in any case, is `key`, split at its first colon. Not exported from the package.
+ * Each line's key and value as verify() reads them: split at its first ": ",
+ * neither trimmed (SPEC §2.2). A line with no key before a ": " has neither.
+ * Not exported from the package.
  */
+export function messageFields(message: string): Array<[key: string, value: string]> {
+    return message.split('\n').flatMap((line): Array<[string, string]> => {
+        const at = line.indexOf(': ');
+        return at < 1 ? [] : [[line.slice(0, at), line.slice(at + 2)]];
+    });
+}
+
+/** The value of the first line whose key is `key`, as written. Not exported from the package. */
 export function readMessageValue(message: string, key: string): string | undefined {
-    const needle = key + ':';
-    const hit = message
-        .split('\n')
-        .map((l) => l.trim())
-        .find((l) => l.toLowerCase().startsWith(needle));
-    if (!hit) return undefined;
-    return hit.slice(hit.indexOf(':') + 1).trim();
+    return messageFields(message).find(([k]) => k === key)?.[1];
 }
 
 /**
