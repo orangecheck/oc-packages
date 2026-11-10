@@ -50,6 +50,16 @@ describe('answersUnverified', () => {
     });
 });
 
+describe('answersUnverified types', () => {
+    it('keeps the route its own type, so a route answering Promise<void> still is one', () => {
+        const route = async (_q: NextApiRequest, res: NextApiResponse): Promise<void> => {
+            res.status(204).end();
+        };
+        const wrapped: (req: NextApiRequest, res: NextApiResponse) => Promise<void> = answersUnverified(route);
+        expect(typeof wrapped).toBe('function');
+    });
+});
+
 describe('answerSessionUnverified', () => {
     it('is the same 503 a route answers', () => {
         const { res, out } = recorder();

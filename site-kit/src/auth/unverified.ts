@@ -28,15 +28,16 @@ export function answerSessionUnverified(res: NextApiResponse): void {
  * stays signed in. Anything else thrown passes through, and so does
  * `SessionUnverified` once the route has started its answer.
  */
-export function answersUnverified<Req extends NextApiRequest, Res extends NextApiResponse>(
-    handler: (req: Req, res: Res) => unknown,
-): (req: Req, res: Res) => Promise<unknown> {
+export function answersUnverified<Req extends NextApiRequest, Res extends NextApiResponse, R>(
+    handler: (req: Req, res: Res) => R | Promise<R>,
+): (req: Req, res: Res) => Promise<R | undefined> {
     return async function unverifiedAnswered(req, res) {
         try {
             return await handler(req, res);
         } catch (err) {
             if (!(err instanceof SessionUnverified) || res.headersSent) throw err;
             answerSessionUnverified(res);
+            return undefined;
         }
     };
 }
