@@ -158,6 +158,18 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@noble/hashes@^1.5.0":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
+  integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
+
+"@orangecheck/stamp-core@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.4.0.tgz#7991ab7b2af1cd178b13e44cd30ba8534d1e58b3"
+  integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==
+  dependencies:
+    "@noble/hashes" "^1.5.0"
+
 "@oxc-project/types@=0.148.0":
   version "0.148.0"
   resolved "https://registry.npmjs.org/@oxc-project/types/-/types-0.148.0.tgz#811d188a2e1af35784461b8a0490e13a3d76837c"

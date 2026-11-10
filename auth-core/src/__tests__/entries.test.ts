@@ -1,7 +1,10 @@
 import { execFileSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
@@ -66,6 +69,59 @@ describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) =>
       expect(JSON.parse(out)).toEqual([answer, answer]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// stamp-core reaches only the server entry that hashes relay bodies; the main and browser entries never load it.
+describe("stamp-core, as built", () => {
+  const dist = new URL("../../dist/", import.meta.url);
+  const read = (f: string) => readFileSync(new URL(f, dist), "utf8");
+
+  it("is named by no other entry", () => {
+    for (const name of ["index", ...ENTRIES.map((e) => e.name)]) {
+      for (const ext of ["mjs", "js", "d.ts", "d.mts"]) {
+        expect(read(`${name}.${ext}`), `${name}.${ext}`).not.toContain("stamp-core");
+      }
+    }
+  });
+
+  it("is imported by relay-assertion, not copied into it", () => {
+    expect(read("relay-assertion.mjs")).toMatch(/from ["']@orangecheck\/stamp-core\/canonical["']/);
+    expect(read("relay-assertion.js")).toMatch(/require\(["']@orangecheck\/stamp-core\/canonical["']\)/);
+    for (const f of ["relay-assertion.mjs", "relay-assertion.js"]) {
+      expect(read(f), f).not.toMatch(/function encodeString|function canonicalize/);
+    }
+  });
+
+  it("signs in one format and verifies in the other", async () => {
+    const esm = await import(new URL("relay-assertion.mjs", dist).href);
+    const cjs = createRequire(import.meta.url)(fileURLToPath(new URL("relay-assertion.js", dist)));
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64url");
+    const request = { method: "POST", path: "/api/x?y=1" };
+    for (const [signer, verifier] of [
+      [esm, cjs],
+      [cjs, esm],
+    ]) {
+      const token = await signer.signRelayAssertion({
+        privateJwk: b64(privateKey.export({ format: "jwk" })),
+        kid: "k",
+        audience: "https://me.ochk.io",
+        actor: "did:oc:x",
+        sudoAt: Math.floor(Date.now() / 1000),
+        request: { ...request, wireBody: '{"b":1, "a":2}' },
+      });
+      const result = await verifier.verifyRelayAssertion({
+        token,
+        publicJwks: b64({ keys: [{ ...publicKey.export({ format: "jwk" }), kid: "k" }] }),
+        audience: "https://me.ochk.io",
+        actor: "did:oc:x",
+        request: { ...request, body: { a: 2, b: 1 } },
+        maxSudoAgeSeconds: 300,
+        claimJti: async () => true,
+      });
+      expect(result.ok).toBe(true);
     }
   });
 });

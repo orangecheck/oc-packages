@@ -7,6 +7,8 @@ export default defineConfig({
         'display-name': 'src/display-name.ts',
         'family-origins': 'src/family-origins.ts',
         identifiers: 'src/identifiers.ts',
+        // Server-only (node:crypto). The one entry that takes stamp-core.
+        'relay-assertion': 'src/relay-assertion.ts',
     },
     format: ['cjs', 'esm'],
     dts: true,

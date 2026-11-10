@@ -11,6 +11,26 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.28.0] — 2026-11-10
+
+### Added
+
+- `@orangecheck/auth-core/relay-assertion`, a server-only entry:
+  `signRelayAssertion`, `verifyRelayAssertion`, `relayBodySha256` and
+  `relayRequestTarget` (an origin-form path as sent, its query written as
+  URLSearchParams writes it, the form Next.js gives `req.url`). A relay
+  signs one assertion per write, an Ed25519 compact JWS (`typ`
+  `oc-relay+jwt`) naming the site, the actor, the actor's step-up time, the
+  method, the path with its query and the SHA-256 of the body's RFC 8785
+  canonical JSON, for at most 60 s. The site verifies it with its own JWKS by
+  `kid`, refuses a token that names a key of its own, allows `iat` 5 s of
+  clock skew, refuses a step-up older than its required `maxSudoAgeSeconds`
+  as `sudo_stale`, and spends the `jti` last, through a store the caller
+  passes; a store that cannot answer reads as `store_unavailable`. No body
+  hashes the empty string; `{}` hashes `"{}"`.
+- `@orangecheck/stamp-core` 1.4.0, exactly, as a dependency, for its RFC 8785
+  canonicalizer. Only the new entry imports it.
+
 ## [2.27.0] — 2026-10-26
 
 ### Changed
