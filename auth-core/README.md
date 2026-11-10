@@ -104,7 +104,7 @@ const refused = await refusesEvenReads(payload);
 if (refused === 'unverified') {
     // The auth host can't be reached: not signed out. Try again shortly.
     res.setHeader('Retry-After', '60');
-    return res.status(503).json({ ok: false, reason: 'session_unverified' });
+    return res.status(503).json({ ok: false, error: 'session_unverified' });
 }
 if (refused) return res.status(401).end();
 ```
