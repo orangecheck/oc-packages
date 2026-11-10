@@ -79,9 +79,9 @@ const CONSENT_ORIGIN = 'https://ochk.app';
  *  attest_tier · deprecated: "backing (old form)". ochk.app no longer asks
  *    for it, so a request for it asks the person nothing; a backed account
  *    tells your site what backs it at sign-in. Old grants still resolve.
- *  display_name · deprecated: it shares nothing. Signing in already gives your
- *    site the person's display name, so ochk.app no longer offers it; asking
- *    for it still works, and it never appears in `scopes`. */
+ *  display_name · deprecated: it shares nothing, and signing in gives your
+ *    site no name either. ochk.app no longer offers it; asking for it still
+ *    works, and it never appears in `scopes`. */
 export const SCOPE_IDS = Object.freeze([
     'bitcoin_address',
     'email',

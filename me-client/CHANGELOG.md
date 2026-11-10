@@ -10,6 +10,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `signInWithOc` and `signInWithOcOutcome` answer the popup's
+  `oc-signin-challenge` with `oc-signin-echo` and the same nonce. They answer
+  only the popup they opened, and only at its origin. me.ochk.io will use it
+  to check that the page that opened the popup is the one named in
+  `opener_origin` before it signs anything. A nonce that is not 16 to 128
+  base64url characters gets no answer. The sign-in button gets it too.
+
+### Changed
+
+- `OcPopupAccount` says that `display_name` and `nostr_npub` are null for
+  any site outside orangecheck's own, and `SCOPE_IDS` says that signing in
+  gives a site no name.
+
 ## [0.58.0] — 2026-11-09
 
 ### Added

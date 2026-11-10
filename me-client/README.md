@@ -363,6 +363,8 @@ if (outcome.status === 'signed_in') await keepSession(outcome.token);
 // 'closed' (the person closed the window), 'aborted' (your signal), 'failed' (not a browser, or a malformed answer)
 ``` Pins both `event.origin` AND `event.source === popup` on the postMessage handler so a same-origin attacker can't settle the promise.
 
+Before it signs anything, the popup posts `{ type: 'oc-signin-challenge', nonce }` to the origin named in `opener_origin`, and `signInWithOc` answers `{ type: 'oc-signin-echo', nonce }` to the popup (0.59.0 or later). Only the page at that origin receives the nonce, so the answer shows the popup who opened it. A page that opens `/popup/signin` without this package answers the same way, from the same pinned handler.
+
 ## The sign-in button
 
 Your button, your style: the package adds the orangecheck mark (from

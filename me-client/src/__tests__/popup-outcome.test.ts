@@ -36,6 +36,7 @@ const popupWindow = () => ({
     close() {
         this.closed = true;
     },
+    postMessage: vi.fn(),
 });
 
 beforeEach(() => vi.useFakeTimers());
@@ -90,5 +91,79 @@ describe('signInWithOcOutcome', () => {
             data: { type: 'oc-signin-success', account: ACCOUNT, token: 'tok' },
         });
         expect(await pending).toEqual({ account: ACCOUNT, token: 'tok' });
+    });
+});
+
+/**
+ * Before it signs anything, the popup asks its opener to prove it is the page
+ * named in opener_origin: it posts a nonce there, and only that page can
+ * receive it and send it back.
+ */
+describe('the popup checks who opened it', () => {
+    const NONCE = 'n'.repeat(43);
+    const challenge = (nonce: unknown = NONCE) => ({ type: 'oc-signin-challenge', nonce });
+
+    it("answers the challenge of the popup it opened, to that popup's origin only, and keeps waiting", async () => {
+        const popup = popupWindow();
+        const w = fakeWindow(popup);
+        let done = false;
+        const pending = signInWithOcOutcome().then((o) => {
+            done = true;
+            return o;
+        });
+        w.post({ origin: POPUP_ORIGIN, source: popup as unknown as Window, data: challenge() });
+        expect(popup.postMessage).toHaveBeenCalledTimes(1);
+        expect(popup.postMessage).toHaveBeenCalledWith(
+            { type: 'oc-signin-echo', nonce: NONCE },
+            POPUP_ORIGIN
+        );
+        await vi.advanceTimersByTimeAsync(0);
+        expect(done).toBe(false);
+        expect(popup.closed).toBe(false);
+        w.post({
+            origin: POPUP_ORIGIN,
+            source: popup as unknown as Window,
+            data: { type: 'oc-signin-success', account: ACCOUNT, token: 'tok' },
+        });
+        expect(await pending).toEqual({ status: 'signed_in', account: ACCOUNT, token: 'tok' });
+    });
+
+    it('answers at the popup origin it was given', async () => {
+        const popup = popupWindow();
+        const w = fakeWindow(popup);
+        void signInWithOcOutcome({ popupOrigin: 'https://staging.example' });
+        w.post({ origin: POPUP_ORIGIN, source: popup as unknown as Window, data: challenge() });
+        expect(popup.postMessage).not.toHaveBeenCalled();
+        w.post({ origin: 'https://staging.example', source: popup as unknown as Window, data: challenge() });
+        expect(popup.postMessage).toHaveBeenCalledWith(
+            { type: 'oc-signin-echo', nonce: NONCE },
+            'https://staging.example'
+        );
+    });
+
+    it('never answers a challenge from another origin or another window', async () => {
+        const popup = popupWindow();
+        const other = popupWindow();
+        const w = fakeWindow(popup);
+        void signInWithOcOutcome();
+        w.post({ origin: 'https://evil.example', source: popup as unknown as Window, data: challenge() });
+        w.post({ origin: POPUP_ORIGIN, source: other as unknown as Window, data: challenge() });
+        w.post({ origin: POPUP_ORIGIN, source: null, data: challenge() });
+        expect(popup.postMessage).not.toHaveBeenCalled();
+        expect(other.postMessage).not.toHaveBeenCalled();
+    });
+
+    it('answers no challenge whose nonce is not 16 to 128 base64url characters', async () => {
+        const popup = popupWindow();
+        const w = fakeWindow(popup);
+        void signInWithOcOutcome();
+        const bad = [undefined, 123, '', 'short', 'has space ' + 'x'.repeat(20), 'x'.repeat(129), { n: NONCE }];
+        for (const nonce of bad) {
+            const data = { type: 'oc-signin-challenge', nonce };
+            w.post({ origin: POPUP_ORIGIN, source: popup as unknown as Window, data });
+        }
+        const bare = { type: 'oc-signin-challenge' };
+        w.post({ origin: POPUP_ORIGIN, source: popup as unknown as Window, data: bare });
+        expect(popup.postMessage).not.toHaveBeenCalled();
     });
 });
