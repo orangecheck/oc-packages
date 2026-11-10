@@ -1,0 +1,184 @@
+{
+  "id": "tv34",
+  "category": "network_prefix",
+  "description": "attestations validly BIP-322 signed by burn key #1 for its mainnet, testnet or regtest address (SPEC §7.1 step 3): the message selects testnet or signet only by that exact network value and mainnet otherwise, so each case's reason, with the verifier in test mode where test_mode says so, is bad_request for an address of another network, before network_testmode, network_testmode for a testnet address outside test mode, and null for the controls and for a mainnet address under any other network value; a case's builder says whether a builder writes its extensions for its address or refuses them, and it writes no network value but mainnet, testnet or signet",
+  "input": {
+    "identities": [
+      {
+        "protocol": "github",
+        "identifier": "conformance"
+      }
+    ],
+    "scheme": "bip322",
+    "nonce": "0011223344556677889900aabbccddee",
+    "issued_at": "2026-04-22T12:00:00Z",
+    "now": "2026-04-22T12:00:00Z",
+    "cases": [
+      {
+        "name": "a mainnet address and no network line (control)",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {},
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkcwRAIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIEaey/lWb9/qAvYYEqtk2uguncaCkhKD/VYiOJj9h2faASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": null,
+        "builder": "writes"
+      },
+      {
+        "name": "a mainnet address under network: mainnet (control)",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {
+          "network": "mainnet"
+        },
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: mainnet\n",
+        "signature": "AkgwRQIhAJdI/B7D62tu5l2otLU7hct0NFaAVr9ufuc4b9v6PeuKAiA8er92tbbEgMCZ2DNPFIUZxHVPW15MrQ/iVbIUxjlCqwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null,
+        "builder": "writes"
+      },
+      {
+        "name": "a testnet address under network: testnet (control)",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {
+          "network": "testnet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet\n",
+        "signature": "AkcwRAIgXTrCn1CFFfQZy201M/ATDmvVtC2vcizT5pT62ckNxoQCIAXO8Q31b3roPCr4RKeEl1Xb+ho4Tpxg9+gG5b7Rx8UWASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": null,
+        "builder": "writes"
+      },
+      {
+        "name": "a testnet address under network: signet (control)",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {
+          "network": "signet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: signet\n",
+        "signature": "AkgwRQIhAIqlHs1Mhww2WqomtyWdVDhren0hYBcf1mUJVruUoNZHAiB4q8nitphdkMiqKZo1OzguJxnNE2TTArX6+0FAyMmbawEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null,
+        "builder": "writes"
+      },
+      {
+        "name": "a testnet address under network: testnet, not in test mode",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {
+          "network": "testnet"
+        },
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet\n",
+        "signature": "AkcwRAIgXTrCn1CFFfQZy201M/ATDmvVtC2vcizT5pT62ckNxoQCIAXO8Q31b3roPCr4RKeEl1Xb+ho4Tpxg9+gG5b7Rx8UWASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "network_testmode",
+        "builder": "writes"
+      },
+      {
+        "name": "a testnet address and no network line",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {},
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkgwRQIhAO8StIXJ81ENY16ckiI0qusoD965nzP90Ol64XNHLHZJAiABWCNJ1Omj0dVwU4TgGDR/aaPbt4HCKcMAVGtigSPmnQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a testnet taproot address and no network line",
+        "address": "tb1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8snwrkwy",
+        "extensions": {},
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8snwrkwy\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AUARYaXebgB32jaZ5SJmMEFlQoetpN6mTuAqmC11jvchW6r7IqoHe1YWCjfk8zfsFDMCMaWHeiIBgjp6yO4shals",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a mainnet address under network: testnet",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {
+          "network": "testnet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet\n",
+        "signature": "AkgwRQIhAN0J0GB2ycLuipCp09tVboIxL1v+yc/JbgqHARRIxw4dAiAX7OXYGD4/+YbGg02Np0AHGO32tu2ryu1dipn01M6PogEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a mainnet address under network: testnet, not in test mode",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {
+          "network": "testnet"
+        },
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet\n",
+        "signature": "AkgwRQIhAN0J0GB2ycLuipCp09tVboIxL1v+yc/JbgqHARRIxw4dAiAX7OXYGD4/+YbGg02Np0AHGO32tu2ryu1dipn01M6PogEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a mainnet address under network: signet",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {
+          "network": "signet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: signet\n",
+        "signature": "AkcwRAIgdSDl8LJXj1JJgymXlKuNxs4Jep+dPWkzzVh6jigf4FQCIAddX6/CD5EbseMprKCRHohPT4/3Zs8IaqyUh7Ja7U2TASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a testnet address under a network value ending in a space",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {
+          "network": "testnet "
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet \n",
+        "signature": "AkgwRQIhANGGmswJBoWBbl5Rqx8NS52OUJQ3k3AiXl4qJUp3P47BAiAkqwU6xDMdWWGuJLTy5JdgBivxsLP+gp9BH/GYrJ5ulgEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a testnet address under network: Testnet",
+        "address": "tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla",
+        "extensions": {
+          "network": "Testnet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: tb1q0xcqpzrky6eff2g52qdye53xkk9jxkvraulyla\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: Testnet\n",
+        "signature": "AkcwRAIgRpycC3b6LpFe5avXc0l5a1NOFoBdKWw2JcHuvlf48XcCIGL/bNCDY0uCMyyTcnIv/7UvdzlH61Svgm3lTTaJ5HtTASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a regtest address under network: testnet",
+        "address": "bcrt1q0xcqpzrky6eff2g52qdye53xkk9jxkvrl4xfg5",
+        "extensions": {
+          "network": "testnet"
+        },
+        "test_mode": true,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bcrt1q0xcqpzrky6eff2g52qdye53xkk9jxkvrl4xfg5\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: testnet\n",
+        "signature": "AkcwRAIgDiX8CkDRdD5z4inXRsbabhD9fAagpDg+ClzvCGw7IGMCIB+nSQdPIJKZ4t+Afp/BRwRmE6fiiUkLfN7dtzWLO+hGASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "bad_request",
+        "builder": "refuses"
+      },
+      {
+        "name": "a mainnet address under network: Mainnet, which selects mainnet",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "extensions": {
+          "network": "Mainnet"
+        },
+        "test_mode": false,
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nnetwork: Mainnet\n",
+        "signature": "AkgwRQIhAJNSVY259Oe/UUjTxhorA34rRw1dqDZJEAtm6mC1WolaAiAg6cJWkNPGSaoZAnwFk/F/MtfZmhHnHFj5gulXnW8wcAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null,
+        "builder": "refuses"
+      }
+    ]
+  },
+  "expected": {
+    "signatures_valid": true
+  }
+}

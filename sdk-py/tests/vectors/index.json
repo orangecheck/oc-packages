@@ -163,5 +163,10 @@
     "id": "tv33",
     "category": "value_as_written",
     "description": "attestations validly BIP-322 signed by burn key #1 with one value that whitespace pads (SPEC §2.2): a verifier reads each value as written, at input.now and against input.expected_aud, so each case's reason is the code its padded value gives (bond_malformed, aud_mismatch, expired, decode_error for an identity or an issued_at, bad_request for an address that is not input.address), and the control's is null; a case's builder says whether a builder writes its identities and extensions as given or refuses them"
+  },
+  {
+    "id": "tv34",
+    "category": "network_prefix",
+    "description": "attestations validly BIP-322 signed by burn key #1 for its mainnet, testnet or regtest address (SPEC §7.1 step 3): the message selects testnet or signet only by that exact network value and mainnet otherwise, so each case's reason, with the verifier in test mode where test_mode says so, is bad_request for an address of another network, before network_testmode, network_testmode for a testnet address outside test mode, and null for the controls and for a mainnet address under any other network value; a case's builder says whether a builder writes its extensions for its address or refuses them, and it writes no network value but mainnet, testnet or signet"
   }
 ]
