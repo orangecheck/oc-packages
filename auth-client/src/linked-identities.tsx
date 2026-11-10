@@ -596,6 +596,8 @@ function EmailLinkForm({
     // Set when the auth host reports the email is linked elsewhere — the
     // user can confirm a dual-proof transfer (session + verified OTP).
     const [transfer, setTransfer] = React.useState(false);
+    // The answer spent the code, so moving it here takes a new one.
+    const [moving, setMoving] = React.useState(false);
 
     async function start(): Promise<void> {
         setBusy(true);
@@ -696,14 +698,24 @@ function EmailLinkForm({
             ) : transfer ? (
                 <TransferConfirm
                     what="email"
+                    next="we send one more code to it"
                     busy={busy}
-                    onConfirm={() => void verify(true)}
+                    onConfirm={() => {
+                        setTransfer(false);
+                        setMoving(true);
+                        setCode('');
+                        void start();
+                    }}
                     onCancel={onCancel}
                     err={err}
                 />
             ) : (
                 <>
-                    <p style={bodyStyle}>Enter the 6-digit code sent to {email}.</p>
+                    <p style={bodyStyle}>
+                        {moving
+                            ? `Enter the new 6-digit code sent to ${email} to move it here.`
+                            : `Enter the 6-digit code sent to ${email}.`}
+                    </p>
                     <input
                         data-oca-field=""
                         type="text"
@@ -719,15 +731,18 @@ function EmailLinkForm({
                     <FormButtons>
                         <button
                             type="button"
-                            onClick={() => void verify(false)}
+                            onClick={() => void verify(moving)}
                             disabled={busy || code.length !== 6}
                             style={primaryBtnStyle(busy || code.length !== 6)}
                         >
-                            {busy ? 'linking…' : 'verify + link'}
+                            {busy ? 'linking…' : moving ? 'verify + transfer' : 'verify + link'}
                         </button>
                         <button
                             type="button"
-                            onClick={() => setStep('email')}
+                            onClick={() => {
+                                setStep('email');
+                                setMoving(false);
+                            }}
                             disabled={busy}
                             style={ghostBtnStyle(busy)}
                         >
@@ -758,17 +773,18 @@ function BtcLinkForm({
     const [challenge, setChallenge] = React.useState('');
     const [busy, setBusy] = React.useState(false);
     const [err, setErr] = React.useState<string | null>(null);
-    // Holds the signature awaiting transfer confirmation when the
-    // address is already linked to another account.
-    const [pendingSig, setPendingSig] = React.useState<string | null>(null);
+    // Set when the address is already linked to another account.
+    const [elsewhere, setElsewhere] = React.useState(false);
+    // Every answer spends the message, so moving it here signs a new one.
+    const [moving, setMoving] = React.useState(false);
 
-    async function getChallenge(): Promise<void> {
+    async function getChallenge(keepErr = false): Promise<void> {
         if (!didOc) {
             setErr('session not loaded yet · refresh and retry');
             return;
         }
         setBusy(true);
-        setErr(null);
+        if (!keepErr) setErr(null);
         try {
             // /api/challenge is a public primitive — no session needed.
             // audience MUST be the caller's did_oc: the link endpoint
@@ -800,6 +816,7 @@ function BtcLinkForm({
     async function postLink(sig: string, confirmTransfer: boolean): Promise<void> {
         setBusy(true);
         setErr(null);
+        let answered = false;
         try {
             const r = await fetch(`${authOrigin}/api/auth/link/btc`, {
                 method: 'POST',
@@ -813,7 +830,7 @@ function BtcLinkForm({
             });
             const j = (await r.json()) as { ok?: boolean; reason?: string };
             if (r.status === 409 && j.reason === 'address_linked_elsewhere') {
-                setPendingSig(sig);
+                setElsewhere(true);
                 setBusy(false);
                 return;
             }
@@ -823,11 +840,16 @@ function BtcLinkForm({
                 setBusy(false);
                 return;
             }
-            if (!r.ok || !j.ok) throw new Error(j.reason ?? `http_${r.status}`);
+            if (!r.ok || !j.ok) {
+                answered = true;
+                throw new Error(j.reason ?? `http_${r.status}`);
+            }
             onDone();
         } catch (e) {
             setErr(failureMessage(e, 'wallet', 'submit', authOrigin));
             setBusy(false);
+            // The refusal spent the message; the next signature needs a new one.
+            if (answered) await getChallenge(true);
         }
     }
 
@@ -865,19 +887,27 @@ function BtcLinkForm({
                         </button>
                     </FormButtons>
                 </>
-            ) : pendingSig ? (
+            ) : elsewhere ? (
                 <TransferConfirm
                     what="bitcoin address"
+                    next="you sign one more message with it"
                     busy={busy}
-                    onConfirm={() => void postLink(pendingSig, true)}
+                    onConfirm={() => {
+                        setElsewhere(false);
+                        setMoving(true);
+                        void getChallenge();
+                    }}
                     onCancel={onCancel}
                     err={err}
                 />
             ) : (
                 <>
                     <p style={bodyStyle}>
-                        Sign the challenge with the wallet that controls{' '}
-                        <span style={{ fontFamily: SIGNIN_FONT, wordBreak: 'break-all' }}>{addr}</span>.
+                        {moving
+                            ? 'Sign one more message with the wallet that controls '
+                            : 'Sign the challenge with the wallet that controls '}
+                        <span style={{ fontFamily: SIGNIN_FONT, wordBreak: 'break-all' }}>{addr}</span>
+                        {moving ? ' to move it here.' : '.'}
                     </p>
                     <LazyWalletButton
                         address={addr}
@@ -885,7 +915,7 @@ function BtcLinkForm({
                         showManual
                         layout="list"
                         heading={null}
-                        onSigned={(sig: string) => void postLink(sig, false)}
+                        onSigned={(sig: string) => void postLink(sig, moving)}
                         onError={(e: { message?: string }) =>
                             setErr(e?.message ?? 'wallet rejected')
                         }
@@ -897,6 +927,7 @@ function BtcLinkForm({
                             onClick={() => {
                                 setStep('request');
                                 setErr(null);
+                                setMoving(false);
                             }}
                             disabled={busy}
                             style={ghostBtnStyle(busy)}
@@ -914,12 +945,15 @@ function BtcLinkForm({
 
 function TransferConfirm({
     what,
+    next,
     busy,
     onConfirm,
     onCancel,
     err,
 }: {
     what: string;
+    /** The one more proof a move takes: ochk.io spent the first one answering. */
+    next: string;
     busy: boolean;
     onConfirm: () => void;
     onCancel: () => void;
@@ -928,10 +962,9 @@ function TransferConfirm({
     return (
         <>
             <p style={bodyStyle}>
-                This {what} is already linked to another OrangeCheck account. You&apos;ve just
-                proven control of it — you can transfer the link to this account under dual proof
-                of control. The other account loses this sign-in path; its history stays
-                verifiable. Continue?
+                This {what} is already linked to another OrangeCheck account. You can transfer the
+                link to this account under dual proof of control: {next}. The other account loses
+                this sign-in path; its history stays verifiable. Continue?
             </p>
             {err && <ErrorLine>{err}</ErrorLine>}
             <FormButtons>
@@ -996,7 +1029,8 @@ export function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
         );
     }
     if (!Comp) return <span style={hintStyle}>loading wallet options…</span>;
-    return <Comp {...props} />;
+    // A new message is a new signing: nothing typed or chosen for the last one carries over.
+    return <Comp key={props.message} {...props} />;
 }
 
 /* --- helpers --- */
