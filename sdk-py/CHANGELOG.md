@@ -4,6 +4,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.18.4] — 2026-11-10
+
+### Changed
+
+- **`build_canonical_message` refuses an address of another network than the
+  message selects** (SPEC §7.1 step 3, vector `tv34`), which a verifier
+  answers `bad_request` for, and a `network` value other than `mainnet`,
+  `testnet` or `signet`, as `@orangecheck/sdk` 1.26.2's builder does.
+
 ## [3.18.3] — 2026-11-10
 
 ### Changed
