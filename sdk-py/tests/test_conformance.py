@@ -314,6 +314,47 @@ def test_value_form_builder(vector: dict) -> None:
                 build()
 
 
+# ─── value_as_written (SPEC §2.2) ──────────────────────────────────────────
+# The reasons are the TS SDK's to check, as above. Here every signature
+# verifies, and the builder writes or refuses each case that names one.
+
+
+@pytest.mark.parametrize("vector", vectors_of("value_as_written"), ids=ids_for("value_as_written"))
+def test_value_as_written_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    inp = vector["input"]
+    for case in inp["cases"]:
+        got = verify_bip322_signature(inp["address"], case["message"], case["signature"])
+        assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
+
+
+@pytest.mark.parametrize("vector", vectors_of("value_as_written"), ids=ids_for("value_as_written"))
+def test_value_as_written_builder(vector: dict) -> None:
+    inp = vector["input"]
+    held = [case for case in inp["cases"] if "builder" in case]
+    assert {case["builder"] for case in held} == {"writes", "refuses"}
+    for case in held:
+
+        def build() -> str:
+            return build_canonical_message(
+                address=inp["address"],
+                identities=case["identities"],
+                extensions=case["extensions"],
+                nonce=inp["nonce"],
+                issued_at=inp["issued_at"],
+            )
+
+        if case["builder"] == "writes":
+            assert build() == case["message"], f"{vector['id']}: {case['name']}"
+        else:
+            with pytest.raises(ValueError, match="^invalid (bond|identity identifier)"):
+                build()
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -336,6 +377,7 @@ def test_vector_set_complete() -> None:
         "canonical_form",
         "challenge_form",
         "value_form",
+        "value_as_written",
     }
     assert len(VECTORS) >= 28
 
