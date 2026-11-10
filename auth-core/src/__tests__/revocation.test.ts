@@ -481,6 +481,35 @@ describe("revocationFeedState", () => {
     }
   });
 
+  it("a signed-out health read fetches no more often than a session read: once per minute, one at a time, and once per ten seconds in an outage", async () => {
+    const c = check();
+    await Promise.all([revocationFeedState(c), revocationFeedState(c), revocationFeedState(c), c.status(session())]);
+    for (let i = 0; i < 20; i++) await revocationFeedState(c);
+    expect(fetches).toHaveLength(1);
+    reachable = false;
+    clock += 61_000;
+    for (let i = 0; i < 20; i++) expect(await revocationFeedState(c)).toBe("live");
+    expect(fetches).toHaveLength(2);
+    clock += 10_000;
+    await revocationFeedState(c);
+    expect(fetches).toHaveLength(3);
+  });
+
+  it("says live for a check that signs its own feed requests", async () => {
+    const signed = check({ token: undefined, headers: async () => ({ authorization: "Bearer signed" }) });
+    expect(await revocationFeedState(signed)).toBe("live");
+    expect(fetches).toEqual([{ url: FEED_URL, authorization: "Bearer signed" }]);
+  });
+
+  it("reads the shared check from a second copy of this package in the same process", async () => {
+    vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.resetModules();
+    const other = await import("../revocation");
+    expect(other.familyRevocationCheck()).toBe(familyRevocationCheck());
+    expect(await revocationFeedState()).toBe("no-token");
+  });
+
   it("refuses a check it did not make rather than guess", async () => {
     const integrator = integratorRevocationCheck({
       projectKey: "pk_live_abc123",

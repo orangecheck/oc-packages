@@ -28,7 +28,9 @@ this file tracks the package's TS / Node / runtime API surface.
   for a session, `"unverified"` when it is not, and `"no-token"` when the site
   has no feed token. It names no secret and no count, reads the process-wide
   check unless given one made by `createRevocationCheck`, and fetches only
-  when the copy is due, as a session check would.
+  when the copy is due, as a session check would: once a minute, one request
+  at a time, and once every ten seconds while the host can't be reached. Every
+  copy of this package in a process reads the same process-wide check.
 
 ## [2.28.0] — 2026-11-10
 

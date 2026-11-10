@@ -338,7 +338,11 @@ function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean
  */
 export type RevocationFeedState = "live" | "unverified" | "no-token";
 
-const FEED_STATES = new WeakMap<RevocationCheck, () => Promise<RevocationFeedState>>();
+// Shared like the process-wide check, so every copy of this package in a process reads the same registry.
+const FEED_STATES_KEY = Symbol.for("@orangecheck/auth-core/revocation-feed-states/v1");
+const FEED_STATES: WeakMap<RevocationCheck, () => Promise<RevocationFeedState>> = ((
+  globalThis as { [FEED_STATES_KEY]?: WeakMap<RevocationCheck, () => Promise<RevocationFeedState>> }
+)[FEED_STATES_KEY] ??= new WeakMap());
 
 export interface IntegratorRevocationOptions
   extends Omit<RevocationCheckOptions, "url" | "token" | "headers" | "developing" | "staleFrom"> {
