@@ -67,7 +67,7 @@ export interface MeHandlerOptions {
  *
  * A session the auth host's list can't vouch for yet (reason `unverified`)
  * answers **503 `session_unverified`** with `Retry-After: 60`: auth-client keeps
- * the account and the tab's pin, and reads again.
+ * the account and the tab's pin until the page reads again. It does not retry.
  */
 export function createMeHandler(opts: MeHandlerOptions) {
     return async function meHandler(req: NextApiRequest, res: NextApiResponse<MeBody | { error: string }>): Promise<void> {

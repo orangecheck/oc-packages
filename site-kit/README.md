@@ -119,7 +119,11 @@ production site refuses every write on a session.
 A site that holds a person's data makes its reader with
 `createSessionReader({ refuseUnverifiedReads: true })`: while the list can't
 vouch for a session, reads are refused too, and its `/api/auth/me` answers
-503 `session_unverified` until the auth host answers again.
+503 `session_unverified` until the auth host answers again. auth-client
+keeps the account and the tab's pin until the page reads again; it does not
+retry. Such a site needs its feed token: without one in production the list
+never vouches for a session, so every signed-in `/api/auth/me` there answers
+503.
 
 ## Analytics
 
