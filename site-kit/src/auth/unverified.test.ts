@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { describe, expect, it } from 'vitest';
 
+import * as entry from './index';
 import { recorder } from './fixtures';
 import { answerSessionUnverified, answersUnverified, SessionUnverified } from './unverified';
 
@@ -57,6 +58,15 @@ describe('answersUnverified types', () => {
         };
         const wrapped: (req: NextApiRequest, res: NextApiResponse) => Promise<void> = answersUnverified(route);
         expect(typeof wrapped).toBe('function');
+    });
+});
+
+describe('the auth entry', () => {
+    it('exports the 503 pieces a site imports from @orangecheck/site-kit/auth', () => {
+        expect(entry.answersUnverified).toBe(answersUnverified);
+        expect(entry.answerSessionUnverified).toBe(answerSessionUnverified);
+        expect(entry.SessionUnverified).toBe(SessionUnverified);
+        expect(entry.SESSION_UNVERIFIED_RETRY_AFTER_SECONDS).toBe(60);
     });
 });
 
