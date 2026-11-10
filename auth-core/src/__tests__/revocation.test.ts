@@ -7,6 +7,8 @@ import {
   createRevocationCheck,
   familyRevocationCheck,
   integratorRevocationCheck,
+  refusesEvenReads,
+  revocationFeedState,
   revocationKey,
 } from "../index";
 
@@ -365,6 +367,131 @@ describe("familyRevocationCheck", () => {
     } finally {
       globalThis.fetch = real;
     }
+  });
+});
+
+describe("refusesEvenReads", () => {
+  it("refuses a read the list can't vouch for, and says it is unverified, not ended", async () => {
+    reachable = false;
+    const c = check();
+    expect(await c.refuses(session(), "GET")).toBe(false);
+    expect(await refusesEvenReads(session(), c)).toBe("unverified");
+  });
+
+  it("passes a live session and names an ended one", async () => {
+    feed.tokens = [await revocationKey("jti", "ended")];
+    const c = check();
+    expect(await refusesEvenReads(session(), c)).toBe(false);
+    expect(await refusesEvenReads(session({ jti: "ended" }), c)).toBe("revoked");
+  });
+
+  it("through an outage: passes for ten minutes on the last copy, then refuses until the host answers", async () => {
+    feed.tokens = [await revocationKey("jti", "ended")];
+    const c = check();
+    await c.status(session());
+    reachable = false;
+    clock += 5 * 60_000;
+    expect(await refusesEvenReads(session(), c)).toBe(false);
+    clock += 6 * 60_000;
+    expect(await refusesEvenReads(session(), c)).toBe("unverified");
+    expect(await refusesEvenReads(session({ jti: "ended" }), c)).toBe("revoked");
+    reachable = true;
+    clock += 10_000;
+    expect(await refusesEvenReads(session(), c)).toBe(false);
+  });
+
+  it("with no feed token in production, refuses every request", async () => {
+    const prod = check({ token: "", developing: false });
+    expect(await refusesEvenReads(session(), prod)).toBe("unverified");
+    expect(fetches).toHaveLength(0);
+  });
+
+  it("uses the process-wide check by default, so a site still fetches once per minute", async () => {
+    vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "env-token");
+    vi.stubEnv("OC_AUTH_ISSUER", "https://issuer.test/");
+    const real = globalThis.fetch;
+    globalThis.fetch = fakeFetch;
+    try {
+      await familyRevocationCheck().status(session());
+      expect(await refusesEvenReads(session())).toBe(false);
+      expect(fetches).toEqual([{ url: FEED_URL, authorization: "Bearer env-token" }]);
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+
+  it("reads an integrator check the same way: a malformed handle is ended", async () => {
+    const c = integratorRevocationCheck({
+      projectKey: "pk_live_abc123",
+      signingSecret: "f".repeat(64),
+      fetch: fakeFetch,
+      now,
+    })!;
+    expect(await refusesEvenReads(session({ rh: "", aud: "https://site.example" }), c)).toBe("revoked");
+    expect(fetches).toHaveLength(0);
+  });
+});
+
+describe("revocationFeedState", () => {
+  it("says no-token when the site has no feed token, in development as in production, and never fetches", async () => {
+    expect(await revocationFeedState(check({ token: "", developing: true }))).toBe("no-token");
+    vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "  ");
+    expect(await revocationFeedState(check({ token: undefined, developing: false }))).toBe("no-token");
+    expect(fetches).toHaveLength(0);
+  });
+
+  it("says live once the list is read, and unverified while the host has never answered", async () => {
+    expect(await revocationFeedState(check())).toBe("live");
+    reachable = false;
+    expect(await revocationFeedState(check())).toBe("unverified");
+  });
+
+  it("says unverified when the host refuses this site's token", async () => {
+    const refusing = (async () => new Response(null, { status: 401 })) as unknown as typeof fetch;
+    expect(await revocationFeedState(check({ fetch: refusing }))).toBe("unverified");
+  });
+
+  it("through an outage: live for ten minutes on the last copy, then unverified until the host answers", async () => {
+    const c = check();
+    await c.status(session());
+    reachable = false;
+    clock += 5 * 60_000;
+    expect(await revocationFeedState(c)).toBe("live");
+    clock += 6 * 60_000;
+    expect(await revocationFeedState(c)).toBe("unverified");
+    reachable = true;
+    clock += 10_000;
+    expect(await revocationFeedState(c)).toBe("live");
+  });
+
+  it("reads the process-wide check by default, sharing its copy with every session read", async () => {
+    vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "");
+    expect(await revocationFeedState()).toBe("no-token");
+    _resetFamilyRevocationCheckForTests();
+    vi.stubEnv("OC_REVOCATION_FEED_TOKEN", "env-token");
+    vi.stubEnv("OC_AUTH_ISSUER", "https://issuer.test/");
+    const real = globalThis.fetch;
+    globalThis.fetch = fakeFetch;
+    try {
+      await familyRevocationCheck().status(session());
+      expect(await revocationFeedState()).toBe("live");
+      expect(fetches).toEqual([{ url: FEED_URL, authorization: "Bearer env-token" }]);
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+
+  it("refuses a check it did not make rather than guess", async () => {
+    const integrator = integratorRevocationCheck({
+      projectKey: "pk_live_abc123",
+      signingSecret: "f".repeat(64),
+      fetch: fakeFetch,
+      now,
+    })!;
+    await expect(revocationFeedState(integrator)).rejects.toThrow(TypeError);
+    await expect(revocationFeedState({ status: async () => "live", refuses: async () => false })).rejects.toThrow(
+      TypeError,
+    );
   });
 });
 

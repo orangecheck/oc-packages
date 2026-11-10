@@ -94,6 +94,31 @@ if (await familyRevocationCheck().refuses(payload, req.method)) {
 }
 ```
 
+A site that holds a person's data (an account, money, messages, secrets)
+stops reads too while the list can't vouch for a session, and says why:
+
+```ts
+import { refusesEvenReads } from '@orangecheck/auth-core';
+
+const refused = await refusesEvenReads(payload);
+if (refused === 'unverified') {
+    // The auth host can't be reached: not signed out. Try again shortly.
+    res.setHeader('Retry-After', '60');
+    return res.status(503).json({ ok: false, reason: 'session_unverified' });
+}
+if (refused) return res.status(401).end();
+```
+
+Such a site shows its feed on a health route, so a signed-out GET can see
+that it checks sessions before it stops reads:
+
+```ts
+import { revocationFeedState } from '@orangecheck/auth-core';
+
+// 'live', 'unverified' or 'no-token': no secret, no count.
+res.status(200).json({ status: 'ok', revocation_feed: await revocationFeedState() });
+```
+
 ## Relay assertions (server only)
 
 A relay, such as the owner cockpit, acts on another site for an owner who

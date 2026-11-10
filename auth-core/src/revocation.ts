@@ -27,7 +27,7 @@ export interface RevocableClaims {
 /**
  * `live`: not ended, per a copy of the list fresh enough to vouch for it.
  * `revoked`: ended. `unverified`: not known to be ended, but the copy is too
- * old (or was never fetched) to say so for a request that changes state.
+ * old (or was never fetched) to vouch for it.
  */
 export type RevocationStatus = "live" | "revoked" | "unverified";
 
@@ -36,7 +36,8 @@ export interface RevocationCheck {
   /**
    * Whether to refuse the session for a request with this method: always when
    * revoked, and for an unsafe method (or none given) when unverified. Reads
-   * keep working through an outage of the auth host; writes stop.
+   * keep working through an outage of the auth host; writes stop. A site that
+   * holds a person's data uses {@link refusesEvenReads}, which stops reads too.
    */
   refuses(claims: RevocableClaims, method?: string): Promise<boolean>;
 }
@@ -313,7 +314,7 @@ function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean
     return Math.max(snap.ageAtFetch + (clock() - snap.fetchedAt), now() - at) > maxStaleMs;
   }
 
-  return {
+  const check: RevocationCheck = {
     status,
     async refuses(claims, method) {
       const s = await status(claims);
@@ -322,7 +323,22 @@ function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean
       return !SAFE_METHODS.has((method ?? "").toUpperCase());
     },
   };
+  FEED_STATES.set(check, async () => {
+    if (!token && !signer) return "no-token";
+    return (await status({})) === "live" ? "live" : "unverified";
+  });
+  return check;
 }
+
+/**
+ * A check's feed, as a signed-out health read reports it: `"live"` when its
+ * copy of the list is fresh enough to vouch for a session, `"unverified"` when
+ * it is not (the auth host can't be reached, or refuses this site's token),
+ * and `"no-token"` when the site has no feed token, so nothing is checked.
+ */
+export type RevocationFeedState = "live" | "unverified" | "no-token";
+
+const FEED_STATES = new WeakMap<RevocationCheck, () => Promise<RevocationFeedState>>();
 
 export interface IntegratorRevocationOptions
   extends Omit<RevocationCheckOptions, "url" | "token" | "headers" | "developing" | "staleFrom"> {
@@ -419,6 +435,38 @@ const SHARED = Symbol.for("@orangecheck/auth-core/revocation-check/v1");
 export function familyRevocationCheck(): RevocationCheck {
   const g = globalThis as { [SHARED]?: RevocationCheck };
   return (g[SHARED] ??= createRevocationCheck());
+}
+
+/**
+ * For a site that holds a person's data (an account, money, messages,
+ * secrets): whether to refuse the session for any request, reads included.
+ * `"revoked"` when the list ends it; `"unverified"` when no copy of the list is
+ * fresh enough to vouch for it, which passes once the auth host answers again
+ * (answer 503 and ask the person to try again, never "signed out"); `false`
+ * when it may go on. Uses the process-wide check unless given one.
+ */
+export async function refusesEvenReads(
+  claims: RevocableClaims,
+  check: RevocationCheck = familyRevocationCheck(),
+): Promise<false | "revoked" | "unverified"> {
+  const s = await check.status(claims);
+  return s === "live" ? false : s;
+}
+
+/**
+ * The feed state of the process-wide check (or of one made by
+ * {@link createRevocationCheck}), for a health route a signed-out GET can
+ * read. It names no secret and no count. Reading it fetches the list only
+ * when the copy is due, as a session check would.
+ */
+export async function revocationFeedState(
+  check: RevocationCheck = familyRevocationCheck(),
+): Promise<RevocationFeedState> {
+  const read = FEED_STATES.get(check);
+  if (!read) {
+    throw new TypeError("revocationFeedState reads a check made by createRevocationCheck or familyRevocationCheck");
+  }
+  return read();
 }
 
 /** Tests only: drop the process-wide check so the next call reads the environment again. */
