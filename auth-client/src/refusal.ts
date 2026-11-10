@@ -5,6 +5,16 @@
 
 import { ownWord } from './own-word';
 
+/** A sign-in the person's own sign-out or account deletion ended while it ran, by any way in. */
+const ENDED_ERRORS: Record<string, string> = {
+    signed_out: 'You were signed out while signing in. Sign in again.',
+    account_deleted: "This account is being deleted, so you can't sign in to it.",
+};
+
+export function endedSigninText(reason: string): string | undefined {
+    return ownWord(ENDED_ERRORS, reason);
+}
+
 /**
  * The auth host answers with machine reasons. Its /api/auth/signin says it
  * exposes them "so the /signin UI can give an actionable message", and this
@@ -36,10 +46,12 @@ const SIGNIN_ERRORS: Record<string, string> = {
     replay: 'That code was already used. Send a new one.',
     invalid_token: 'That code is no longer valid. Send a new one.',
     email_mismatch: 'That code was sent to a different address. Send a new one.',
+    ...ENDED_ERRORS,
 };
 
 const EMAIL_ERRORS: Record<string, string> = {
     expired: 'That code expired. Send a new one.',
+    signed_out: 'You were signed out while signing in. Send a new code to sign in again.',
 };
 
 /**
