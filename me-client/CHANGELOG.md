@@ -22,8 +22,8 @@ this file tracks the package's TS / Node / runtime API surface.
 ### Changed
 
 - `OcPopupAccount` says that `display_name` and `nostr_npub` are null for
-  any site outside orangecheck's own, and `SCOPE_IDS` says that signing in
-  gives a site no name.
+  any site outside orangecheck's own (the family origins auth-core lists),
+  and `SCOPE_IDS` says that signing in gives such a site no name.
 
 ## [0.58.0] — 2026-11-09
 
