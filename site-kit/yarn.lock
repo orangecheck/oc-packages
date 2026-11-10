@@ -537,9 +537,9 @@
     tailwind-merge "^3.3.1"
 
 "@orangecheck/auth-client@^2.32.3":
-  version "2.42.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.42.3.tgz#6152ccc290a4b713e91c7b8b5165069c81a802f2"
-  integrity sha512-klZiV3Bbzq9Zza0u7qtAdB+Bm3bOTdvOKQJu0MW9h0kGjNl+EmxnYFflIREsm/xXkH1SbUaJ6Q2+YNQoQFVMDg==
+  version "2.46.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.46.0.tgz#f1386767cfd07877212bd47ab42548284c609957"
+  integrity sha512-L2VRXPlQmyZocp+9ZAK0C/Hn4wksR4bMcO+ytzhu/3FaDzX4xdqB6QApVNQNOdHylu7gwxguM/UQxhbKpuiTMw==
   dependencies:
     "@orangecheck/bip322" "^1.1.2"
     "@orangecheck/wallet-adapter" "^0.7.0"
