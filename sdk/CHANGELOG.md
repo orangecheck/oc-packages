@@ -9,6 +9,23 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.26.2] — 2026-11-10
+
+### Changed
+
+- `verify()` answers `bad_request` for an attestation whose address decodes
+  as another network's than the one its message selects: a `tb1…` address
+  with no `network:` line, a `bc1…` address under `network: testnet` or
+  `signet`, or any regtest address (SPEC §7.1 step 3, vector `tv34`). It does
+  so before `network_testmode`, so a mainnet address under `network: testnet`
+  is `bad_request` outside test mode too. A message selects testnet or signet
+  only by that exact `network:` value and mainnet otherwise, and the result's
+  `network` and `parseCanonicalMessage().network` are that selection, never
+  another value.
+- `buildCanonicalMessage()` throws for a `network:` value other than
+  `mainnet`, `testnet` or `signet`, and for an address of another network than
+  the one the message selects.
+
 ## [1.26.1] — 2026-11-10
 
 ### Changed
