@@ -572,6 +572,7 @@ export function OcSignIn({
             {oauthError && (
                 <div
                     data-oc-signin-oauth-error=""
+                    role="alert"
                     style={{
                         marginBottom: 14,
                         padding: '0.6rem 0.75rem',
@@ -1248,7 +1249,6 @@ function WalletFlow({
                         style={{ ...inputStyle, resize: 'vertical' }}
                     />
                 </div>
-                {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
                 <button
                     type="submit"
                     disabled={!pasted.trim()}
@@ -1257,6 +1257,7 @@ function WalletFlow({
                 >
                     {submitting ? 'Checking…' : <Submit>Sign me in</Submit>}
                 </button>
+                {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
                 <Busy>{submitting ? 'Checking…' : null}</Busy>
                 <button
                     type="button"
@@ -1320,7 +1321,6 @@ function WalletFlow({
                     </select>
                 </div>
             )}
-            {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
             <button
                 type="submit"
                 disabled={!address.trim()}
@@ -1333,6 +1333,7 @@ function WalletFlow({
                       ? <Submit>Get the message to sign</Submit>
                       : <Submit>Sign in with wallet</Submit>}
             </button>
+            {error && <ErrorLine id={ids.error}>{error}</ErrorLine>}
             <Busy>{submitting ? 'Waiting for wallet…' : null}</Busy>
             {noBrowserWallet && (
                 <Hint>No browser wallet found here. You can sign with any wallet and paste.</Hint>
@@ -1507,7 +1508,6 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                     aria-describedby={describedBy(emailError && ids.emailError)}
                     style={inputStyle}
                 />
-                {emailError && <ErrorLine id={ids.emailError}>{emailError}</ErrorLine>}
                 <button
                     type="submit"
                     aria-disabled={submitting || undefined}
@@ -1515,6 +1515,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 >
                     {submitting ? 'Sending…' : <Submit>Send one-time code</Submit>}
                 </button>
+                {emailError && <ErrorLine id={ids.emailError}>{emailError}</ErrorLine>}
                 <Busy>{submitting ? 'Sending…' : null}</Busy>
             </form>
         );
@@ -1548,7 +1549,6 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
                 aria-describedby={describedBy(codeError && ids.codeError)}
                 style={{ ...inputStyle, letterSpacing: '0.4em', fontSize: 16 }}
             />
-            {codeError && <ErrorLine id={ids.codeError}>{codeError}</ErrorLine>}
             <button
                 type="submit"
                 disabled={code.length !== 6}
@@ -1557,6 +1557,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             >
                 {submitting ? 'Verifying…' : <Submit>Verify · sign me in</Submit>}
             </button>
+            {codeError && <ErrorLine id={ids.codeError}>{codeError}</ErrorLine>}
             <Busy>{submitting ? 'Verifying…' : null}</Busy>
             <div>
                 <button
@@ -1738,13 +1739,14 @@ function submitStyle(disabled: boolean): React.CSSProperties {
     };
 }
 
+// Said under the submit button, so a refusal never moves the button that was pressed.
 function ErrorLine({ id, children }: { id?: string; children: React.ReactNode }): React.ReactElement {
     return (
         <p
             id={id}
             role="alert"
             style={{
-                marginTop: 6,
+                marginTop: 8,
                 marginBottom: 0,
                 color: 'var(--destructive, #ef4444)',
                 fontFamily: SIGNIN_FONT,

@@ -9,6 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.47.0] — 2026-11-10
+
+### Changed
+
+- `OcSignIn` says a refused sign-in under the button that was pressed, not
+  between the field and the button. The button no longer moves when the
+  refusal appears, whatever the line's length. This covers the email, the
+  one-time code, the wallet and the pasted signature.
+- The box that says a Google or GitHub sign-in did not finish is an alert, so
+  a screen reader says it.
+
 ## [2.46.0] — 2026-11-09
 
 ### Added

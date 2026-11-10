@@ -741,3 +741,80 @@ describe('OcSignIn · focus and what a screen reader hears', () => {
         });
     });
 });
+
+describe('OcSignIn · a refusal leaves the pressed button where it was', () => {
+    // The line is said under the button: nothing appears above it, so it cannot move.
+    const route: Route = (url) => {
+        if (url.endsWith('/api/auth/providers')) return { body: { providers: [] } };
+        if (url.includes('/api/challenge')) return { body: { message: 'sign this', nonce: 'n1' } };
+        if (url.endsWith('/api/auth/signin')) return { status: 401, body: { ok: false, reason: 'sig_invalid' } };
+        if (url.endsWith('/email-otp/start')) return { body: { ok: true, token: 't1' } };
+        if (url.endsWith('/email-otp/verify')) return { status: 401, body: { ok: false, reason: 'wrong_code' } };
+        return undefined;
+    };
+
+    /** The elements laid out before the form's submit button. */
+    const before = (form: Element, button: Element) =>
+        [...form.querySelectorAll('*')].filter(
+            (el) => !el.contains(button) && el.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).length;
+
+    async function refuse(formSelector: string, press: (button: HTMLButtonElement) => Promise<void>) {
+        const form = document.querySelector(formSelector)!;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        const n = before(form, button);
+        await press(button);
+        const alert = screen.getByRole('alert');
+        expect(alert.textContent).not.toBe('');
+        expect(button.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(before(form, button)).toBe(n);
+    }
+
+    it('email: a malformed address', async () => {
+        stubFetch(route);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'not-an-email' } });
+        await refuse('[data-oc-signin-email]', async (b) => {
+            await act(async () => fireEvent.click(b));
+        });
+    });
+
+    it('email: a wrong code', async () => {
+        stubFetch(route);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'a@example.com' } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Send one-time code/ }));
+        });
+        fireEvent.change(screen.getByLabelText('One-time code'), { target: { value: '123456' } });
+        await refuse('[data-oc-signin-email-verify]', async (b) => {
+            await act(async () => fireEvent.click(b));
+        });
+    });
+
+    it('wallet: an address that is not one', async () => {
+        stubFetch(route);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: 'bc1qnotanaddress' } });
+        await refuse('[data-oc-signin-wallet]', async (b) => {
+            await act(async () => fireEvent.click(b));
+        });
+    });
+
+    it('wallet: a pasted signature the host refuses', async () => {
+        stubFetch(route);
+        render(<OcSignIn audience="https://ochk.io" linkPrompt={false} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Bitcoin wallet' }));
+        await act(async () => {});
+        fireEvent.change(screen.getByLabelText('Bitcoin address'), { target: { value: ADDR } });
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /Get the message to sign/ }));
+        });
+        fireEvent.change(screen.getByLabelText('Signature'), { target: { value: 'AkcwRAIgXk3o9vTq0b1c2d3e4f5g6h7i8j9k' } });
+        await refuse('[data-oc-signin-wallet-manual]', async (b) => {
+            await act(async () => fireEvent.click(b));
+        });
+    });
+});
