@@ -12,6 +12,7 @@ export default defineConfig({
         rate: 'src/rate/index.ts',
         document: 'src/document/index.tsx',
         csp: 'src/csp/index.ts',
+        rewrites: 'src/rewrites/index.ts',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],
