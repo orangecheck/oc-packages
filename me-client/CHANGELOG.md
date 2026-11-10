@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.59.0] — 2026-11-10
+
 ### Added
 
 - `signInWithOc` and `signInWithOcOutcome` answer the popup's
