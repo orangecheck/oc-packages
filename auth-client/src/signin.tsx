@@ -44,6 +44,16 @@ import * as React from 'react';
 import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
 import { DesignCheckbox } from './controls';
+import {
+    FINAL_LINK_REFUSALS,
+    heldLinkRefusalText,
+    LINK_FRAGMENT,
+    linkBind,
+    maskEmail,
+    parseHeldLink,
+    readLinkKey,
+} from './held-link';
+import type { HeldLink } from './held-link';
 import { LinkPromptStep } from './linked-identities';
 import { useOptionalOcSession } from './provider';
 import {
@@ -483,6 +493,17 @@ export function OcSignIn({
         if (OAUTH_EMAIL_CODE_REASONS.has(reason) && emailEnabled) setPath('email');
     }, [emailEnabled]);
 
+    // First-party: the sign-in link ochk.io mailed a held address opens here as
+    // `#oc-link=…`. Read once, and the secret leaves the address bar at once.
+    const [heldLink, setHeldLink] = React.useState<{ link: HeldLink | null } | null>(null);
+    React.useEffect(() => {
+        if (!firstParty || typeof window === 'undefined') return;
+        const { hash, pathname, search } = window.location;
+        if (!hash.startsWith(LINK_FRAGMENT)) return;
+        window.history.replaceState(window.history.state, '', `${pathname}${search}`);
+        setHeldLink({ link: parseHeldLink(hash) });
+    }, [firstParty]);
+
     const navigate = React.useCallback(
         async (account: OcAccount) => {
             if (resolveReturnTo) {
@@ -560,6 +581,19 @@ export function OcSignIn({
             >
                 no signin paths enabled — set <code>paths.wallet</code> or{' '}
                 <code>paths.email</code> to <code>true</code>
+            </div>
+        );
+    }
+
+    if (heldLink) {
+        return (
+            <div className={className} data-oc-signin="">
+                <HeldLinkStep
+                    link={heldLink.link}
+                    authOrigin={authOrigin}
+                    onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
+                    onBack={() => setHeldLink(null)}
+                />
             </div>
         );
     }
@@ -711,6 +745,7 @@ export function OcSignIn({
                         authOrigin={authOrigin}
                         add={addMode}
                         credentials={credentials}
+                        firstParty={firstParty}
                         onSeveralSessions={recheck}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
                     />
@@ -1389,9 +1424,10 @@ function EmailFlow({
     authOrigin,
     add,
     credentials,
+    firstParty,
     onSuccess,
     onSeveralSessions,
-}: FlowProps): React.ReactElement {
+}: FlowProps & { firstParty: boolean }): React.ReactElement {
     const uid = React.useId();
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
@@ -1416,11 +1452,13 @@ function EmailFlow({
     /** Ask the host to email a code. Returns a human error, or null on success. */
     async function sendCode(address: string): Promise<string | null> {
         try {
+            // First-party: a link to a held address will sign in only this browser (held-link.ts).
+            const bind = firstParty ? await linkBind() : undefined;
             const res = await fetch(`${authOrigin}/api/auth/email-otp/start`, {
                 method: 'POST',
                 credentials,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: address }),
+                body: JSON.stringify({ email: address, ...(bind ? { link_bind: bind } : {}) }),
             });
             const json = (await res.json()) as {
                 ok?: boolean;
@@ -1626,6 +1664,107 @@ function EmailFlow({
                 </button>
             </div>
         </form>
+    );
+}
+
+/* --- held-address link (first-party) --- */
+
+type LinkPress =
+    | { kind: 'idle' }
+    | { kind: 'sending' }
+    | { kind: 'refused'; text: string }
+    | { kind: 'final'; text: string };
+
+/**
+ * The link ochk.io mailed a held address, opened on the first-party site that
+ * asked. Nothing is sent until the press, so a mail scanner opening the link
+ * signs no one in; the press sends this browser's key, so only the browser
+ * that asked can sign in with it.
+ */
+function HeldLinkStep({
+    link,
+    authOrigin,
+    onSuccess,
+    onBack,
+}: {
+    link: HeldLink | null;
+    authOrigin: string;
+    onSuccess: (account: OcAccount, token?: string) => void;
+    onBack: () => void;
+}): React.ReactElement {
+    const uid = React.useId();
+    const [press, setPress] = React.useState<LinkPress>(() => {
+        if (!link) return { kind: 'final', text: heldLinkRefusalText('wrong_link') };
+        if (link.exp * 1000 <= Date.now()) {
+            return { kind: 'final', text: heldLinkRefusalText('expired') };
+        }
+        if (!readLinkKey()) return { kind: 'final', text: heldLinkRefusalText('wrong_browser') };
+        return { kind: 'idle' };
+    });
+
+    async function signIn(l: HeldLink): Promise<void> {
+        setPress({ kind: 'sending' });
+        let reason: string | undefined;
+        try {
+            const res = await fetch(`${authOrigin}/api/auth/email-otp/verify`, {
+                method: 'POST',
+                credentials: 'omit',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: l.email,
+                    token: l.token,
+                    link_secret: l.secret,
+                    link_key: readLinkKey(),
+                }),
+            });
+            const json = (await res.json().catch(() => ({}))) as SigninJson;
+            if (res.ok && 'ok' in json && json.ok && json.account) {
+                onSuccess(json.account, json.token);
+                return;
+            }
+            reason = (json as SigninJsonErr).reason;
+        } catch {
+            reason = undefined;
+        }
+        const text = heldLinkRefusalText(reason);
+        const final = reason !== undefined && FINAL_LINK_REFUSALS.has(reason);
+        setPress(final ? { kind: 'final', text } : { kind: 'refused', text });
+    }
+
+    if (press.kind === 'final' || !link) {
+        return (
+            <div data-oc-signin-held-link="">
+                <ErrorLine id={`${uid}-error`}>
+                    {press.kind === 'final' ? press.text : heldLinkRefusalText('wrong_link')}
+                </ErrorLine>
+                <button type="button" onClick={onBack} style={submitStyle(false)}>
+                    <Submit>Ask for a new link</Submit>
+                </button>
+            </div>
+        );
+    }
+
+    const sending = press.kind === 'sending';
+    return (
+        <div data-oc-signin-held-link="">
+            <FlowHeader>
+                Sign in as{' '}
+                <span style={{ color: 'var(--foreground, #fafafa)' }}>{maskEmail(link.email)}</span>{' '}
+                with the link from your email. Nothing happens until you press the button.
+            </FlowHeader>
+            <button
+                type="button"
+                onClick={() => void signIn(link)}
+                aria-disabled={sending || undefined}
+                aria-describedby={press.kind === 'refused' ? `${uid}-error` : undefined}
+                disabled={sending}
+                style={submitStyle(sending)}
+            >
+                {sending ? 'Signing in…' : <Submit>Sign in</Submit>}
+            </button>
+            {press.kind === 'refused' && <ErrorLine id={`${uid}-error`}>{press.text}</ErrorLine>}
+            <Busy>{sending ? 'Signing in…' : null}</Busy>
+        </div>
     );
 }
 
