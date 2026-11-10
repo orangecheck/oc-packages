@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createRevocationCheck, integratorRevocationCheck, nameProblem, signSession, verifyOcToken, verifySessionToken } from '../index';
+import { signRelayAssertion, verifyRelayAssertion } from '../relay-assertion';
 
 const { cases } = JSON.parse(
     readFileSync(join(process.cwd(), '..', 'auth-core', 'test-vectors', 'option-bags.json'), 'utf8')
@@ -32,6 +33,8 @@ const BAGS: Bag[] = [
     { name: 'integratorRevocationCheck', key: 'projectKey', value: 'pk_live_x', call: (o) => integratorRevocationCheck(o) },
     { name: 'createRevocationCheck', key: 'token', value: 'secret', call: (o) => createRevocationCheck(o) },
     { name: 'nameProblem', key: 'allowReserved', value: true, call: (o) => nameProblem('ochk', 80, o) },
+    { name: 'signRelayAssertion', key: 'audience', value: 'https://me.ochk.io', call: (o) => signRelayAssertion(o) },
+    { name: 'verifyRelayAssertion', key: 'audience', value: 'https://me.ochk.io', call: (o) => verifyRelayAssertion(o) },
 ];
 
 async function messageOf(call: () => unknown): Promise<string | null> {

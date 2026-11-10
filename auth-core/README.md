@@ -94,6 +94,74 @@ if (await familyRevocationCheck().refuses(payload, req.method)) {
 }
 ```
 
+## Relay assertions (server only)
+
+A relay, such as the owner cockpit, acts on another site for an owner who
+stepped up to it moments ago. For each write it signs a relay assertion: an
+Ed25519 compact JWS (`typ` `oc-relay+jwt`, `alg` `EdDSA`) naming the site,
+the owner, when they stepped up, the method, the path with its query, and the
+SHA-256 of the body's RFC 8785 canonical JSON. It lives at most 60 s, the
+site allows its `iat` at most 5 s of clock skew, and the site spends its `jti`
+once.
+
+```ts
+import { RELAY_ASSERTION_HEADER, signRelayAssertion } from '@orangecheck/auth-core/relay-assertion';
+
+const path = '/api/admin/example?id=1';
+const body = JSON.stringify(payload);
+const assertion = await signRelayAssertion({
+    privateJwk: process.env.RELAY_SIGNING_JWK!, // base64url JWK
+    kid: 'relay-1',
+    audience: 'https://me.ochk.io',
+    actor: owner.did_oc,
+    sudoAt: owner.sudo_at,
+    request: { method: 'POST', path, wireBody: body },
+});
+await fetch(`https://me.ochk.io${path}`, {
+    method: 'POST',
+    body,
+    headers: { 'content-type': 'application/json', [RELAY_ASSERTION_HEADER]: assertion },
+});
+```
+
+On the site:
+
+```ts
+import { RELAY_ASSERTION_HEADER, verifyRelayAssertion } from '@orangecheck/auth-core/relay-assertion';
+
+const result = await verifyRelayAssertion({
+    token: String(req.headers[RELAY_ASSERTION_HEADER] ?? ''),
+    publicJwks: process.env.RELAY_PUBLIC_JWKS!, // base64url JWKS, each key with a kid
+    audience: 'https://me.ochk.io',
+    actor: String(req.headers['x-oc-actor-did'] ?? ''),
+    request: { method: req.method!, path: req.url!, body: req.body },
+    maxSudoAgeSeconds: 300, // the site's step-up window; required
+    // Resolve true the first time, false after; throw when the store cannot answer.
+    claimJti: (jti, exp) => store.setIfAbsent(`relay-jti:${jti}`, exp),
+});
+if (!result.ok) return res.status(result.reason === 'store_unavailable' ? 503 : 401).end();
+```
+
+- The key comes from the site's own JWKS by `kid`. A token that names a key
+  of its own (`jwk`, `jku`, `x5u`, `x5c`, `x5t`) or carries `crit` is refused.
+- The signed path is `relayRequestTarget(path)`: the path as sent, with its
+  query re-serialized as `URLSearchParams` writes it, the form Next.js gives a
+  route in `req.url`. The site compares the claim to `relayRequestTarget` of its
+  own request target, so either form verifies and a changed query does not.
+  Only an origin-form target counts: a single leading `/`, visible ASCII and
+  no `#`. The signer throws on any other, and the site refuses one as
+  `request_mismatch`.
+- The relay hashes `JSON.parse` of the exact string it sends; the site hashes
+  the body as it parsed it. No body (`undefined`, `null` or `''`) hashes the
+  empty string, and `{}` hashes `"{}"`.
+- Every check runs before the `jti` is spent, so a refused assertion spends
+  nothing.
+- An owner who stepped up longer ago than `maxSudoAgeSeconds` is refused as
+  `sudo_stale`. A `sudo_at` later than the assertion's `iat` is malformed, and
+  the signer refuses a `sudoAt` later than now.
+- This entry uses `node:crypto` and `@orangecheck/stamp-core`'s canonicalizer.
+  The main entry and the browser entries load neither.
+
 ## Guarantees
 
 - **No shared secret.** Consumer apps cannot forge sessions — only the auth
