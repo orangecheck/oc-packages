@@ -23,9 +23,11 @@ import {
     generateAttestationId,
     isCanonicalAttestation,
     messageFields,
+    onNetwork,
     parseIdentities,
     readBondExtension,
     readMessageValue,
+    selectedNetwork,
 } from './canonical';
 import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
@@ -131,7 +133,7 @@ export function parseCanonicalMessage(msg: string) {
         if (!coreKeys.has(key) && val) extensions[key] = val;
     }
 
-    const network = (extensions['network'] || 'mainnet') as Network;
+    const network = selectedNetwork(extensions['network']);
 
     // Parse bond extension if present (integer satoshis, SPEC §2.2)
     const bondStr = extensions['bond'];
@@ -465,7 +467,7 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
 
         // Parse canonical message with extensions
         const parsed = parseCanonicalMessage(input.msg);
-        network = parsed.network || 'mainnet';
+        network = parsed.network;
 
         // Compute attestation ID
         const attestation_id = await generateAttestationId(input.msg);
@@ -478,6 +480,12 @@ export async function verify(input: VerifyInput, opts: VerifyOptions = {}): Prom
 
         // Validate address consistency
         if (parsed.core.address !== input.addr) {
+            codes.push('bad_request');
+            return { ok: false, codes, network, attestation_id };
+        }
+
+        // The address is on the network the message selects (SPEC §7.1 step 3), before any policy code.
+        if (!onNetwork(input.addr, network)) {
             codes.push('bad_request');
             return { ok: false, codes, network, attestation_id };
         }

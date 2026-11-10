@@ -6,9 +6,22 @@
  * - Optional extensions appended as key: value with lexicographically sorted lowercase keys
  */
 
-import type { AttestationEnvelope, IdentityBinding, Scheme } from './types';
+import type { AttestationEnvelope, IdentityBinding, Network, Scheme } from './types';
+
+import { decodeAddress } from '@orangecheck/bip322';
 
 import { isOneLineValue } from './one-line';
+
+/** The network a message selects (SPEC §7.1 step 3): testnet or signet only by that exact value. */
+export function selectedNetwork(value: string | undefined): Network {
+    return value === 'testnet' || value === 'signet' ? value : 'mainnet';
+}
+
+/** False for an address that decodes as another network's; signet's addresses are testnet's. */
+export function onNetwork(address: string, network: Network): boolean {
+    const decoded = decodeAddress(address);
+    return !decoded || decoded.network === (network === 'mainnet' ? 'mainnet' : 'testnet');
+}
 
 /**
  * Input for building a canonical message
@@ -265,6 +278,14 @@ export function buildCanonicalMessage(
             throw new Error(`invalid bond: ${String(v)} is not a whole number of sats up to 2^53 - 1`);
         }
         normExt[key] = String(v);
+    }
+    // The address is on the network the message selects, so no verifier refuses it as bad_request.
+    const network = normExt['network'];
+    if (network !== undefined && !['mainnet', 'testnet', 'signet'].includes(network)) {
+        throw new Error(`invalid network ${JSON.stringify(network)}: mainnet, testnet or signet`);
+    }
+    if (!onNetwork(address, selectedNetwork(network))) {
+        throw new Error(`invalid network: ${address} is not a ${selectedNetwork(network)} address`);
     }
 
     const extLines = Object.keys(normExt)
