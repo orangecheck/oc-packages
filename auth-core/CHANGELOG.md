@@ -11,6 +11,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.29.0] — 2026-11-10
+
+### Added
+
+- `refusesEvenReads(claims, check?)`, for a site that holds a person's data:
+  it refuses a session for any request, reads included, when the list of
+  ended sessions ends it (`"revoked"`) or no copy of the list is fresh enough
+  to vouch for it (`"unverified"`, which passes once the auth host answers
+  again). It answers `false` when the session may go on, and uses the
+  process-wide `familyRevocationCheck()` unless given a check.
+  `refuses(claims, method)` is unchanged: reads keep working through an
+  outage of the auth host, and writes stop.
+- `revocationFeedState(check?)`, for a health route a signed-out GET can
+  read: `"live"` when the check's copy of the list is fresh enough to vouch
+  for a session, `"unverified"` when it is not, and `"no-token"` when the site
+  has no feed token. It names no secret and no count, reads the process-wide
+  check unless given one made by `createRevocationCheck`, and fetches only
+  when the copy is due, as a session check would.
+
 ## [2.28.0] — 2026-11-10
 
 ### Added
