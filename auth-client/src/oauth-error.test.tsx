@@ -70,6 +70,12 @@ describe('OcSignIn after a refused provider sign-in', () => {
         );
     });
 
+    it('says a sign-out elsewhere in this browser while it ran meant nothing was kept', async () => {
+        expect(await bannerFor('no_roster', false, 'github')).toBe(
+            "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Sign in again."
+        );
+    });
+
     it('keeps the general line for anything else', async () => {
         expect(await bannerFor('access_denied')).toBe(
             "That sign-in didn't finish. Try again, or use another way below."

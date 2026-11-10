@@ -325,6 +325,17 @@ describe('OcSignIn · a sign-in that a sign-out or deletion ends while it mints'
         );
     });
 
+    it('says a sign-out elsewhere in this browser while it minted meant nothing was kept, on either path', async () => {
+        const NO_ROSTER = { status: 409, body: { ok: false, reason: 'no_roster' } };
+        expect(await walletAnswered(NO_ROSTER)).toBe(
+            "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Sign in again."
+        );
+        cleanup();
+        expect(await emailAnswered(NO_ROSTER)).toBe(
+            "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Send a new code to sign in again."
+        );
+    });
+
     it('says the account is being deleted, on either path', async () => {
         expect(await walletAnswered(DELETED)).toBe("This account is being deleted, so you can't sign in to it.");
         cleanup();
