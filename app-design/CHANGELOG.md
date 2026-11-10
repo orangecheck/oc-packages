@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.17.0] — 2026-11-10
+
 - `ErrorPage` names a code only when it is given one. Without `code` it
   drew "404 · Not found" over any words, so a page that is not an error
   (ochk.io's sign-out note, a 200) said it was missing. Now a page with no
