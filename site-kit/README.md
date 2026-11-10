@@ -15,7 +15,7 @@ Each site keeps its own deploy and passes its own values.
 |---|---|
 | `./seo` | `Seo`, `createSeo(site)`, `generateMetaTags`, `jsonLd` (escapes `<` `>` `&` U+2028 U+2029), and schema.org builders: `webSite`, `organization`, `softwareApplication`, `techArticle`, `webPage`. Every page names its `canonical`. A site with `ogRoute: '/api/og'` shares the route's default card, or `?page=<key>` for a page whose card title is one of its `ogCards`. No title rides the URL. |
 | `./headers` | `siteHeaders(opts)` for next.config `headers()`, `securityHeaders`, `buildCsp`, `inlineSources`. Every CSP source is validated: no `*`, no plain http, no injected directive. Relay URLs reduce to their wss origin. `csp.scriptHashes` lists the page's inline scripts by hash in place of `'unsafe-inline'`; `dev` keeps `'unsafe-inline'`. |
-| `./auth` | `createSessionReader`, `createMeHandler`, `refuseCookieSession` (same-site only from a listed family site), `FAMILY_ORIGINS`. |
+| `./auth` | `createSessionReader`, `createMeHandler`, `refuseCookieSession` (same-site only from a listed family site), `FAMILY_ORIGINS`, `SessionUnverified` and `answersUnverified`. |
 | `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime. It draws only cards the site issues: `?page=<key>` from its `cards` map (a title, or `{ title, eyebrow }`), the default card for anything else. A request's own text is never drawn. Each card has one URL, the route or the route with `?page=<key>`, and any other query gets a 308 there; cards and redirects are `public, max-age=86400, s-maxage=86400`. `resolve: { name: lookup }` adds cards the site looks up, at `?name=<value>`, each kept as long as its lookup says (one that finds nothing: a 307 to the default card, kept as long but at most a day; a failed lookup: the default card, `no-store`); `basePath` puts a Next base path back on the 308. `home: { hero, top, wide }` draws app-design's `OgBento` at `?page=home`, for the site's home page to share (`cards` cannot then name `home`). Needs `@orangecheck/app-design` ^2.0.0. |
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
 | `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `hostOf(ip)`: the one requester behind it, an IPv4 address itself or an IPv6 /64, always inside its `networkOf`. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
@@ -124,6 +124,26 @@ keeps the account and the tab's pin until the page reads again; it does not
 retry. Such a site needs its feed token: without one in production the list
 never vouches for a session, so every signed-in `/api/auth/me` there answers
 503.
+
+Its other API routes answer the same way when their session reader throws
+`SessionUnverified` in that state and each route exports through
+`answersUnverified`:
+
+```ts
+import { answersUnverified, SessionUnverified } from '@orangecheck/site-kit/auth';
+
+// in the site's reader, where refusesEvenReads(payload) is 'unverified':
+throw new SessionUnverified();
+
+// in each route that reads a session:
+export default answersUnverified(handler);
+```
+
+The wrapper answers 503 `{ ok: false, error: 'session_unverified' }`,
+`Retry-After: 60` and `Cache-Control: no-store, private`, for a read as for a
+write, and lets any other error out, as it does `SessionUnverified` once the
+route has started its answer. `answerSessionUnverified(res)` writes the same
+answer; `createMeHandler` uses it.
 
 ## Analytics
 

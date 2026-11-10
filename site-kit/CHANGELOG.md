@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.0
+
+A site that holds a person's data can answer every API route the way its
+`/api/auth/me` answers while the auth host's list of ended sessions can't
+vouch for a session. Its session reader throws `SessionUnverified`, and a
+route exported through `answersUnverified(handler)` answers that with 503
+`{ ok: false, error: 'session_unverified' }`, `Retry-After: 60` and
+`Cache-Control: no-store, private`, for a read as for a write; any other
+error passes through, and so does `SessionUnverified` once the route has
+started its answer. `answerSessionUnverified(res)` writes the same answer,
+and `createMeHandler` now writes its 503 through it.
+
 ## 0.13.0
 
 A site that holds a person's data can refuse reads too while the auth
