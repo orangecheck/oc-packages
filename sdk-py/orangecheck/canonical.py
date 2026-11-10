@@ -29,6 +29,7 @@ from typing import Mapping, Optional, Sequence, Union
 
 from . import types as _types
 from ._text import is_one_line_value, js_strip
+from .address import decode_address
 
 # ─── Identity safety rules ─────────────────────────────────────────────────
 
@@ -229,6 +230,14 @@ def build_canonical_message(
         if key == "bond" and (isinstance(v, bool) or read_bond_extension(str(v)) is None):
             raise ValueError(f"invalid bond: {v!r} is not a whole number of sats up to 2^53 - 1")
         norm_ext[key] = str(v)
+    # The address is on the network the message selects (SPEC §7.1 step 3), so no verifier refuses it as bad_request.
+    network = norm_ext.get("network")
+    if network is not None and network not in ("mainnet", "testnet", "signet"):
+        raise ValueError(f"invalid network {network!r}: mainnet, testnet or signet")
+    selected = network if network in ("testnet", "signet") else "mainnet"
+    decoded = decode_address(address)
+    if decoded is not None and decoded.network != ("mainnet" if selected == "mainnet" else "testnet"):
+        raise ValueError(f"invalid network: {address} is not a {selected} address")
     ext_lines = [f"{k}: {norm_ext[k]}" for k in sorted(norm_ext.keys())]
 
     return "\n".join(core + ext_lines) + "\n"
