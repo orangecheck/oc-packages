@@ -14,3 +14,9 @@ export {
     type SessionResult,
 } from './session';
 export { accountFromSession, createMeHandler, type MeAccount, type MeBody, type MeHandlerOptions } from './me';
+export {
+    answerSessionUnverified,
+    answersUnverified,
+    SESSION_UNVERIFIED_RETRY_AFTER_SECONDS,
+    SessionUnverified,
+} from './unverified';

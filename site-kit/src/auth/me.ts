@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { SessionPayload } from '@orangecheck/auth-core';
 
 import type { SessionReader } from './session';
+import { answerSessionUnverified } from './unverified';
 
 /**
  * The account `@orangecheck/auth-client` reads. Its `normalizeAccount` returns
@@ -88,8 +89,7 @@ export function createMeHandler(opts: MeHandlerOptions) {
             return;
         }
         if (r.reason === 'unverified') {
-            res.setHeader('Retry-After', '60');
-            res.status(503).json({ ok: false, error: 'session_unverified' });
+            answerSessionUnverified(res);
             return;
         }
         if (r.tab) {
