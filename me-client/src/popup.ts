@@ -51,8 +51,9 @@ export interface OcPopupAccount {
     /** Opaque public identity, `did:oc:<32-hex>`: the same at every site and
      *  stable across linking. */
     did_oc: string;
-    /** The name the person set, for a family site (*.ochk.io) only. Always
-     *  null for any other site: the popup never tells it a name. */
+    /** The name the person set, only for one of orangecheck's own sites (the
+     *  family origins @orangecheck/auth-core lists). Always null for any other
+     *  site: the popup never tells it a name. */
     display_name: string | null;
     /** The person's Nostr npub, for a family site only, like `display_name`. */
     nostr_npub: string | null;
