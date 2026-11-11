@@ -243,10 +243,10 @@
     "@noble/curves" "^1.6.0"
     "@orangecheck/lock-crypto" "^0.1.0"
 
-"@orangecheck/me-client@^0.56.0":
-  version "0.56.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.56.0.tgz#27ec9f2792e97e7c1574c074eac6bb0fa5a264fc"
-  integrity sha512-aLnzQ6a8rr9ZwoZTd3GA+883/3YHQhFXIy8QSg2K2Qlmp5pEtY9CFHeZqtNxZrbmqEfei7E9PpPOZRPbPtnKnw==
+"@orangecheck/me-client@^0.58.0":
+  version "0.58.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.58.0.tgz#772e34f4f491c0bfffff3c6bac00a792d38fb9fb"
+  integrity sha512-kFUdK+yRyI1hlPsrcrmu0a1t8vaEaeva2PSyxgwsD1I2OEgzPqRjw8RGgkhWalih4FEROmvNSh+QEwSY94F0qg==
   dependencies:
     "@orangecheck/auth-core" "^2.26.1"
 
