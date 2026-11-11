@@ -94,6 +94,28 @@ describe('oc.event.fire · request signing', () => {
         });
     });
 
+    it('sends note inside the signed bytes, as a batch entry does', async () => {
+        const calls = captureFetch();
+        const secret = 'whsec_note';
+        await oc.event.fire({
+            project_key: 'pk_test',
+            subtype: 'account_creation',
+            note: 'joined from the spring list',
+            signingSecret: secret,
+        });
+        const { init } = calls[0]!;
+        const body = init.body as string;
+        expect(JSON.parse(body)).toEqual({
+            project_key: 'pk_test',
+            subtype: 'account_creation',
+            note: 'joined from the spring list',
+        });
+        const [, t, mac] = /^t=(\d+),v1=([0-9a-f]{64})$/.exec(
+            (init.headers as Record<string, string>)['x-oc-signature'] ?? ''
+        )!;
+        expect(mac).toBe(createHmac('sha256', secret).update(`${t}.${body}`).digest('hex'));
+    });
+
     it('ignores a hand-rolled snake_case user_address · it is not part of the API', async () => {
         const calls = captureFetch();
         await oc.event.fire({
