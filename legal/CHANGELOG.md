@@ -8,6 +8,21 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app's privacy policy says what a charter publishes from a guardian application
+
+The `me` profile's Privacy policy (guardian applications) said the
+questionnaire's handle, name, jurisdiction, contact channel and fingerprint are
+published in the federation charter, because guardians are named trust anchors.
+A federation charter lists the operator key of each seated guardian, so it now
+says: the answers are held for the review, a federation charter publishes the
+operator key of each seated guardian, and nothing else from an application is
+published yet. Whether a charter should also name its operators is an open
+decision; a change to what a charter publishes will be its own entry here.
+
+Its "What changed" note gains an entry for 11 November, its 27 and 28 October
+entry now says only that an application holds the questionnaire's answers, and
+the policy is dated 2026-11-11. The Terms render exactly as before.
+
 ## [0.7.33] — 2026-11-08
 
 ### Changed — ochk.app's deletion page is called by its name
