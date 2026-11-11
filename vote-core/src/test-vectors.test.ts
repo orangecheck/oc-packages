@@ -1,19 +1,23 @@
 // Verify every committed test vector in oc-vote-protocol/test-vectors/.
 //
 // Conformance gate: canonical bytes, content-addressed ids, tally output.
-// Any failure means this implementation has drifted from the spec.
+// Any failure means this implementation has drifted from the spec. Most vectors'
+// signatures are placeholders and tally with signatures skipped; a vector with a
+// signature_check (v19-v23) carries real ones and tallies under the real verifier.
 
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { verifySignature } from '@orangecheck/bip322';
 import { describe, expect, it } from 'vitest';
 
 import { canonicalBytes } from './canonical.js';
 import { pollId, ballotId, revealId } from './ids.js';
 import { commit } from './commit.js';
 import { tally } from './tally.js';
-import { verifyReveal } from './verify.js';
+import { verifyBallot, verifyPoll, verifyReveal } from './verify.js';
+import type { SignatureVerifier } from './verify.js';
 import type { Ballot, Poll, Reveal, TallyResult, Utxo } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -59,7 +63,23 @@ interface Vector {
             expected_result_post_reveal?: TallyResult;
         };
     };
+    /** v19-v23: real signatures from a disclosed burn key, and the verdict each must get. */
+    signature_check?: {
+        address_type: 'p2pkh' | 'p2sh_p2wpkh' | 'p2wpkh' | 'p2tr';
+        format: 'bip137' | 'bip322-simple';
+        poll: SignedCheck;
+        ballot: SignedCheck;
+    };
 }
+
+interface SignedCheck {
+    signed_message: string;
+    expected: { outcome: 'ACCEPT' } | { outcome: 'REJECT'; error_code: 'E_BAD_SIG' };
+}
+
+/** The real BIP-322 verifier, never a stub that answers true. */
+const realBip322: SignatureVerifier = ({ address, message, signature }) =>
+    verifySignature(address, message, signature);
 
 const VECTORS_DIR = locateVectorsDir();
 const cases = readdirSync(VECTORS_DIR)
@@ -86,6 +106,8 @@ describe('oc-vote-protocol conformance', () => {
                   }
                 : {};
             const exp = vector.expected;
+            const sc = vector.signature_check;
+            const sigOpts = sc ? { verify: realBip322 } : { skipSignatures: true };
 
             it('computes poll_id', () => {
                 expect(pollId(poll)).toBe(exp.poll_id);
@@ -143,6 +165,22 @@ describe('oc-vote-protocol conformance', () => {
                 });
             }
 
+            if (sc) {
+                const verdict = sc.ballot.expected.outcome === 'ACCEPT' ? 'takes' : 'refuses';
+                it(`the real BIP-322 verifier takes the ${sc.address_type} poll and ${verdict} the ballot`, async () => {
+                    expect(sc.poll.signed_message).toBe(exp.poll_id);
+                    expect(sc.ballot.signed_message).toBe(exp.ballot_ids[0]);
+                    const [ballot] = ballots;
+                    for (const [check, r] of [
+                        [sc.poll, await verifyPoll(poll, realBip322)],
+                        [sc.ballot, await verifyBallot(ballot!, realBip322)],
+                    ] as const) {
+                        if (check.expected.outcome === 'ACCEPT') expect(r).toEqual({ ok: true });
+                        else expect(r).toMatchObject({ ok: false, code: check.expected.error_code });
+                    }
+                });
+            }
+
             it('tallies to the expected result', async () => {
                 const utxos = exp.tally_with_utxos.utxo_snapshot;
                 const utxosAt = (addr: string) => utxos[addr] ?? [];
@@ -164,7 +202,7 @@ describe('oc-vote-protocol conformance', () => {
                     poll,
                     ballots,
                     utxosAt,
-                    skipSignatures: true,
+                    ...sigOpts,
                     ...anchorOpts,
                     ...(opened ? { revealedOptions: opened } : {}),
                 });
@@ -176,6 +214,15 @@ describe('oc-vote-protocol conformance', () => {
             });
         });
     }
+
+    it('signed vectors cover every address type, and one tampered ballot is refused', () => {
+        const checks = cases.flatMap(({ vector }) => (vector.signature_check ? [vector.signature_check] : []));
+        const accepted = checks
+            .filter((c) => c.poll.expected.outcome === 'ACCEPT' && c.ballot.expected.outcome === 'ACCEPT')
+            .map((c) => c.address_type);
+        expect(new Set(accepted)).toEqual(new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr']));
+        expect(checks.some((c) => c.ballot.expected.outcome === 'REJECT')).toBe(true);
+    });
 });
 
 describe('tally requires a signature verifier', () => {
