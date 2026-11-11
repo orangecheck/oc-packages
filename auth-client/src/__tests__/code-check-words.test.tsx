@@ -100,7 +100,7 @@ describe('OcSignIn · the email code step', () => {
 describe('OcLinkedIdentities · words, never codes', () => {
     function withLink(answer: Answer, rows: unknown[] = []) {
         stub((url, init) => {
-            if (url.includes('/api/auth/link/email-code')) return { body: { ok: true, token: 't' } };
+            if (url.includes('/api/auth/email-otp/start')) return { body: { ok: true, token: 't' } };
             if (url.includes('/api/auth/link/email')) return answer;
             if (url.includes('/api/auth/identities') && init?.method === 'DELETE') return answer;
             if (url.includes('/api/auth/identities')) return { body: { ok: true, did_oc: DID, linked: rows } };

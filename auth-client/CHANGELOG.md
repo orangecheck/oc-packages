@@ -21,9 +21,6 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Changed
 
-- `OcLinkedIdentities` asks ochk.io for its email code at
-  `POST /api/auth/link/email-code`: a code issued to the signed-in account for
-  that address, which can only link it to that account.
 - `OcSignIn` names ochk.io's `no_roster` refusal: a sign-in that a sign-out
   elsewhere in this browser cut off while it was finishing says nothing was
   kept and to sign in again, or on the email path to send a new code. The
