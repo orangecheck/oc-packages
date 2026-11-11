@@ -13,6 +13,7 @@ export default defineConfig({
         document: 'src/document/index.tsx',
         csp: 'src/csp/index.ts',
         rewrites: 'src/rewrites/index.ts',
+        'session-recheck': 'src/session-recheck/index.ts',
         cli: 'src/cli.ts',
     },
     format: ['cjs', 'esm'],
