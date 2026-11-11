@@ -58,7 +58,7 @@ export interface FireEventOptions {
      *  /me/activity ledger. */
     action_label?: string;
     /** A note shown to the person the event names: up to 280 characters of
-     *  plain text. Public: it is in the signed receipt, which anyone with its
+     *  plain text. Public: it is in the event's receipt, which anyone with its
      *  link can read. Kept for a class A event and for your own events; a
      *  class B or C built-in drops it. A character that hides or reorders
      *  text is 422 `invalid_note`. */
@@ -242,7 +242,7 @@ export interface BatchEventInput {
     /** Human-readable label that appears in /me/earn. */
     action_label?: string;
     /** A note shown to the person the event names: up to 280 characters of
-     *  plain text. Public: it is in the signed receipt, which anyone with its
+     *  plain text. Public: it is in the event's receipt, which anyone with its
      *  link can read. Kept for a class A event and for your own events; a
      *  class B or C built-in drops it. A character that hides or reorders
      *  text rejects the entry with code `invalid_note`. */
