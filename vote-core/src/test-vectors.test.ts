@@ -225,13 +225,16 @@ describe('oc-vote-protocol conformance', () => {
         });
     }
 
-    it('signed vectors cover every address type, and one tampered ballot is refused', () => {
+    it('signed vectors cover every address type, and refuse one tampered ballot and one tampered poll', () => {
         const checks = cases.flatMap(({ vector }) => (vector.signature_check ? [vector.signature_check] : []));
         const accepted = checks
             .filter((c) => c.poll.expected.outcome === 'ACCEPT' && c.ballot.expected.outcome === 'ACCEPT')
             .map((c) => c.address_type);
         expect(new Set(accepted)).toEqual(new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr']));
-        expect(checks.some((c) => c.ballot.expected.outcome === 'REJECT')).toBe(true);
+        const refused = checks.flatMap((c) =>
+            (['poll', 'ballot'] as const).filter((part) => c[part].expected.outcome === 'REJECT')
+        );
+        expect(refused.sort()).toEqual(['ballot', 'poll']);
     });
 });
 

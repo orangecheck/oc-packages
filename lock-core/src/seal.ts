@@ -40,9 +40,10 @@ function envelopeToJson(env: LockEnvelope): JsonValue {
 }
 
 /**
- * Compute the draft envelope id used as AAD during AEAD operations. This is
- * the canonical envelope with `ciphertext`, `sig`, and each
- * `recipients[*].wrapped_key` elided per SPEC §4.2 step 3.
+ * Compute the draft envelope id used as AAD during AEAD operations: SHA-256 of
+ * the canonical envelope with `id`, `ciphertext`, `sig.value` and each
+ * `recipients[*].wrapped_key` set to `""` (SPEC §4.2 step 3, §5). The AEAD
+ * takes these 32 bytes as they are, not their hex.
  */
 function computeDraftId(env: LockEnvelope): Uint8Array {
     const clone: LockEnvelope = {

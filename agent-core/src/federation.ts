@@ -51,7 +51,7 @@ import { delegationWindowError } from './verify.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface FederationGuardian {
-    /** mainnet Bitcoin address (P2WPKH, P2TR, or P2PKH). */
+    /** mainnet Bitcoin address (P2WPKH, P2SH-P2WPKH, P2TR, or P2PKH). */
     address: string;
     alg: 'bip322';
     /** Optional human label. NOT part of the cryptographic identity. */
