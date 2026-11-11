@@ -20,6 +20,8 @@ this file tracks the package's TS / Node / runtime API surface.
 - The `user_share_pct` comment says me.ochk.io saves every event at the full
   share of 0.8, which leaves no rebate, in place of calling the remainder a
   rebate to the site's balance.
+- The `ComputedFees` comment says `site_rebate_sats` is what is left after the
+  platform fee and what the user earns.
 
 ## [0.59.0] — 2026-11-10
 
