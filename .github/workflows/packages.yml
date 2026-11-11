@@ -199,18 +199,19 @@ jobs:
                   cache: yarn
                   cache-dependency-path: ${{ matrix.pkg }}/yarn.lock
 
-            # vote-core's conformance tests load canonical fixtures from the
-            # oc-vote-protocol repo. Check it out into a scratch dir then
-            # point the tests at its test-vectors/ via OC_VOTE_VECTORS_DIR.
-            - name: Checkout oc-vote-protocol (for vote-core conformance)
-              if: matrix.pkg == 'vote-core'
+            # vote-core's conformance tests and vote-cli's signed-vector tests
+            # load canonical fixtures from the oc-vote-protocol repo. Check it
+            # out into a scratch dir then point the tests at its test-vectors/
+            # via OC_VOTE_VECTORS_DIR.
+            - name: Checkout oc-vote-protocol (for vote-core and vote-cli conformance)
+              if: matrix.pkg == 'vote-core' || matrix.pkg == 'vote-cli'
               uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-vote-protocol
                   path: .oc-vote-protocol
 
             - name: Set OC_VOTE_VECTORS_DIR for conformance test
-              if: matrix.pkg == 'vote-core'
+              if: matrix.pkg == 'vote-core' || matrix.pkg == 'vote-cli'
               run: echo "OC_VOTE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-vote-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
