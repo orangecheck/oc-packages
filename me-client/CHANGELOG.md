@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.60.0] — 2026-11-11
+
 ### Changed
 
 - The `projectKey` comment says what holds while the sign-in rule can't be
