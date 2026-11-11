@@ -8,6 +8,8 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.35] — 2026-11-11
+
 ### Changed — ochk.app's privacy policy names what is published, shared and kept that it left out
 
 The `me` profile's Privacy policy, its Terms (integrators) and their
