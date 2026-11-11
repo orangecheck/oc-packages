@@ -107,6 +107,14 @@ describe('createSessionReader · several oc_session cookies', () => {
             session: { did_oc: 'did:oc:tab' },
         });
     });
+
+    it('refuses a cross-site write at the origin gate before it counts the cookies', async () => {
+        const two = `oc_session=${await mint(keys, 'did:oc:aa')}; oc_session=${await mint(keys, 'did:oc:bb')}`;
+        const reader = createSessionReader({ revocation: false });
+        expect(
+            await reader.resolve({ method: 'POST', headers: { 'sec-fetch-site': 'cross-site', cookie: two } })
+        ).toEqual({ ok: false, reason: 'refused', tab: false });
+    });
 });
 
 describe('createSessionReader · ended sessions', () => {

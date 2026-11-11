@@ -19,6 +19,9 @@ cookie at that domain and `/` stays, so the same request sent again carries
 one cookie. A reader throws `SeveralSessions` and `answersUnverified` answers
 it that way. `severalSessionsRefused(req)` says whether a request is one the
 rule refuses, and `strayCookieClears(url, domain)` gives the clears alone.
+After that 401 a page reads the session again and shows it before the person
+sends the write again: the cookie left can be another account than the one the
+page showed.
 
 ## 0.14.0
 

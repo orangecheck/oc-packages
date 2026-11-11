@@ -172,6 +172,13 @@ cookie at the auth host's domain and `/`. The same request sent again carries
 that one cookie. A site that answers its 401s in one helper instead checks
 `severalSessionsRefused(req)` there and calls `answerSeveralSessions(req, res)`.
 
+After that 401 the page reads the session again and shows it before the write
+is sent again, and it never sends the write again by itself. The cookie left
+can belong to another account than the one the page showed: a read takes the
+cookie with the longest path first, so before the clears the page may have
+shown a stray's account. A page that treats every 401 as signed out treats
+this one as signed in.
+
 ## Analytics
 
 A page's query and fragment can hold values only that page should read.
