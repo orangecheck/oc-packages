@@ -14,6 +14,7 @@ export {
     type SessionResult,
 } from './session';
 export { accountFromSession, createMeHandler, type MeAccount, type MeBody, type MeHandlerOptions } from './me';
+export { answerSeveralSessions, SeveralSessions, severalSessionsRefused, strayCookieClears } from './several';
 export {
     answerSessionUnverified,
     answersUnverified,

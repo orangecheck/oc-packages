@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+import { answerSeveralSessions, SeveralSessions } from './several';
+
 /** How long to wait before asking again: one refresh of the auth host's list of ended sessions. */
 export const SESSION_UNVERIFIED_RETRY_AFTER_SECONDS = 60;
 
@@ -23,10 +25,12 @@ export function answerSessionUnverified(res: NextApiResponse): void {
 }
 
 /**
- * Wraps an API route whose session reader throws `SessionUnverified`: that
- * answers 503 `session_unverified`, for a read as for a write, and the person
- * stays signed in. Anything else thrown passes through, and so does
- * `SessionUnverified` once the route has started its answer.
+ * Wraps an API route whose session reader throws `SessionUnverified` or
+ * `SeveralSessions`. The first answers 503 `session_unverified`, for a read as
+ * for a write, and the person stays signed in. The second answers 401
+ * `several_sessions` and clears the stray cookies (`answerSeveralSessions`).
+ * Anything else thrown passes through, and so does either once the route has
+ * started its answer.
  */
 export function answersUnverified<Req extends NextApiRequest, Res extends NextApiResponse, R>(
     handler: (req: Req, res: Res) => R | Promise<R>,
@@ -35,8 +39,10 @@ export function answersUnverified<Req extends NextApiRequest, Res extends NextAp
         try {
             return await handler(req, res);
         } catch (err) {
-            if (!(err instanceof SessionUnverified) || res.headersSent) throw err;
-            answerSessionUnverified(res);
+            if (res.headersSent) throw err;
+            if (err instanceof SessionUnverified) answerSessionUnverified(res);
+            else if (err instanceof SeveralSessions) answerSeveralSessions(req, res);
+            else throw err;
             return undefined;
         }
     };

@@ -22,8 +22,11 @@ export type SessionResult =
            * `unverified` · an unsafe method while the revocation feed is too
            * stale to vouch for the token. Reads still pass, unless the reader
            * was made with `refuseUnverifiedReads`.
+           * `several_sessions` · an unsafe method that carries more than one
+           * `oc_session` cookie and no per-tab token, so the browser's cookie
+           * order would choose the account (auth-core `cookiePickRefused`).
            */
-          reason: 'no_session' | 'tab_invalid' | 'refused' | 'revoked' | 'unverified';
+          reason: 'no_session' | 'tab_invalid' | 'refused' | 'revoked' | 'unverified' | 'several_sessions';
           /** True when the request carried a per-tab token. */
           tab: boolean;
       };
@@ -85,6 +88,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * Reads the per-tab `x-oc-tab-session` header first, then every `oc_session`
  * cookie in the jar (browsers send duplicates from different Domains), with
  * the origin gate in front: a cross-site unsafe request gets no session at all.
+ * An unsafe request with several cookies and no per-tab token gets none either.
  * A token that verifies is then checked against the auth host's ended
  * sessions, so a signed-out one stops working here within a minute.
  */
@@ -92,7 +96,7 @@ export function createSessionReader(opts: SessionReaderOptions = {}): SessionRea
     async function resolve(req: OriginBearingRequest): Promise<SessionResult> {
         const tab = hasTabToken(req);
         if (refuseCookieSession(req, { developing: opts.developing })) return { ok: false, reason: 'refused', tab };
-        const r = await resolveSessionFromRequest(req.headers, verifyConfig());
+        const r = await resolveSessionFromRequest(req.headers, verifyConfig(), { method: req.method });
         if (!r.ok) return { ok: false, reason: r.reason, tab };
         const revocation = opts.revocation ?? familyRevocationCheck();
         if (revocation) {
