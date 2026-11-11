@@ -3,7 +3,7 @@
 // Conformance gate: canonical bytes, content-addressed ids, tally output.
 // Any failure means this implementation has drifted from the spec. Most vectors'
 // signatures are placeholders and tally with signatures skipped; a vector with a
-// signature_check (v19-v23) carries real ones and tallies under the real verifier.
+// signature_check (v19-v24) carries real ones and tallies under the real verifier.
 
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -61,9 +61,11 @@ interface Vector {
             expected_result?: TallyResult;
             expected_result_pre_reveal?: TallyResult;
             expected_result_post_reveal?: TallyResult;
+            /** v24: the tally refuses the poll with this code (SPEC §10.1). */
+            expected_error?: string;
         };
     };
-    /** v19-v23: real signatures from a disclosed burn key, and the verdict each must get. */
+    /** v19-v24: real signatures from a disclosed burn key, and the verdict each must get. */
     signature_check?: {
         address_type: 'p2pkh' | 'p2sh_p2wpkh' | 'p2wpkh' | 'p2tr';
         format: 'bip137' | 'bip322-simple';
@@ -166,8 +168,8 @@ describe('oc-vote-protocol conformance', () => {
             }
 
             if (sc) {
-                const verdict = sc.ballot.expected.outcome === 'ACCEPT' ? 'takes' : 'refuses';
-                it(`the real BIP-322 verifier takes the ${sc.address_type} poll and ${verdict} the ballot`, async () => {
+                const verdict = (c: SignedCheck) => (c.expected.outcome === 'ACCEPT' ? 'takes' : 'refuses');
+                it(`the real BIP-322 verifier ${verdict(sc.poll)} the ${sc.address_type} poll and ${verdict(sc.ballot)} the ballot`, async () => {
                     expect(sc.poll.signed_message).toBe(exp.poll_id);
                     expect(sc.ballot.signed_message).toBe(exp.ballot_ids[0]);
                     const [ballot] = ballots;
@@ -193,6 +195,14 @@ describe('oc-vote-protocol conformance', () => {
                 }
                 if (poll.mode === 'secret' && !revealed_options) {
                     expect(preExpected).toBeDefined();
+                    return;
+                }
+
+                const refused = exp.tally_with_utxos.expected_error;
+                if (refused) {
+                    await expect(tally({ poll, ballots, utxosAt, ...sigOpts, ...anchorOpts })).rejects.toMatchObject({
+                        code: refused,
+                    });
                     return;
                 }
 

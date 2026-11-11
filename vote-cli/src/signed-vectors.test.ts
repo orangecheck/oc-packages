@@ -1,6 +1,6 @@
-// oc-vote-protocol's signed vectors (v19-v23: a poll and a ballot signed by one
-// disclosed burn key per address type, and v21 with one byte of the ballot's
-// signature flipped) through the CLI's own paths: the poll lookup every command
+// oc-vote-protocol's signed vectors (v19-v24: a poll and a ballot signed by one
+// disclosed burn key per address type, v23 with one byte of the ballot's
+// signature flipped, v24 with one byte of the poll's) through the CLI's own paths: the poll lookup every command
 // makes, `oc-vote verify`'s ballot verdicts, the read-back that decides a poll or
 // ballot is published, and the count. A BIP-322 simple signature is tried again
 // with the finalized BIP's `smp` prefix.
@@ -39,7 +39,9 @@ interface SignedVector {
     ballot: Ballot;
     ballotId: string;
     utxos: Record<string, Utxo[]>;
-    result: TallyResult;
+    /** The count's result, or the code it refuses the poll with (v24). */
+    result: TallyResult | null;
+    error: string | null;
     check: {
         address_type: string;
         format: 'bip137' | 'bip322-simple';
@@ -56,7 +58,7 @@ const VECTORS: SignedVector[] = DIR
           .flatMap((name) => {
               const d = JSON.parse(readFileSync(join(DIR, name), 'utf8'));
               if (!d.signature_check) return [];
-              const { utxo_snapshot: utxos, expected_result: result } = d.expected.tally_with_utxos;
+              const { utxo_snapshot: utxos, expected_result: result, expected_error: error } = d.expected.tally_with_utxos;
               return [
                   {
                       name,
@@ -64,7 +66,8 @@ const VECTORS: SignedVector[] = DIR
                       ballot: d.inputs.ballots[0],
                       ballotId: d.expected.ballot_ids[0],
                       utxos,
-                      result,
+                      result: result ?? null,
+                      error: error ?? null,
                       check: d.signature_check,
                   },
               ];
@@ -99,7 +102,9 @@ function relayHolding(held: NostrEvent[]) {
 describe('signed vectors through the CLI', () => {
     it('finds the signed vectors, which CI checks out', () => {
         if (!DIR && !process.env.CI) return;
-        const accepted = VECTORS.filter((v) => v.check.ballot.expected.outcome === 'ACCEPT');
+        const accepted = VECTORS.filter(
+            (v) => v.check.poll.expected.outcome === 'ACCEPT' && v.check.ballot.expected.outcome === 'ACCEPT'
+        );
         expect(new Set(accepted.map((v) => v.check.address_type))).toEqual(
             new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr'])
         );
@@ -128,15 +133,16 @@ describe('signed vectors through the CLI', () => {
                 expect(await relaysServingBallot(ballot, read)).toEqual(ballotOk ? read.relays : []);
             });
 
-            it(`the count gives ${label} the vector's result`, async () => {
-                const result = await computeTally({
+            it(`the count ${v.error ? `refuses ${label} with ${v.error}` : `gives ${label} the vector's result`}`, async () => {
+                const count = computeTally({
                     poll,
                     ballots: [ballot],
                     reveal: null,
                     utxosAt: (addr: string) => v.utxos[addr] ?? [],
                     verify: bip322Verify,
                 });
-                expect(result).toEqual(v.result);
+                if (v.error) await expect(count).rejects.toMatchObject({ code: v.error });
+                else expect(await count).toEqual(v.result);
             });
         }
     }
