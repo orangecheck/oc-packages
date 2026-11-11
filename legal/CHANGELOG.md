@@ -17,14 +17,16 @@ The `me` profile's Privacy policy.
   cookies, as ochk.app's /trust page does. In local storage: your light or
   dark choice, the code tab you last picked, your alert switches and when and
   where to suggest moving your balance, the setup steps you ticked, and which
-  areas each account signed in there could open when last checked. In each
-  tab, until it closes: what a sign-in, a sign-out, a claim, a check or a write
-  in progress needs. In IndexedDB, only if you make, restore or import an
-  operator key: the key pair, its operator id, when it was added there,
-  whether it was made in a browser or imported from the kit, and the version of
-  the record, in `oc-operator-key`, filed under that account's id. Unlike
-  cookies, your browser attaches none of this to its requests, and no request
-  carries the private key. The 11 November note names it.
+  areas each account signed in here could open when last checked. In each tab,
+  until it closes: what a sign-in, a Google or GitHub link, a sign-out, a
+  claim, a check or a write in progress needs. In IndexedDB, only if you make,
+  restore or import an operator key: the key pair, its operator id, when it
+  was added here, whether it was made in a browser or imported from the kit,
+  and the version of the record, in `oc-operator-key`, filed under that
+  account's id. Unlike cookies, your browser attaches none of this to its
+  requests; ochk.app's scripts send a piece of it only in the request that
+  uses it, and no request carries the private key. The 11 November note names
+  it.
 
 ## [0.7.35] — 2026-11-11
 

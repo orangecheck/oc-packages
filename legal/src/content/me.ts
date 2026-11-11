@@ -427,7 +427,7 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'ochk.app also keeps these in your browser, outside cookies. Unlike cookies, your browser attaches none of them to its requests; ochk.app’s scripts read them in the page.',
+                    text: 'ochk.app also keeps these in your browser, outside cookies. Unlike cookies, your browser attaches none of them to its requests; ochk.app’s scripts send one only in the request that uses it.',
                 },
                 {
                     kind: 'bullets',
@@ -438,7 +438,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'each tab',
-                            v: 'what a sign-in, a sign-out, a claim, a check or a write in progress needs, until the tab closes.',
+                            v: 'what a sign-in, a Google or GitHub link, a sign-out, a claim, a check or a write in progress needs, until the tab closes.',
                         },
                         {
                             k: 'IndexedDB',
