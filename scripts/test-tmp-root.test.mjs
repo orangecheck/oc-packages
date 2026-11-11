@@ -70,8 +70,14 @@ test('useTmpRoot leaves nothing behind once a node:test file ends', () => {
                 `test('makes a folder', () => { mkdtempSync(join(tmpdir(), 'inner-')); });`,
             ].join('\n'),
         );
-        const run = spawnSync(process.execPath, ['--test', file], { encoding: 'utf8' });
+        // Without NODE_TEST_CONTEXT, so the inner node --test runs its file instead of skipping it.
+        const { NODE_TEST_CONTEXT: _parent, ...env } = process.env;
+        const run = spawnSync(process.execPath, ['--test', '--test-reporter=tap', file], {
+            encoding: 'utf8',
+            env,
+        });
         assert.equal(run.status, 0, run.stdout + run.stderr);
+        assert.match(run.stdout, /^# pass 1$/m, run.stdout);
         rmSync(file);
     });
     assert.deepEqual(left, []);
