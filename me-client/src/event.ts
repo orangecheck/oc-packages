@@ -37,6 +37,7 @@
 
 import {
     computeFees,
+    sitePaysFor,
     type BillableEvent,
     type EventKey,
     type IntegratorEventConfig,
@@ -415,6 +416,7 @@ export interface VerifyEventResult {
             | 'subtype_disabled'
             | 'subtype_unconfigured'
             | 'percent_amount_missing'
+            | 'agent_refused'
             | 'outside_pay_period';
         expected: number | null;
         actual: number | null;
@@ -442,6 +444,10 @@ export interface VerifyEventResult {
  * what keeps OC honest: a divergence means OC's billing engine
  * computed differently than the published price config says it should
  * have, and the integrator can flag it on /audit.
+ *
+ * An event an agent fired (`is_agent`) is priced by its subtype's agent
+ * override, as me.ochk.io priced it; one under a subtype that now refuses
+ * agents is flagged `agent_refused`.
  *
  * For percent_of_amount-priced subtypes, the underlying payment
  * amount must be passed explicitly (it isn't stored on the envelope
@@ -510,7 +516,27 @@ function verify(
             ],
         };
     }
-    if (eventCfg.site_pays.kind === 'percent_of_amount' && payment_amount_sats == null) {
+    // Priced as me.ochk.io priced it: an agent's event by the agent override.
+    const is_agent = envelope.is_agent === true;
+    if (is_agent && eventCfg.agent?.refuse) {
+        return {
+            ok: false,
+            expected: null,
+            issues: [
+                ...issues,
+                {
+                    field: 'agent_refused',
+                    expected: null,
+                    actual: null,
+                    message: `subtype ${envelope.subtype} refuses agents on integrator ${config.project_key} but an agent's event was billed`,
+                },
+            ],
+        };
+    }
+    if (
+        sitePaysFor(eventCfg, is_agent).kind === 'percent_of_amount' &&
+        payment_amount_sats == null
+    ) {
         return {
             ok: false,
             expected: null,
@@ -526,7 +552,7 @@ function verify(
         };
     }
 
-    const expected = computeFees(eventCfg, payment_amount_sats);
+    const expected = computeFees(eventCfg, payment_amount_sats, { is_agent });
 
     if (envelope.gross_fee_sats !== expected.gross_fee_sats) {
         issues.push({

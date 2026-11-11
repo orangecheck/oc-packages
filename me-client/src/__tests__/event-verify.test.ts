@@ -126,3 +126,41 @@ describe('oc.event.verify', () => {
         expect(result.expected).toEqual(expected);
     });
 });
+
+describe('oc.event.verify · an agent event is priced by the agent override', () => {
+    const PERCENT = { kind: 'percent_of_amount' as const, pct: 0.01 };
+    const FIXED = { kind: 'fixed_sats' as const, sats: 2000 };
+    const AT_PERCENT = { gross_fee_sats: 1000, platform_fee_sats: 200, user_earned_sats: 800 };
+    const AT_FIXED = { gross_fee_sats: 2000, platform_fee_sats: 400, user_earned_sats: 1600 };
+    const tip = (fees: typeof AT_FIXED, is_agent?: true) =>
+        makeEnvelope({
+            class: 'B',
+            subtype: 'tip_sent',
+            ...fees,
+            site_rebate_sats: 0,
+            ...(is_agent ? { is_agent } : {}),
+        });
+    const tipConfig = (cfg: Omit<IntegratorEventConfig, 'enabled' | 'user_share_pct'>) =>
+        makeConfig({ tip_sent: { enabled: true, user_share_pct: 0.8, ...cfg } });
+
+    it('passes both under a fixed person price and a percent agent price', () => {
+        const cfg = tipConfig({ site_pays: FIXED, agent: { site_pays: PERCENT } });
+        expect(event.verify(tip(AT_PERCENT, true), cfg, 100_000).issues).toEqual([]);
+        expect(event.verify(tip(AT_FIXED), cfg, 100_000).issues).toEqual([]);
+    });
+
+    it('passes both under a percent person price and a fixed agent price', () => {
+        const cfg = tipConfig({ site_pays: PERCENT, agent: { site_pays: FIXED } });
+        // A fixed agent price needs no payment amount.
+        const agent = event.verify(tip(AT_FIXED, true), cfg);
+        expect([agent.ok, agent.issues]).toEqual([true, []]);
+        expect(event.verify(tip(AT_PERCENT), cfg, 100_000).issues).toEqual([]);
+    });
+
+    it('flags an agent event under a subtype that refuses agents, and prices a person as before', () => {
+        const cfg = tipConfig({ site_pays: FIXED, agent: { refuse: true } });
+        const agent = event.verify(tip(AT_PERCENT, true), cfg, 100_000);
+        expect([agent.ok, agent.issues.map((i) => i.field)]).toEqual([false, ['agent_refused']]);
+        expect(event.verify(tip(AT_FIXED), cfg).issues).toEqual([]);
+    });
+});
