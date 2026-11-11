@@ -10,11 +10,15 @@
 //       message + id + envelope round-trip
 //   B — verification or transition vectors — bond / state / bilateral
 //   C — malformed-input vectors — must raise the named error code
+//
+// A vector with a signature_check (v59-v63) is also verified with the real
+// BIP-322 verifier and must get the verdict it names.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { verifySignature } from '@orangecheck/bip322';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -42,6 +46,7 @@ import {
     type PledgeCanonicalInput,
     type PledgeEnvelope,
     type ResolutionMechanism,
+    type VerifyBip322,
 } from './types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -60,7 +65,18 @@ interface AnyVector {
     kind: string;
     inputs: Record<string, unknown>;
     expected: Record<string, unknown>;
+    // v59-v63: a real signature from a disclosed burn key, and its expected verdict.
+    signature_check?: {
+        address_type: 'p2pkh' | 'p2sh_p2wpkh' | 'p2wpkh' | 'p2tr';
+        format: 'bip137' | 'bip322-simple';
+        signed_message: string;
+        expected: { outcome: 'ACCEPT' } | { outcome: 'REJECT'; error_code: 'E_PLEDGE_BAD_SIG' };
+    };
 }
+
+/** The real BIP-322 verifier, never a stub that answers true. */
+const realBip322: VerifyBip322 = (msg, signature, address) =>
+    verifySignature(address, msg, signature);
 
 const dir = locateVectorsDir();
 const vectors: { name: string; data: AnyVector }[] = dir
@@ -86,8 +102,27 @@ describe('oc-pledge-protocol test vectors', () => {
             it(data.description, async () => {
                 await runVector(name, data);
             });
+
+            const sc = data.signature_check;
+            if (sc) {
+                it(`the real BIP-322 verifier ${sc.expected.outcome === 'ACCEPT' ? 'accepts' : 'refuses'} the ${sc.address_type} signature`, async () => {
+                    const env = data.expected['envelope'] as PledgeEnvelope;
+                    expect(sc.signed_message).toBe(data.expected['pledge_id']);
+                    expect(sc.signed_message).toBe(env.id);
+                    const r = await verifyPledge({ envelope: env, verifyBip322: realBip322 });
+                    if (sc.expected.outcome === 'ACCEPT') expect(r.ok).toBe(true);
+                    else expect(r).toMatchObject({ ok: false, code: sc.expected.error_code });
+                });
+            }
         });
     }
+
+    it('signed vectors cover every address type, and one tampered signature is refused', () => {
+        const checks = vectors.flatMap(({ data }) => (data.signature_check ? [data.signature_check] : []));
+        const accepted = checks.filter((c) => c.expected.outcome === 'ACCEPT').map((c) => c.address_type);
+        expect(new Set(accepted)).toEqual(new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr']));
+        expect(checks.some((c) => c.expected.outcome === 'REJECT')).toBe(true);
+    });
 });
 
 async function runVector(name: string, vec: AnyVector) {
