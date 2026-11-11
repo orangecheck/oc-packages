@@ -9,6 +9,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `OcSignIn` names ochk.io's `several_sessions` refusal of an add: the browser
+  sent more than one ochk.io sign-in, so the account wasn't added, and the
+  person checks which account is signed in now before trying again. The
+  provider banner says the same. On that refusal the form reads the site's
+  session again through the new `onSeveralSessions` prop, which defaults to the
+  wrapping `OcSessionProvider`'s `refresh`: ochk.io cleared the extra cookies,
+  so the account left signed in may not be the one the page showed.
+
 ### Changed
 
 - `OcLinkedIdentities` asks ochk.io for its email code at

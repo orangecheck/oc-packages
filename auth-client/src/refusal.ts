@@ -22,6 +22,19 @@ export function endedSigninText(reason: string): string | undefined {
 }
 
 /**
+ * An add refused because this browser sent more than one ochk.io sign-in. The
+ * host cleared the extra cookies and spent nothing, so the same try can go
+ * again once the person sees which account is signed in now.
+ */
+export const SEVERAL_SESSIONS_TEXT =
+    "Your browser sent more than one ochk.io sign-in, so this account wasn't added. Check which account is signed in now, then try again.";
+
+/** True when a sign-in call threw ochk.io's `several_sessions` refusal. */
+export function isSeveralSessions(err: unknown): boolean {
+    return err instanceof Error && err.message === 'several_sessions';
+}
+
+/**
  * The auth host answers with machine reasons. Its /api/auth/signin says it
  * exposes them "so the /signin UI can give an actionable message", and this
  * form printed them verbatim instead: typing "hello" as an address showed
@@ -52,6 +65,7 @@ const SIGNIN_ERRORS: Record<string, string> = {
     replay: 'That code was already used. Send a new one.',
     invalid_token: 'That code is no longer valid. Send a new one.',
     email_mismatch: 'That code was sent to a different address. Send a new one.',
+    several_sessions: SEVERAL_SESSIONS_TEXT,
     ...ENDED_ERRORS,
 };
 
