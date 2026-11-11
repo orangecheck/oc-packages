@@ -215,17 +215,17 @@ jobs:
               run: echo "OC_VOTE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-vote-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
-            # agent-core's conformance tests load canonical fixtures from the
-            # oc-agent-protocol repo. Same pattern as vote-core above.
-            - name: Checkout oc-agent-protocol (for agent-core conformance)
-              if: matrix.pkg == 'agent-core'
+            # agent-core's conformance tests and agent-cli's signed-vector tests
+            # load fixtures from the oc-agent-protocol repo. Same pattern as vote-core above.
+            - name: Checkout oc-agent-protocol (for agent-core and agent-cli conformance)
+              if: matrix.pkg == 'agent-core' || matrix.pkg == 'agent-cli'
               uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-agent-protocol
                   path: .oc-agent-protocol
 
             - name: Set OC_AGENT_VECTORS_DIR for conformance test
-              if: matrix.pkg == 'agent-core'
+              if: matrix.pkg == 'agent-core' || matrix.pkg == 'agent-cli'
               run: echo "OC_AGENT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-agent-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
