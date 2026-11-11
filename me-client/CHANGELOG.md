@@ -20,6 +20,10 @@ this file tracks the package's TS / Node / runtime API surface.
 - The `note` comment on `BatchEventInput` adds the 280-character limit, that a
   class B or C built-in drops it, and the `invalid_note` refusal. A note is
   public: it is in the signed receipt, which anyone with its link can read.
+- `event.verify` prices an event an agent fired (`is_agent`) by its subtype's
+  agent override, as me.ochk.io does, and asks for a payment amount only when
+  that price is a percent of one. An agent's event under a subtype that
+  refuses agents is reported as `agent_refused`, a new issue field.
 
 ## [0.60.0] — 2026-11-11
 

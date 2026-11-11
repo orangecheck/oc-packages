@@ -194,6 +194,11 @@ export interface ComputedFees {
     site_rebate_sats: number;
 }
 
+/** The fee an event is priced by: the agent override's, when an agent fires it and one is set. */
+export function sitePaysFor(cfg: IntegratorEventConfig, is_agent: boolean): SiteFeeShape {
+    return is_agent && cfg.agent?.site_pays ? cfg.agent.site_pays : cfg.site_pays;
+}
+
 /** Compute the four-way fee split for an event given an integrator's
  *  config and (for percent_of_amount events) the underlying payment
  *  amount. MIRRORS oc-me-web/src/lib/events/types.ts computeFees()
@@ -222,8 +227,7 @@ export function computeFees(
     if (is_agent && cfg.agent?.refuse) {
         throw new Error('agent_refused');
     }
-    const effective_site_pays =
-        is_agent && cfg.agent?.site_pays ? cfg.agent.site_pays : cfg.site_pays;
+    const effective_site_pays = sitePaysFor(cfg, is_agent);
     const effective_user_share_pct =
         is_agent && typeof cfg.agent?.user_share_pct === 'number'
             ? cfg.agent.user_share_pct
