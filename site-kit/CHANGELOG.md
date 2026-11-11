@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.1
+
+`clientIp(req)` reads an address the way `./rate` does, so each spelling of
+one address keys as its short form does:
+
+- A zoned IPv6 address is the address without its zone:
+  `2001:db8:1:2::77%eth0` is `2001:db8:1:2::77`, and `hostOf` keys it as
+  `2001:db8:1:2::/64`.
+- The long-form IPv4-mapped spelling is its IPv4 address:
+  `0:0:0:0:0:ffff:203.0.113.77` is `203.0.113.77`, as `::ffff:203.0.113.77`
+  and `::ffff:cb00:714d` are.
+- A NAT64 address with a dotted tail is read: `64:ff9b::203.0.113.77` keys as
+  `64:ff9b:0:0::/64`, as `64:ff9b::cb00:714d` does.
+
+Text that `./rate` does not read as an address is none here either, and the
+next source is read.
+
 ## 0.16.0
 
 New entry `./session-recheck`, for the browser. `recheckOnSeveralSessions(status, body)`

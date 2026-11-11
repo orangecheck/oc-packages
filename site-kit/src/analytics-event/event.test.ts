@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import analyticsEvent, { PLAUSIBLE_EVENT_URL } from './index';
+import { hostOf } from '../rate';
+import analyticsEvent, { clientIp, PLAUSIBLE_EVENT_URL } from './index';
 
 const BODY = '{"n":"pageview","u":"https://vault.ochk.io/","d":"vault.ochk.io","r":null}';
 
@@ -140,5 +141,39 @@ describe('analyticsEvent: the page view goes on to Plausible with nothing of the
         const { res, out } = response();
         await analyticsEvent(request(), res);
         expect(out.status).toBe(502);
+    });
+});
+
+describe('clientIp reads an address as ./rate does', () => {
+    const ip = (realIp: string, forwarded = '198.51.100.9') =>
+        clientIp(request({ headers: { 'x-real-ip': realIp, 'x-forwarded-for': forwarded } }));
+
+    it('without its IPv6 zone id, so it keys with its /64', () => {
+        expect(ip('fe80::1%eth0')).toBe('fe80::1');
+        expect(ip('2001:db8:1:2::77%1')).toBe('2001:db8:1:2::77');
+        expect(hostOf(ip('2001:db8:1:2::77%1')!)).toBe(hostOf('2001:db8:1:2::77'));
+        const socket = { remoteAddress: 'fe80::1%eth0' } as never;
+        expect(clientIp(request({ headers: { 'x-real-ip': '', 'x-forwarded-for': '' }, socket }))).toBe('fe80::1');
+    });
+
+    it('an IPv4-mapped address, in any spelling, as its IPv4 address', () => {
+        const spellings = [
+            '::ffff:203.0.113.77',
+            '::FFFF:203.0.113.77',
+            '0:0:0:0:0:ffff:203.0.113.77',
+            '::ffff:cb00:714d',
+            '0:0:0:0:0:ffff:cb00:714d',
+        ];
+        expect(spellings.map((s) => ip(s))).toEqual(spellings.map(() => '203.0.113.77'));
+    });
+
+    it('a NAT64 address with a dotted tail, keyed as its hex spelling is', () => {
+        expect(ip('64:ff9b::203.0.113.77')).toBe('64:ff9b::203.0.113.77');
+        expect(hostOf(ip('64:ff9b::203.0.113.77')!)).toBe(hostOf('64:ff9b::cb00:714d'));
+    });
+
+    it('and nothing else, so the next source is read', () => {
+        const others = ['[2001:db8::1]', '[2001:db8::1]:443', '203.0.113.7:443', '203.0.113.7%eth0', '2001:db8::1%', 'a:b', ':::', 'unknown'];
+        expect(others.map((s) => ip(s))).toEqual(others.map(() => '198.51.100.9'));
     });
 });
