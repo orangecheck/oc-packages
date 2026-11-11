@@ -187,12 +187,12 @@ test('the ochk.app privacy policy says what ochk.app keeps in your browser outsi
     const text = DOCS.find(([n]) => n === 'me/privacy')[1];
     const app = text.slice(text.indexOf('On ochk.app, these cookies of its own'), text.indexOf('On me.ochk.io, whichever'));
     for (const rx of [
-        /keeps these in your browser, outside cookies\. Unlike cookies, your browser attaches none of them to its requests/,
+        /keeps these in your browser, outside cookies\. Unlike cookies, your browser attaches none of them to its requests; ochk\.app’s scripts send one only in the request that uses it\./,
         /local storage your light or dark choice, under theme; the code tab you last picked/,
         /your alert switches on the account page and, on the balance page, when and where to suggest moving your balance/,
         /the setup steps you ticked, in the quickstart and on each of your projects’ pages/,
         /for each account signed in here, which of its areas it could open when last checked/,
-        /each tab what a sign-in, a sign-out, a claim, a check or a write in progress needs, until the tab closes/,
+        /each tab what a sign-in, a Google or GitHub link, a sign-out, a claim, a check or a write in progress needs, until the tab closes/,
         /IndexedDB only if you make, restore or import an operator key on the operator page: the key pair, its operator id, when it was added here, whether it was made in a browser or imported from the kit, and the version of the record, in oc-operator-key, filed under that account’s id until you delete it there/,
         /No request carries the private key/,
     ]) {
