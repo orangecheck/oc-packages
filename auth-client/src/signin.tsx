@@ -45,7 +45,15 @@ import { addressInputValue } from './address';
 import { capText, otpNetworkCapText } from './caps';
 import { DesignCheckbox } from './controls';
 import { LinkPromptStep } from './linked-identities';
-import { endedSigninText, failureMessage, humanSigninError, networkError } from './refusal';
+import { useOptionalOcSession } from './provider';
+import {
+    endedSigninText,
+    failureMessage,
+    humanSigninError,
+    isSeveralSessions,
+    networkError,
+    SEVERAL_SESSIONS_TEXT,
+} from './refusal';
 import { stripFragment } from './return-to';
 import { clearTabSession } from './tab-session';
 import type { OcAccount } from './types';
@@ -161,6 +169,13 @@ interface OcSignInBaseProps {
      * ignores the field and the call falls back to ordinary signin.
      */
     add?: boolean;
+    /**
+     * Reads the site's session again when ochk.io refused an add because this
+     * browser sent more than one ochk.io sign-in (`several_sessions`). ochk.io
+     * cleared the extra cookies, so the account left signed in may not be the
+     * one the page showed. Defaults to the wrapping OcSessionProvider's refresh.
+     */
+    onSeveralSessions?: () => unknown;
     /** className for the outer container. */
     className?: string;
 }
@@ -332,6 +347,7 @@ function oauthErrorText(reason: string, retryAt: unknown, provider: string | nul
     if (cap) return cap;
     const ended = endedSigninText(reason);
     if (ended) return ended;
+    if (reason === 'several_sessions') return SEVERAL_SESSIONS_TEXT;
     if (reason === 'email_code_required') {
         return 'This email already has an orangecheck account. Sign in to it with an email code below.';
     }
@@ -348,6 +364,7 @@ export function OcSignIn({
     resolveReturnTo,
     linkPrompt: linkPromptProp = true,
     add: addProp,
+    onSeveralSessions,
     authOrigin = 'https://ochk.io',
     initialPath,
     providersFirst = true,
@@ -362,6 +379,8 @@ export function OcSignIn({
     // First-party: the family cookie must be neither sent nor set.
     const credentials: RequestCredentials = firstParty ? 'omit' : 'include';
     const linkPrompt = linkPromptProp && !firstParty;
+    const providerSession = useOptionalOcSession();
+    const recheck = onSeveralSessions ?? providerSession?.refresh;
 
     // Return target · prop wins; otherwise honor `?return_to=` / `?next=`
     // from the URL — the auth host's `/signin?add=1&return_to=…` entry
@@ -683,6 +702,7 @@ export function OcSignIn({
                         audience={audience}
                         add={addMode}
                         credentials={credentials}
+                        onSeveralSessions={recheck}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'wallet')}
                     />
                 )}
@@ -691,6 +711,7 @@ export function OcSignIn({
                         authOrigin={authOrigin}
                         add={addMode}
                         credentials={credentials}
+                        onSeveralSessions={recheck}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
                     />
                 )}
@@ -1003,6 +1024,16 @@ interface FlowProps {
     /** `omit` in first-party mode · see OcSignInProps.mode. */
     credentials: RequestCredentials;
     onSuccess: (account: OcAccount, token?: string) => void;
+    /** See OcSignInProps.onSeveralSessions. */
+    onSeveralSessions?: () => unknown;
+}
+
+/** After ochk.io refused an add for several sign-ins, the site reads its session again. */
+function recheckAfter(err: unknown, recheck: (() => unknown) | undefined): void {
+    if (!recheck || !isSeveralSessions(err)) return;
+    void Promise.resolve()
+        .then(recheck)
+        .catch(() => {});
 }
 
 interface WalletFlowProps extends FlowProps {
@@ -1039,6 +1070,7 @@ function WalletFlow({
     add,
     credentials,
     onSuccess,
+    onSeveralSessions,
 }: WalletFlowProps): React.ReactElement {
     const uid = React.useId();
     const ids = {
@@ -1177,6 +1209,7 @@ function WalletFlow({
         } catch (err) {
             setError(failureMessage(err, 'wallet', step, authOrigin));
             setSubmitting(false);
+            recheckAfter(err, onSeveralSessions);
         }
     }
 
@@ -1195,6 +1228,7 @@ function WalletFlow({
         } catch (err) {
             setError(failureMessage(err, 'wallet', 'submit', authOrigin));
             setSubmitting(false);
+            recheckAfter(err, onSeveralSessions);
         }
     }
 
@@ -1351,7 +1385,13 @@ type EmailStage = 'enter' | 'code' | 'listed';
 const ALSO_LISTED_TEXT =
     'An account made with Google or GitHub also lists this email. If that account is yours, sign in with Google or GitHub and add this email there to confirm it.';
 
-function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): React.ReactElement {
+function EmailFlow({
+    authOrigin,
+    add,
+    credentials,
+    onSuccess,
+    onSeveralSessions,
+}: FlowProps): React.ReactElement {
     const uid = React.useId();
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
@@ -1463,6 +1503,7 @@ function EmailFlow({ authOrigin, add, credentials, onSuccess }: FlowProps): Reac
             onSuccess(json.account, json.token);
         } catch (err) {
             setCodeError(failureMessage(err, 'email', 'submit', authOrigin));
+            recheckAfter(err, onSeveralSessions);
         } finally {
             setSubmitting(false);
         }
