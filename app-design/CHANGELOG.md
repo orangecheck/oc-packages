@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.18.0] — 2026-11-11
+
 - `SignMessage` takes one signature at a time. `onSignature` may return a
   promise; until it settles, or while `busy` is set, the paste submit
   waits and the wallet row is disabled and dimmed. While a wallet signs
