@@ -52,6 +52,12 @@ descriptions.
   says those are cookies ochk.io's sites share across the domain, that
   me.ochk.io itself sets only `oc_logo`, and that its pages also run
   orangecheck's own counter.
+- **Page analytics on ochk.app.** It named one counter, orangecheck's own at
+  insights.ochk.io. It now names the second ochk.app loads, overlook.technology,
+  what that one keeps (a page's path, where you came from, campaign tags, your
+  country, region and city, your device, browser and operating system), that it
+  stores neither your IP address nor your browser string, and how to opt out
+  with `?ov_ignore=1`.
 - **Retention and security.** Event and rebind envelopes are kept until your
   account is deleted, and a deletion also removes coin backings and chat device
   records, as the deletion section already said. "Emails encrypted at rest"
