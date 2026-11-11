@@ -512,10 +512,11 @@ export interface WithOcAuthOptions extends OcSessionOptions {
      * Your project key. The requirement you set in the project's settings
      * ("who can sign in") is read from me.ochk.io within a minute of a change
      * and holds every signed-in account like `requireBond`, so you change it
-     * there, not in code. A request with no session is not held to it and never
-     * waits on reading it: pass `required` to answer it 401. An explicit
-     * `requireBond` wins over it. Default `OC_PROJECT_KEY` for the ended-session
-     * check only.
+     * there, not in code. When it can't be read, the last one read stands for
+     * ten minutes; after that signed-in requests are refused until it can. A
+     * request with no session is not held to it and never waits on reading
+     * it: pass `required` to answer it 401. An explicit `requireBond` wins
+     * over it. Default `OC_PROJECT_KEY` for the ended-session check only.
      */
     projectKey?: string;
 }
@@ -629,8 +630,9 @@ function standing(slot: string): BondNeed | null | undefined {
 
 /**
  * The project's requirement, from its uncached sign-in endpoint, held a
- * minute here. (The price config is edge-cached for ten minutes: reading the
- * requirement there let a just-tightened app keep admitting unbacked accounts.)
+ * minute here. (The price config is edge-cached for ten minutes and served
+ * stale for up to an hour after that: reading the requirement there let a
+ * just-tightened app keep admitting unbacked accounts.)
  * When it can't be read, or the answer does not say it, the last one read
  * stands for ten minutes, and the next try waits ten seconds so an outage
  * doesn't hold every request; with none read in that time it is `undefined`,
