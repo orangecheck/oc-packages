@@ -885,9 +885,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.41.0":
-  version "2.46.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.46.0.tgz#f1386767cfd07877212bd47ab42548284c609957"
-  integrity sha512-L2VRXPlQmyZocp+9ZAK0C/Hn4wksR4bMcO+ytzhu/3FaDzX4xdqB6QApVNQNOdHylu7gwxguM/UQxhbKpuiTMw==
+  version "2.48.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.48.0.tgz#98d87a82f6124ad347f4a6a25fe4e16871133707"
+  integrity sha512-86m5nwlWhAs9CxiiN109T18qdKuYbs2N30tdDAYOSu/PBEtgmEdwKiwy//FcXnwPDNRTGdGL/z9rpXfgl1S30A==
   dependencies:
     "@orangecheck/bip322" "^1.1.2"
     "@orangecheck/wallet-adapter" "^0.7.0"
