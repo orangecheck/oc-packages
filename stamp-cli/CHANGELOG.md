@@ -9,6 +9,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `git-stamp tag` and `stamp file`, asking for a signature, take the first
+  line of stdin, a last line with no newline included, and exit 1 with
+  `no signature provided: input closed before a line` when stdin ends before
+  one. With 0.4.0 both exited 0 and wrote no stamp in either case.
+
 ## [0.4.0] — 2026-11-08
 
 ### Changed
