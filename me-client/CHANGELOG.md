@@ -25,6 +25,13 @@ this file tracks the package's TS / Node / runtime API surface.
 - The `not_paying` comments and the README say no event is recorded or
   charged. A call carrying the person's own token for your verified domain
   still records that they use your project.
+- `event.fire` no longer puts `metadata` in the request body.
+
+### Deprecated
+
+- `FireEventOptions.metadata`. me.ochk.io does not read it, so it is never
+  stored on the envelope or published. The option stays in the type so
+  existing callers still compile.
 
 ## [0.59.0] — 2026-11-10
 
