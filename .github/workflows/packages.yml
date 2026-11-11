@@ -273,17 +273,17 @@ jobs:
               run: echo "OC_CHAT_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-chat-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
-            # stamp-core's conformance tests load canonical fixtures from the
-            # oc-stamp-protocol repo. Same pattern.
-            - name: Checkout oc-stamp-protocol (for stamp-core conformance)
-              if: matrix.pkg == 'stamp-core'
+            # stamp-core's conformance tests and stamp-cli's signed-vector tests
+            # load fixtures from the oc-stamp-protocol repo. Same pattern.
+            - name: Checkout oc-stamp-protocol (for stamp-core and stamp-cli conformance)
+              if: matrix.pkg == 'stamp-core' || matrix.pkg == 'stamp-cli'
               uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-stamp-protocol
                   path: .oc-stamp-protocol
 
             - name: Set OC_STAMP_VECTORS_DIR for conformance test
-              if: matrix.pkg == 'stamp-core'
+              if: matrix.pkg == 'stamp-core' || matrix.pkg == 'stamp-cli'
               run: echo "OC_STAMP_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-stamp-protocol/test-vectors" >> "$GITHUB_ENV"
               working-directory: ${{ github.workspace }}
 
