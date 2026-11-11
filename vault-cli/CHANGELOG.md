@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- A command that asks for the vault passphrase takes the first line of stdin, a
+  last line with no newline included, and exits 1 with
+  `No passphrase given: input closed before a line.` when stdin ends before one.
+  With 0.3.5 it exited 0 having done nothing, so `oc-vault run` in a script ran
+  no command and reported success. Input is still masked, and an empty line
+  still exits 1 with `No passphrase given.`
+
 ## 0.3.5
 
 - Runs on vault-core 0.6.0, which tells a blob that couldn't be read from

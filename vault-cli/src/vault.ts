@@ -18,25 +18,28 @@ import {
 
 import { readCache, type VaultCache } from './config';
 
-/** Read a passphrase without echoing it to the terminal. */
-function promptPassphrase(): Promise<string> {
-    return new Promise((resolve) => {
-        const rl = createInterface({ input: process.stdin, output: process.stdout });
-        const query = 'Vault passphrase: ';
-        // Mask every echoed character once the prompt itself is written.
-        const rlAny = rl as unknown as {
-            output: NodeJS.WriteStream;
-            _writeToOutput: (s: string) => void;
-        };
-        rlAny._writeToOutput = (s: string) => {
-            rlAny.output.write(s.includes(query) ? s : '*');
-        };
-        rl.question(query, (answer) => {
-            rl.close();
-            process.stdout.write('\n');
-            resolve(answer);
-        });
+/** Read a passphrase without echoing it to the terminal; undefined once input closes first. */
+async function promptPassphrase(): Promise<string | undefined> {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const query = 'Vault passphrase: ';
+    // Mask every echoed character once the prompt itself is written.
+    const rlAny = rl as unknown as {
+        output: NodeJS.WriteStream;
+        _writeToOutput: (s: string) => void;
+    };
+    rlAny._writeToOutput = (s: string) => {
+        rlAny.output.write(s.includes(query) ? s : '*');
+    };
+    // The first line, or undefined once input closes: a pending question never settles then.
+    const answer = await new Promise<string | undefined>((resolve) => {
+        rl.once('line', resolve);
+        rl.once('close', () => resolve(undefined));
+        rl.setPrompt(query);
+        rl.prompt();
     });
+    rl.close();
+    process.stdout.write('\n');
+    return answer;
 }
 
 /** The cache, or a fatal error telling the user to log in. */
@@ -55,6 +58,10 @@ export function requireCache(): VaultCache {
  */
 export async function openVault(cache: VaultCache): Promise<OcVault> {
     const passphrase = process.env.OCV_PASSPHRASE ?? (await promptPassphrase());
+    if (passphrase === undefined) {
+        console.error('No passphrase given: input closed before a line.');
+        process.exit(1);
+    }
     if (!passphrase) {
         console.error('No passphrase given.');
         process.exit(1);
