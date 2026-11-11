@@ -151,6 +151,8 @@ describe('clientIp reads an address as ./rate does', () => {
     it('without its IPv6 zone id, so it keys with its /64', () => {
         expect(ip('fe80::1%eth0')).toBe('fe80::1');
         expect(ip('2001:db8:1:2::77%1')).toBe('2001:db8:1:2::77');
+        expect(ip('fe80::1%eth0.100')).toBe('fe80::1');
+        expect(ip('fe80::1%a~b-c_d')).toBe('fe80::1');
         expect(hostOf(ip('2001:db8:1:2::77%1')!)).toBe(hostOf('2001:db8:1:2::77'));
         const socket = { remoteAddress: 'fe80::1%eth0' } as never;
         expect(clientIp(request({ headers: { 'x-real-ip': '', 'x-forwarded-for': '' }, socket }))).toBe('fe80::1');
