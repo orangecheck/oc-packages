@@ -24,6 +24,7 @@ import {
 
 import { refuseUnknownOptions } from "./options";
 import { retiredKeyVouches } from "./retired-key";
+import { SAFE_METHODS } from "./revocation";
 
 export const JWT_ALG = "EdDSA" as const;
 export const SESSION_COOKIE = "oc_session" as const;
@@ -655,7 +656,15 @@ export const TAB_SESSION_HEADER = "x-oc-tab-session" as const;
 
 export type ResolveSessionResult =
   | { ok: true; payload: SessionPayload; via: "tab" | "cookie" }
-  | { ok: false; reason: "tab_invalid" | "no_session" };
+  | { ok: false; reason: "tab_invalid" | "no_session" | "several_sessions" };
+
+/** What {@link resolveSessionFromRequest} reads of a request besides its headers. */
+export interface ResolveSessionRequest {
+  /** The request's HTTP method. A missing one counts as a state change. */
+  method: string | undefined;
+}
+
+const RESOLVE_REQUEST: ReadonlySet<string> = new Set<keyof ResolveSessionRequest>(["method"]);
 
 /** Header bag shapes accepted by {@link resolveSessionFromRequest}. */
 export type IncomingRequestHeaders =
@@ -672,6 +681,22 @@ function headerValue(
 }
 
 /**
+ * True when a state change carries more than one `oc_session` cookie and no
+ * per-tab token. The browser's cookie order would then choose whose account
+ * it acts for, so no reader takes a session from that jar. A read (GET, HEAD,
+ * OPTIONS) and a request with a tab token are never refused here. Every
+ * `oc_session` value counts, whether or not it verifies.
+ */
+export function cookiePickRefused(
+  method: string | undefined,
+  headers: IncomingRequestHeaders,
+): boolean {
+  if (SAFE_METHODS.has((method ?? "").toUpperCase())) return false;
+  if (headerValue(headers, TAB_SESSION_HEADER)) return false;
+  return readAllSessionCookies(headerValue(headers, "cookie")).length > 1;
+}
+
+/**
  * Resolve the EFFECTIVE session for a request — the per-tab choke
  * point every consumer's `readJwtSession` should delegate to.
  *
@@ -684,6 +709,9 @@ function headerValue(
  *      which is precisely the bug per-tab pinning exists to prevent.
  *      Clients clear their pin on 401 and re-resolve.
  *   2. Every `oc_session` cookie in the jar, first one that verifies.
+ *      Given the request's method, a state change that carries several
+ *      resolves to `{ ok: false, reason: 'several_sessions' }` instead
+ *      (see {@link cookiePickRefused}).
  *
  * Crypto-only (signature + exp + iss via {@link verifySessionToken}); a
  * signed-out token still resolves, so pass the payload to
@@ -692,13 +720,20 @@ function headerValue(
 export async function resolveSessionFromRequest(
   headers: IncomingRequestHeaders,
   cfg: VerifyConfig,
+  request?: ResolveSessionRequest,
 ): Promise<ResolveSessionResult> {
   refuseUnknownOptions("resolveSessionFromRequest", cfg, VERIFY_CONFIG);
+  if (request !== undefined) {
+    refuseUnknownOptions("resolveSessionFromRequest request", request, RESOLVE_REQUEST);
+  }
   const tabToken = headerValue(headers, TAB_SESSION_HEADER);
   if (tabToken) {
     const payload = await verifySessionToken(tabToken, cfg);
     if (payload) return { ok: true, payload, via: "tab" };
     return { ok: false, reason: "tab_invalid" };
+  }
+  if (request && cookiePickRefused(request.method, headers)) {
+    return { ok: false, reason: "several_sessions" };
   }
   const cookieHeader = headerValue(headers, "cookie");
   for (const token of readAllSessionCookies(cookieHeader)) {

@@ -81,6 +81,23 @@ if (!payload) return res.status(401).end();
 // payload.did_oc is the opaque user identifier (did:oc:<32-hex>).
 ```
 
+A browser can send several `oc_session` cookies, one for each domain and path
+it holds one for. `resolveSessionFromRequest` reads the per-tab token first,
+then the cookies. Given the method, it refuses a state change that carries
+more than one, since the browser's order would choose the account:
+
+```ts
+import { resolveSessionFromRequest } from '@orangecheck/auth-core';
+
+const r = await resolveSessionFromRequest(
+    req.headers,
+    { publicJwk: process.env.OC_AUTH_PUBLIC_JWK!, issuer: 'https://ochk.io' },
+    { method: req.method },
+);
+// r.reason is 'several_sessions' for a POST with two cookies and no tab token.
+if (!r.ok) return res.status(401).json({ ok: false, reason: r.reason });
+```
+
 A signed-out token still verifies. Family sites also ask the auth host's list
 of ended sessions, cached for a minute per process:
 
