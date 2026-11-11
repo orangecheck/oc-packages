@@ -66,6 +66,16 @@ const BANNED = [
     [/naming your did:oc and the identity you signed in with/i, 'sign-up notices after 29 October 2026 name only the account id and the kind of sign-in'],
     [/from market data alone/i, "btc's commentary also uses the model's web searches"],
     [/in an owner-only console\./i, "vault's owner console lists accounts too"],
+    // ochk.app's privacy policy (R17, 2026-11-11). A share releases cross-app numbers and
+    // statements by consent; the registry publishes accepted keys; the list claims no completeness.
+    [/regardless of scopes granted/i, 'a site can be shared cross-app numbers and statements, by consent'],
+    [/(email,? or attestation tier|attestation tier only if)/i, 'attest_tier is retired; the policy lists the live shares'],
+    [/charter publishes the operator key of each seated guardian, and nothing else/i, 'the operator registry also publishes every accepted key and when it was accepted'],
+    [/what an auditor would find|every record orangecheck stores|a full account of what orangecheck stores/i, 'the stored-data list names records; it does not claim to be complete'],
+    [/none enables fund movement|none of it lets orangecheck sign on your behalf/i, 'orangecheck holds keys for email, Google and GitHub sign-in, named under custody'],
+    [/Drop manifests, which name no one/i, "a drop's manifest names the site's project and its amounts"],
+    [/up to three cookies of its own|two cookies of its own/i, 'ochk.app sets up to nine cookies of its own, besides oc_logo'],
+    [/On me\.ochk\.io, five cookies/i, 'me.ochk.io sets only oc_logo; the others are set by ochk.io and its sites'],
 ];
 
 test('every doc renders', () => {
@@ -126,7 +136,77 @@ test('every privacy policy lists the logo cookie beside the other preference coo
         assert.match(text, /oc_theme(?: ·|,) oc_skin(?: ·|,) oc_motion(?: ·|,| and) oc_logo/, site);
         assert.match(text, /oc_logo[^.]*only when you open a page with \?logo= in its address/, site);
     }
-    assert.match(DOCS.find(([n]) => n === 'me/privacy')[1], /On ochk\.app, up to three cookies of its own[^]*oc_logo — which of our two logos you chose/);
+    assert.match(DOCS.find(([n]) => n === 'me/privacy')[1], /On ochk\.app, these cookies of its own[^]*oc_logo: which of our two logos you chose/);
+});
+
+// Every cookie ochk.app sets (oc-app-web lib/app.ts, auth/roster.ts, auth/handoff.ts, auth/oauth.ts;
+// oc_logo from app-design's logo script), and the one a page script can read (R17-4).
+test('the ochk.app privacy policy names every cookie ochk.app sets, and the one its page script reads', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    const cookies = text.slice(text.indexOf('On ochk.app, these cookies of its own'), text.indexOf('On me.ochk.io, whichever'));
+    const named = new Set(cookies.match(/(?:__Host-)?oc_[a-z_]+[0-9]?/g));
+    assert.deepEqual(
+        [...named].sort(),
+        [
+            '__Host-oc_active',
+            '__Host-oc_also_0',
+            '__Host-oc_also_1',
+            '__Host-oc_also_2',
+            '__Host-oc_handoff_',
+            '__Host-oc_handoff_guard',
+            '__Host-oc_oauth',
+            '__Host-oc_session',
+            '__Host-oc_to_io',
+            'oc_logo',
+        ]
+    );
+    assert.match(cookies, /__Host-oc_active: the did:oc of the account you are using[^.]*\. It is not HttpOnly: ochk\.app’s own page script reads it/);
+    assert.match(cookies, /the sign-in tokens of up to three other accounts signed in in this browser/);
+    assert.match(cookies, /each kept for at most two minutes while a sign-in passes between ochk\.app and ochk\.io/);
+    const meIo = text.slice(text.indexOf('On me.ochk.io, whichever'));
+    assert.match(meIo, /Of these, me\.ochk\.io sets only oc_logo/);
+    assert.match(meIo, /two cookie-free counters[^:]*: \[Plausible\]\(https:\/\/plausible\.io\/privacy\) and the same orangecheck counter as on ochk\.app/);
+});
+
+// What a site can be shared (oc-me-web lib/privacy/scopes.ts, the scopes not deprecated) and what a
+// backed account's sign-in token carries (oc-www lib/auth/bonds.ts bondClaim), R17-2.
+test('the ochk.app privacy policy lists each share a site can ask for, and what backing tells a site', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    for (const fact of [
+        'your Bitcoin address the address you added to your account',
+        'your email the email address you added to your account',
+        'how many events count for you across every app, how many of those you did yourself rather than an agent acting for you, the sats apps have paid you in all, how many apps have recorded events for you, when your first event was, and on how many days you have been active',
+        'four numbers about the statements other apps have made about you: how many, how many good, from how many apps, and how many cautions',
+        'the statements you choose, each in full: which app made it, what it says and when it ends. A statement you refused is never shared',
+        'No share gives a site your balance, your site sign-ins or your events on other sites. Only your statements name another app, with what it said about you',
+        'the amount and age floors the coin meets, when it was last checked, and a number for that coin that differs from site to site (all .ochk.io sites share one); never the coin, its address or its amount',
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
+    const terms = DOCS.find(([n]) => n === 'me/terms')[1];
+    assert.ok(terms.includes('if you back your account, what backs it, never the coin itself. Anything more a site gets only if you share it with that site: your Bitcoin address, your email, numbers about your activity across apps, or statements other apps have made about you'));
+});
+
+// Records on ochk.io's database the stored-data list left out (R17-3), and the keys it is not (R17-25).
+test('the ochk.app privacy policy names what sign-in stores beyond the account row', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    for (const fact of [
+        'records, not private keys',
+        'None of them is a private key: the keys orangecheck holds for you are named under [custody](/terms#custody) in the Terms',
+        'which of our sites you first signed up through',
+        'with a keyed hash of it so we can find your account. An unkeyed hash of it is kept beside them until a planned change removes it',
+        "that provider’s id for your account, unencrypted",
+        'passkeys for each passkey you add: its credential id and public key',
+        'the session’s id, the account id',
+        'Sessions opened in the same browser share a roster id',
+        'its address, outpoint and amount, the block height it confirmed at, the backing message you signed and your signature',
+        'for each chat.ochk.io device ochk.io vouches for: its device and Nostr public keys',
+        'the operator registry at me.ochk.io/api/operator/registry lists the operator key of every accepted application, the operator id made from that key, and when it was accepted, whether or not it holds a seat',
+        "A drop’s manifest is published in full: it names the site’s project, the drop’s label and window, how many events and people it counted, its fees and what its recipients were paid in all, and no person",
+        'retained as the canonical earnings and custody-state record until your account is deleted',
+    ]) {
+        assert.ok(text.includes(fact), fact);
+    }
 });
 
 test('vault privacy says the key is stored sealed', () => {
@@ -188,7 +268,7 @@ test('the ochk.app privacy policy says what it keeps about the sites you sign in
         'site sign-ins which live sites you signed in to or shared data with through orangecheck, and when',
         'A site can name you as the person who earned for an event only once this record exists',
         "No site sees it, and it is erased with your account or with that site's project",
-        'your wallet balance, your site sign-ins, or any cross-integrator data',
+        'No share gives a site your balance, your site sign-ins or your events on other sites',
     ]) {
         assert.ok(text.includes(fact), fact);
     }
@@ -251,7 +331,7 @@ test('the ochk.app terms and privacy scope the no-legal-name claim and say what 
         'asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references',
         'an optional handle and email address that only the reviewer sees, for the decision',
         'The answers are held for the review',
-        'A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet',
+        'a federation charter lists the operator key of each seated guardian. Nothing else from an application is published yet',
         'Nothing is checked against an ID',
     ]) {
         assert.ok(privacy.includes(fact), fact);
@@ -393,7 +473,9 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             updated: '2026-11-11',
             lead: /^\*\*What changed, 8 October to 11 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
             facts: [
-                'A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet',
+                'The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet',
+                "each of ochk.app's cookies",
+                'passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email',
                 'a balance above zero is settled by hand before your account is deleted',
                 'the contact form sends your email address',
                 'a session record keeps no IP address, and the sign-in log keeps it for 90 days',
@@ -416,6 +498,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // that says nothing about you. Neither changed what is kept about you, so neither adds a note.
     // 0.7.32 says how ochk.app settles a balance before deletion, so its note and date move to 8 November.
     // 0.7.34 says what a federation charter publishes from a guardian application, so they move to 11 November.
+    // 0.7.35 adds the registry, the shares, every ochk.app cookie and the records the list left out, under the same date.
     const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
     for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
