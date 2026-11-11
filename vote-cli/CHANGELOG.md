@@ -9,6 +9,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Fixed
+
+- `oc-vote create`, `vote` and `reveal`, asking for a signature, take the first line of stdin,
+  a last line with no newline included, and exit 1 with
+  `no signature: input closed before a line` when stdin ends before one. With 0.8.2 each
+  exited 0 and published nothing in either case.
+
 ## [0.8.2] — 2026-11-08
 
 ### Dependencies
