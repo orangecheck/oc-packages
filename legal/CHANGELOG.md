@@ -20,10 +20,11 @@ The `me` profile's Privacy policy.
   areas each account signed in there could open when last checked. In each
   tab, until it closes: what a sign-in, a sign-out, a claim, a check or a write
   in progress needs. In IndexedDB, only if you make, restore or import an
-  operator key: the key pair, its operator id, when it was made, whether it was
-  made in a browser or imported from the kit, and the version of the record,
-  under `oc-operator-key`. No request carries the private key. The
-  11 November note names it.
+  operator key: the key pair, its operator id, when it was added there,
+  whether it was made in a browser or imported from the kit, and the version of
+  the record, in `oc-operator-key`, filed under that account's id. Unlike
+  cookies, your browser attaches none of this to its requests, and no request
+  carries the private key. The 11 November note names it.
 
 ## [0.7.35] — 2026-11-11
 
