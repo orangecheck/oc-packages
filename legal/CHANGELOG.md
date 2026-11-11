@@ -8,6 +8,8 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.34] — 2026-11-11
+
 ### Changed — ochk.app's privacy policy says what a charter publishes from a guardian application
 
 The `me` profile's Privacy policy (guardian applications) said the
