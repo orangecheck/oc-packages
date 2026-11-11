@@ -10,6 +10,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `event.fire` takes `note`, as a batch entry already does. It is sent inside
+  the signed body.
+
+### Changed
+
+- The `note` comment on `BatchEventInput` says what me.ochk.io does with it:
+  up to 280 characters of plain text, shown to the person the event names and
+  kept in the event's context, so in its receipt. A class B or C built-in
+  drops it. It said the note was public and stored on the envelope.
+
 ## [0.60.0] — 2026-11-11
 
 ### Changed
