@@ -57,9 +57,10 @@ export interface FireEventOptions {
      *  /me/activity ledger. */
     action_label?: string;
     /** A note shown to the person the event names: up to 280 characters of
-     *  plain text, kept in the event's context and so in its receipt. Kept
-     *  for a class A event and for your own events; a class B or C built-in
-     *  drops it. A character that hides or reorders text is 422 `invalid_note`. */
+     *  plain text. Public: it is in the signed receipt, which anyone with its
+     *  link can read. Kept for a class A event and for your own events; a
+     *  class B or C built-in drops it. A character that hides or reorders
+     *  text is 422 `invalid_note`. */
     note?: string;
     /** For percent_of_amount-priced subtypes, the underlying amount
      *  the fee is computed against. Required for those subtypes. */
@@ -240,10 +241,10 @@ export interface BatchEventInput {
     /** Human-readable label that appears in /me/earn. */
     action_label?: string;
     /** A note shown to the person the event names: up to 280 characters of
-     *  plain text, kept in the event's context and so in its receipt. Kept
-     *  for a class A event and for your own events; a class B or C built-in
-     *  drops it. A character that hides or reorders text rejects the entry
-     *  with code `invalid_note`. */
+     *  plain text. Public: it is in the signed receipt, which anyone with its
+     *  link can read. Kept for a class A event and for your own events; a
+     *  class B or C built-in drops it. A character that hides or reorders
+     *  text rejects the entry with code `invalid_note`. */
     note?: string;
     /** Per-event idempotency key. Distinct from the batch-level retry —
      *  if the SDK retries the same batch, events that already landed

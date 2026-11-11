@@ -17,10 +17,9 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ### Changed
 
-- The `note` comment on `BatchEventInput` says what me.ochk.io does with it:
-  up to 280 characters of plain text, shown to the person the event names and
-  kept in the event's context, so in its receipt. A class B or C built-in
-  drops it. It said the note was public and stored on the envelope.
+- The `note` comment on `BatchEventInput` adds the 280-character limit, that a
+  class B or C built-in drops it, and the `invalid_note` refusal. A note is
+  public: it is in the signed receipt, which anyone with its link can read.
 
 ## [0.60.0] — 2026-11-11
 
