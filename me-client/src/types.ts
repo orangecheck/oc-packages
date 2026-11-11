@@ -183,8 +183,8 @@ export interface IntegratorPriceConfig {
 }
 
 /** A computed fee breakdown for a single event. site_rebate_sats is what
- *  flows back to the developer's balance after the platform fee and what
- *  the user earns: zero at the full user share, 0.8. */
+ *  is left after the platform fee and what the user earns: zero at the
+ *  full user share, 0.8. */
 export interface ComputedFees {
     gross_fee_sats: number;
     platform_fee_sats: number;
