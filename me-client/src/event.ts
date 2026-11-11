@@ -59,8 +59,9 @@ export interface FireEventOptions {
     /** For percent_of_amount-priced subtypes, the underlying amount
      *  the fee is computed against. Required for those subtypes. */
     payment_amount_sats?: number;
-    /** Free-form metadata stored on the envelope. Public — anyone who
-     *  GETs /api/envelope/<id> sees it. Don't put secrets here. */
+    /** @deprecated Ignored. me.ochk.io does not read it, so it is never
+     *  stored or published, and `fire` no longer sends it. Kept so existing
+     *  callers still compile. */
     metadata?: Record<string, unknown>;
     /** Per OCHK-V3-PLAN §7 phase-1 · when true, the event was fired
      *  by an oc-agent delegation rather than a human acting under their
@@ -200,7 +201,6 @@ async function fire(options: FireEventOptions): Promise<FireEventResult> {
     if (options.payment_amount_sats !== undefined)
         requestBody.payment_amount_sats = options.payment_amount_sats;
     if (options.action_label !== undefined) requestBody.action_label = options.action_label;
-    if (options.metadata !== undefined) requestBody.metadata = options.metadata;
     if (options.is_agent !== undefined) requestBody.is_agent = options.is_agent;
     // Inside the signed bytes on purpose — see `accountId` above.
     if (earner !== undefined) requestBody.user_address = earner;

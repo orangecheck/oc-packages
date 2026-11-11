@@ -81,6 +81,19 @@ describe('oc.event.fire · request signing', () => {
         expect(headers['authorization']).toBeUndefined();
     });
 
+    it('sends no metadata · me.ochk.io never reads or stores it', async () => {
+        const calls = captureFetch();
+        await oc.event.fire({
+            project_key: 'pk_test',
+            subtype: 'session_creation',
+            metadata: { plan: 'pro' },
+        });
+        expect(JSON.parse(calls[0]!.init.body as string)).toEqual({
+            project_key: 'pk_test',
+            subtype: 'session_creation',
+        });
+    });
+
     it('ignores a hand-rolled snake_case user_address · it is not part of the API', async () => {
         const calls = captureFetch();
         await oc.event.fire({
