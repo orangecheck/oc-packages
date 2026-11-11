@@ -19,7 +19,6 @@ export const PLAUSIBLE_EVENT_URL = 'https://plausible.io/api/event';
 /** An event is a few hundred bytes; anything past this is not one. */
 const MAX_BODY = 8 * 1024;
 
-
 const first = (v: string | string[] | undefined): string => (Array.isArray(v) ? (v[0] ?? '') : (v ?? '')).trim();
 
 /**
