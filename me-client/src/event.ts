@@ -63,8 +63,10 @@ export interface FireEventOptions {
      *  class B or C built-in drops it. A character that hides or reorders
      *  text is 422 `invalid_note`. */
     note?: string;
-    /** For percent_of_amount-priced subtypes, the underlying amount
-     *  the fee is computed against. Required for those subtypes. */
+    /** The payment the event is about, in whole sats above 0. Required when
+     *  the event is priced as a percent of it (an agent's event by the agent
+     *  price, when one is set), else 400 `payment_amount_sats_required`;
+     *  ignored otherwise. */
     payment_amount_sats?: number;
     /** @deprecated Ignored. me.ochk.io does not read it, so it is never
      *  stored or published, and `fire` no longer sends it. Kept so existing
@@ -237,7 +239,9 @@ async function fire(options: FireEventOptions): Promise<FireEventResult> {
 export interface BatchEventInput {
     /** Billable event key · built-in subtype or a custom project key. */
     subtype: EventKey;
-    /** For percent_of_amount-priced subtypes, the underlying amount. */
+    /** As on `fire`: whole sats above 0, required when the event is priced
+     *  as a percent of it, else the entry is rejected
+     *  `payment_amount_sats_required`. */
     payment_amount_sats?: number;
     /** Human-readable label that appears in /me/earn. */
     action_label?: string;
