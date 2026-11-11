@@ -296,9 +296,9 @@
     "@noble/hashes" "^1.8.0"
 
 "@orangecheck/sdk@^1.21.0":
-  version "1.25.1"
-  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.25.1.tgz#6f4977df2347bb243168332d9c3f6dc35195bae1"
-  integrity sha512-uz8ZHKGMlPP9ukn9fOdYvqKCVZp13uhReIOIPeaT1YiU5kv2Ey+vBJ5tTxREhLnGNlRBRa1sAqznTjUy/I/UQA==
+  version "1.26.2"
+  resolved "https://registry.yarnpkg.com/@orangecheck/sdk/-/sdk-1.26.2.tgz#90664318a6322f8c98e45f0416151206a06b0b93"
+  integrity sha512-5D/ywP6vmV69ai+dqEjRu+lTJ2Qspjq5JAa8M2uqAf6f070bxq4gFQtpQSfv23EScBYScdRC3OXR2JFm2JhoJA==
   dependencies:
     "@noble/curves" "^2.2.0"
     "@noble/hashes" "^1.5.0"
