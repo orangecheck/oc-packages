@@ -513,10 +513,10 @@ export interface WithOcAuthOptions extends OcSessionOptions {
      * ("who can sign in") is read from me.ochk.io within a minute of a change
      * and holds every signed-in account like `requireBond`, so you change it
      * there, not in code. When it can't be read, the last one read stands for
-     * ten minutes; after that signed-in requests are refused until it can. A
-     * request with no session is not held to it and never waits on reading
-     * it: pass `required` to answer it 401. An explicit `requireBond` wins
-     * over it. Default `OC_PROJECT_KEY` for the ended-session check only.
+     * up to ten minutes; after that signed-in requests are refused until it
+     * can. A request with no session is not held to it and never waits on
+     * reading it: pass `required` to answer it 401. An explicit `requireBond`
+     * wins over it. Default `OC_PROJECT_KEY` for the ended-session check only.
      */
     projectKey?: string;
 }
