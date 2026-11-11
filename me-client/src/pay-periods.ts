@@ -2,7 +2,7 @@
  * When a project pays its users. Paying is optional: a project may pay
  * always, only in promos, or never. A pay period is a stretch of time in
  * which its events earn its users sats; outside every period an event earns
- * and costs nothing, and me.ochk.io records nothing.
+ * and costs nothing, and me.ochk.io records no event.
  *
  * GET /api/integrator/config returns a project's `pay_periods`, past ones
  * included. Periods that have started never change, so any earning can be
