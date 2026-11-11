@@ -258,7 +258,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'what sites get',
-                            v: 'each site gets its own subject id for events, but signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you',
+                            v: 'each site gets its own subject id for events, but signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you, and, if you back your account, what backs it, never the coin itself; anything more only if you share it with that site',
                         },
                         {
                             k: 'no advertising',
