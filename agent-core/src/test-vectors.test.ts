@@ -1,9 +1,13 @@
 // Verify every committed test vector in oc-agent-protocol/test-vectors/.
+// Most vectors' signatures are placeholders and are checked with signature
+// verification skipped; a vector with a signature_check (v67-v75) carries a real
+// one and is also verified with the real BIP-322 verifier.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { verifySignature } from '@orangecheck/bip322';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -373,6 +377,74 @@ describe('oc-agent-protocol test vectors', () => {
             }
         });
     }
+});
+
+/** v67-v75: a real signature from a disclosed burn key, and the verdict it must get. */
+interface SignatureCheck {
+    address_type: 'p2pkh' | 'p2sh_p2wpkh' | 'p2wpkh' | 'p2tr';
+    format: 'bip137' | 'bip322-simple';
+    signed_message: string;
+    expected: { outcome: 'ACCEPT' } | { outcome: 'REJECT'; error_code: AgentErrorCode };
+}
+
+type SignedVector = (DelegationVector | ActionVector) & {
+    signature_check: SignatureCheck;
+    cross_refs?: { delegation_vector?: string };
+};
+
+/** The real BIP-322 verifier, in agent-core's (msg, sig, addr) order; never a stub that answers true. */
+const realBip322 = async (msg: string, sig: string, addr: string) => verifySignature(addr, msg, sig);
+
+describe('oc-agent-protocol signed vectors, through the real BIP-322 verifier', () => {
+    const signed = vectors.filter(
+        (v): v is { name: string; data: SignedVector } =>
+            !!(v.data as { signature_check?: unknown }).signature_check
+    );
+    const byName = new Map(signed.map((v) => [v.name, v.data]));
+
+    for (const { name, data } of signed) {
+        const sc = data.signature_check;
+        const verdict = sc.expected.outcome === 'ACCEPT' ? 'verifies' : `is refused with ${sc.expected.error_code}`;
+        it(`${name} (${sc.address_type}, ${sc.format}) ${verdict}`, async () => {
+            expect(sc.signed_message).toBe(data.expected.id);
+            let r;
+            if (data.kind === 'delegation') {
+                // The vectors' windows have passed; the signature is what is checked here.
+                r = await verifyDelegation({
+                    envelope: data.expected.envelope,
+                    verifyBip322: realBip322,
+                    skipTemporalCheck: true,
+                    skipRevocationCheck: true,
+                });
+            } else {
+                const cited = byName.get(data.cross_refs?.delegation_vector ?? '');
+                if (cited?.kind !== 'delegation') throw new Error(`${name} cites no signed delegation`);
+                expect(data.inputs.delegation_id).toBe(cited.expected.id);
+                r = await verifyActionAsOfSignedAt({
+                    action: data.expected.envelope,
+                    delegation: cited.expected.envelope,
+                    verifyBip322: realBip322,
+                    skipRevocationCheck: true,
+                });
+            }
+            if (sc.expected.outcome === 'ACCEPT') expect(r).toMatchObject({ ok: true, id: data.expected.id });
+            else expect(r).toMatchObject({ ok: false, code: sc.expected.error_code });
+        });
+    }
+
+    it('cover every address type for a delegation and an action, and refuse one tampered action', () => {
+        if (vectors.length === 0) return;
+        const accepted = (kind: string) =>
+            new Set(
+                signed
+                    .filter((v) => v.data.kind === kind && v.data.signature_check.expected.outcome === 'ACCEPT')
+                    .map((v) => v.data.signature_check.address_type)
+            );
+        const all = new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr']);
+        expect(accepted('delegation')).toEqual(all);
+        expect(accepted('action')).toEqual(all);
+        expect(signed.some((v) => v.data.signature_check.expected.outcome === 'REJECT')).toBe(true);
+    });
 });
 
 type PositiveVector =
