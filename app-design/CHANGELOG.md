@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- `SignMessage` takes one signature at a time. `onSignature` may return a
+  promise; until it settles, or while `busy` is set, the paste submit
+  waits and the wallet row is disabled and dimmed. While a wallet signs
+  (its button is `aria-busy`), the paste submit waits too, without a
+  spinner, and says why. When `wallets` is a function it is given `take`,
+  and the buttons hand it their signature (`onSigned={take}`), so a
+  wallet's signature waits its turn as well. A site whose `onSignature`
+  returns nothing gets every signature, as before, and a rejection stays
+  the site's to handle. check-dom presses twice before a render, signs
+  with a wallet during a check, refuses a check, and marks a wallet
+  `aria-busy`.
+
 ## [2.17.0] — 2026-11-10
 
 - `ErrorPage` names a code only when it is given one. Without `code` it

@@ -481,7 +481,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(sign().includes('(BIP-322)') && sign('legacy').includes('(legacy, BIP-137)') && !sign('legacy').includes('(BIP-322)'), 'SignMessage: the hint does not name the scheme');
     // Its own lead says what to do, so a wallet button's heading stays out of the slot.
     const slot = html(h(C.SignMessage, { address: 'bc1q', message: id, wallets: h('button', null, 'Sign with UniSat'), onSignature: () => {} }));
-    check(/<div class="[^"]*\[--oc-wallet-heading:none\][^"]*"><button>Sign with UniSat/.test(slot), 'SignMessage: a wallet button in the slot keeps its own heading');
+    check(/<div class="[^"]*\[--oc-wallet-heading:none\][^"]*"><fieldset class="contents"><button>Sign with UniSat/.test(slot), 'SignMessage: a wallet button in the slot keeps its own heading');
 }
 
 // 1.5: plan cards, a locked preview out of reach, a meter's verdict.

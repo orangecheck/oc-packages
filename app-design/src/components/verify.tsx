@@ -1,5 +1,5 @@
 import { CircleCheck, CircleDashed, CircleMinus, CircleSlash, CircleX, Clock } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { Button } from '../primitives/button';
@@ -135,11 +135,20 @@ export function VerifyReport({
     );
 }
 
+/** SignMessage's wallet slot: the buttons, or a function given `take` for the signature a wallet hands back. */
+export type SignMessageWallets = ReactNode | ((take: (signature: string) => void) => ReactNode);
+
 /**
  * Sign a message with a Bitcoin address: a browser wallet signs it with one
  * press where there is one (`wallets`, the buttons a site renders), and any
  * wallet can sign the message by hand and paste the signature back. The
  * frame for sign-in by wallet, /sudo, and every tool's signing step.
+ *
+ * One signature at a time: while `onSignature`'s promise is pending, or
+ * `busy` is set, the paste submit waits and the wallet buttons are disabled;
+ * while a wallet signs (its button marks itself `aria-busy`), the paste
+ * submit waits too. A wallet's signature joins that rule when the slot is a
+ * function and the buttons hand it to `take`.
  */
 export function SignMessage({
     lead,
@@ -158,8 +167,9 @@ export function SignMessage({
     /** The address that must sign. */
     address: string;
     message: string;
-    /** Buttons that sign with a browser wallet. */
-    wallets?: ReactNode;
+    /** Buttons that sign with a browser wallet, or a function that hands them `take`. */
+    wallets?: SignMessageWallets;
+    /** Holds both ways in, as while the site checks or sends what was signed. */
     busy?: boolean;
     /** Why the last signature was refused. */
     error?: ReactNode;
@@ -168,18 +178,70 @@ export function SignMessage({
     secondary?: ReactNode;
     /** The signature the wallet is asked for: BIP-322, or a legacy (BIP-137) one. The hint names it. */
     scheme?: 'bip322' | 'legacy';
-    onSignature: (signature: string) => void;
+    /**
+     * Given each signature once. Until a promise it returns settles, no other
+     * signature is taken. If you handle a rejection, return the handled promise
+     * (`p.catch(show)`), not `p`, or it is also reported as unhandled.
+     */
+    onSignature: (signature: string) => void | Promise<unknown>;
     className?: string;
 }) {
     const [pasted, setPasted] = useState('');
+    const [taking, setTaking] = useState(false);
+    const [walletSigning, setWalletSigning] = useState(false);
+    // Read and set in the same tick, so two presses before a render take one signature.
+    const held = useRef(false);
+    const slot = useRef<HTMLFieldSetElement>(null);
+    const hold = busy || taking;
+
+    function take(signature: string) {
+        if (held.current || busy) return;
+        held.current = true;
+        setTaking(true);
+        const release = () => {
+            held.current = false;
+            setTaking(false);
+        };
+        let done: void | Promise<unknown>;
+        try {
+            done = onSignature(signature);
+        } catch (e) {
+            release();
+            throw e;
+        }
+        // A rejection is still the site's to handle, as before SignMessage waited on it.
+        if (done instanceof Promise) void done.finally(release);
+        else release();
+    }
+
+    const slotted = typeof wallets === 'function' ? wallets(take) : wallets;
+    const hasSlot = Boolean(slotted);
+    useEffect(() => {
+        const el = slot.current;
+        if (!el || typeof MutationObserver === 'undefined') return;
+        const read = () => setWalletSigning(el.querySelector('[aria-busy="true"]') !== null);
+        read();
+        const watch = new MutationObserver(read);
+        watch.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+        return () => {
+            watch.disconnect();
+            setWalletSigning(false);
+        };
+    }, [hasSlot]);
+
     return (
         <div className={cn('flex flex-col gap-5', className)}>
             {lead ? <p className="text-[0.9375rem] leading-relaxed">{lead}</p> : null}
-            {wallets ? (
+            {hasSlot ? (
                 <>
                     {/* SignMessage leads with its own words, so a wallet button's heading stays out. Wrapped, the
-                        buttons' 44px targets stand clear of each other to a thumb. */}
-                    <div className="flex flex-wrap gap-2 [--oc-wallet-heading:none] pointer-coarse:gap-y-3">{wallets}</div>
+                        buttons' 44px targets stand clear of each other to a thumb. Held, the row dims: the adapter
+                        dims only for its own state. */}
+                    <div className={cn('flex flex-wrap gap-2 [--oc-wallet-heading:none] pointer-coarse:gap-y-3', hold && 'opacity-50')}>
+                        <fieldset ref={slot} disabled={hold} className="contents">
+                            {slotted}
+                        </fieldset>
+                    </div>
                     <div className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
                         <span className="h-px flex-1 bg-border" />
                         or sign it in any wallet
@@ -193,7 +255,7 @@ export function SignMessage({
                 className="flex flex-col gap-4"
                 onSubmit={(e) => {
                     e.preventDefault();
-                    if (pasted.trim()) onSignature(pasted.trim());
+                    if (pasted.trim() && !walletSigning) take(pasted.trim());
                 }}
             >
                 <Field
@@ -215,11 +277,14 @@ export function SignMessage({
                     />
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                    <Button type="submit" loading={busy} disabled={!pasted.trim()}>
+                    <Button type="submit" loading={hold} disabled={!pasted.trim() || walletSigning}>
                         {submitLabel}
                     </Button>
                     {secondary}
                 </div>
+                {walletSigning ? (
+                    <p className="text-[0.8125rem] text-muted-foreground">A wallet is signing. Cancel it there to paste a signature instead.</p>
+                ) : null}
             </form>
         </div>
     );
