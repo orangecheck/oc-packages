@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0
+
+New entry `./session-recheck`, for the browser. `recheckOnSeveralSessions(status, body)`
+says whether a write's answer was 401 `several_sessions` and, when it was,
+asks the page to read its session again. `useSessionRecheck(refresh)`, mounted
+once inside the session provider with its `refresh`, does that read. The page
+then shows the account the browser sends now. Nothing sends the write again.
+
 ## 0.15.0
 
 The session reader passes the request's method to auth-core 2.30.0, so a

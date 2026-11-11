@@ -24,6 +24,7 @@ Each site keeps its own deploy and passes its own values.
 | `./csp` | Node only, for next.config and tests. `scriptHash(text)`, `inlineHashes(scripts)`, `themeScript(props)` (the script app-design's `ThemeProvider` writes, rendered in a node of its own), and `cspCheck`, also the `oc-site-kit csp-check` CLI. |
 | `./document` | `ThemeColorMeta` for `_document`'s `<Head>`: the two `theme-color` metas, light and dark, from app-design's `THEME_COLOR` (the page's ground, generated from its tokens). Needs `@orangecheck/app-design` ^2.0.0. |
 | `./rewrites` | For a site's tests. `externalRewrites(nextConfig)` lists every rewrite, from every phase, whose destination is not a path on the site (a URL, `//host` or `/\host`); `isSitePath(destination)` is the test it applies. A family site keeps it empty. |
+| `./session-recheck` | For the browser. `recheckOnSeveralSessions(status, body)` and `useSessionRecheck(refresh)`: after a write comes back 401 `several_sessions`, the page reads its session again. |
 
 ## Usage
 
@@ -178,6 +179,16 @@ can belong to another account than the one the page showed: a read takes the
 cookie with the longest path first, so before the clears the page may have
 shown a stray's account. A page that treats every 401 as signed out treats
 this one as signed in.
+
+```ts
+import { recheckOnSeveralSessions, useSessionRecheck } from '@orangecheck/site-kit/session-recheck';
+
+// once, inside OcSessionProvider:
+useSessionRecheck(useOptionalOcSession()?.refresh);
+
+// wherever the page reads a write's answer:
+if (recheckOnSeveralSessions(res.status, body)) showWhyAndAskAgain();
+```
 
 ## Analytics
 
