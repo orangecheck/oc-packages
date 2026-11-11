@@ -119,7 +119,7 @@ It takes only the session object `verifyOcToken`, `checkOcToken`, `getOcSession`
 
 ## Pay your users, when you choose to
 
-Paying the people who use your app is optional. In your project's dashboard you turn it on, schedule promos ("Launch week", Oct 20 to 27), or leave it off. While a pay period runs, each event you send earns the person their share and takes its fee from your balance. Outside every period an event earns and costs nothing, and me.ochk.io records nothing, so you can fire events from code that runs all the time:
+Paying the people who use your app is optional. In your project's dashboard you turn it on, schedule promos ("Launch week", Oct 20 to 27), or leave it off. While a pay period runs, each event you send earns the person their share and takes its fee from your balance. Outside every period an event earns and costs nothing, and me.ochk.io records no event, so you can fire events from code that runs all the time:
 
 ```ts
 const res = await oc.event.fire({
