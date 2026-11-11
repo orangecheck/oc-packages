@@ -31,7 +31,8 @@ descriptions.
   balance, your site sign-ins or your events on other sites, and both say that
   signing in with a backed account tells a site what backs it (the Privacy
   policy: the coin's amount and age floors, when it was checked, and a per-site
-  number), never the coin.
+  number), never the coin. The Privacy policy's summary at a glance says the
+  same.
 - **What orangecheck stores.** It said the list is what an auditor would find,
   that every item is metadata, and that none of it lets orangecheck sign for
   you. It now says these are records orangecheck keeps, that none is a private

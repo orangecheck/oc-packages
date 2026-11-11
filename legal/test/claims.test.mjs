@@ -165,7 +165,7 @@ test('the ochk.app privacy policy names every cookie ochk.app sets, and the one 
     assert.match(cookies, /the sign-in tokens of up to three other accounts signed in in this browser/);
     assert.match(cookies, /each kept for at most two minutes while a sign-in passes between ochk\.app and ochk\.io/);
     const meIo = text.slice(text.indexOf('On me.ochk.io, whichever'));
-    assert.match(meIo, /Of these, me\.ochk\.io sets only oc_logo/);
+    assert.match(meIo, /Of these, me\.ochk\.io sets only oc_logo, when you open/);
     assert.match(meIo, /two cookie-free counters[^:]*: \[Plausible\]\(https:\/\/plausible\.io\/privacy\) and the same orangecheck counter as on ochk\.app/);
 });
 
@@ -192,6 +192,7 @@ test('the ochk.app privacy policy lists each share a site can ask for, and what 
         'the statements you choose, each in full: which app made it, what it says and when it ends. A statement you refused is never shared',
         'No share gives a site your balance, your site sign-ins or your events on other sites. Only your statements name another app, with what it said about you',
         'the amount and age floors the coin meets, when it was last checked, and a number for that coin that differs from site to site (all .ochk.io sites share one); never the coin, its address or its amount',
+        'what sites get each site gets its own subject id for events, but signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you, and, if you back your account, what backs it, never the coin itself; anything more only if you share it with that site',
     ]) {
         assert.ok(text.includes(fact), fact);
     }
