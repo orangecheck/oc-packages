@@ -80,6 +80,8 @@ jobs:
             - run: node --test scripts/land.test.mjs
             # The same queue's other script: what makes app-design's Test step skip or run.
             - run: node --test scripts/app-design-unreached.test.mjs
+            # The per-run temp folder the test runs use, removed when each run ends.
+            - run: node --test scripts/test-tmp-root.test.mjs
 
     sdk-docs-transform:
         # scripts/mdx-transform.mjs on TypeDoc-shaped bodies: an indented JSDoc example is set as code.
