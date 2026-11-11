@@ -8,6 +8,56 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app's privacy policy names what is published, shared and kept that it left out
+
+The `me` profile's Privacy policy, its Terms (integrators) and their
+descriptions.
+
+- **Guardian applications.** It said a federation charter publishes the
+  operator key of each seated guardian and nothing else from an application is
+  published. It now also names the operator registry at
+  me.ochk.io/api/operator/registry, which lists, to anyone, the operator key of
+  every accepted application, the operator id made from it and when it was
+  accepted, seated or not.
+- **What sites get.** The Terms and the Privacy policy said a site receives your
+  Bitcoin address, email or attestation tier only if you grant that scope, and
+  the Privacy policy that no scope releases cross-site data. The attestation
+  tier is no longer offered. Both now list what a site can ask you to share:
+  your Bitcoin address, your email, six single numbers about your activity
+  across apps, four numbers about statements other apps made about you, and the
+  statements you choose. The Privacy policy says no share gives a site your
+  balance, your site sign-ins or your events on other sites, and both say that
+  signing in with a backed account tells a site what backs it (the Privacy
+  policy: the coin's amount and age floors, when it was checked, and a per-site
+  number), never the coin.
+- **What orangecheck stores.** It said the list is what an auditor would find,
+  that every item is metadata, and that none of it lets orangecheck sign for
+  you. It now says these are records orangecheck keeps, that none is a private
+  key, and that the keys orangecheck holds are named under custody in the
+  Terms. It adds what the list left out: passkeys, a coin backing your account,
+  the Google or GitHub id, the keyed and the unkeyed hash kept beside an email,
+  a session's id and the roster id shared by sessions in one browser, the site
+  you first signed up through, and OC Chat device vouches and revocations. Its
+  description and summary no longer claim an account of every record.
+- **Drop manifests.** It said they name no one. It now says a manifest names
+  the site's project, the drop's label and window, its counts and amounts, and
+  no person.
+- **Cookies.** It said ochk.app sets up to three cookies of its own. It now
+  lists each: `__Host-oc_session`, `__Host-oc_also_0` to `_2` (other accounts'
+  sign-in tokens), `__Host-oc_active` (the active did:oc, which ochk.app's page
+  script reads), `__Host-oc_oauth`, the three sign-in handoff cookies, and
+  `oc_logo`. It said me.ochk.io has five cookies and Plausible analytics. It now
+  says those are cookies ochk.io's sites share across the domain, that
+  me.ochk.io itself sets only `oc_logo`, and that its pages also run
+  orangecheck's own counter.
+- **Retention and security.** Event and rebind envelopes are kept until your
+  account is deleted, and a deletion also removes coin backings and chat device
+  records, as the deletion section already said. "Emails encrypted at rest"
+  now points to the hashes kept beside them.
+
+Its "What changed" note's 11 November entry names all of this, and the Terms
+are dated 2026-11-11.
+
 ## [0.7.34] — 2026-11-11
 
 ### Changed — ochk.app's privacy policy says what a charter publishes from a guardian application

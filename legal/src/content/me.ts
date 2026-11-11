@@ -38,7 +38,7 @@ const terms: DocSpec = {
     metaDescription:
         'Terms of service for ochk.app: a Bitcoin-backed identity that will pay users in sats. orangecheck holds what users earn while ochk.app is in testing, and will pay it to a Lightning wallet they choose. No KYC.',
     effective: '2026-05-15',
-    updated: '2026-11-08',
+    updated: '2026-11-11',
     preamble: [
         {
             kind: 'callout',
@@ -156,7 +156,7 @@ const terms: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Sites that integrate ochk.app through its API at me.ochk.io get their own subject id for the events they report, and your Bitcoin address, email or attestation tier only if you grant that scope. Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. orangecheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
+                    text: 'Sites that integrate ochk.app through its API at me.ochk.io get their own subject id for the events they report. Signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you, and, if you back your account, what backs it, never the coin itself. Anything more a site gets only if you share it with that site: your Bitcoin address, your email, numbers about your activity across apps, or statements other apps have made about you. The [privacy policy](/privacy#scoped-identity) lists each. Integrators independently decide whether and how to trust your identity, including whether to admit, gate, or reject you. orangecheck is not a party to, and accepts no liability for, an integrator’s decisions or an integrator’s own terms, pricing, or conduct.',
                 },
             ],
         },
@@ -207,10 +207,10 @@ const privacy: DocSpec = {
     eyebrow: 'privacy',
     title: 'Privacy policy',
     description:
-        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, and a documented, falsifiable account of every record orangecheck stores.',
+        'How ochk.app and its API at me.ochk.io handle your data: no KYC, no PII required, what orangecheck keeps about you, and who sees it.',
     metaTitle: 'Privacy Policy — ochk.app',
     metaDescription:
-        'ochk.app privacy policy. No KYC, no PII required, and a full account of what orangecheck stores.',
+        'ochk.app privacy policy. No KYC, no PII required, and what orangecheck keeps about you.',
     effective: '2026-05-15',
     updated: '2026-11-11',
     preamble: [
@@ -221,7 +221,7 @@ const privacy: DocSpec = {
         {
             kind: 'bullets',
             items: [
-                { k: "11 November", v: "a guardian application's answers are held for the review. A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet." },
+                { k: "11 November", v: "a guardian application's answers are held for the review. The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet. The policy lists what a site can ask you to share and each of ochk.app's cookies, and names records it left out: passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email, a session's id and the roster id that links accounts signed in from one browser, the site you first signed up through, and OC Chat devices." },
                 { k: "8 November", v: "while payouts are in testing, a balance above zero is settled by hand before your account is deleted. There is no cash-out to start yourself: contact us first." },
                 { k: "29 October", v: "the contact form sends your email address, an optional name, the topic and your message to our inbox through our email provider (Resend)." },
                 { k: "27 and 28 October", v: "a guardian application holds the questionnaire's answers. The policy says which records a deletion keeps, and that cached copies expire within a day." },
@@ -254,7 +254,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'little pii at signup',
-                            v: 'a Bitcoin signature needs no personal data; an email code, Google or GitHub sign-in stores your email address, encrypted',
+                            v: 'a Bitcoin signature needs no personal data; an email code, Google or GitHub sign-in stores your email address, encrypted, with hashes of it, and Google or GitHub also your account id there',
                         },
                         {
                             k: 'what sites get',
@@ -275,22 +275,38 @@ const privacy: DocSpec = {
         {
             id: 'what-oc-stores',
             heading: 'what orangecheck stores',
-            hint: 'metadata only · none enables fund movement',
+            hint: 'records, not private keys',
             blocks: [
                 {
                     kind: 'para',
-                    text: 'The list below is what an auditor would find in orangecheck’s production infrastructure. Every item is metadata; none of it lets orangecheck sign on your behalf.',
+                    text: 'These are records orangecheck keeps about you on ochk.io, where you sign in, and on me.ochk.io. None of them is a private key: the keys orangecheck holds for you are named under [custody](/terms#custody) in the Terms.',
                 },
                 {
                     kind: 'bullets',
                     items: [
                         {
                             k: 'account row',
-                            v: 'an opaque account id (did:oc), optional display name and Nostr npub, timestamps. The underlying email is encrypted at rest; a BIP-322 address is stored plaintext (it is already public on-chain). No password hash, no private key, no mnemonic.',
+                            v: 'an opaque account id (did:oc), optional display name and Nostr npub, which of our sites you first signed up through, and timestamps. No password hash, no private key, no mnemonic.',
+                        },
+                        {
+                            k: 'how you sign in',
+                            v: 'a Bitcoin address you prove with a signature, stored as is (it is already public on-chain); or, for an email code, Google or GitHub, the email address, encrypted, with a keyed hash of it so we can find your account. An unkeyed hash of it is kept beside them until a planned change removes it: anyone holding a copy of the database could test a list of addresses against that one. For Google or GitHub we also store that provider’s id for your account, unencrypted, so a changed email still reaches the same account.',
+                        },
+                        {
+                            k: 'passkeys',
+                            v: 'for each passkey you add: its credential id and public key, the label you give it, the kind of authenticator and the transports it reported, whether it checked it was you, a use counter, and when it was added, last used and removed.',
                         },
                         {
                             k: 'session record',
-                            v: 'a hash of the session token, the account id, the user-agent of the device that opened it, and timestamps. The token itself lives only in your browser.',
+                            v: 'a hash of the session token, the session’s id, the account id, the user-agent of the device that opened it, and timestamps. Sessions opened in the same browser share a roster id, so we can tell which of your accounts were signed in from it. The token itself lives only in your browser.',
+                        },
+                        {
+                            k: 'a coin backing your account',
+                            v: 'if you back your account with a coin: its address, outpoint and amount, the block height it confirmed at, the backing message you signed and your signature, and when we last found it unspent, or saw it released or spent. Earlier backings stay with your account. What a site learns of it is under what sites get.',
+                        },
+                        {
+                            k: 'OC Chat devices',
+                            v: 'for each chat.ochk.io device ochk.io vouches for: its device and Nostr public keys, when it vouched, and the sign-in that asked (the session’s id and its roster id); for a device you revoke, the signed revocation, which is also published to Nostr relays.',
                         },
                         {
                             k: 'sign-in log',
@@ -310,7 +326,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'guardian applications',
-                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The answers are held for the review. A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet. Nothing is checked against an ID.',
+                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The answers are held for the review. Two places publish from an application, to anyone: the operator registry at me.ochk.io/api/operator/registry lists the operator key of every accepted application, the operator id made from that key, and when it was accepted, whether or not it holds a seat; and a federation charter lists the operator key of each seated guardian. Nothing else from an application is published yet. Nothing is checked against an ID.',
                         },
                         {
                             k: 'messages you send us',
@@ -318,7 +334,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'public anchors',
-                            v: 'an OpenTimestamps proof over each envelope’s hash, and a salted commitment to each envelope on Nostr. Public by design, and neither names you, the site or the amount. The envelope itself is served only to whoever holds its id. Drop manifests, which name no one, are published in full.',
+                            v: 'an OpenTimestamps proof over each envelope’s hash, and a salted commitment to each envelope on Nostr. Public by design, and neither names you, the site or the amount. The envelope itself is served only to whoever holds its id. A drop’s manifest is published in full: it names the site’s project, the drop’s label and window, how many events and people it counted, its fees and what its recipients were paid in all, and no person.',
                         },
                     ],
                 },
@@ -330,11 +346,34 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'Each site gets its own subject id for events: a **scoped subject**, derived from your account and that site’s project key, so the site recognizes you when you return. But signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. An integrator only ever receives your master Bitcoin address, email, or attestation tier if you **explicitly grant that scope** for that site — each scope is opt-in, per-site, and revocable at any time from your account.',
+                    text: 'Each site gets its own subject id for events: a **scoped subject**, derived from your account and that site’s project key, so the site recognizes you when you return. But signing in gives every site the same orangecheck id (did:oc), so sites that compare ids can tell it is you. If you back your account with a coin, signing in also tells the site the amount and age floors the coin meets, when it was last checked, and a number for that coin that differs from site to site (all *.ochk.io sites share one); never the coin, its address or its amount.',
                 },
                 {
                     kind: 'para',
-                    text: 'Integrators never receive your event history with other sites, your wallet balance, your site sign-ins, or any cross-integrator data, regardless of scopes granted.',
+                    text: 'Anything more, a site receives only if you **share it** with that site. Each share is opt-in, for one site, and revocable at any time from your account. A site can ask for:',
+                },
+                {
+                    kind: 'bullets',
+                    items: [
+                        { k: 'your Bitcoin address', v: 'the address you added to your account' },
+                        { k: 'your email', v: 'the email address you added to your account' },
+                        {
+                            k: 'your activity',
+                            v: 'six numbers, each shared on its own, none naming an app: how many events count for you across every app, how many of those you did yourself rather than an agent acting for you, the sats apps have paid you in all, how many apps have recorded events for you, when your first event was, and on how many days you have been active',
+                        },
+                        {
+                            k: 'your statements, counted',
+                            v: 'four numbers about the statements other apps have made about you: how many, how many good, from how many apps, and how many cautions',
+                        },
+                        {
+                            k: 'your statements',
+                            v: 'the statements you choose, each in full: which app made it, what it says and when it ends. A statement you refused is never shared',
+                        },
+                    ],
+                },
+                {
+                    kind: 'para',
+                    text: 'No share gives a site your balance, your site sign-ins or your events on other sites. Only your statements name another app, with what it said about you.',
                 },
             ],
         },
@@ -355,11 +394,44 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'On ochk.app, up to three cookies of its own, set for ochk.app alone. `__Host-oc_session` — a sign-in token bound to ochk.app (HttpOnly, Secure, SameSite=Lax); it cannot sign you in anywhere else. `__Host-oc_oauth` — kept for at most ten minutes while you sign in with Google or GitHub, then deleted. `oc_logo` — which of our two logos you chose, set only when you open a page with `?logo=` in its address and kept for a year; `?logo=classic` deletes it. Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
+                    text: 'On ochk.app, these cookies of its own, each set for ochk.app alone. The `__Host-` ones are Secure and SameSite=Lax, and HttpOnly, so no page script can read them, unless said otherwise.',
+                },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'your session',
+                            v: '`__Host-oc_session`: the sign-in token of the account you are using, bound to ochk.app; it cannot sign you in anywhere else. Kept as long as the token is valid.',
+                        },
+                        {
+                            k: 'other accounts',
+                            v: '`__Host-oc_also_0`, `__Host-oc_also_1` and `__Host-oc_also_2`: the sign-in tokens of up to three other accounts signed in in this browser, so you can switch to one. Each is kept as long as its token is valid, and cleared when that account signs out.',
+                        },
+                        {
+                            k: 'active account',
+                            v: '`__Host-oc_active`: the did:oc of the account you are using, so the page can show that account’s places before they load. It is not HttpOnly: ochk.app’s own page script reads it. Kept as long as the session.',
+                        },
+                        {
+                            k: 'google or github sign-in',
+                            v: '`__Host-oc_oauth`: kept for at most ten minutes while you sign in with Google or GitHub, then deleted.',
+                        },
+                        {
+                            k: 'sign-in handoff',
+                            v: '`__Host-oc_handoff_guard`, `__Host-oc_handoff_` followed by the sign-in’s state, and `__Host-oc_to_io`: each kept for at most two minutes while a sign-in passes between ochk.app and ochk.io.',
+                        },
+                        {
+                            k: 'logo',
+                            v: '`oc_logo`: which of our two logos you chose, set only when you open a page with `?logo=` in its address and kept for a year; `?logo=classic` deletes it.',
+                        },
+                    ],
                 },
                 {
                     kind: 'para',
-                    text: 'On me.ochk.io, five cookies. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None, Domain=.ochk.io). `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` — your dark/light, appearance, reduced-motion and logo preferences (Domain=.ochk.io), not auth-bearing. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only.',
+                    text: 'Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics use orangecheck’s own counter at insights.ochk.io: no cookie; a visit is counted by a hash salted daily, the salt is deleted after 48 hours, and your IP address and browser string are never stored.',
+                },
+                {
+                    kind: 'para',
+                    text: 'On me.ochk.io, whichever of the cookies shared across ochk.io’s sites (Domain=.ochk.io) your browser holds. `oc_session` — the Ed25519-signed session token issued by ochk.io (HttpOnly, Secure, SameSite=None). `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` — your dark/light, appearance, reduced-motion and logo preferences, not auth-bearing. Of these, me.ochk.io sets only `oc_logo`, when you open one of its pages with `?logo=` in the address. No tracking cookies, no advertising IDs, no third-party pixels. Page analytics on me.ochk.io use two cookie-free counters, each sent the page’s origin and path and nothing more of its address than campaign tags: [Plausible](https://plausible.io/privacy) and the same orangecheck counter as on ochk.app.',
                 },
             ],
         },
@@ -387,7 +459,7 @@ const privacy: DocSpec = {
                     items: [
                         {
                             k: 'event & rebind envelopes',
-                            v: 'retained as the canonical earnings and custody-state record; their hashes on Bitcoin and commitments on Nostr are immutable',
+                            v: 'retained as the canonical earnings and custody-state record until your account is deleted; their hashes on Bitcoin and commitments on Nostr are immutable',
                         },
                         {
                             k: 'request logs',
@@ -403,7 +475,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'account row',
-                            v: 'deleted, with your sign-in identities, passkeys, sessions and sign-in log, when your account-deletion request completes; anchored and published data cannot be deleted by anyone',
+                            v: 'deleted, with your sign-in identities, passkeys, sessions, sign-in log, coin backings and OC Chat device records, when your account-deletion request completes; anchored and published data cannot be deleted by anyone',
                         },
                     ],
                 },
@@ -415,7 +487,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'HTTPS in transit; emails encrypted at rest; access to production data is allowlisted and audit-logged. No method of storage is perfectly secure — we use reasonable measures but do not warrant security; see the [Terms of Service](/terms). If we become aware of a breach of personal data we hold, we will notify affected users and any competent supervisory authority as required by applicable law.',
+                    text: 'HTTPS in transit; emails stored encrypted, beside the hashes named under what orangecheck stores; access to production data is allowlisted and audit-logged. No method of storage is perfectly secure — we use reasonable measures but do not warrant security; see the [Terms of Service](/terms). If we become aware of a breach of personal data we hold, we will notify affected users and any competent supervisory authority as required by applicable law.',
                 },
             ],
         },
@@ -450,7 +522,7 @@ const privacy: DocSpec = {
         privacyChanges,
     ],
     summary:
-        'summary: no kyc, no pii required, and a documented account of every record orangecheck stores.',
+        'summary: no kyc, no pii required, and what orangecheck keeps about you, who sees it, and how it is deleted.',
 };
 
 export const meProfile = { terms, privacy };
