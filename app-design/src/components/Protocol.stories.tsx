@@ -522,14 +522,15 @@ export const SignWithWallet: StoryObj = {
         return (
             <Section space="sm">
                 <div className="flex max-w-xl flex-col gap-10">
-                    {/* In SignMessage's slot the button's own heading stays out: the lead already says it. */}
+                    {/* In SignMessage's slot the button's own heading stays out: the lead already says it. The slot hands the
+                        wallet's signature to take, so it waits, as a pasted one does, while the site checks the first. */}
                     <div className="rounded-[1.25rem] border border-border bg-card p-6 md:p-8">
                         <SignMessage
                             lead="Sign the stamp with the address it names."
                             address={ADDRESS}
                             message={MESSAGE}
-                            wallets={<OcWalletButton address={ADDRESS} message={MESSAGE} showManual={false} hideUninstalled layout="row" onSigned={() => undefined} />}
-                            onSignature={() => undefined}
+                            wallets={(take) => <OcWalletButton address={ADDRESS} message={MESSAGE} showManual={false} hideUninstalled layout="row" onSigned={take} />}
+                            onSignature={() => new Promise((done) => setTimeout(done, 1500))}
                         />
                     </div>
                     {/* On its own it keeps its heading, in this design's type. */}

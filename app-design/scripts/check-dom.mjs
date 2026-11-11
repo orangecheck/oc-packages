@@ -91,6 +91,99 @@ async function copyFrom(host) {
     await unmount();
 }
 
+// SignMessage takes one signature at a time: a second press, or a wallet's signature, waits for the first to settle.
+{
+    const address = 'bc1q9h7gaw6m5x7dqcz0l4s3n2u4kq8r0vjz5e3w7t';
+    const calls = [];
+    let settle;
+    const onSignature = (sig) => {
+        calls.push(sig);
+        return new Promise((resolve, reject) => (settle = { resolve, reject }));
+    };
+    let take;
+    const wallets = (t) => {
+        take = t;
+        return h('button', { type: 'button', onClick: () => t('wallet-sig') }, 'Sign with UniSat');
+    };
+    const { host, unmount } = await mount(h(C.SignMessage, { address, message: 'm', wallets, onSignature }));
+    const area = host.querySelector('textarea');
+    const form = host.querySelector('form');
+    const submit = form.querySelector('button[type="submit"]');
+    const wallet = () => [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
+    await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(area, 'pasted-sig');
+        area.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    check(typeof take === 'function', 'SignMessage: a function slot is not handed take');
+    // Two presses before a render: the second must not reach the site.
+    await act(async () => {
+        form.requestSubmit();
+        form.requestSubmit();
+    });
+    check(calls.length === 1, `SignMessage: two presses of the paste submit took ${calls.length} signatures`);
+    check(submit.disabled && submit.getAttribute('aria-busy') === 'true', 'SignMessage: the paste submit is not held while the signature is checked');
+    check(wallet()?.matches(':disabled') && host.querySelector('fieldset')?.parentElement?.classList.contains('opacity-50'), 'SignMessage: the wallet buttons are not held, and dimmed, while a pasted signature is checked');
+    await act(async () => take?.('wallet-sig'));
+    check(calls.length === 1, `SignMessage: a wallet's signature was taken while a pasted one was checked (${show(calls)})`);
+    await act(async () => settle.resolve());
+    check(!submit.disabled && !wallet()?.matches(':disabled') && !host.querySelector('fieldset')?.parentElement?.classList.contains('opacity-50'), 'SignMessage: still held, or dimmed, after the check settled');
+    await act(async () => wallet()?.click());
+    check(calls.length === 2 && calls[1] === 'wallet-sig', `SignMessage: the wallet's signature was not taken once the first settled (${show(calls)})`);
+    // A refusal releases too, and the site keeps its rejection.
+    const unhandled = [];
+    const note = (e) => unhandled.push(e);
+    process.on('unhandledRejection', note);
+    await act(async () => settle.reject(new Error('refused')));
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    process.off('unhandledRejection', note);
+    check(!submit.disabled, 'SignMessage: still held after the check was refused');
+    check(unhandled.length === 1 && unhandled[0]?.message === 'refused', `SignMessage: the site's rejection was ${unhandled.length ? 'changed' : 'swallowed'}`);
+    await act(async () => form.requestSubmit());
+    check(calls.length === 3, 'SignMessage: no signature taken after a refusal');
+    await act(async () => settle.resolve());
+    await unmount();
+}
+
+// SignMessage: a site that returns nothing is given every signature, as before; busy holds both ways in.
+{
+    const calls = [];
+    const props = { address: 'bc1q', message: 'm', wallets: h('button', { type: 'button' }, 'Sign with UniSat'), onSignature: (sig) => void calls.push(sig) };
+    const { host, unmount } = await mount(h(C.SignMessage, props));
+    const area = host.querySelector('textarea');
+    const form = host.querySelector('form');
+    await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(area, 'sig');
+        area.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    await act(async () => form.requestSubmit());
+    await act(async () => form.requestSubmit());
+    check(calls.length === 2, `SignMessage: a site that returns nothing got ${calls.length} of two signatures`);
+    await unmount();
+    const busy = await mount(h(C.SignMessage, { ...props, busy: true }));
+    const slotButton = [...busy.host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
+    check(slotButton?.matches(':disabled'), 'SignMessage: busy does not hold the wallet buttons');
+    await busy.unmount();
+}
+
+// SignMessage: while a wallet signs (its button aria-busy), the paste submit waits, with no spinner, and says why.
+{
+    const { host, unmount } = await mount(h(C.SignMessage, { address: 'bc1q', message: 'm', wallets: h('button', { type: 'button' }, 'Sign with UniSat'), onSignature: () => {} }));
+    const area = host.querySelector('textarea');
+    const submit = host.querySelector('button[type="submit"]');
+    const wallet = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
+    await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(area, 'sig');
+        area.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    const why = () => host.textContent.includes('A wallet is signing.');
+    check(!submit.disabled && !why(), 'SignMessage: the paste submit is held with no wallet signing');
+    await act(async () => wallet.setAttribute('aria-busy', 'true'));
+    check(submit.disabled && submit.getAttribute('aria-busy') !== 'true' && why(), 'SignMessage: a pasted signature can be sent while a wallet signs, or the wait is not said');
+    await act(async () => wallet.removeAttribute('aria-busy'));
+    check(!submit.disabled && !why(), 'SignMessage: the paste submit stays held after the wallet stopped');
+    await unmount();
+}
+
 // A fence highlighted at build time (rehypeCode → the MDX pre): the copy keeps the final newline.
 {
     const source = '# Example charter v1 · canonical bytes\nversion: v1.0.0\n';
@@ -752,5 +845,5 @@ if (failures) {
     console.error(`\n${failures} dom failure(s)`);
     process.exit(1);
 }
-console.log(`✓ dom: ${checks} checks; exact copies, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a slow read, a refused sign-out, observer-free mounts`);
+console.log(`✓ dom: ${checks} checks; exact copies, one signature at a time, toasts in the mode, commands, a twice-typed prompt, a countdown, full screen, a source, a choice, a footer's shared address, an avatar's fallback, a row and its actions, a refused copy, one live region for every copy, a group's error, an overlay's class, a disabled chip, a labelled copy, page shortcuts kept out of fields and layers, refusals on their fields, a failed read, a slow read, a refused sign-out, observer-free mounts`);
 process.exit(0);
