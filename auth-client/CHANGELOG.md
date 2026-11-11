@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.49.0] — 2026-11-11
+
 ### Added
 
 - `OcSignIn` names ochk.io's `several_sessions` refusal of an add: the browser
