@@ -164,6 +164,41 @@ describe('OcSignIn · an add refused for several sign-ins', () => {
         await waitFor(() => expect(calls.filter((c) => c.path === '/api/auth/me')).toHaveLength(2));
     });
 
+    it('the prop is what reads the session again, not the wrapping provider', async () => {
+        const calls = serve(SEVERAL);
+        const recheck = vi.fn();
+        render(
+            <OcSessionProvider config={{ multiAccount: false }}>
+                <OcSignIn audience="https://ochk.io" linkPrompt={false} add onSeveralSessions={recheck} />
+            </OcSessionProvider>
+        );
+        await waitFor(() => expect(calls.filter((c) => c.path === '/api/auth/me')).toHaveLength(1));
+        expect(await signWithWallet()).toBe(WORDS);
+        await waitFor(() => expect(recheck).toHaveBeenCalledTimes(1));
+        await act(async () => {});
+        expect(calls.filter((c) => c.path === '/api/auth/me')).toHaveLength(1);
+    });
+
+    it('a re-read that fails leaves the words and throws nothing', async () => {
+        serve(SEVERAL);
+        const unhandled: unknown[] = [];
+        const onUnhandled = (reason: unknown) => unhandled.push(reason);
+        process.on('unhandledRejection', onUnhandled);
+        try {
+            const recheck = vi.fn(async () => {
+                throw new Error('offline');
+            });
+            render(<OcSignIn audience="https://ochk.io" linkPrompt={false} add onSeveralSessions={recheck} />);
+            expect(await signWithWallet()).toBe(WORDS);
+            await waitFor(() => expect(recheck).toHaveBeenCalledTimes(1));
+            await new Promise((r) => setTimeout(r, 10));
+            expect(unhandled).toEqual([]);
+            expect(screen.getByRole('alert').textContent).toBe(WORDS);
+        } finally {
+            process.off('unhandledRejection', onUnhandled);
+        }
+    });
+
     it('a provider sign-in refused for it comes back with the same words', async () => {
         serve({ body: {} });
         window.history.replaceState({}, '', '/signin?add=1&oauth_error=several_sessions&oauth_provider=google');
