@@ -266,16 +266,17 @@
   dependencies:
     "@noble/hashes" "1.8.0"
 
-"@noble/hashes@1.8.0", "@noble/hashes@^1.8.0":
+"@noble/hashes@1.8.0", "@noble/hashes@^1.5.0", "@noble/hashes@^1.8.0":
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-core@^2.22.0":
-  version "2.27.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.27.0.tgz#02569bc54958089bb66d017a2ef8ccaf1f639a54"
-  integrity sha512-kf+5qNDG9hSgmR3PKk88EgHrxGEF95jNeKjTDri6t0K9PxRBNZTRMEc4bIs8yulp+OS03PH2AS05iij3eI2QOw==
+  version "2.30.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.30.0.tgz#dd3b200279e374c89f6896cb3478ec48b31f33a7"
+  integrity sha512-Clw4uHWFrU3+jT3vvPGq6UdhbwMtw1UsCpsyS0rNdMarRCY5M92xHee/t0Z6JxzpGY18BXdX9kDHVyRa4jVTag==
   dependencies:
+    "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
 
 "@orangecheck/bip322@^1.1.0", "@orangecheck/bip322@^1.1.2":
@@ -286,6 +287,13 @@
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
     "@scure/base" "^1.2.6"
+
+"@orangecheck/stamp-core@1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.4.0.tgz#7991ab7b2af1cd178b13e44cd30ba8534d1e58b3"
+  integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==
+  dependencies:
+    "@noble/hashes" "^1.5.0"
 
 "@orangecheck/wallet-adapter@^0.7.0":
   version "0.7.2"
@@ -870,9 +878,9 @@ is-potential-custom-element-name@^1.0.1:
   integrity sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==
 
 jose@^6.2.2:
-  version "6.2.13"
-  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.13.tgz#4e16bf3cc81b5641ef5025cb2c9f61edfa92572f"
-  integrity sha512-7TIg10ZE1x82YediN+lcrPNvGMKge9yFHQD+Qho/b8y2adfugU3AsvvHfxV0fzyFllT6l9xCjf4RWY9g/Z9PJQ==
+  version "6.2.17"
+  resolved "https://registry.yarnpkg.com/jose/-/jose-6.2.17.tgz#e68d80dbcb900f032e98f9cd4460ffafddf505fc"
+  integrity sha512-wOuK9V1yujQFH5S0ZWmLcDZN7+IKh9bUCC2ZPCf2HDlol3WWHy+PPyNjEI75FXRLMp3vDKQcupP59xhVU95hcg==
 
 joycon@^3.1.1:
   version "3.1.1"
