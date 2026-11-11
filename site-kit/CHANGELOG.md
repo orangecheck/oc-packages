@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.15.0
+
+The session reader passes the request's method to auth-core 2.30.0, so a
+write that carries more than one `oc_session` cookie and no per-tab token
+resolves to no session, with reason `several_sessions`. Reads, a write with
+one cookie and a write pinned to a tab read as before. The auth-core peer
+range is now `^2.30.0`: an older auth-core reads such a write's first
+cookie.
+
+A site whose own reader refuses such a write can answer it with a way out.
+`answerSeveralSessions(req, res)` answers 401
+`{ ok: false, reason: 'several_sessions' }`, no-store, with a clear for every
+stray `oc_session` the request's path carried: host-only cookies at every
+prefix of the path, and cookies at the auth host's domain (`OC_AUTH_ISSUER`'s
+host, when the request's host sits under it) at every prefix but `/`. The
+cookie at that domain and `/` stays, so the same request sent again carries
+one cookie. A reader throws `SeveralSessions` and `answersUnverified` answers
+it that way. `severalSessionsRefused(req)` says whether a request is one the
+rule refuses, and `strayCookieClears(url, domain)` gives the clears alone.
+
 ## 0.14.0
 
 A site that holds a person's data can answer every API route the way its

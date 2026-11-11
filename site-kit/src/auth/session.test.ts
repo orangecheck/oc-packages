@@ -78,6 +78,37 @@ describe('createSessionReader', () => {
     });
 });
 
+describe('createSessionReader · several oc_session cookies', () => {
+    const post = (headers: Record<string, string>) => ({
+        method: 'POST',
+        headers: { 'sec-fetch-site': 'same-origin', ...headers },
+    });
+
+    it('gives a same-origin write that carries two no session, whichever comes first', async () => {
+        const a = await mint(keys, 'did:oc:aa');
+        const b = await mint(keys, 'did:oc:bb');
+        const reader = createSessionReader({ revocation: false });
+        for (const cookie of [`oc_session=${a}; oc_session=${b}`, `oc_session=${b}; oc_session=${a}`, `oc_session=junk; oc_session=${a}`]) {
+            expect(await reader.resolve(post({ cookie }))).toEqual({ ok: false, reason: 'several_sessions', tab: false });
+        }
+    });
+
+    it('still reads the first that verifies for a read, a write with one cookie, and a write pinned to a tab', async () => {
+        const a = await mint(keys, 'did:oc:aa');
+        const b = await mint(keys, 'did:oc:bb');
+        const tab = await mint(keys, 'did:oc:tab');
+        const reader = createSessionReader({ revocation: false });
+        const two = `oc_session=${a}; oc_session=${b}`;
+        expect(await reader.read(get({ cookie: two }))).toMatchObject({ did_oc: 'did:oc:aa' });
+        expect(await reader.read(post({ cookie: `oc_session=${b}` }))).toMatchObject({ did_oc: 'did:oc:bb' });
+        expect(await reader.resolve(post({ cookie: two, 'x-oc-tab-session': tab }))).toMatchObject({
+            ok: true,
+            via: 'tab',
+            session: { did_oc: 'did:oc:tab' },
+        });
+    });
+});
+
 describe('createSessionReader · ended sessions', () => {
     const decode = (t: string) => JSON.parse(Buffer.from(t.split('.')[1]!, 'base64url').toString());
     const fixed = (status: RevocationStatus): RevocationCheck => ({
