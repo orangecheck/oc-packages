@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
     clearSessionCookieHeader,
+    cookiePickRefused,
     DEFAULT_ISSUER,
     readAllSessionCookies,
     readSessionCookie,
@@ -253,6 +254,116 @@ describe('resolveSessionFromRequest (per-tab pinning)', () => {
         );
         expect(res.ok).toBe(true);
         if (res.ok) expect(res.payload.did_oc).toBe('did:oc:7ab7ab');
+    });
+});
+
+describe('a state change that carries several oc_session cookies', () => {
+    let sign: SignConfig;
+    let verify: VerifyConfig;
+    let a: string;
+    let b: string;
+
+    beforeAll(async () => {
+        const k = await freshKeys();
+        sign = { kid: k.kid, privateJwk: k.privateJwk, publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+        verify = { publicJwk: k.publicJwk, issuer: DEFAULT_ISSUER };
+        a = await mint('acct-a', 'did:oc:aaaa');
+        b = await mint('acct-b', 'did:oc:bbbb');
+    });
+
+    const mint = (sub: string, didOc: string) =>
+        signSession({ sub, did_oc: didOc, jti: `jti-${sub}` }, sign, 3600);
+    const two = () => `oc_session=${a}; oc_session=${b}`;
+    const asA = { ok: true, via: 'cookie', payload: { did_oc: 'did:oc:aaaa' } };
+    const several = { ok: false, reason: 'several_sessions' };
+
+    it('is refused, whichever cookie comes first, for any unsafe method', async () => {
+        const jars = [two(), `oc_session=${b}; oc_session=${a}`];
+        for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'post']) {
+            for (const cookie of jars) {
+                const res = await resolveSessionFromRequest({ cookie }, verify, { method });
+                expect(res).toEqual(several);
+            }
+        }
+    });
+
+    it('is refused when only one of the cookies verifies', async () => {
+        const cookie = `oc_session=stale-garbage; oc_session=${a}`;
+        const res = await resolveSessionFromRequest({ cookie }, verify, { method: 'POST' });
+        expect(res).toEqual(several);
+    });
+
+    it('is refused when the method is missing, which counts as a state change', async () => {
+        const res = await resolveSessionFromRequest({ cookie: two() }, verify, { method: undefined });
+        expect(res).toEqual(several);
+    });
+
+    it('resolves the first cookie that verifies for a read', async () => {
+        const cookie = `oc_session=stale-garbage; ${two()}`;
+        for (const method of ['GET', 'HEAD', 'OPTIONS', 'get']) {
+            const res = await resolveSessionFromRequest({ cookie }, verify, { method });
+            expect(res).toMatchObject(asA);
+        }
+    });
+
+    it('resolves a state change with one cookie', async () => {
+        const cookie = `oc_session=${a}`;
+        const res = await resolveSessionFromRequest({ cookie }, verify, { method: 'POST' });
+        expect(res).toMatchObject(asA);
+    });
+
+    it('takes a valid tab token over the cookies, and refuses an invalid one', async () => {
+        const tab = await mint('acct-tab', 'did:oc:7ab7ab');
+        const post = { method: 'POST' };
+        const pinned = await resolveSessionFromRequest(
+            { cookie: two(), [TAB_SESSION_HEADER]: tab },
+            verify,
+            post
+        );
+        expect(pinned).toMatchObject({ ok: true, via: 'tab', payload: { did_oc: 'did:oc:7ab7ab' } });
+        const bad = await resolveSessionFromRequest(
+            { cookie: two(), [TAB_SESSION_HEADER]: 'garbage.token.value' },
+            verify,
+            post
+        );
+        expect(bad).toEqual({ ok: false, reason: 'tab_invalid' });
+    });
+
+    it('reads a Web Headers object and Node string[] values the same way', async () => {
+        const post = { method: 'POST' };
+        const web = await resolveSessionFromRequest(new Headers({ cookie: two() }), verify, post);
+        expect(web).toEqual(several);
+        const node = await resolveSessionFromRequest({ cookie: [two()] }, verify, post);
+        expect(node).toEqual(several);
+    });
+
+    it('takes the first cookie that verifies when the caller gives no request', async () => {
+        const res = await resolveSessionFromRequest({ cookie: two() }, verify);
+        expect(res).toMatchObject(asA);
+    });
+
+    it('refuses a request option it does not read', async () => {
+        const req = { method: 'POST', headers: {} } as unknown as { method: string };
+        const res = resolveSessionFromRequest({ cookie: `oc_session=${a}` }, verify, req);
+        await expect(res).rejects.toThrow(/unknown option headers/);
+    });
+});
+
+describe('cookiePickRefused', () => {
+    const two = 'oc_session=x; oc_session=y';
+
+    it('answers the rule without verifying anything', () => {
+        expect(cookiePickRefused('POST', { cookie: two })).toBe(true);
+        expect(cookiePickRefused('POST', { cookie: 'oc_session=x; other=1' })).toBe(false);
+        expect(cookiePickRefused('POST', { cookie: 'oc_session=; oc_session=y' })).toBe(false);
+        expect(cookiePickRefused('POST', {})).toBe(false);
+        expect(cookiePickRefused('GET', { cookie: two })).toBe(false);
+        expect(cookiePickRefused(undefined, { cookie: two })).toBe(true);
+    });
+
+    it('leaves a request with a tab token to that token, and an empty one counts as none', () => {
+        expect(cookiePickRefused('POST', { cookie: two, [TAB_SESSION_HEADER]: 't' })).toBe(false);
+        expect(cookiePickRefused('POST', { cookie: two, [TAB_SESSION_HEADER]: '' })).toBe(true);
     });
 });
 

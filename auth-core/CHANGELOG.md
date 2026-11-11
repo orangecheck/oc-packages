@@ -11,6 +11,22 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.30.0] — 2026-11-11
+
+### Added
+
+- `cookiePickRefused(method, headers)`: `true` when a state change carries
+  more than one `oc_session` cookie and no per-tab token, so the browser's
+  cookie order would choose whose account it acts for. Any method but GET,
+  HEAD and OPTIONS counts as a state change, a missing one included. Every
+  `oc_session` value counts, whether or not it verifies.
+- `resolveSessionFromRequest(headers, cfg, { method })`: given the request's
+  method, it answers `{ ok: false, reason: "several_sessions" }` for such a
+  request instead of taking the first cookie that verifies. A per-tab token
+  still comes first, and reads resolve as they do without the argument. The
+  argument reads only `method`, and an unknown key throws. Without it, every
+  method takes the first cookie that verifies.
+
 ## [2.29.0] — 2026-11-10
 
 ### Added
