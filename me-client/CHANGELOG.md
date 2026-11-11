@@ -17,6 +17,9 @@ this file tracks the package's TS / Node / runtime API surface.
   requests are refused until it can. The comment on the rule's own read gives
   the price config's full cache age: ten minutes at the edge, then up to an
   hour stale.
+- The `user_share_pct` comment says me.ochk.io saves every event at the full
+  share of 0.8, which leaves no rebate, in place of calling the remainder a
+  rebate to the site's balance.
 
 ## [0.59.0] — 2026-11-10
 
