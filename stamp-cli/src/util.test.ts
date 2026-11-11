@@ -1,6 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -163,5 +164,55 @@ describe('signatureForId', () => {
             exit.mockRestore();
             err.mockRestore();
         }
+    });
+
+    describe('reading the signature from stdin', () => {
+        // Each settles: a prompt left waiting once stdin ends would exit 0 with no stamp.
+        async function fromStdin(chunks: string[]): Promise<{ sig?: string; thrown?: string; errors: string }> {
+            const stdin = vi.spyOn(process, 'stdin', 'get').mockReturnValue(Readable.from(chunks) as never);
+            const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+                throw new Error(`exit ${code}`);
+            }) as never);
+            const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+            try {
+                const sig = await signatureForId({ msg: SIGNED.msg, id: SIGNED.id, address: SIGNED.address });
+                return { sig, errors: err.mock.calls.flat().join(' ') };
+            } catch (e) {
+                return { thrown: (e as Error).message, errors: err.mock.calls.flat().join(' ') };
+            } finally {
+                stdin.mockRestore();
+                exit.mockRestore();
+                err.mockRestore();
+                write.mockRestore();
+            }
+        }
+
+        it('exits 1 when stdin closes before a line', { timeout: 3000 }, async () => {
+            const r = await fromStdin([]);
+            expect(r.thrown).toBe('exit 1');
+            expect(r.errors).toMatch(/no signature provided: input closed before a line/);
+        });
+
+        it('takes a last line that has no newline', { timeout: 3000 }, async () => {
+            expect(await fromStdin([SIGNED.sigOverId])).toMatchObject({ sig: SIGNED.sigOverId });
+        });
+
+        it('takes only the first line', { timeout: 3000 }, async () => {
+            expect(await fromStdin([`${SIGNED.sigOverId}\nsomething else\n`])).toMatchObject({ sig: SIGNED.sigOverId });
+        });
+
+        it('exits 1 on an empty line', { timeout: 3000 }, async () => {
+            const r = await fromStdin(['\n']);
+            expect(r.thrown).toBe('exit 1');
+            expect(r.errors).toMatch(/no signature provided/);
+            expect(r.errors).not.toMatch(/input closed/);
+        });
+
+        it('exits 1 on a last line that does not verify', { timeout: 3000 }, async () => {
+            const r = await fromStdin([SIGNED.sigOverMsg]);
+            expect(r.thrown).toBe('exit 1');
+            expect(r.errors).toMatch(/Sign the 64-character id/);
+        });
     });
 });

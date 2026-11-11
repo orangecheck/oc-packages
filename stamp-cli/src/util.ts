@@ -140,11 +140,16 @@ export async function signatureForId(input: {
         console.error('─'.repeat(60));
         console.error(`\nSign this id with ${input.address} (BIP-322):\n\n${input.id}\n`);
         const rl = createInterface({ input: process.stdin, output: process.stderr });
-        try {
-            signature = (await rl.question('paste signature (base64): ')).trim();
-        } finally {
-            rl.close();
-        }
+        // The first line, or undefined once input closes: a pending question never settles then.
+        const line = await new Promise<string | undefined>((resolve) => {
+            rl.once('line', resolve);
+            rl.once('close', () => resolve(undefined));
+            rl.setPrompt('paste signature (base64): ');
+            rl.prompt();
+        });
+        rl.close();
+        if (line === undefined) die('no signature provided: input closed before a line');
+        signature = line.trim();
         if (!signature) die('no signature provided');
     }
     let ok = false;
