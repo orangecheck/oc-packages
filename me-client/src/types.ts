@@ -153,8 +153,8 @@ export interface IntegratorEventConfig {
     /** The per-event fee the site pays. */
     site_pays: SiteFeeShape;
     /** Fraction of GROSS that flows to the user (0–0.8 since the
-     *  platform fee is 20%). The remainder is a rebate to the site's
-     *  OC project balance. */
+     *  platform fee is 20%). me.ochk.io saves every event at 0.8, the
+     *  full share, which leaves no rebate. */
     user_share_pct: number;
     /** Optional per-agent-class pricing override applied when an event
      *  fires with is_agent=true. */

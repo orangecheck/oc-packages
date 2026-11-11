@@ -120,6 +120,19 @@ describe('@orangecheck/me-client · computeFees invariants', () => {
         expect(f.site_rebate_sats).toBe(0);
     });
 
+    it('leaves no rebate at the full share of 0.8, at any fixed price', () => {
+        const left: number[] = [];
+        for (let sats = 1; sats <= 200_000; sats += 1) {
+            const f = computeFees({
+                enabled: true,
+                site_pays: { kind: 'fixed_sats', sats },
+                user_share_pct: 0.8,
+            });
+            if (f.site_rebate_sats !== 0) left.push(sats);
+        }
+        expect(left).toEqual([]);
+    });
+
     it('percent_of_amount throws when amount missing', () => {
         expect(() =>
             computeFees({
