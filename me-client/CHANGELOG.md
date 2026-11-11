@@ -17,6 +17,9 @@ this file tracks the package's TS / Node / runtime API surface.
   requests are refused until it can. The comment on the rule's own read gives
   the price config's full cache age: ten minutes at the edge, then up to an
   hour stale.
+- The `not_paying` comments say no event is recorded or charged. A call
+  carrying the person's own token for your verified domain still records
+  that they use your project.
 
 ## [0.59.0] — 2026-11-10
 
