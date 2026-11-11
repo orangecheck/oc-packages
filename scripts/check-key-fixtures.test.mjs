@@ -7,8 +7,12 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
+
+import { useTmpRoot } from './test-tmp-root.mjs';
+
+useTmpRoot(after);
 
 const SCRIPT = new URL('./check-key-fixtures.mjs', import.meta.url).pathname;
 // Built from parts, so this file itself adds no key header.

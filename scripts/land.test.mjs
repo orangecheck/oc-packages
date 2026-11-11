@@ -7,8 +7,12 @@ import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
+
+import { useTmpRoot } from './test-tmp-root.mjs';
+
+useTmpRoot(after);
 
 const SCRIPT = new URL('./land.sh', import.meta.url).pathname;
 
