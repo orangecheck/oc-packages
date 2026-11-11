@@ -427,7 +427,7 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'ochk.app also keeps these in your browser, outside cookies. Your browser sends none of them with its requests; ochk.app’s scripts read them in the page.',
+                    text: 'ochk.app also keeps these in your browser, outside cookies. Unlike cookies, your browser attaches none of them to its requests; ochk.app’s scripts read them in the page.',
                 },
                 {
                     kind: 'bullets',
@@ -442,7 +442,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'IndexedDB',
-                            v: 'only if you make, restore or import an operator key on the operator page: the key pair, its operator id, when it was made, whether it was made in a browser or imported from the kit, and the version of the record, under `oc-operator-key`, kept for that account until you delete it there. No request carries the private key; ochk.app’s scripts read it to sign your operator actions, and show it to you only when you ask.',
+                            v: 'only if you make, restore or import an operator key on the operator page: the key pair, its operator id, when it was added here, whether it was made in a browser or imported from the kit, and the version of the record, in `oc-operator-key`, filed under that account’s id until you delete it there. No request carries the private key; ochk.app’s scripts read it to sign your operator actions, and show it to you only when you ask.',
                         },
                     ],
                 },
