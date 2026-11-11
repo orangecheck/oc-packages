@@ -15,7 +15,7 @@
  *   if (res.earned) {
  *     // res.event.id, res.event.gross_fee_sats, res.event.user_earned_sats
  *   } else {
- *     // Not paying now (res.reason === 'not_paying'): nothing recorded or
+ *     // Not paying now (res.reason === 'not_paying'): no event recorded or
  *     // charged. res.next_pay_period says when paying starts, if scheduled.
  *   }
  *
@@ -127,7 +127,7 @@ export type FireEventResult =
       }
     | {
           ok: true;
-          /** The project isn't paying its users now. Nothing recorded or charged. */
+          /** The project isn't paying its users now. No event recorded or charged. */
           earned: false;
           reason: 'not_paying';
           detail: string;
@@ -255,7 +255,7 @@ export interface BatchEventInput {
  *    switch on, and `reason` says it in words. A server older than the
  *    codes sends `reason` alone. The other events in the batch are
  *    unaffected.
- *  - `not_paying` · the project isn't paying its users now; nothing was
+ *  - `not_paying` · the project isn't paying its users now; no event was
  *    recorded or charged. */
 /** Why me.ochk.io rejected one event in a batch: a rejected entry's `code`. */
 export type BatchRejectCode =

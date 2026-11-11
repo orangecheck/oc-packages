@@ -22,6 +22,9 @@ this file tracks the package's TS / Node / runtime API surface.
   rebate to the site's balance.
 - The `ComputedFees` comment says `site_rebate_sats` is what is left after the
   platform fee and what the user earns.
+- The `not_paying` comments say no event is recorded or charged. A call
+  carrying the person's own token for your verified domain still records
+  that they use your project.
 
 ## [0.59.0] — 2026-11-10
 
