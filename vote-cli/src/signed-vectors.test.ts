@@ -1,9 +1,10 @@
 // oc-vote-protocol's signed vectors (v19-v24: a poll and a ballot signed by one
 // disclosed burn key per address type, v23 with one byte of the ballot's
-// signature flipped, v24 with one byte of the poll's) through the CLI's own paths: the poll lookup every command
-// makes, `oc-vote verify`'s ballot verdicts, the read-back that decides a poll or
-// ballot is published, and the count. A BIP-322 simple signature is tried again
-// with the finalized BIP's `smp` prefix.
+// signature flipped, v24 with one byte of the poll's) through the CLI's own
+// paths: the poll lookup every command makes, `oc-vote verify`'s ballot
+// verdicts, the read-back that decides a poll or ballot is published, and the
+// count. A BIP-322 simple signature is tried again with the finalized BIP's
+// `smp` prefix.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -108,7 +109,10 @@ describe('signed vectors through the CLI', () => {
         expect(new Set(accepted.map((v) => v.check.address_type))).toEqual(
             new Set(['p2pkh', 'p2sh_p2wpkh', 'p2wpkh', 'p2tr'])
         );
-        expect(VECTORS.some((v) => v.check.ballot.expected.outcome === 'REJECT')).toBe(true);
+        const refused = VECTORS.flatMap((v) =>
+            (['poll', 'ballot'] as const).filter((part) => v.check[part].expected.outcome === 'REJECT')
+        );
+        expect(refused.sort()).toEqual(['ballot', 'poll']);
     });
 
     for (const v of VECTORS) {

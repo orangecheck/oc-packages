@@ -13,7 +13,7 @@ export type EnvelopeKind =
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ActorRef {
-    /** mainnet Bitcoin address (P2WPKH, P2TR, or P2PKH). */
+    /** mainnet Bitcoin address (P2WPKH, P2SH-P2WPKH, P2TR, or P2PKH). */
     address: string;
     alg: 'bip322';
 }
