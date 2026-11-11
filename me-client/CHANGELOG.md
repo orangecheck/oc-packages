@@ -10,6 +10,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- The `projectKey` comment says what holds while the sign-in rule can't be
+  read: the last one read stands for ten minutes, then signed-in requests are
+  refused until it can. The comment on the rule's own read gives the price
+  config's full cache age: ten minutes at the edge, then up to an hour stale.
+
 ## [0.59.0] — 2026-11-10
 
 ### Added
