@@ -212,18 +212,19 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and a full account of what orangecheck stores.',
     effective: '2026-05-15',
-    updated: '2026-11-08',
+    updated: '2026-11-11',
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 October to 8 November 2026.** We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+            text: "**What changed, 8 October to 11 November 2026.** We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
         },
         {
             kind: 'bullets',
             items: [
+                { k: "11 November", v: "a guardian application's answers are held for the review. A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet." },
                 { k: "8 November", v: "while payouts are in testing, a balance above zero is settled by hand before your account is deleted. There is no cash-out to start yourself: contact us first." },
                 { k: "29 October", v: "the contact form sends your email address, an optional name, the topic and your message to our inbox through our email provider (Resend)." },
-                { k: "27 and 28 October", v: "a guardian application holds the questionnaire's answers, and the charter publishes its handle, name, jurisdiction, contact channel and fingerprint. The policy says which records a deletion keeps, and that cached copies expire within a day." },
+                { k: "27 and 28 October", v: "a guardian application holds the questionnaire's answers. The policy says which records a deletion keeps, and that cached copies expire within a day." },
                 { k: "26 October", v: "a session record keeps no IP address, and the sign-in log keeps it for 90 days." },
                 { k: "25 October", v: "me.ochk.io records which sites you sign in to or share data with, and when. No site sees that record." },
                 { k: "24 October", v: "signing in gives every site the same did:oc." },
@@ -309,7 +310,7 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'guardian applications',
-                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The questionnaire’s handle, name, jurisdiction, contact channel and fingerprint are published in the federation charter, because guardians are named trust anchors. Nothing is checked against an ID, and nothing else is published.',
+                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The answers are held for the review. A federation charter publishes the operator key of each seated guardian, and nothing else from an application is published yet. Nothing is checked against an ID.',
                         },
                         {
                             k: 'messages you send us',
