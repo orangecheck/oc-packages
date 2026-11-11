@@ -19,8 +19,14 @@ export async function promptForSignature(
             `  paste the base64 signature and press enter:\n  > `
     );
     const rl = createInterface({ input: process.stdin, output: process.stderr });
-    const sig = (await rl.question('')).trim();
+    // The first line, or undefined once input closes: a pending question never settles then.
+    const line = await new Promise<string | undefined>((resolve) => {
+        rl.once('line', resolve);
+        rl.once('close', () => resolve(undefined));
+    });
     rl.close();
+    if (line === undefined) throw new Error('no signature: input closed before a line');
+    const sig = line.trim();
     if (!sig) throw new Error('empty signature');
     return sig;
 }
