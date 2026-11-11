@@ -180,6 +180,26 @@ test('the ochk.app privacy policy names both page counters ochk.app loads, and h
     assert.match(app, /never stores your IP address or browser string\. To opt out of overlook\.technology, open any page with \?ov_ignore=1/);
 });
 
+// What ochk.app keeps in a browser outside cookies: /trust's rows (oc-app-web
+// components/oca/trust/PrivacyCompare.tsx BrowserStorage), and the IndexedDB record's
+// fields (lib/operator/browser-key.ts OperatorIdentity).
+test('the ochk.app privacy policy says what ochk.app keeps in your browser outside cookies', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    const app = text.slice(text.indexOf('On ochk.app, these cookies of its own'), text.indexOf('On me.ochk.io, whichever'));
+    for (const rx of [
+        /keeps these in your browser, outside cookies\. Your browser sends none of them with its requests/,
+        /local storage your light or dark choice, under theme; the code tab you last picked/,
+        /your alert switches on the account page and, on the balance page, when and where to suggest moving your balance/,
+        /the setup steps you ticked, in the quickstart and on each of your projects’ pages/,
+        /for each account signed in here, which of its areas it could open when last checked/,
+        /each tab what a sign-in, a sign-out, a claim, a check or a write in progress needs, until the tab closes/,
+        /IndexedDB only if you make, restore or import an operator key on the operator page: the key pair, its operator id, when it was made, whether it was made in a browser or imported from the kit, and the version of the record, under oc-operator-key, kept for that account until you delete it there/,
+        /No request carries the private key/,
+    ]) {
+        assert.match(app, rx);
+    }
+});
+
 // What a site can be shared (oc-me-web lib/privacy/scopes.ts, the scopes not deprecated) and what a
 // backed account's sign-in token carries (oc-www lib/auth/bonds.ts bondClaim), R17-2.
 test('the ochk.app privacy policy lists each share a site can ask for, and what backing tells a site', () => {
@@ -488,6 +508,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             facts: [
                 'The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet',
                 "each of ochk.app's cookies and both of its page counters",
+                'what ochk.app keeps in your browser outside cookies (an operator key record in IndexedDB only if you make, restore or import one)',
                 'passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email',
                 'a balance above zero is settled by hand before your account is deleted',
                 'the contact form sends your email address',
@@ -512,6 +533,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // 0.7.32 says how ochk.app settles a balance before deletion, so its note and date move to 8 November.
     // 0.7.34 says what a federation charter publishes from a guardian application, so they move to 11 November.
     // 0.7.35 adds the registry, the shares, every ochk.app cookie, its second page counter and the records the list left out, under the same date.
+    // 0.7.36 adds what ochk.app keeps in your browser outside cookies, the operator key record among it, under the same date.
     const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
     for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');

@@ -8,6 +8,23 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+### Changed — ochk.app's privacy policy says what ochk.app keeps in your browser outside cookies
+
+The `me` profile's Privacy policy.
+
+- **Browser storage.** It said your light/dark choice stays in your browser's
+  local storage. It now lists what ochk.app keeps in your browser outside
+  cookies, as ochk.app's /trust page does. In local storage: your light or
+  dark choice, the code tab you last picked, your alert switches and when and
+  where to suggest moving your balance, the setup steps you ticked, and which
+  areas each account signed in there could open when last checked. In each
+  tab, until it closes: what a sign-in, a sign-out, a claim, a check or a write
+  in progress needs. In IndexedDB, only if you make, restore or import an
+  operator key: the key pair, its operator id, when it was made, whether it was
+  made in a browser or imported from the kit, and the version of the record,
+  under `oc-operator-key`. No request carries the private key. The
+  11 November note names it.
+
 ## [0.7.35] — 2026-11-11
 
 ### Changed — ochk.app's privacy policy names what is published, shared and kept that it left out

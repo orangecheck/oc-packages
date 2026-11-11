@@ -221,7 +221,7 @@ const privacy: DocSpec = {
         {
             kind: 'bullets',
             items: [
-                { k: "11 November", v: "a guardian application's answers are held for the review. The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet. The policy lists what a site can ask you to share, each of ochk.app's cookies and both of its page counters, and names records it left out: passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email, a session's id and the roster id that links accounts signed in from one browser, the site you first signed up through, and OC Chat devices." },
+                { k: "11 November", v: "a guardian application's answers are held for the review. The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet. The policy lists what a site can ask you to share, each of ochk.app's cookies and both of its page counters, what ochk.app keeps in your browser outside cookies (an operator key record in IndexedDB only if you make, restore or import one), and names records it left out: passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email, a session's id and the roster id that links accounts signed in from one browser, the site you first signed up through, and OC Chat devices." },
                 { k: "8 November", v: "while payouts are in testing, a balance above zero is settled by hand before your account is deleted. There is no cash-out to start yourself: contact us first." },
                 { k: "29 October", v: "the contact form sends your email address, an optional name, the topic and your message to our inbox through our email provider (Resend)." },
                 { k: "27 and 28 October", v: "a guardian application holds the questionnaire's answers. The policy says which records a deletion keeps, and that cached copies expire within a day." },
@@ -427,7 +427,28 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'Your light/dark choice stays in your browser’s local storage, not a cookie. Page analytics on ochk.app use two counters, neither of which sets a cookie. orangecheck’s own counter at insights.ochk.io counts a visit by a hash salted daily; the salt is deleted after 48 hours, and your IP address and browser string are never stored. Our operations dashboard at overlook.technology keeps each page’s path, except pages whose address can name a person or a project, where you came from and any campaign tags, your country, region and city, and your device, browser and operating system. It counts a visitor by a hash of your IP address and browser salted daily, deletes each salt within two days, and never stores your IP address or browser string. To opt out of overlook.technology, open any page with `?ov_ignore=1`; that choice is kept in your browser’s local storage.',
+                    text: 'ochk.app also keeps these in your browser, outside cookies. Your browser sends none of them with its requests; ochk.app’s scripts read them in the page.',
+                },
+                {
+                    kind: 'bullets',
+                    items: [
+                        {
+                            k: 'local storage',
+                            v: 'your light or dark choice, under `theme`; the code tab you last picked; your alert switches on the account page and, on the balance page, when and where to suggest moving your balance, as this browser last saw them; the setup steps you ticked, in the quickstart and on each of your projects’ pages; and, for each account signed in here, which of its areas it could open when last checked, so a reload draws them at once. Every page still checks on the server.',
+                        },
+                        {
+                            k: 'each tab',
+                            v: 'what a sign-in, a sign-out, a claim, a check or a write in progress needs, until the tab closes.',
+                        },
+                        {
+                            k: 'IndexedDB',
+                            v: 'only if you make, restore or import an operator key on the operator page: the key pair, its operator id, when it was made, whether it was made in a browser or imported from the kit, and the version of the record, under `oc-operator-key`, kept for that account until you delete it there. No request carries the private key; ochk.app’s scripts read it to sign your operator actions, and show it to you only when you ask.',
+                        },
+                    ],
+                },
+                {
+                    kind: 'para',
+                    text: 'Page analytics on ochk.app use two counters, neither of which sets a cookie. orangecheck’s own counter at insights.ochk.io counts a visit by a hash salted daily; the salt is deleted after 48 hours, and your IP address and browser string are never stored. Our operations dashboard at overlook.technology keeps each page’s path, except pages whose address can name a person or a project, where you came from and any campaign tags, your country, region and city, and your device, browser and operating system. It counts a visitor by a hash of your IP address and browser salted daily, deletes each salt within two days, and never stores your IP address or browser string. To opt out of overlook.technology, open any page with `?ov_ignore=1`; that choice is kept in your browser’s local storage.',
                 },
                 {
                     kind: 'para',
