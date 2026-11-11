@@ -75,6 +75,7 @@ const BANNED = [
     [/none enables fund movement|none of it lets orangecheck sign on your behalf/i, 'orangecheck holds keys for email, Google and GitHub sign-in, named under custody'],
     [/Drop manifests, which name no one/i, "a drop's manifest names the site's project and its amounts"],
     [/up to three cookies of its own|two cookies of its own/i, 'ochk.app sets up to nine cookies of its own, besides oc_logo'],
+    [/Page analytics use orangecheck’s own counter at insights\.ochk\.io/i, 'ochk.app also loads overlook.technology’s counter'],
     [/On me\.ochk\.io, five cookies/i, 'me.ochk.io sets only oc_logo; the others are set by ochk.io and its sites'],
 ];
 
@@ -166,6 +167,17 @@ test('the ochk.app privacy policy names every cookie ochk.app sets, and the one 
     const meIo = text.slice(text.indexOf('On me.ochk.io, whichever'));
     assert.match(meIo, /Of these, me\.ochk\.io sets only oc_logo/);
     assert.match(meIo, /two cookie-free counters[^:]*: \[Plausible\]\(https:\/\/plausible\.io\/privacy\) and the same orangecheck counter as on ochk\.app/);
+});
+
+// ochk.app's two beacons (oc-app-web lib/oca/beacons.ts) and what overlook keeps (overlook.technology
+// apps/dashboard/src/server/web/store.ts: no IP or user-agent stored, a daily-salted visitor id).
+test('the ochk.app privacy policy names both page counters ochk.app loads, and how to opt out of the second', () => {
+    const text = DOCS.find(([n]) => n === 'me/privacy')[1];
+    const app = text.slice(text.indexOf('On ochk.app, these cookies of its own'), text.indexOf('On me.ochk.io, whichever'));
+    assert.match(app, /Page analytics on ochk\.app use two counters, neither of which sets a cookie/);
+    assert.match(app, /insights\.ochk\.io counts a visit by a hash salted daily/);
+    assert.match(app, /overlook\.technology keeps each page’s path, except pages whose address can name a person or a project/);
+    assert.match(app, /never stores your IP address or browser string\. To opt out of overlook\.technology, open any page with \?ov_ignore=1/);
 });
 
 // What a site can be shared (oc-me-web lib/privacy/scopes.ts, the scopes not deprecated) and what a
@@ -474,7 +486,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             lead: /^\*\*What changed, 8 October to 11 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
             facts: [
                 'The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet',
-                "each of ochk.app's cookies",
+                "each of ochk.app's cookies and both of its page counters",
                 'passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email',
                 'a balance above zero is settled by hand before your account is deleted',
                 'the contact form sends your email address',
@@ -498,7 +510,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // that says nothing about you. Neither changed what is kept about you, so neither adds a note.
     // 0.7.32 says how ochk.app settles a balance before deletion, so its note and date move to 8 November.
     // 0.7.34 says what a federation charter publishes from a guardian application, so they move to 11 November.
-    // 0.7.35 adds the registry, the shares, every ochk.app cookie and the records the list left out, under the same date.
+    // 0.7.35 adds the registry, the shares, every ochk.app cookie, its second page counter and the records the list left out, under the same date.
     const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
     for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
