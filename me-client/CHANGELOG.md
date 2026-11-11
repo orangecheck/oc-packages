@@ -18,10 +18,10 @@ this file tracks the package's TS / Node / runtime API surface.
   the price config's full cache age: ten minutes at the edge, then up to an
   hour stale.
 - The `user_share_pct` comment says me.ochk.io saves every event at the full
-  share of 0.8, which leaves no rebate, in place of calling the remainder a
-  rebate to the site's balance.
+  share of 0.8, which leaves no rebate, and that a rebate an event does carry
+  is never debited, so it stays in the project's balance.
 - The `ComputedFees` comment says `site_rebate_sats` is what is left after the
-  platform fee and what the user earns.
+  platform fee and what the user earns, and that me.ochk.io never debits it.
 - The `not_paying` comments and the README say no event is recorded or
   charged. A call carrying the person's own token for your verified domain
   still records that they use your project.

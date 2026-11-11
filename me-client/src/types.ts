@@ -154,7 +154,8 @@ export interface IntegratorEventConfig {
     site_pays: SiteFeeShape;
     /** Fraction of GROSS that flows to the user (0–0.8 since the
      *  platform fee is 20%). me.ochk.io saves every event at 0.8, the
-     *  full share, which leaves no rebate. */
+     *  full share, which leaves no rebate. A rebate an event does carry
+     *  is never debited, so it stays in the project's balance. */
     user_share_pct: number;
     /** Optional per-agent-class pricing override applied when an event
      *  fires with is_agent=true. */
@@ -184,7 +185,8 @@ export interface IntegratorPriceConfig {
 
 /** A computed fee breakdown for a single event. site_rebate_sats is what
  *  is left after the platform fee and what the user earns: zero at the
- *  full user share, 0.8. */
+ *  full user share, 0.8. me.ochk.io debits an event's platform fee and
+ *  what its user earns, never its rebate. */
 export interface ComputedFees {
     gross_fee_sats: number;
     platform_fee_sats: number;
