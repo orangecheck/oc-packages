@@ -13,6 +13,9 @@
   wallet answers through the `take` of the render it was pressed in.
   `onSignature` may return any thenable, not only a native promise.
   check-dom covers each, and raises `busy` after a press.
+- `SignMessage` does not use a signature that comes after it has left the
+  page, as from a wallet prompt left open in a closed sheet; `onSignature`
+  of a closed opening is never called. check-dom unmounts, then answers.
 
 ## [2.18.0] — 2026-11-11
 
