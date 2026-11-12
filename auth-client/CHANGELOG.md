@@ -9,6 +9,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- A sign-out or an account switch that ochk.io refuses with 409
+  `several_sessions` says so: the browser sent more than one ochk.io sign-in,
+  so nothing was signed out or switched, and the person checks which account
+  is signed in now before trying again. `trySignOut` resolves to
+  `{ ok: false, reason: 'several_sessions', status: 409 }` and the account chip
+  and pill show those words; `switchAccount` throws an Error whose message is
+  the sentence. Both read the session again first: ochk.io cleared the extra
+  cookies, so the account left signed in may not be the one the page showed.
+
 ## [2.49.0] — 2026-11-11
 
 ### Added

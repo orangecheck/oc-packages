@@ -1,7 +1,8 @@
 import * as React from 'react';
 
 import { useOcSession } from './provider';
-import type { OcAccount } from './types';
+import { SIGN_OUT_SEVERAL_SESSIONS_TEXT } from './refusal';
+import type { OcAccount, OcSignOutResult } from './types';
 
 function shortenAddress(addr: string): string {
     if (addr.length <= 12) return addr;
@@ -79,7 +80,7 @@ export function OcAccountChip({
     const signInUrl = signInUrlOverride ?? sessionSignInUrl;
     const [open, setOpen] = React.useState(false);
     // The auth host did not end the session: say so, and keep showing the account.
-    const [signOutFailed, setSignOutFailed] = React.useState(false);
+    const [signOutFailed, setSignOutFailed] = React.useState<SignOutRefusal | null>(null);
     const wrapRef = React.useRef<HTMLDivElement | null>(null);
 
     React.useEffect(() => {
@@ -284,8 +285,8 @@ export function OcAccountChip({
                             role="menuitem"
                             onClick={() => {
                                 setOpen(false);
-                                setSignOutFailed(false);
-                                void trySignOut().then((r) => setSignOutFailed(!r.ok));
+                                setSignOutFailed(null);
+                                void trySignOut().then((r) => setSignOutFailed(r.ok ? null : r.reason));
                             }}
                             className={menuItemClassName}
                             data-oc-account-chip-item=""
@@ -320,20 +321,24 @@ export function OcAccountChip({
                     </div>
                 </div>
             )}
-            {signOutFailed ? <SignOutFailed /> : null}
+            {signOutFailed ? <SignOutFailed reason={signOutFailed} /> : null}
         </div>
     );
 }
 
+type SignOutRefusal = Extract<OcSignOutResult, { ok: false }>['reason'];
+
 /** Said when the auth host did not end the session, so the person is still signed in. */
-function SignOutFailed(): React.ReactElement {
+function SignOutFailed({ reason }: { reason: SignOutRefusal }): React.ReactElement {
     return (
         <span
             role="alert"
             data-oc-signout-failed=""
             style={{ display: 'block', marginTop: 4, fontSize: 12, color: 'var(--destructive, #dc2626)' }}
         >
-            Couldn’t sign out. You’re still signed in; try again.
+            {reason === 'several_sessions'
+                ? SIGN_OUT_SEVERAL_SESSIONS_TEXT
+                : 'Couldn’t sign out. You’re still signed in; try again.'}
         </span>
     );
 }
@@ -409,7 +414,7 @@ export function OcAccountPill({
 }: OcAccountPillProps): React.ReactElement | null {
     const { status, account, trySignOut } = useOcSession();
     // The auth host did not end the session: say so, and keep showing the account.
-    const [signOutFailed, setSignOutFailed] = React.useState(false);
+    const [signOutFailed, setSignOutFailed] = React.useState<SignOutRefusal | null>(null);
 
     if (status !== 'authenticated' || !account) return null;
 
@@ -432,8 +437,8 @@ export function OcAccountPill({
             <button
                 type="button"
                 onClick={() => {
-                    setSignOutFailed(false);
-                    void trySignOut().then((r) => setSignOutFailed(!r.ok));
+                    setSignOutFailed(null);
+                    void trySignOut().then((r) => setSignOutFailed(r.ok ? null : r.reason));
                 }}
                 aria-label="Sign out"
                 style={{
@@ -447,7 +452,7 @@ export function OcAccountPill({
             >
                 sign out
             </button>
-            {signOutFailed ? <SignOutFailed /> : null}
+            {signOutFailed ? <SignOutFailed reason={signOutFailed} /> : null}
         </div>
     );
 }

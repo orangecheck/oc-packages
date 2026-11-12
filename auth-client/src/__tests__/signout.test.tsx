@@ -24,7 +24,9 @@ const ACCOUNT = {
     display_identity: { kind: 'did', value: 'did:oc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
 };
 
-type Logout = 'ok' | 401 | 503 | 'network';
+type Logout = 'ok' | 401 | 409 | 503 | 'network' | 'several';
+const SIGN_OUT_SEVERAL =
+    "Your browser sent more than one ochk.io sign-in, so you weren't signed out. Check which account is signed in now, then try again.";
 function setupFetch(logout: Logout) {
     const calls: string[] = [];
     globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
@@ -33,6 +35,9 @@ function setupFetch(logout: Logout) {
         if (u.includes('/api/auth/logout')) {
             if (logout === 'network') throw new TypeError('Failed to fetch');
             if (logout === 'ok') return new Response('{"ok":true}', { status: 200 });
+            if (logout === 'several') {
+                return Response.json({ ok: false, reason: 'several_sessions' }, { status: 409 });
+            }
             return new Response('{"ok":false}', { status: logout });
         }
         if (u.endsWith('/api/auth/me')) {
@@ -115,6 +120,32 @@ describe('signOut() reports what the auth host did', () => {
         expect(s().status).toBe('authenticated');
     });
 
+    it('409 several_sessions: not signed out, said as such, and the session is read again', async () => {
+        const calls = setupFetch('several');
+        const s = await signedIn();
+        writeTabSession({ token: 't', didOc: ACCOUNT.did_oc });
+        let r: OcSignOutResult | undefined;
+        await act(async () => {
+            r = await s().trySignOut();
+        });
+        expect(r).toEqual({ ok: false, reason: 'several_sessions', status: 409 });
+        // ochk.io cleared the extra cookies, so the account left is read again.
+        const after = calls.slice(calls.findIndex((c) => c.includes('/api/auth/logout')) + 1);
+        expect(after.some((c) => c.endsWith('/api/auth/me'))).toBe(true);
+        expect(s().status).toBe('authenticated');
+        expect(readTabSession()).not.toBeNull();
+    });
+
+    it('a 409 with any other reason is a refusal like any other', async () => {
+        setupFetch(409);
+        const s = await signedIn();
+        let r: OcSignOutResult | undefined;
+        await act(async () => {
+            r = await s().trySignOut();
+        });
+        expect(r).toEqual({ ok: false, reason: 'refused', status: 409 });
+    });
+
     it('scope current refused: no refresh, nothing changes', async () => {
         const calls = setupFetch(503);
         const s = await signedIn();
@@ -168,6 +199,40 @@ describe('the account components say when sign-out did not happen', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
         });
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull());
+    });
+
+    it('OcAccountPill: several_sessions says so in words, and a later refusal says the usual', async () => {
+        setupFetch('several');
+        render(
+            <OcSessionProvider>
+                <OcAccountPill />
+            </OcSessionProvider>
+        );
+        const button = await screen.findByRole('button', { name: 'Sign out' });
+        await act(async () => {
+            fireEvent.click(button);
+        });
+        expect((await screen.findByRole('alert')).textContent).toBe(SIGN_OUT_SEVERAL);
+        setupFetch(503);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+        });
+        expect(screen.getByRole('alert').textContent).toBe('Couldn’t sign out. You’re still signed in; try again.');
+    });
+
+    it('OcAccountChip: several_sessions says so in words; the chip stays signed in', async () => {
+        setupFetch('several');
+        render(
+            <OcSessionProvider>
+                <OcAccountChip />
+            </OcSessionProvider>
+        );
+        fireEvent.click(await screen.findByRole('button', { name: /Open account menu/ }));
+        await act(async () => {
+            fireEvent.click(screen.getByRole('menuitem', { name: /sign out/ }));
+        });
+        expect((await screen.findByRole('alert')).textContent).toBe(SIGN_OUT_SEVERAL);
+        expect(screen.getByRole('button', { name: /Open account menu/ })).toBeTruthy();
     });
 
     it("OcAccountChip links to the family's account page by default, not a redirect", async () => {

@@ -29,6 +29,27 @@ export function endedSigninText(reason: string): string | undefined {
 export const SEVERAL_SESSIONS_TEXT =
     "Your browser sent more than one ochk.io sign-in, so this account wasn't added. Check which account is signed in now, then try again.";
 
+/**
+ * A sign-out or an account switch ochk.io refused for the same reason. It
+ * cleared the extra cookies and ended or switched nothing, so the provider
+ * reads the session again and the page shows the account left signed in.
+ */
+export const SIGN_OUT_SEVERAL_SESSIONS_TEXT =
+    "Your browser sent more than one ochk.io sign-in, so you weren't signed out. Check which account is signed in now, then try again.";
+export const SWITCH_SEVERAL_SESSIONS_TEXT =
+    "Your browser sent more than one ochk.io sign-in, so the account wasn't switched. Check which account is signed in now, then try again.";
+
+/** True when an auth host answer is ochk.io's 409 `several_sessions`. */
+export async function isSeveralSessionsAnswer(res: Response): Promise<boolean> {
+    if (res.status !== 409) return false;
+    try {
+        const body = (await res.clone().json()) as { reason?: unknown } | null;
+        return body?.reason === 'several_sessions';
+    } catch {
+        return false;
+    }
+}
+
 /** True when a sign-in call threw ochk.io's `several_sessions` refusal. */
 export function isSeveralSessions(err: unknown): boolean {
     return err instanceof Error && err.message === 'several_sessions';

@@ -133,10 +133,13 @@ export type OcSignOutScope = 'all' | 'current';
  * auth host did not answer (`'unreachable'`) or refused (`'refused'`, with its
  * HTTP status). The provider then changes nothing, so the page still shows the
  * signed-in account; tell the person it did not work and let them try again.
+ * `'several_sessions'` (409): the browser sent more than one ochk.io sign-in.
+ * ochk.io cleared the extra cookies and ended nothing, and the provider has
+ * read the session again, so the page shows the account left signed in.
  */
 export type OcSignOutResult =
     | { ok: true }
-    | { ok: false; reason: 'unreachable' | 'refused'; status?: number };
+    | { ok: false; reason: 'unreachable' | 'refused' | 'several_sessions'; status?: number };
 
 export interface OcSessionState {
     status: OcSessionStatus;
@@ -181,6 +184,9 @@ export interface OcSessionState {
      * the session has been re-fetched. Throws if the target `did_oc`
      * isn't in the current roster (the user must add it via
      * {@link addAccount} first) or if the auth host is unreachable.
+     * When ochk.io refused because the browser sent more than one ochk.io
+     * sign-in, it reads the session again first and throws an Error whose
+     * message is a sentence to show the person.
      */
     switchAccount: (didOc: string) => Promise<void>;
     /**

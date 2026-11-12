@@ -255,6 +255,39 @@ describe('OcSessionProvider · roster surface', () => {
         );
     });
 
+    it('switchAccount: 409 several_sessions reads the session again and throws words to show', async () => {
+        const calls = setupFetch(({ url }) => {
+            if (url.endsWith('/api/auth/me')) {
+                return jsonResponse({ account: ACCOUNT_A, roster: [ROSTER_PEER_B] });
+            }
+            if (url.endsWith('/api/auth/switch')) {
+                return jsonResponse({ ok: false, reason: 'several_sessions' }, 409);
+            }
+            return jsonResponse({ ok: false }, 404);
+        });
+
+        let captured: ReturnType<typeof useOcSession> | null = null;
+        function Probe() {
+            captured = useOcSession();
+            return null;
+        }
+        render(
+            <OcSessionProvider>
+                <Probe />
+            </OcSessionProvider>
+        );
+        await waitFor(() => {
+            expect(captured?.status).toBe('authenticated');
+        });
+        const reads = () => calls.filter((c) => c.url.endsWith('/api/auth/me')).length;
+        const before = reads();
+
+        await expect(captured!.switchAccount(ROSTER_PEER_B.did_oc)).rejects.toThrow(
+            "Your browser sent more than one ochk.io sign-in, so the account wasn't switched. Check which account is signed in now, then try again."
+        );
+        expect(reads()).toBe(before + 1);
+    });
+
     it('signOut() default scope hits /api/auth/logout without a scope query param', async () => {
         const calls = setupFetch(({ url }) => {
             if (url.endsWith('/api/auth/me')) {
