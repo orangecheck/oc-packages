@@ -60,8 +60,9 @@ export interface FireEventOptions {
     /** A note shown to the person the event names: up to 280 characters of
      *  plain text. Public: it is in the event's receipt, which anyone with its
      *  link can read. Kept for a class A event and for your own events; a
-     *  class B or C built-in drops it. A character that hides or reorders
-     *  text is 422 `invalid_note`. */
+     *  class B or C built-in drops it. A note that is not a string, is over
+     *  280 characters or has a character that hides or reorders text is 422
+     *  `invalid_note`. */
     note?: string;
     /** The payment the event is about, in whole sats above 0. Required when
      *  the event is priced as a percent of it (an agent's event by the agent
@@ -248,8 +249,9 @@ export interface BatchEventInput {
     /** A note shown to the person the event names: up to 280 characters of
      *  plain text. Public: it is in the event's receipt, which anyone with its
      *  link can read. Kept for a class A event and for your own events; a
-     *  class B or C built-in drops it. A character that hides or reorders
-     *  text rejects the entry with code `invalid_note`. */
+     *  class B or C built-in drops it. A note that is not a string, is over
+     *  280 characters or has a character that hides or reorders text
+     *  rejects the entry with code `invalid_note`. */
     note?: string;
     /** Per-event idempotency key. Distinct from the batch-level retry —
      *  if the SDK retries the same batch, events that already landed

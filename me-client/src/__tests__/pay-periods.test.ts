@@ -84,6 +84,16 @@ describe('oc.event.verify with pay periods', () => {
             'outside_pay_period',
             'subtype_disabled',
         ]);
+        const refused = event.verify(
+            { ...envelope('2026-10-28T00:00:00Z'), is_agent: true },
+            { ...config, events: { session_creation: { ...CFG, agent: { refuse: true } } } },
+            undefined,
+            { payPeriods: [LAUNCH] }
+        );
+        expect(refused.issues.map((i) => i.field)).toEqual([
+            'outside_pay_period',
+            'agent_refused',
+        ]);
     });
 
     it('checks nothing about periods when none are given', () => {
