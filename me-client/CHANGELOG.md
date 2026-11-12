@@ -13,7 +13,8 @@ this file tracks the package's TS / Node / runtime API surface.
 ### Added
 
 - `PaymentResult` carries `mode`, `settles` and `is_stub`, as me.ochk.io
-  answers them: `'stub'`, `false`, `true`.
+  answers them: `'stub'`, `false`, `true`. Its `sats_charged` is the amount
+  the intent names; nothing is charged.
 
 ### Changed
 

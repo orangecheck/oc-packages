@@ -640,6 +640,7 @@ export interface PaymentResult {
     settles: boolean;
     /** True while payments are recorded intents only. */
     is_stub: boolean;
+    /** The amount the intent names, in sats. Nothing is charged while `is_stub`. */
     sats_charged?: number;
     user_envelope_id?: string;
     verify_url?: string;
