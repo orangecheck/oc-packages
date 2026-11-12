@@ -6,6 +6,7 @@ import type {
     BatchEventResult,
     BatchRejectCode,
     BillableEvent,
+    DropResponseBlock,
     FireBatchResponse,
     FireEventResult,
 } from './index';
@@ -53,6 +54,7 @@ test('the codes are the sixteen me.ochk.io sends', () => {
     >();
 });
 
+type Charged = Extract<FireEventResult, { earned: true }>;
 type NotBilled = Extract<FireEventResult, { reason: 'not_billed' }>;
 type NotPaying = Extract<FireEventResult, { reason: 'not_paying' }>;
 const event = {} as BillableEvent;
@@ -91,4 +93,23 @@ test('the answers me.ochk.io sends are FireEventResults', () => {
     expectTypeOf(notBilled).toMatchTypeOf<FireEventResult>();
     const { event: _dropped, ...withoutRecord } = notBilled;
     expectTypeOf(withoutRecord).not.toMatchTypeOf<FireEventResult>();
+});
+
+type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T];
+type Recorded = 'ok' | 'earned' | 'event' | 'webhooks_queued' | 'webhooks_fired';
+type RecordedOptional = 'escrow_mode' | 'drop' | 'idempotent_replay' | 'simulation_mode_note';
+
+test('each answer has the fields the live spec names, required where it requires them', () => {
+    expectTypeOf<keyof Charged>().toEqualTypeOf<Recorded | RecordedOptional>();
+    expectTypeOf<RequiredKeys<Charged>>().toEqualTypeOf<Recorded>();
+    expectTypeOf<keyof NotBilled>().toEqualTypeOf<
+        Recorded | RecordedOptional | 'reason' | 'detail'
+    >();
+    expectTypeOf<RequiredKeys<NotBilled>>().toEqualTypeOf<Recorded | 'reason' | 'detail'>();
+    expectTypeOf<keyof NotPaying>().toEqualTypeOf<
+        'ok' | 'earned' | 'reason' | 'detail' | 'next_pay_period'
+    >();
+    expectTypeOf<RequiredKeys<NotPaying>>().toEqualTypeOf<keyof NotPaying>();
+    expectTypeOf<Charged['drop']>().toEqualTypeOf<DropResponseBlock | undefined>();
+    expectTypeOf<NotBilled['drop']>().toEqualTypeOf<DropResponseBlock | undefined>();
 });
