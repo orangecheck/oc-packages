@@ -19,6 +19,8 @@ this file tracks the package's TS / Node / runtime API surface.
 - `stamp verify -` and `stamp anchor -` read the stamp from stdin, as
   `/dev/stdin` does. `stamp anchor` from stdin writes the stamp to stdout,
   advanced or as it was, and its summary to stderr with `written: stdout`.
+  When no calendar answers it still writes the stamp as it was, and exits 1,
+  as it leaves a file as it was.
 
 ## [0.4.0] — 2026-11-08
 

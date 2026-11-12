@@ -44,6 +44,8 @@ export async function runAnchor(opts: AnchorOptions): Promise<void> {
             headers: mempoolHeaderSource({ baseUrl: opts.headersUrl }),
         });
     } catch (e) {
+        // Out as it was, as a path is left as it was: `> b.stamp` still holds the stamp, and exit 1 says so.
+        if (piped) process.stdout.write(JSON.stringify(envelope, null, 2) + '\n');
         die(otsFailure(e, Boolean(envelope.ots)));
     }
     const changed = JSON.stringify(next.ots) !== JSON.stringify(envelope.ots);
