@@ -14,6 +14,9 @@
  *   });
  *   if (res.earned) {
  *     // res.event.id, res.event.gross_fee_sats, res.event.user_earned_sats
+ *   } else if (res.reason === 'not_billed') {
+ *     // Recorded and charged nothing, so it paid nobody: res.event is the
+ *     // record, res.detail says why.
  *   } else {
  *     // Not paying now (res.reason === 'not_paying'): no event recorded or
  *     // charged. res.next_pay_period says when paying starts, if scheduled.
@@ -21,7 +24,7 @@
  *
  * Paying users is optional: a project pays only inside its pay periods
  * (always, in promos, or never), so firing from code that runs all the time
- * is safe; outside them every call returns `earned: false`.
+ * is safe; outside them every call returns `earned: false, reason: 'not_paying'`.
  *
  *   // For percent_of_amount-priced subtypes, include the underlying amount:
  *   const verify = await oc.event.fire({
@@ -39,6 +42,7 @@ import {
     computeFees,
     sitePaysFor,
     type BillableEvent,
+    type DropResponseBlock,
     type EventKey,
     type IntegratorEventConfig,
     type IntegratorPriceConfig,
@@ -127,13 +131,47 @@ export interface FireEventOptions {
 export type FireEventResult =
     | {
           ok: true;
-          /** The event earned the user their share and charged the project. */
+          /** The event was charged: the project paid its fee and the person
+           *  earned their share. In preview (`escrow_mode: 'simulation'`) both
+           *  are a preview, and no sats moved. */
           earned: true;
           event: BillableEvent;
+          /** Subscribed webhooks queued to be sent after the answer, 0 on a replay. */
+          webhooks_queued: number;
+          /** @deprecated The same count as `webhooks_queued`: queued, not delivered. */
           webhooks_fired: number;
-          escrow_mode: 'simulation' | 'live';
-          /** Set when the same Idempotency-Key already landed: `event` is the prior one. */
+          /** The mode the event was recorded in. Absent on a replay. */
+          escrow_mode?: 'simulation' | 'live';
+          /** The drop window the person's share vests in, when a drop schedule covers the subtype. */
+          drop?: DropResponseBlock;
+          /** Set when the same Idempotency-Key, or the same signed bytes, already
+           *  landed: `event` is the prior one, and nothing was recorded again. */
           idempotent_replay?: boolean;
+          /** Only in preview: that no sats moved. */
+          simulation_mode_note?: string;
+      }
+    | {
+          ok: true;
+          /** The event was recorded and charged nothing, so it paid nobody: a
+           *  test project's event while orangecheck is live, or one in preview
+           *  from a project with no preview credit yet. */
+          earned: false;
+          reason: 'not_billed';
+          /** `reason` in words. */
+          detail: string;
+          event: BillableEvent;
+          /** Subscribed webhooks queued to be sent after the answer, 0 on a replay. */
+          webhooks_queued: number;
+          /** @deprecated The same count as `webhooks_queued`: queued, not delivered. */
+          webhooks_fired: number;
+          /** The mode the event was recorded in. Absent on a replay. */
+          escrow_mode?: 'simulation' | 'live';
+          /** The drop window the person's share vests in, when a drop schedule covers the subtype. */
+          drop?: DropResponseBlock;
+          /** Set when the same Idempotency-Key, or the same signed bytes, already
+           *  landed: `event` is the prior one, and nothing was recorded again. */
+          idempotent_replay?: boolean;
+          /** Only in preview: that no sats moved. */
           simulation_mode_note?: string;
       }
     | {
