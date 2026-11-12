@@ -179,6 +179,7 @@ jobs:
                     - webhook-verify
                     - me-client
                     - insights-client
+                    - btcpay
                     - mark
                     - auth-core
                     - auth-client
