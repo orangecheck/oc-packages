@@ -18,11 +18,9 @@ this file tracks the package's TS / Node / runtime API surface.
   signature over the message they show.
 - When a wallet does not sign at those buttons, the person reads the
   adapter's sentence for it (`walletFailureText`, with the paste option),
-  as sign-in already says it: "The message changed while your wallet
-  signed. Sign the one shown now, or paste a signature." for a signature
-  over a message since replaced, "The request was declined in your wallet.
-  Sign again, or paste a signature." for a decline. The wallet's own text
-  is no longer shown.
+  as sign-in already says it, such as "The request was declined in your
+  wallet. Sign again, or paste a signature." for a decline. The wallet's
+  own text is no longer shown.
 
 ## [2.50.0] — 2026-11-12
 
