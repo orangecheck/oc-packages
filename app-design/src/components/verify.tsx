@@ -153,7 +153,8 @@ export type SignMessageWallets = ReactNode | ((take: (signature: string) => void
  * function and the buttons hand it to `take`; one that comes while held is
  * not used, and SignMessage says so under the wallet row. `error` is said
  * under the way in that led to it: the wallet row after a wallet press or a
- * signature from `take`, the paste field after a pasted one.
+ * signature from `take`, the paste field after a pasted one. A signature
+ * that comes after SignMessage has left the page is not used.
  */
 export function SignMessage({
     lead,
@@ -176,7 +177,7 @@ export function SignMessage({
     wallets?: SignMessageWallets;
     /** Holds both ways in, as while the site checks or sends what was signed. */
     busy?: boolean;
-    /** Why the last signature was refused, or why the wallet did not sign. */
+    /** Why the last signature was refused, or why the wallet did not sign. A new node is a new error: pass a string. */
     error?: ReactNode;
     submitLabel?: string;
     /** Beside the submit button: Back, Cancel. */
@@ -207,10 +208,19 @@ export function SignMessage({
     useCommitEffect(() => {
         busyNow.current = busy;
     }, [busy]);
+    // A wallet prompt left open after SignMessage leaves the page answers into nothing.
+    const live = useRef(false);
+    useCommitEffect(() => {
+        live.current = true;
+        return () => {
+            live.current = false;
+        };
+    }, []);
     const slot = useRef<HTMLFieldSetElement>(null);
     const hold = busy || taking;
 
     function take(signature: string, via: 'wallet' | 'paste') {
+        if (!live.current) return;
         if (held.current || busyNow.current) {
             if (via === 'wallet') setDropped(true);
             return;

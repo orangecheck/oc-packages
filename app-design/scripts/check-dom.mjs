@@ -311,6 +311,32 @@ async function copyFrom(host) {
     await unmount();
 }
 
+// SignMessage: a wallet that answers after the SignMessage it was pressed in has left the page gives nothing.
+{
+    const calls = [];
+    let take;
+    const props = {
+        address: 'bc1q',
+        message: 'm',
+        wallets: (t) => {
+            take = t;
+            return h('button', { type: 'button' }, 'Sign with UniSat');
+        },
+        onSignature: (sig) => void calls.push(sig),
+    };
+    const { unmount } = await mount(h(C.SignMessage, props));
+    await act(async () => take('first-sig'));
+    check(calls.length === 1, `SignMessage: a mounted take gave nothing (${show(calls)})`);
+    const pressed = take;
+    await unmount();
+    await act(async () => pressed('late-sig'));
+    check(calls.length === 1, `SignMessage: a signature that came after it left the page was used (${show(calls)})`);
+    const again = await mount(h(require('react').StrictMode, null, h(C.SignMessage, props)));
+    await act(async () => take('strict-sig'));
+    check(calls.length === 2 && calls[1] === 'strict-sig', `SignMessage: under StrictMode's second mount a take gave nothing (${show(calls)})`);
+    await again.unmount();
+}
+
 // A fence highlighted at build time (rehypeCode → the MDX pre): the copy keeps the final newline.
 {
     const source = '# Example charter v1 · canonical bytes\nversion: v1.0.0\n';
