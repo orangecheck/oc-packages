@@ -15,9 +15,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - Depends on `@orangecheck/wallet-adapter` `^0.8.0`, so a site on 0.8.0 keeps
   one copy of it. The bond and linked-address wallet buttons take only a
-  signature over the message they show; one over a message since replaced
-  comes back through `onError`, and its words are shown in place: "the
-  message changed while the wallet signed".
+  signature over the message they show.
+- When a wallet does not sign at those buttons, the person reads the
+  adapter's sentence for it (`walletFailureText`, with the paste option),
+  as sign-in already says it: "The message changed while your wallet
+  signed. Sign the one shown now, or paste a signature." for a signature
+  over a message since replaced, "The request was declined in your wallet.
+  Sign again, or paste a signature." for a decline. The wallet's own text
+  is no longer shown.
 
 ## [2.50.0] — 2026-11-12
 
