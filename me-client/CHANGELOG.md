@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.61.0] — 2026-11-12
+
 ### Added
 
 - `event.fire` takes `note`, as a batch entry already does. It is sent inside
