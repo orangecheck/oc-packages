@@ -129,6 +129,7 @@ async function copyFrom(host) {
     check(notUsed(), 'SignMessage: a wallet signature that came during a check was dropped without a word');
     await act(async () => settle.resolve());
     check(!submit.disabled && !wallet()?.matches(':disabled') && !host.querySelector('fieldset')?.parentElement?.classList.contains('opacity-50'), 'SignMessage: still held, or dimmed, after the check settled');
+    check(!notUsed(), 'SignMessage: still says a signature was not used after the one being checked settled');
     await act(async () => wallet()?.click());
     check(calls.length === 2 && calls[1] === 'wallet-sig', `SignMessage: the wallet's signature was not taken once the first settled (${show(calls)})`);
     check(!notUsed(), 'SignMessage: still says a signature was not used after one was taken');
@@ -195,7 +196,7 @@ async function copyFrom(host) {
 }
 
 // SignMessage: a wallet answers through the take of the render it was pressed in. Busy raised meanwhile
-// still holds it, and the person who approved in the wallet is told it was not used.
+// still holds it, and the person who approved in the wallet is told it was not used until busy ends.
 {
     const { useState } = require('react');
     const calls = [];
@@ -217,16 +218,20 @@ async function copyFrom(host) {
     }
     const { host, unmount } = await mount(h(Site));
     const pressed = take;
-    const notUsed = () => host.textContent.includes('Your wallet signed while the page was busy, so that signature was not used. Sign again.');
+    const notUsed = () =>
+        [...host.querySelectorAll('[role="alert"]')].some((p) => p.textContent === 'Your wallet signed while the page was busy, so that signature was not used.');
     await act(async () => setBusy(true));
     await act(async () => pressed('late-sig'));
     check(calls.length === 0, `SignMessage: a wallet signature from before busy was raised was taken while busy (${show(calls)})`);
     check(notUsed(), 'SignMessage: a wallet signature that came while busy was dropped without a word');
-    await act(async () => setBusy(false));
     const wallet = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
     await act(async () => wallet.setAttribute('aria-busy', 'true'));
     check(!notUsed(), 'SignMessage: still says a signature was not used once the wallet signs again');
     await act(async () => wallet.removeAttribute('aria-busy'));
+    await act(async () => pressed('late-sig'));
+    check(notUsed(), 'SignMessage: a second wallet signature that came while busy was dropped without a word');
+    await act(async () => setBusy(false));
+    check(!notUsed(), 'SignMessage: still says a signature was not used once the page stopped being busy');
     await act(async () => pressed('next-sig'));
     check(calls.length === 1 && calls[0] === 'next-sig', `SignMessage: no signature taken once busy cleared (${show(calls)})`);
     await unmount();

@@ -151,7 +151,7 @@ export type SignMessageWallets = ReactNode | ((take: (signature: string) => void
  * while a wallet signs (its button marks itself `aria-busy`), the paste
  * submit waits too. A wallet's signature joins that rule when the slot is a
  * function and the buttons hand it to `take`; one that comes while held is
- * not used, and SignMessage says so under the wallet row. `error` is said
+ * not used, and SignMessage says so under the wallet row until the hold ends. `error` is said
  * under the way in that led to it: the wallet row after a wallet press or a
  * signature from `take`, the paste field after a pasted one. A signature
  * that comes after SignMessage has left the page is not used.
@@ -218,6 +218,12 @@ export function SignMessage({
     }, []);
     const slot = useRef<HTMLFieldSetElement>(null);
     const hold = busy || taking;
+    // Once the hold ends, what was held has been used or refused, and the notice has nothing left to say.
+    const [wasHeld, setWasHeld] = useState(hold);
+    if (wasHeld !== hold) {
+        setWasHeld(hold);
+        if (!hold) setDropped(false);
+    }
 
     function take(signature: string, via: 'wallet' | 'paste') {
         if (!live.current) return;
@@ -290,7 +296,7 @@ export function SignMessage({
                         ) : null}
                         {dropped ? (
                             <p role="alert" className="text-[0.8125rem] leading-snug text-destructive">
-                                Your wallet signed while the page was busy, so that signature was not used. Sign again.
+                                Your wallet signed while the page was busy, so that signature was not used.
                             </p>
                         ) : null}
                     </div>
