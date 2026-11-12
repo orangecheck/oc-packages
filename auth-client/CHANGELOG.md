@@ -9,6 +9,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.50.1] — 2026-11-12
+
+### Changed
+
+- Depends on `@orangecheck/wallet-adapter` `^0.8.0`, so a site on 0.8.0 keeps
+  one copy of it. The bond and linked-address wallet buttons take only a
+  signature over the message they show; one over a message since replaced
+  comes back through `onError`, and its words are shown in place: "the
+  message changed while the wallet signed".
+
 ## [2.50.0] — 2026-11-12
 
 ### Added
