@@ -41,6 +41,17 @@ jobs:
         steps:
             - uses: actions/checkout@v5
 
+            # tests/pledge/test_vectors.py reads the spec's vectors, as pledge-core does;
+            # without them it skips on every Python version here.
+            - name: Checkout oc-pledge-protocol (for pledge conformance)
+              uses: actions/checkout@v5
+              with:
+                  repository: orangecheck/oc-pledge-protocol
+                  path: .oc-pledge-protocol
+
+            - name: Set OC_PLEDGE_VECTORS_DIR for pledge conformance
+              run: echo "OC_PLEDGE_VECTORS_DIR=$GITHUB_WORKSPACE/.oc-pledge-protocol/test-vectors" >> "$GITHUB_ENV"
+
             - name: Set up Python ${{ matrix.python-version }}
               uses: actions/setup-python@v5
               with:
