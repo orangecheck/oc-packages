@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -291,8 +292,46 @@ def _days_covering(utxos: list[dict[str, Any]], cover: int, now_iso: str) -> int
         youngest = max(youngest, int(u["block_time"]))
         if total >= cover:
             break
-    now = datetime.strptime(now_iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    return int((now.timestamp() - youngest) // 86_400)
+    return (_date_parse_ms(now_iso) - youngest * 1000) // 86_400_000
+
+
+# The ISO date-time form of Date.parse, which pledge-core's harness ages coins with.
+_ISO_DATE_TIME = re.compile(
+    r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})"
+)
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+
+def _date_parse_ms(iso: str) -> int:
+    # As Date.parse: seconds and fraction optional, the fraction cut (not rounded) to ms.
+    # Any other form fails the vector, never guessed at: with no zone, Date.parse reads local time.
+    m = _ISO_DATE_TIME.fullmatch(iso)
+    if m is None:
+        raise ValueError(f"not an ISO date-time with a zone: {iso!r}")
+    y, mo, d, h, mi = (int(g) for g in m.groups()[:5])
+    at = datetime(y, mo, d, h, mi, int(m[6] or 0), tzinfo=timezone.utc)
+    ms = int((m[7] or "")[:3].ljust(3, "0"))
+    zone = m[8]
+    offset_min = 0 if zone == "Z" else int(zone[0] + "1") * (int(zone[1:3]) * 60 + int(zone[4:]))
+    return (at - _EPOCH) // timedelta(milliseconds=1) + ms - offset_min * 60_000
+
+
+def test_days_covering_reads_now_as_date_parse_does() -> None:
+    # One coin confirmed 2026-01-01T00:00:00Z; a now a millisecond short of 30 days is 29.
+    coin = {"txid": "aa" * 32, "vout": 0, "value": 1000, "block_height": 1}
+    utxos = [{**coin, "block_time": 1_767_225_600}]
+    assert _days_covering(utxos, 1000, "2026-01-31T00:00:00Z") == 30
+    assert _days_covering(utxos, 1000, "2026-01-31T00:00:00.000Z") == 30
+    assert _days_covering(utxos, 1000, "2026-01-30T23:59:59.999Z") == 29
+    assert _days_covering(utxos, 1000, "2026-01-30T23:59:59.9999Z") == 29
+    assert _days_covering(utxos, 1000, "2026-01-30T23:59:59.5Z") == 29
+    assert _days_covering(utxos, 1000, "2026-01-31T08:59:59.999+09:00") == 29
+    assert _days_covering(utxos, 1000, "2026-01-30T23:30:00-01:00") == 30
+    assert _days_covering(utxos, 1000, "2026-01-31T00:00Z") == 30
+    assert _date_parse_ms("2026-01-01T00:00:00.123456789Z") == 1_767_225_600_123
+    for refused in ("2026-01-31T00:00:00", "2026-01-31", "2026-01-31T00:00:00,5Z"):
+        with pytest.raises(ValueError):
+            _days_covering(utxos, 1000, refused)
 
 
 # ─── Shape B — state-transition ───────────────────────────────────────────
