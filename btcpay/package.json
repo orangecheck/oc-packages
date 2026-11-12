@@ -1,0 +1,63 @@
+{
+  "name": "@orangecheck/btcpay",
+  "version": "0.1.0",
+  "description": "The OrangeCheck family's one BTCPay Server implementation: webhook signature check and raw-body read, store env, confirmed-payment rules and Greenfield calls. Server-only, no dependencies.",
+  "keywords": [
+    "orangecheck",
+    "bitcoin",
+    "btcpay",
+    "webhook"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "btcpay"
+  },
+  "homepage": "https://ochk.io",
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./payments": {
+      "types": "./dist/payments.d.ts",
+      "import": "./dist/payments.mjs",
+      "require": "./dist/payments.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
