@@ -15,6 +15,8 @@ this file tracks the package's TS / Node / runtime API surface.
   a last line with no newline included, and exit 1 with
   `no signature: input closed before a line` when stdin ends before one. With 0.8.2 each
   exited 0 and published nothing in either case.
+- Ctrl-C at that prompt exits 1 with `no signature: interrupted`, and the prompt reads `  > `
+  each time the line is drawn again.
 
 ## [0.8.2] — 2026-11-08
 

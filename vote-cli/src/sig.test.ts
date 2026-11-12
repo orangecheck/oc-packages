@@ -48,3 +48,40 @@ describe('promptForSignature', () => {
         expect(await fromStdin([], ` ${SIG} `)).toEqual({ sig: SIG, read: false });
     });
 });
+
+// On a terminal readline reads keys itself: Ctrl-C arrives as a key, and a redraw writes the prompt again.
+describe('promptForSignature on a terminal', () => {
+    async function onTerminal(chunks: string[]): Promise<{ sig?: string; thrown?: string; writes: string[] }> {
+        const had = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY');
+        Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true });
+        const writes: string[] = [];
+        const stdin = vi.spyOn(process, 'stdin', 'get').mockReturnValue(Readable.from(chunks) as never);
+        const write = vi.spyOn(process.stderr, 'write').mockImplementation(((s: string) => {
+            writes.push(String(s));
+            return true;
+        }) as never);
+        try {
+            return { sig: await promptForSignature(ADDRESS, ID), writes };
+        } catch (e) {
+            return { thrown: (e as Error).message, writes };
+        } finally {
+            stdin.mockRestore();
+            write.mockRestore();
+            if (had) Object.defineProperty(process.stderr, 'isTTY', had);
+            else delete (process.stderr as { isTTY?: boolean }).isTTY;
+        }
+    }
+
+    it('throws saying it was interrupted, on Ctrl-C', { timeout: 3000 }, async () => {
+        expect(await onTerminal(['\x03'])).toMatchObject({ thrown: 'no signature: interrupted' });
+    });
+
+    it('redraws the prompt it first printed', { timeout: 3000 }, async () => {
+        // A stray character, then backspace: readline redraws the prompt and the line.
+        const r = await onTerminal([`${SIG}x`, '\x7f', '\r']);
+        expect(r.sig).toBe(SIG);
+        const drawn = r.writes.filter((w) => w.endsWith(SIG));
+        expect(drawn.length).toBeGreaterThan(0);
+        for (const w of drawn) expect(w).toBe(`  > ${SIG}`);
+    });
+});
