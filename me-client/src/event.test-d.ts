@@ -2,7 +2,13 @@
 // as me.ochk.io's batch route sends it (its batch-reject-codes.ts).
 import { expectTypeOf, test } from 'vitest';
 
-import type { BatchEventResult, BatchRejectCode, FireBatchResponse } from './index';
+import type {
+    BatchEventResult,
+    BatchRejectCode,
+    BillableEvent,
+    FireBatchResponse,
+    FireEventResult,
+} from './index';
 
 type Rejected = Extract<BatchEventResult, { status: 'rejected' }>;
 
@@ -45,4 +51,44 @@ test('the codes are the sixteen me.ochk.io sends', () => {
         | 'write_failed'
         | 'outcome_unknown'
     >();
+});
+
+type NotBilled = Extract<FireEventResult, { reason: 'not_billed' }>;
+type NotPaying = Extract<FireEventResult, { reason: 'not_paying' }>;
+const event = {} as BillableEvent;
+
+test('an event recorded and charged nothing answers earned false, with its record', () => {
+    expectTypeOf<NotBilled['earned']>().toEqualTypeOf<false>();
+    expectTypeOf<NotBilled['event']>().toEqualTypeOf<BillableEvent>();
+    expectTypeOf<NotBilled['detail']>().toEqualTypeOf<string>();
+    expectTypeOf<NotBilled>().not.toHaveProperty('next_pay_period');
+    expectTypeOf<NotPaying>().not.toHaveProperty('event');
+    expectTypeOf<Extract<FireEventResult, { earned: false }>['reason']>().toEqualTypeOf<
+        'not_billed' | 'not_paying'
+    >();
+});
+
+test('the answers me.ochk.io sends are FireEventResults', () => {
+    const replay = {
+        ok: true as const,
+        earned: true as const,
+        event,
+        webhooks_queued: 0,
+        webhooks_fired: 0,
+        idempotent_replay: true,
+    };
+    const notBilled = {
+        ok: true as const,
+        earned: false as const,
+        reason: 'not_billed' as const,
+        detail: 'The event was recorded and charged nothing, so it paid nobody.',
+        event,
+        webhooks_queued: 1,
+        webhooks_fired: 1,
+        escrow_mode: 'live' as const,
+    };
+    expectTypeOf(replay).toMatchTypeOf<FireEventResult>();
+    expectTypeOf(notBilled).toMatchTypeOf<FireEventResult>();
+    const { event: _dropped, ...withoutRecord } = notBilled;
+    expectTypeOf(withoutRecord).not.toMatchTypeOf<FireEventResult>();
 });
