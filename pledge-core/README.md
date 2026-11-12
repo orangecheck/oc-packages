@@ -212,7 +212,7 @@ The validator catches malformed queries and refused mechanisms (`self_proof`) pe
 - bond-verification fixtures produce the named `expected.code`
 - malformed-input fixtures raise the named SPEC error code
 
-The conformance harness lives in `src/test-vectors.test.ts` and runs against the 28 vectors committed to `oc-pledge-protocol/test-vectors/`. Set `OC_PLEDGE_VECTORS_DIR` to point at the vectors directory in CI, or check out `oc-pledge-protocol` as a sibling for local dev. As of `1.0.0`, all 28 vectors pass on both this SDK and the Python `orangecheck.pledge` sub-module; cross-impl byte-equality is enforced in oc-packages CI.
+The conformance harness lives in `src/test-vectors.test.ts` and runs against every vector committed to `oc-pledge-protocol/test-vectors/`: 63 at spec commit `9095ac14`. Set `OC_PLEDGE_VECTORS_DIR` to point at the vectors directory in CI, or check out `oc-pledge-protocol` as a sibling for local dev. Every vector passes on both this SDK and the Python `orangecheck.pledge` sub-module; oc-packages CI runs both against spec main and fails when either SDK misses a vector the spec adds.
 
 ## License
 
