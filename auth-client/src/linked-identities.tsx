@@ -996,21 +996,30 @@ interface WalletButtonProps {
     onError: (err: { message?: string }, walletId?: string) => void;
 }
 
+type FailureText = (err: unknown, opts?: { paste?: boolean }) => string;
+
 export function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
-    const [Comp, setComp] = React.useState<React.ComponentType<WalletButtonProps> | null>(null);
+    const [loaded, setLoaded] = React.useState<{
+        Button: React.ComponentType<WalletButtonProps>;
+        text: FailureText;
+    } | null>(null);
     const [failed, setFailed] = React.useState(false);
 
     React.useEffect(() => {
         let alive = true;
-        // A bundler resolves this specifier at build time, so wallet-adapter
+        // A bundler resolves these specifiers at build time, so wallet-adapter
         // is a real dependency; only the chunk is deferred.
-        import('@orangecheck/wallet-adapter/react')
-            .then((m) => {
+        Promise.all([
+            import('@orangecheck/wallet-adapter/react'),
+            import('@orangecheck/wallet-adapter'),
+        ])
+            .then(([r, m]) => {
                 if (alive) {
-                    setComp(
-                        () => (m as { OcWalletButton: React.ComponentType<WalletButtonProps> })
-                            .OcWalletButton
-                    );
+                    setLoaded({
+                        Button: (r as { OcWalletButton: React.ComponentType<WalletButtonProps> })
+                            .OcWalletButton,
+                        text: (m as { walletFailureText: FailureText }).walletFailureText,
+                    });
                 }
             })
             .catch(() => {
@@ -1028,9 +1037,13 @@ export function LazyWalletButton(props: WalletButtonProps): React.ReactElement {
             </ErrorLine>
         );
     }
-    if (!Comp) return <span style={hintStyle}>loading wallet options…</span>;
+    if (!loaded) return <span style={hintStyle}>loading wallet options…</span>;
+    const { Button, text } = loaded;
+    // A refusal reaches the page as the adapter's sentence for a person, not the wallet's own text.
+    const onError = (err: unknown, walletId?: string) =>
+        props.onError({ message: text(err, { paste: !!props.showManual }) }, walletId);
     // A new message is a new signing: nothing typed or chosen for the last one carries over.
-    return <Comp key={props.message} {...props} />;
+    return <Button key={props.message} {...props} onError={onError} />;
 }
 
 /* --- helpers --- */

@@ -9,19 +9,34 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@orangecheck/wallet-adapter/react', () => ({
-    OcWalletButton: ({
-        onSigned,
-        message,
-    }: {
-        onSigned: (s: string) => void;
-        message: string;
-    }) => (
-        <button type="button" data-message={message} onClick={() => onSigned('SIG')}>
-            sign-with-wallet
-        </button>
-    ),
-}));
+vi.mock('@orangecheck/wallet-adapter/react', async () => {
+    const { MessageChangedError } = await vi.importActual<
+        typeof import('@orangecheck/wallet-adapter')
+    >('@orangecheck/wallet-adapter');
+    return {
+        OcWalletButton: ({
+            onSigned,
+            onError,
+            message,
+        }: {
+            onSigned: (s: string) => void;
+            onError: (err: unknown) => void;
+            message: string;
+        }) => (
+            <>
+                <button type="button" data-message={message} onClick={() => onSigned('SIG')}>
+                    sign-with-wallet
+                </button>
+                <button type="button" onClick={() => onError(new MessageChangedError())}>
+                    wallet-answers-late
+                </button>
+                <button type="button" onClick={() => onError({ code: 4001, message: 'User rejected' })}>
+                    wallet-declines
+                </button>
+            </>
+        ),
+    };
+});
 
 import { bondRefusal, OcBond } from './bond';
 
@@ -285,6 +300,28 @@ describe('OcBond', () => {
         fireEvent.click(screen.getByText('try again'));
         expect(await screen.findByText('back your account')).toBeTruthy();
         expect(calls.filter((c) => c.method === 'GET')).toHaveLength(2);
+    });
+});
+
+describe('a wallet that does not sign', () => {
+    it("shows the adapter's sentence for a person, keeps the sign step, and sends nothing", async () => {
+        render(<OcBond authOrigin="https://ochk.io" />);
+        await toCoins();
+        fireEvent.click(await screen.findByText('continue'));
+        fireEvent.click(await screen.findByText('wallet-answers-late'));
+        expect(
+            await screen.findByText(
+                'The message changed while your wallet signed. Sign the one shown now, or paste a signature.'
+            )
+        ).toBeTruthy();
+        fireEvent.click(screen.getByText('wallet-declines'));
+        expect(
+            await screen.findByText(
+                'The request was declined in your wallet. Sign again, or paste a signature.'
+            )
+        ).toBeTruthy();
+        expect(screen.getByText('sign-with-wallet')).toBeTruthy();
+        expect(calls.some((c) => c.body?.action === 'bond')).toBe(false);
     });
 });
 

@@ -14,6 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@orangecheck/wallet-adapter', () => ({
     detectWallets: () => [],
     getSigner: () => async () => 'unused',
+    // The wallet button reads its refusal sentence here; no case here reaches one.
+    walletFailureText: () => 'Your wallet did not sign. Try again, or paste a signature.',
 }));
 // The wallet signs whatever message it is shown, or sends what was pasted into it.
 vi.mock('@orangecheck/wallet-adapter/react', () => ({
