@@ -6,6 +6,9 @@
 
 import { createInterface } from 'node:readline/promises';
 
+const CLOSED = Symbol('closed');
+const INTERRUPTED = Symbol('interrupted');
+
 export async function promptForSignature(
     address: string,
     id: string,
@@ -16,16 +19,24 @@ export async function promptForSignature(
     process.stderr.write(
         `\n  sign with BIP-322, address ${address}\n` +
             `  message: ${id}\n\n` +
-            `  paste the base64 signature and press enter:\n  > `
+            `  paste the base64 signature and press enter:\n`
     );
     const rl = createInterface({ input: process.stdin, output: process.stderr });
-    // The first line, or undefined once input closes: a pending question never settles then.
-    const line = await new Promise<string | undefined>((resolve) => {
+    // The first line, or why there is none: a pending question never settles once input closes.
+    const line = await new Promise<string | typeof CLOSED | typeof INTERRUPTED>((resolve) => {
         rl.once('line', resolve);
-        rl.once('close', () => resolve(undefined));
+        rl.once('close', () => resolve(CLOSED));
+        // Ctrl-C on a terminal; without a listener readline closes and it reads as closed input.
+        rl.once('SIGINT', () => resolve(INTERRUPTED));
+        // readline draws this prompt again on every redraw of the line.
+        rl.setPrompt('  > ');
+        rl.prompt();
     });
     rl.close();
-    if (line === undefined) throw new Error('no signature: input closed before a line');
+    // End the prompt's line, so the error starts on its own.
+    if (typeof line !== 'string') process.stderr.write('\n');
+    if (line === INTERRUPTED) throw new Error('no signature: interrupted');
+    if (line === CLOSED) throw new Error('no signature: input closed before a line');
     const sig = line.trim();
     if (!sig) throw new Error('empty signature');
     return sig;
