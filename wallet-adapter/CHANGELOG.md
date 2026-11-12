@@ -9,7 +9,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Added
+
+- `MessageChangedError` (`code: 'E_MESSAGE_CHANGED'`) and the `walletFailure`
+  kind `changed`, with its `walletFailureText` sentence: "The message changed
+  while your wallet signed. Sign the one shown now."
+
+### Changed
+
+- `OcWalletButton` calls `onSigned` only while it still shows the message and
+  address it asked the wallet, or checked a pasted signature, for. A signature
+  over a message or address it has since been given goes to `onError` as
+  `MessageChangedError`, so the page asks again for the one it shows.
 
 ## [0.7.2] — 2026-10-23
 

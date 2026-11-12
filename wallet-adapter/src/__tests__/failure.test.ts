@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 (globalThis as any).window ??= {};
 
 import {
+  MessageChangedError,
   toWalletError,
   WalletNotFoundError,
   WalletRejectedError,
@@ -41,6 +42,7 @@ describe("walletFailure", () => {
     ["a missing wallet", new WalletNotFoundError("UniSat wallet not found on window.unisat"), "not-found"],
     ["a timeout", Object.assign(new Error("signal timed out"), { name: "TimeoutError" }), "timed-out"],
     ["a wallet's own timeout text", new Error("Request timed out"), "timed-out"],
+    ["a message changed while the wallet signed", new MessageChangedError(), "changed"],
     ["anything else", new Error("boom"), "other"],
     ["not an error at all", undefined, "other"],
   ])("%s", (_label, err, kind) => {
@@ -55,6 +57,12 @@ describe("walletFailureText", () => {
     );
     expect(walletFailureText({ code: 4001 }, { paste: true })).toBe(
       "The request was declined in your wallet. Sign again, or paste a signature.",
+    );
+    expect(walletFailureText(new MessageChangedError())).toBe(
+      "The message changed while your wallet signed. Sign the one shown now.",
+    );
+    expect(walletFailureText(new MessageChangedError(), { paste: true })).toBe(
+      "The message changed while your wallet signed. Sign the one shown now, or paste a signature.",
     );
     expect(walletFailureText(new WrongAccountError(ADDRESS, "bc1qother"))).toBe(
       "That signature is not from the address shown. Switch your wallet to that address, then sign again.",

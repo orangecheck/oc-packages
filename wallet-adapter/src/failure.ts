@@ -10,6 +10,7 @@ export type WalletFailure =
   | "wrong-account"
   | "not-found"
   | "timed-out"
+  | "changed"
   | "other";
 
 /** The person declined the request in their wallet. */
@@ -21,6 +22,15 @@ export class WalletRejectedError extends Error {
     super(message);
     this.name = "WalletRejectedError";
     this.cause = cause;
+  }
+}
+
+/** The page changed the message or address while the wallet signed; the signature is over the old one. */
+export class MessageChangedError extends Error {
+  readonly code = "E_MESSAGE_CHANGED" as const;
+  constructor(message = "the message changed while the wallet signed") {
+    super(message);
+    this.name = "MessageChangedError";
   }
 }
 
@@ -59,6 +69,7 @@ export function walletFailure(err: unknown): WalletFailure {
   const { name, code, message } = fields(err);
   if (code === "E_WRONG_ACCOUNT" || name === "WrongAccountError") return "wrong-account";
   if (code === "E_WALLET_NOT_FOUND" || name === "WalletNotFoundError") return "not-found";
+  if (code === "E_MESSAGE_CHANGED" || name === "MessageChangedError") return "changed";
   if (name === "TimeoutError" || name === "AbortError" || code === "E_TIMEOUT" || TIMEOUT_TEXT.test(message))
     return "timed-out";
   if (REJECTED_CODES.has(code) || REJECTED_TEXT.test(message)) return "rejected";
@@ -81,6 +92,10 @@ const TEXT: Record<WalletFailure, { plain: string; paste: string }> = {
   "timed-out": {
     plain: "Your wallet did not answer. Open it to finish the request, then try again.",
     paste: "Your wallet did not answer. Open it to finish the request, or paste a signature.",
+  },
+  changed: {
+    plain: "The message changed while your wallet signed. Sign the one shown now.",
+    paste: "The message changed while your wallet signed. Sign the one shown now, or paste a signature.",
   },
   other: {
     plain: "Your wallet did not sign. Try again.",

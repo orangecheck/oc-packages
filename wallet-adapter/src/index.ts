@@ -26,6 +26,7 @@ export {
     WrongAccountError,
 } from './sign';
 export {
+    MessageChangedError,
     toWalletError,
     WalletNotFoundError,
     WalletRejectedError,

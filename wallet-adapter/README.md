@@ -85,6 +85,7 @@ A wallet's own error text is not for people ("User rejected the request", a bare
 | `wrong-account` | `WrongAccountError` (`E_WRONG_ACCOUNT`) | That signature is not from the address shown. Switch your wallet to that address, then sign again. |
 | `not-found` | `WalletNotFoundError` (`E_WALLET_NOT_FOUND`) | That wallet is not in this browser. Install it, or choose another wallet. |
 | `timed-out` | a `TimeoutError` | Your wallet did not answer. Open it to finish the request, then try again. |
+| `changed` | `MessageChangedError` (`E_MESSAGE_CHANGED`) | The message changed while your wallet signed. Sign the one shown now. |
 | `other` | anything else | Your wallet did not sign. Try again. |
 
 Pass `{ paste: true }` where the page also offers to paste a signature, and the sentence offers it too. `getSigner` always throws an `Error`, keeping the wallet's code, so `OcWalletButton`'s `onError` can be handed straight to it:
