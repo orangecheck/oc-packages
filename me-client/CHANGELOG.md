@@ -15,9 +15,19 @@ this file tracks the package's TS / Node / runtime API surface.
 - `PaymentResult` carries `mode`, `settles` and `is_stub`, as me.ochk.io
   answers them: `'stub'`, `false`, `true`. Its `sats_charged` is the amount
   the intent names; nothing is charged.
+- `FireEventResult` has the answer me.ochk.io gives an event it recorded and
+  charged nothing: `earned: false`, `reason: 'not_billed'`, `detail` and the
+  `event`. It paid nobody. Code that reads `next_pay_period` after
+  `!res.earned` now checks `res.reason === 'not_paying'` first.
+- `FireEventResult` carries `webhooks_queued` and the event's `drop` window.
 
 ### Changed
 
+- `oc.event.fire`'s `earned` follows whether the event was charged. In
+  preview it is a preview answer, as `escrow_mode: 'simulation'` says.
+  `escrow_mode` is optional, as on a replay me.ochk.io leaves it out, and
+  `webhooks_fired` is deprecated for `webhooks_queued`: both count webhooks
+  queued, not delivered.
 - `payment.authorize` and the README say what the call does today: it records
   a payment intent in the signed-in person's name and settles nothing. No sats
   move, nobody is charged, and the person earns nothing from it. There is no

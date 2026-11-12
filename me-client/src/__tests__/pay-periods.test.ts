@@ -122,6 +122,6 @@ describe('oc.event.fire outside a pay period', () => {
             subtype: 'session_creation',
         });
         expect(res.earned).toBe(false);
-        if (!res.earned) expect(res.next_pay_period).toEqual(LAUNCH);
+        if (!res.earned && res.reason === 'not_paying') expect(res.next_pay_period).toEqual(LAUNCH);
     });
 });

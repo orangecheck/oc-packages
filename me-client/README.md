@@ -128,10 +128,12 @@ const res = await oc.event.fire({
     signingSecret: process.env.OC_SIGNING_SECRET,
     accountId: didOc,
 });
-if (!res.earned) {
-    // res.reason === 'not_paying'; res.next_pay_period says when paying starts, if scheduled
+if (!res.earned && res.reason === 'not_paying') {
+    // no event recorded; res.next_pay_period says when paying starts, if scheduled
 }
 ```
+
+An event recorded and charged nothing answers `earned: false, reason: 'not_billed'` with its `event`: a test project's event while orangecheck is live, or one in preview from a project with no preview credit yet. It paid nobody.
 
 `fireBatch` answers `not_paying` per event. `GET /api/integrator/config` publishes the project's `pay_periods`, past ones included, and `payingAt(periods, date)` tells you whether a project pays at a moment. Pass them to `oc.event.verify(envelope, config, amount, { payPeriods })` to flag a receipt billed outside every period.
 
