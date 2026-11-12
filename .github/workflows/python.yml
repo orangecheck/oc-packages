@@ -42,11 +42,14 @@ jobs:
             - uses: actions/checkout@v5
 
             # tests/pledge/test_vectors.py reads the spec's vectors, as pledge-core does;
-            # without them it skips on every Python version here.
+            # without them it skips on every Python version here. Pinned, so a vector
+            # the spec adds cannot redden an unrelated PR; packages.yml's conformance
+            # job runs spec main. Move the pin once sdk-py passes a new vector.
             - name: Checkout oc-pledge-protocol (for pledge conformance)
               uses: actions/checkout@v5
               with:
                   repository: orangecheck/oc-pledge-protocol
+                  ref: 9095ac141d146cdba8bf2301878db00e54bb8ecb
                   path: .oc-pledge-protocol
 
             - name: Set OC_PLEDGE_VECTORS_DIR for pledge conformance
