@@ -20,6 +20,8 @@ this file tracks the package's TS / Node / runtime API surface.
   `event`. It paid nobody. Code that reads `next_pay_period` after
   `!res.earned` now checks `res.reason === 'not_paying'` first.
 - `FireEventResult` carries `webhooks_queued` and the event's `drop` window.
+- A `recorded` entry of `BatchEventResult` carries the event's `drop` window
+  too, as me.ochk.io sends it for a batch.
 
 ### Changed
 
