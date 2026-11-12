@@ -94,6 +94,34 @@ describe('oc.event.verify with pay periods', () => {
             'outside_pay_period',
             'agent_refused',
         ]);
+        const unconfigured = event.verify(
+            envelope('2026-10-28T00:00:00Z'),
+            { ...config, events: {} },
+            undefined,
+            { payPeriods: [LAUNCH] }
+        );
+        expect(unconfigured.issues.map((i) => i.field)).toEqual([
+            'outside_pay_period',
+            'subtype_unconfigured',
+        ]);
+        const noAmount = event.verify(
+            envelope('2026-10-28T00:00:00Z'),
+            {
+                ...config,
+                events: {
+                    session_creation: {
+                        ...CFG,
+                        site_pays: { kind: 'percent_of_amount', pct: 0.01 },
+                    },
+                },
+            },
+            undefined,
+            { payPeriods: [LAUNCH] }
+        );
+        expect(noAmount.issues.map((i) => i.field)).toEqual([
+            'outside_pay_period',
+            'percent_amount_missing',
+        ]);
     });
 
     it('checks nothing about periods when none are given', () => {
