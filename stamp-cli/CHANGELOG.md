@@ -15,6 +15,10 @@ this file tracks the package's TS / Node / runtime API surface.
   line of stdin, a last line with no newline included, and exit 1 with
   `no signature provided: input closed before a line` when stdin ends before
   one. With 0.4.0 both exited 0 and wrote no stamp in either case.
+- Ctrl-C at that prompt exits 1 with `no signature provided: interrupted`.
+- `stamp verify -` and `stamp anchor -` read the stamp from stdin, as
+  `/dev/stdin` does. `stamp anchor` from stdin writes the stamp to stdout,
+  advanced or as it was, and its summary to stderr with `written: stdout`.
 
 ## [0.4.0] — 2026-11-08
 

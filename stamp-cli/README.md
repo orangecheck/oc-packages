@@ -36,6 +36,10 @@ $ stamp verify blogpost.md.stamp blogpost.md --require-anchor
 # Anchor an existing stamp, or upgrade its pending proof once the
 # calendars have reached a block (rewrites the .stamp only on change):
 $ stamp anchor blogpost.md.stamp
+
+# `-` reads the stamp from stdin; anchor then writes it to stdout and its
+# summary to stderr:
+$ stamp anchor - < blogpost.md.stamp > anchored.stamp
 ```
 
 ## `git-stamp` — release/tag signing

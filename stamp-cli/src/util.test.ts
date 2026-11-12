@@ -214,5 +214,20 @@ describe('signatureForId', () => {
             expect(r.thrown).toBe('exit 1');
             expect(r.errors).toMatch(/Sign the 64-character id/);
         });
+
+        // On a terminal readline reads keys itself: Ctrl-C arrives as a key, not a signal.
+        it('exits 1 saying it was interrupted, on Ctrl-C at the prompt', { timeout: 3000 }, async () => {
+            const had = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY');
+            Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true });
+            try {
+                const r = await fromStdin(['\x03']);
+                expect(r.thrown).toBe('exit 1');
+                expect(r.errors).toMatch(/no signature provided: interrupted/);
+                expect(r.errors).not.toMatch(/input closed/);
+            } finally {
+                if (had) Object.defineProperty(process.stderr, 'isTTY', had);
+                else delete (process.stderr as { isTTY?: boolean }).isTTY;
+            }
+        });
     });
 });

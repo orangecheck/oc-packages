@@ -67,6 +67,11 @@ export function mimeFromPath(path: string): string {
     }
 }
 
+/** `-` and `/dev/stdin` name standard input, for a command that reads a stamp. */
+export function isStdin(path: string): boolean {
+    return path === '-' || path === '/dev/stdin';
+}
+
 export async function pathExists(path: string): Promise<boolean> {
     try {
         await stat(path);
@@ -82,10 +87,7 @@ export async function pathExists(path: string): Promise<boolean> {
  * with the field it failed on.
  */
 export async function readStamp(pathOrDash: string): Promise<StampEnvelope> {
-    const text =
-        pathOrDash === '-' || pathOrDash === '/dev/stdin'
-            ? await readStdin()
-            : ((await readFile(pathOrDash, 'utf8')) as string);
+    const text = isStdin(pathOrDash) ? await readStdin() : ((await readFile(pathOrDash, 'utf8')) as string);
     try {
         return parseStamp(text);
     } catch (e) {
@@ -106,13 +108,14 @@ function readStdin(): Promise<string> {
     });
 }
 
-/** Emit structured output. */
-export function emit(json: boolean, result: Record<string, unknown>): void {
+/** Emit structured output, to stderr when stdout carries a stamp. */
+export function emit(json: boolean, result: Record<string, unknown>, to: 'stdout' | 'stderr' = 'stdout'): void {
+    const print = to === 'stderr' ? console.error : console.log;
     if (json) {
-        console.log(JSON.stringify(result, null, 2));
+        print(JSON.stringify(result, null, 2));
     } else {
         for (const [k, v] of Object.entries(result)) {
-            console.log(`${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+            print(`${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
         }
     }
 }
@@ -121,6 +124,9 @@ export function die(msg: string, code = 1): never {
     console.error(`error: ${msg}`);
     process.exit(code);
 }
+
+const CLOSED = Symbol('closed');
+const INTERRUPTED = Symbol('interrupted');
 
 /**
  * The wallet signs the 64-hex envelope id (SPEC §4.5), not the canonical message.
@@ -140,15 +146,20 @@ export async function signatureForId(input: {
         console.error('─'.repeat(60));
         console.error(`\nSign this id with ${input.address} (BIP-322):\n\n${input.id}\n`);
         const rl = createInterface({ input: process.stdin, output: process.stderr });
-        // The first line, or undefined once input closes: a pending question never settles then.
-        const line = await new Promise<string | undefined>((resolve) => {
+        // The first line, or why there is none: a pending question never settles once input closes.
+        const line = await new Promise<string | typeof CLOSED | typeof INTERRUPTED>((resolve) => {
             rl.once('line', resolve);
-            rl.once('close', () => resolve(undefined));
+            rl.once('close', () => resolve(CLOSED));
+            // Ctrl-C on a terminal; without a listener readline closes and it reads as closed input.
+            rl.once('SIGINT', () => resolve(INTERRUPTED));
             rl.setPrompt('paste signature (base64): ');
             rl.prompt();
         });
         rl.close();
-        if (line === undefined) die('no signature provided: input closed before a line');
+        // End the prompt's line, so the error starts on its own.
+        if (typeof line !== 'string') process.stderr.write('\n');
+        if (line === INTERRUPTED) die('no signature provided: interrupted');
+        if (line === CLOSED) die('no signature provided: input closed before a line');
         signature = line.trim();
         if (!signature) die('no signature provided');
     }
