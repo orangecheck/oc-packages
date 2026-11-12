@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 
 import {
     base64Encode,
@@ -92,17 +93,19 @@ class Exit extends Error {
 }
 
 /** Run `stamp verify --skip-signature --json` and return its exit code and output. */
-async function run(opts: { mode: Mode; requireAnchor: boolean; blockHash?: string; headersUrl?: string }) {
+async function run(opts: { mode: Mode; requireAnchor: boolean; blockHash?: string; headersUrl?: string; stdin?: boolean }) {
     mode = opts.mode;
     const lines: string[] = [];
     vi.spyOn(console, 'log').mockImplementation((s: string) => void lines.push(s));
     vi.spyOn(process, 'exit').mockImplementation(((c?: number) => {
         throw new Exit(c ?? 0);
     }) as never);
+    const path = stampFile(opts.blockHash ?? blockHashOf(header));
+    if (opts.stdin) vi.spyOn(process, 'stdin', 'get').mockReturnValue(Readable.from([readFileSync(path, 'utf8')]) as never);
     let code = 0;
     try {
         await runVerify({
-            stampPath: stampFile(opts.blockHash ?? blockHashOf(header)),
+            stampPath: opts.stdin ? '-' : path,
             requireAnchor: opts.requireAnchor,
             skipSignature: true,
             headersUrl: opts.headersUrl ?? base,
@@ -160,6 +163,20 @@ describe('stamp verify, anchor states', () => {
 
     it('fails E_BAD_ANCHOR when the header read does not hash to the claimed block', async () => {
         const r = await run({ mode: 'ok', requireAnchor: true, blockHash: '00'.repeat(32) });
+        expect(r.code).toBe(2);
+        expect(r.out.code).toBe('E_BAD_ANCHOR');
+    });
+});
+
+describe('stamp verify -', () => {
+    it('reads the stamp from stdin', async () => {
+        const r = await run({ mode: 'ok', requireAnchor: true, stdin: true });
+        expect(r.code).toBe(0);
+        expect(r.out).toMatchObject({ ok: true, id: ENVELOPE.id, anchor_state: 'anchored' });
+    });
+
+    it('fails on stdin as it does on a file', async () => {
+        const r = await run({ mode: 'other', requireAnchor: true, blockHash: blockHashOf(otherHeader), stdin: true });
         expect(r.code).toBe(2);
         expect(r.out.code).toBe('E_BAD_ANCHOR');
     });

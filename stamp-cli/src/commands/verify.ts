@@ -5,7 +5,7 @@ import { verifySignature } from '@orangecheck/bip322';
 import { verify } from '@orangecheck/stamp-core';
 import { makeAnchorVerifier, mempoolHeaderSource } from '@orangecheck/stamp-ots';
 
-import { die, emit, hashFile, pathExists, readBytes, readStamp } from '../util.js';
+import { die, emit, hashFile, isStdin, pathExists, readBytes, readStamp } from '../util.js';
 
 export interface VerifyOptions {
     stampPath: string;
@@ -25,7 +25,7 @@ export interface VerifyOptions {
 }
 
 export async function runVerify(opts: VerifyOptions): Promise<void> {
-    if (!(await pathExists(opts.stampPath))) die(`no such file: ${opts.stampPath}`);
+    if (!isStdin(opts.stampPath) && !(await pathExists(opts.stampPath))) die(`no such file: ${opts.stampPath}`);
 
     const envelope = await readStamp(opts.stampPath);
 
