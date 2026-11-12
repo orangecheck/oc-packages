@@ -1,5 +1,5 @@
 import { CircleCheck, CircleDashed, CircleMinus, CircleSlash, CircleX, Clock } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
 import { Button } from '../primitives/button';
@@ -135,6 +135,8 @@ export function VerifyReport({
     );
 }
 
+const useCommitEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 /** SignMessage's wallet slot: the buttons, or a function given `take` for the signature a wallet hands back. */
 export type SignMessageWallets = ReactNode | ((take: (signature: string) => void) => ReactNode);
 
@@ -148,7 +150,10 @@ export type SignMessageWallets = ReactNode | ((take: (signature: string) => void
  * `busy` is set, the paste submit waits and the wallet buttons are disabled;
  * while a wallet signs (its button marks itself `aria-busy`), the paste
  * submit waits too. A wallet's signature joins that rule when the slot is a
- * function and the buttons hand it to `take`.
+ * function and the buttons hand it to `take`; one that comes while held is
+ * not used, and SignMessage says so under the wallet row. `error` is said
+ * under the way in that led to it: the wallet row after a wallet press or a
+ * signature from `take`, the paste field after a pasted one.
  */
 export function SignMessage({
     lead,
@@ -171,7 +176,7 @@ export function SignMessage({
     wallets?: SignMessageWallets;
     /** Holds both ways in, as while the site checks or sends what was signed. */
     busy?: boolean;
-    /** Why the last signature was refused. */
+    /** Why the last signature was refused, or why the wallet did not sign. */
     error?: ReactNode;
     submitLabel?: string;
     /** Beside the submit button: Back, Cancel. */
@@ -183,26 +188,43 @@ export function SignMessage({
      * signature is taken. If you handle a rejection, return the handled promise
      * (`p.catch(show)`), not `p`, or it is also reported as unhandled.
      */
-    onSignature: (signature: string) => void | Promise<unknown>;
+    onSignature: (signature: string) => void | PromiseLike<unknown>;
     className?: string;
 }) {
     const [pasted, setPasted] = useState('');
     const [taking, setTaking] = useState(false);
     const [walletSigning, setWalletSigning] = useState(false);
+    // A wallet's signature that came while held: the person approved it, so say it was not used.
+    const [dropped, setDropped] = useState(false);
+    // The way in last used, and where the error now shown was said: it stays put until it changes.
+    const [way, setWay] = useState<'wallet' | 'paste'>('paste');
+    const [said, setSaid] = useState<{ error: ReactNode; at: 'wallet' | 'paste' }>({ error, at: 'paste' });
+    if (said.error !== error) setSaid({ error, at: way });
     // Read and set in the same tick, so two presses before a render take one signature.
     const held = useRef(false);
+    // A wallet answers through the take of the render it was pressed in, whose busy is stale.
+    const busyNow = useRef(busy);
+    useCommitEffect(() => {
+        busyNow.current = busy;
+    }, [busy]);
     const slot = useRef<HTMLFieldSetElement>(null);
     const hold = busy || taking;
 
-    function take(signature: string) {
-        if (held.current || busy) return;
+    function take(signature: string, via: 'wallet' | 'paste') {
+        if (held.current || busyNow.current) {
+            if (via === 'wallet') setDropped(true);
+            return;
+        }
         held.current = true;
         setTaking(true);
+        setDropped(false);
+        setWay(via);
+        setSaid((s) => ({ ...s, at: via }));
         const release = () => {
             held.current = false;
             setTaking(false);
         };
-        let done: void | Promise<unknown>;
+        let done: void | PromiseLike<unknown>;
         try {
             done = onSignature(signature);
         } catch (e) {
@@ -210,16 +232,24 @@ export function SignMessage({
             throw e;
         }
         // A rejection is still the site's to handle, as before SignMessage waited on it.
-        if (done instanceof Promise) void done.finally(release);
+        if (done && typeof done.then === 'function') void Promise.resolve(done).finally(release);
         else release();
     }
 
-    const slotted = typeof wallets === 'function' ? wallets(take) : wallets;
+    const slotted = typeof wallets === 'function' ? wallets((signature) => take(signature, 'wallet')) : wallets;
     const hasSlot = Boolean(slotted);
+    const at = hasSlot && (said.error === error ? said.at : way) === 'wallet' ? 'wallet' : 'paste';
     useEffect(() => {
         const el = slot.current;
         if (!el || typeof MutationObserver === 'undefined') return;
-        const read = () => setWalletSigning(el.querySelector('[aria-busy="true"]') !== null);
+        const read = () => {
+            const signing = el.querySelector('[aria-busy="true"]') !== null;
+            setWalletSigning(signing);
+            if (signing) {
+                setWay('wallet');
+                setDropped(false);
+            }
+        };
         read();
         const watch = new MutationObserver(read);
         watch.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
@@ -237,10 +267,22 @@ export function SignMessage({
                     {/* SignMessage leads with its own words, so a wallet button's heading stays out. Wrapped, the
                         buttons' 44px targets stand clear of each other to a thumb. Held, the row dims: the adapter
                         dims only for its own state. */}
-                    <div className={cn('flex flex-wrap gap-2 [--oc-wallet-heading:none] pointer-coarse:gap-y-3', hold && 'opacity-50')}>
-                        <fieldset ref={slot} disabled={hold} className="contents">
-                            {slotted}
-                        </fieldset>
+                    <div className="flex flex-col gap-2">
+                        <div className={cn('flex flex-wrap gap-2 [--oc-wallet-heading:none] pointer-coarse:gap-y-3', hold && 'opacity-50')}>
+                            <fieldset ref={slot} disabled={hold} className="contents">
+                                {slotted}
+                            </fieldset>
+                        </div>
+                        {at === 'wallet' && error ? (
+                            <p role="alert" className="text-[0.8125rem] leading-snug text-destructive">
+                                {error}
+                            </p>
+                        ) : null}
+                        {dropped ? (
+                            <p role="alert" className="text-[0.8125rem] leading-snug text-destructive">
+                                Your wallet signed while the page was busy, so that signature was not used. Sign again.
+                            </p>
+                        ) : null}
                     </div>
                     <div className="flex items-center gap-3 text-[0.8125rem] text-muted-foreground">
                         <span className="h-px flex-1 bg-border" />
@@ -255,12 +297,12 @@ export function SignMessage({
                 className="flex flex-col gap-4"
                 onSubmit={(e) => {
                     e.preventDefault();
-                    if (pasted.trim() && !walletSigning) take(pasted.trim());
+                    if (pasted.trim() && !walletSigning) take(pasted.trim(), 'paste');
                 }}
             >
                 <Field
                     label="Signature"
-                    error={error}
+                    error={at === 'paste' ? error : undefined}
                     hint={
                         <>
                             From your wallet&rsquo;s &ldquo;sign message&rdquo; ({scheme === 'legacy' ? 'legacy, BIP-137' : 'BIP-322'}), signed by{' '}

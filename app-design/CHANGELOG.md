@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- `SignMessage` says `error` under the way in that led to it: under the
+  wallet row after a signature from `take` or a wallet press (the wallet's
+  own failure, when the site passes it as `error`), under the paste field
+  after a pasted signature. An error already shown stays where it was said
+  until it changes, so starting a wallet does not move a paste refusal.
+  A wallet's signature that comes while the page is busy, or while another
+  is checked, is not used, and SignMessage says so under the wallet row
+  until the next press; `busy` is read as of the last commit, since a
+  wallet answers through the `take` of the render it was pressed in.
+  `onSignature` may return any thenable, not only a native promise.
+  check-dom covers each, and raises `busy` after a press.
+
 ## [2.18.0] — 2026-11-11
 
 - `SignMessage` takes one signature at a time. `onSignature` may return a
