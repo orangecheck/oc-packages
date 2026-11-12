@@ -10,6 +10,31 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `PaymentResult` carries `mode`, `settles` and `is_stub`, as me.ochk.io
+  answers them: `'stub'`, `false`, `true`.
+
+### Changed
+
+- `payment.authorize` and the README say what the call does today: it records
+  a payment intent in the signed-in person's name and settles nothing. No sats
+  move, nobody is charged, and the person earns nothing from it. There is no
+  prompt and no `'cancelled'` answer; a refusal throws `MeClientError`.
+- The README's payment price words: a percent of the payment in (0, 1], of
+  which the person earns about 80% (the fee is 20%, at least 1 sat).
+- `IntegratorPriceConfig` and the templates say a config is changed on
+  ochk.app, which saves it with `POST /api/me/projects/<project_key>`; this
+  SDK only builds and checks one. The template example ends with
+  `oc.config.validate` and saving on ochk.app, and names the marketplace
+  template's payment price, 0.609375%.
+- `config.validate` and `validateIntegratorConfig` say what they check (the
+  shape, and each enabled event's own price limits; an agent block's shape
+  only) and that me.ochk.io checks more when it saves, among them the domain,
+  labels, the operator's price bounds and a price that earns nothing.
+- The pay period comments: a period that has started keeps its start; its end
+  can still move, but never to before now.
+
 ## [0.61.0] — 2026-11-12
 
 ### Added

@@ -8,8 +8,9 @@
  *      submitting.
  *
  *   oc.config.validate(cfg)  · local validator, no network call.
- *      Mirrors the server-side rules; run before posting to catch
- *      shape errors at edit time.
+ *      The shape and each event's own price limits; me.ochk.io
+ *      checks more when it saves (the domain, labels, operator
+ *      bounds, a price that earns the person nothing).
  *
  *   oc.config.archetypes  · the catalog of available templates with
  *      metadata. Useful for rendering an archetype picker in your
