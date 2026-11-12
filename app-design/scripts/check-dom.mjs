@@ -125,10 +125,13 @@ async function copyFrom(host) {
     check(wallet()?.matches(':disabled') && host.querySelector('fieldset')?.parentElement?.classList.contains('opacity-50'), 'SignMessage: the wallet buttons are not held, and dimmed, while a pasted signature is checked');
     await act(async () => take?.('wallet-sig'));
     check(calls.length === 1, `SignMessage: a wallet's signature was taken while a pasted one was checked (${show(calls)})`);
+    const notUsed = () => host.textContent.includes('so that signature was not used');
+    check(notUsed(), 'SignMessage: a wallet signature that came during a check was dropped without a word');
     await act(async () => settle.resolve());
     check(!submit.disabled && !wallet()?.matches(':disabled') && !host.querySelector('fieldset')?.parentElement?.classList.contains('opacity-50'), 'SignMessage: still held, or dimmed, after the check settled');
     await act(async () => wallet()?.click());
     check(calls.length === 2 && calls[1] === 'wallet-sig', `SignMessage: the wallet's signature was not taken once the first settled (${show(calls)})`);
+    check(!notUsed(), 'SignMessage: still says a signature was not used after one was taken');
     // A refusal releases too, and the site keeps its rejection.
     const unhandled = [];
     const note = (e) => unhandled.push(e);
@@ -188,6 +191,123 @@ async function copyFrom(host) {
     check(!submit.disabled && !why(), 'SignMessage: the paste submit stays held after the wallet stopped');
     await act(async () => form.requestSubmit());
     check(calls.length === 1 && calls[0] === 'sig', `SignMessage: the pasted signature was not taken once the wallet stopped (${show(calls)})`);
+    await unmount();
+}
+
+// SignMessage: a wallet answers through the take of the render it was pressed in. Busy raised meanwhile
+// still holds it, and the person who approved in the wallet is told it was not used.
+{
+    const { useState } = require('react');
+    const calls = [];
+    let take;
+    let setBusy;
+    function Site() {
+        const [busy, set] = useState(false);
+        setBusy = set;
+        return h(C.SignMessage, {
+            address: 'bc1q',
+            message: 'm',
+            busy,
+            wallets: (t) => {
+                take = t;
+                return h('button', { type: 'button' }, 'Sign with UniSat');
+            },
+            onSignature: (sig) => void calls.push(sig),
+        });
+    }
+    const { host, unmount } = await mount(h(Site));
+    const pressed = take;
+    const notUsed = () => host.textContent.includes('Your wallet signed while the page was busy, so that signature was not used. Sign again.');
+    await act(async () => setBusy(true));
+    await act(async () => pressed('late-sig'));
+    check(calls.length === 0, `SignMessage: a wallet signature from before busy was raised was taken while busy (${show(calls)})`);
+    check(notUsed(), 'SignMessage: a wallet signature that came while busy was dropped without a word');
+    await act(async () => setBusy(false));
+    const wallet = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
+    await act(async () => wallet.setAttribute('aria-busy', 'true'));
+    check(!notUsed(), 'SignMessage: still says a signature was not used once the wallet signs again');
+    await act(async () => wallet.removeAttribute('aria-busy'));
+    await act(async () => pressed('next-sig'));
+    check(calls.length === 1 && calls[0] === 'next-sig', `SignMessage: no signature taken once busy cleared (${show(calls)})`);
+    await unmount();
+}
+
+// SignMessage says a refusal under the way in that led to it: the wallet row after a wallet, the paste
+// field after a paste. One already shown stays where it was said until it changes.
+{
+    const { useState } = require('react');
+    let take;
+    let setError;
+    function Site({ slot = true }) {
+        const [error, set] = useState(null);
+        setError = set;
+        return h(C.SignMessage, {
+            address: 'bc1q',
+            message: 'm',
+            error,
+            wallets: slot
+                ? (t) => {
+                      take = t;
+                      return h('button', { type: 'button' }, 'Sign with UniSat');
+                  }
+                : undefined,
+            onSignature: () => {},
+        });
+    }
+    const { host, unmount } = await mount(h(Site));
+    const area = host.querySelector('textarea');
+    const form = host.querySelector('form');
+    const wallet = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
+    const row = host.querySelector('fieldset').parentElement.parentElement;
+    const byWallet = () => row.querySelector(':scope > p[role="alert"]')?.textContent ?? null;
+    const byPaste = () => form.querySelector('p[role="alert"]')?.textContent ?? null;
+    const invalid = () => area.getAttribute('aria-invalid') === 'true';
+    const refused = 'not a signature over the message shown';
+    await act(async () => take('wallet-sig'));
+    await act(async () => setError(refused));
+    check(byWallet() === refused && byPaste() === null && !invalid(), `SignMessage: a refusal after a wallet's signature is said by the wallet row ${show(byWallet())}, by the paste field ${show(byPaste())}, field invalid ${invalid()}`);
+    await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(area, 'pasted-sig');
+        area.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    // The same words for a pasted signature: the error is unchanged, and it moves to the paste field.
+    await act(async () => form.requestSubmit());
+    await act(async () => setError(refused));
+    check(byPaste() === refused && byWallet() === null && invalid(), `SignMessage: a refusal after a pasted signature is said by the paste field ${show(byPaste())}, by the wallet row ${show(byWallet())}, field invalid ${invalid()}`);
+    await act(async () => wallet.setAttribute('aria-busy', 'true'));
+    check(byPaste() === refused && byWallet() === null, `SignMessage: a refusal already shown moved when a wallet began signing (wallet row ${show(byWallet())})`);
+    // A wallet that fails without a signature (the site's onError sets error) is said by the wallet row too.
+    await act(async () => wallet.removeAttribute('aria-busy'));
+    await act(async () => setError('the wallet did not sign'));
+    check(byWallet() === 'the wallet did not sign' && byPaste() === null, `SignMessage: a wallet's own failure is said by the wallet row ${show(byWallet())}, by the paste field ${show(byPaste())}`);
+    await unmount();
+    const bare = await mount(h(Site, { slot: false }));
+    await act(async () => setError('no wallets here'));
+    check(bare.host.querySelector('form p[role="alert"]')?.textContent === 'no wallets here', 'SignMessage: with no wallet row, a refusal is not said by the paste field');
+    await bare.unmount();
+}
+
+// SignMessage waits on any thenable onSignature returns, not only a native Promise.
+{
+    const calls = [];
+    let settle;
+    const onSignature = (sig) => {
+        calls.push(sig);
+        return { then: (ok) => void (settle = ok) };
+    };
+    const { host, unmount } = await mount(h(C.SignMessage, { address: 'bc1q', message: 'm', onSignature }));
+    const area = host.querySelector('textarea');
+    const form = host.querySelector('form');
+    const submit = form.querySelector('button[type="submit"]');
+    await act(async () => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(area, 'sig');
+        area.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    await act(async () => form.requestSubmit());
+    await act(async () => form.requestSubmit());
+    check(calls.length === 1 && submit.disabled, `SignMessage: a thenable from onSignature did not hold the next signature (${show(calls)})`);
+    await act(async () => settle());
+    check(!submit.disabled, 'SignMessage: still held after the thenable settled');
     await unmount();
 }
 
