@@ -35,6 +35,7 @@ import {
   walletTracking,
 } from "./appearance";
 import { detectWallets, listedWallets } from "./detect";
+import { MessageChangedError } from "./failure";
 import { assertSignedBy, getSigner } from "./sign";
 
 /** A decorative glyph of the family look, which a site can hide (--oc-wallet-mark). */
@@ -326,6 +327,11 @@ export function OcWalletButton({
   // different wallet (or unmounts), we ignore any late result.
   const requestIdRef = useRef(0);
   const mountedRef = useRef(true);
+  // The message and address shown now, set in render so no answer lands between commit and an effect.
+  const shown = useRef({ address, message });
+  shown.current = { address, message };
+  const stillShown = (asked: { address: string; message: string }) =>
+    shown.current.address === asked.address && shown.current.message === asked.message;
   useEffect(
     () => () => {
       mountedRef.current = false;
@@ -365,6 +371,7 @@ export function OcWalletButton({
       return;
     }
     const rid = ++requestIdRef.current;
+    const asked = { address, message };
     setBusyId(wallet.id);
     try {
       const sig = await getSigner(wallet.id, { address })(message);
@@ -372,6 +379,10 @@ export function OcWalletButton({
       // or component unmounted). Prevents "I clicked UniSat, closed it,
       // clicked Xverse — now both popped up" confusion.
       if (requestIdRef.current !== rid || !mountedRef.current) return;
+      if (!stillShown(asked)) {
+        onError?.(new MessageChangedError(), wallet.id);
+        return;
+      }
       onSigned(sig, wallet.id);
     } catch (err) {
       if (requestIdRef.current !== rid || !mountedRef.current) return;
@@ -514,11 +525,16 @@ export function OcWalletButton({
                 const sig = manual.sig.trim();
                 if (!sig) return;
                 const wid = manual.walletId;
+                const asked = { address, message };
                 try {
                   await assertSignedBy({ address, message, signature: sig });
                 } catch (err) {
                   const e = err instanceof Error ? err : new Error(String(err));
                   onError?.(e, wid);
+                  return;
+                }
+                if (!stillShown(asked)) {
+                  onError?.(new MessageChangedError(), wid);
                   return;
                 }
                 setManual(null);
