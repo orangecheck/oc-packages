@@ -377,8 +377,8 @@ jobs:
 
             # orangecheck.pledge's conformance harness loads the canonical
             # vectors from oc-pledge-protocol/test-vectors/. Without this
-            # checkout the pledge tests gracefully skip; with it, all 28
-            # vectors run as part of the standard `python` CI gate.
+            # checkout the pledge tests gracefully skip; with it, every
+            # vector runs as part of the standard `python` CI gate.
             - name: Checkout oc-pledge-protocol (for pledge conformance)
               uses: actions/checkout@v5
               with:
@@ -447,7 +447,7 @@ jobs:
                   yarn build
                   yarn test
 
-            - name: TS — pledge-core conformance suite (28 vectors, live)
+            - name: TS — pledge-core conformance suite (live vectors)
               working-directory: pledge-core
               env:
                   OC_PLEDGE_VECTORS_DIR: /tmp/oc-pledge-protocol/test-vectors
@@ -468,7 +468,7 @@ jobs:
                   pip install -e '.[dev]' pytest
                   python -m pytest tests/test_conformance.py -q
 
-            - name: Python — orangecheck.pledge conformance suite (28 vectors, live)
+            - name: Python — orangecheck.pledge conformance suite (live vectors)
               working-directory: sdk-py
               env:
                   OC_PLEDGE_VECTORS_DIR: /tmp/oc-pledge-protocol/test-vectors
