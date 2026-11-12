@@ -19,7 +19,8 @@ oc-vault item list
 oc-vault whoami
 ```
 
-The passphrase is read from `$OCV_PASSPHRASE` (for CI) or a hidden prompt.
+The passphrase is read from `$OCV_PASSPHRASE` (for CI) or a hidden prompt on
+stderr, so stdout carries only what a command prints.
 
 ## Commands
 
