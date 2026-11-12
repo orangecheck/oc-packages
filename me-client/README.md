@@ -177,7 +177,7 @@ Records a payment intent in the signed-in person's name. It settles nothing yet:
 
 There is no prompt; the person is whoever is signed in. `description` (at most 280 characters) stays private, and the rest of the record is signed and readable at `verify_url`. An account records at most 20 a UTC day on each site. A refusal throws `MeClientError`.
 
-To bill for a payment, fire the `payment_authorization` event with `oc.event.fire` and its `payment_amount_sats`. Its price is a percent of the payment, in (0, 1]. The person earns about 80% of that price: the fee is 20%, at least 1 sat.
+To bill for a payment, fire the `payment_authorization` event with `oc.event.fire`. When it is priced as a percent of the payment, the percent is in (0, 1] and the event needs `payment_amount_sats`. The person earns about 80% of the price: the fee is 20% of the price, rounded to a whole sat and at least 1 sat.
 
 ```ts
 import { oc } from '@orangecheck/me-client';

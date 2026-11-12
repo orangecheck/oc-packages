@@ -32,8 +32,10 @@ this file tracks the package's TS / Node / runtime API surface.
   a payment intent in the signed-in person's name and settles nothing. No sats
   move, nobody is charged, and the person earns nothing from it. There is no
   prompt and no `'cancelled'` answer; a refusal throws `MeClientError`.
-- The README's payment price words: a percent of the payment in (0, 1], of
-  which the person earns about 80% (the fee is 20%, at least 1 sat).
+- The README's payment price words: when the event is priced as a percent of
+  the payment, the percent is in (0, 1] and the event needs
+  `payment_amount_sats`. The person earns about 80% of the price: the fee is
+  20% of the price, rounded to a whole sat and at least 1 sat.
 - `IntegratorPriceConfig` and the templates say a config is changed on
   ochk.app, which saves it with `POST /api/me/projects/<project_key>`; this
   SDK only builds and checks one. The template example ends with
