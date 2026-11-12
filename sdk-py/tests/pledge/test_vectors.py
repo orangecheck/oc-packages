@@ -7,16 +7,18 @@ asserts byte-identical reproduction. A failure means either:
   (a) The spec moved: re-vendor the vectors, OR
   (b) The Python SDK drifted: fix orangecheck/pledge/canonical.py.
 
-Same 28-vector battery the TypeScript SDK runs against. The two SDKs
-producing identical canonical bytes + ids on every vector is what makes
-the homepage's "cross-impl, where it counts" claim apply to OC Pledge —
-this harness is the gate.
+The same vectors the TypeScript SDK runs against, with the same checks:
+the ones that carry a signature_check (v59-v63) also go through the real
+BIP-322 verifier. The two SDKs producing identical canonical bytes + ids on
+every vector is what makes the homepage's "cross-impl, where it counts"
+claim apply to OC Pledge — this harness is the gate.
 """
 
 from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +47,7 @@ from orangecheck.pledge import (
 from orangecheck.pledge.bond import AttestationLookupResult
 from orangecheck.pledge.delegation import DelegationLookupResult, check_pledge_create_scope
 from orangecheck.pledge.envelopes import PledgeError
+from orangecheck.verify_sig import verify_bip322_signature
 
 
 def locate_vectors_dir() -> Path | None:
@@ -111,6 +114,36 @@ def test_vector(name: str, data: dict[str, Any]) -> None:
         pytest.fail(f"unknown vector kind in {name}: {kind}")
 
 
+# ─── signature_check (v59-v63) — a real signature from a disclosed burn key ─
+
+SIGNED = [(name, data) for (name, data) in VECTORS if "signature_check" in data]
+
+
+def _real_bip322(message: str, signature: str, address: str) -> bool:
+    # The real verifier, never a stub that answers true.
+    return verify_bip322_signature(address, message, signature)
+
+
+@pytest.mark.parametrize(("name", "data"), SIGNED, ids=[name for (name, _) in SIGNED])
+def test_signature_vector(name: str, data: dict[str, Any]) -> None:
+    sc = data["signature_check"]
+    env = data["expected"]["envelope"]
+    assert sc["signed_message"] == data["expected"]["pledge_id"] == env["id"]
+    r = verify_pledge(env, verify_bip322=_real_bip322)
+    if sc["expected"]["outcome"] == "ACCEPT":
+        assert r.ok, f"verify_pledge failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
+    else:
+        assert not r.ok
+        assert r.code == sc["expected"]["error_code"]
+
+
+def test_signed_vectors_cover_every_address_type() -> None:
+    checks = [data["signature_check"] for (_, data) in SIGNED]
+    accepted = {c["address_type"] for c in checks if c["expected"]["outcome"] == "ACCEPT"}
+    assert accepted == {"p2pkh", "p2sh_p2wpkh", "p2wpkh", "p2tr"}
+    assert any(c["expected"]["outcome"] == "REJECT" for c in checks)
+
+
 # ─── Shape A — pledge ─────────────────────────────────────────────────────
 
 
@@ -134,6 +167,7 @@ def _run_pledge(vec: dict[str, Any]) -> None:
         skip_delegation_verification=True,
     )
     assert r.ok, f"verify_pledge failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
+    assert r.id == pid
 
 
 # ─── Shape A — outcome ────────────────────────────────────────────────────
@@ -159,6 +193,7 @@ def _run_outcome(vec: dict[str, Any]) -> None:
         skip_resolver_authorization=True,
     )
     assert r.ok, f"verify_outcome failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
+    assert r.id == oid
 
 
 # ─── Shape A — abandonment ────────────────────────────────────────────────
@@ -184,6 +219,7 @@ def _run_abandonment(vec: dict[str, Any]) -> None:
     assert (
         r.ok
     ), f"verify_abandonment failed: {getattr(r, 'code', '?')} {getattr(r, 'message', '?')}"
+    assert r.id == aid
 
 
 # ─── Shape B — bond-verification (v18-v20) ────────────────────────────────
@@ -221,19 +257,42 @@ def _run_bond(vec: dict[str, Any]) -> None:
         and valid_at_block is not None
         and int(spent_at_block) <= int(valid_at_block)
     )
+    now = inputs.get("now", "2026-12-31T00:00:00Z")
+    # Vectors that list the address's coins (v29, v30) are aged here, over min_sats.
+    utxos = inputs.get("utxos")
+    days_unspent = (
+        _days_covering(utxos, int(bond["min_sats"]), now)
+        if utxos is not None
+        else int(attest_d["days_unspent"])
+    )
     attestation = AttestationLookupResult(
         address=attest_d["address"],
         sats_bonded=int(attest_d["sats_bonded"]),
-        days_unspent=int(attest_d["days_unspent"]),
+        days_unspent=days_unspent,
         utxo_spent_at_or_before_now=spent,
     )
 
-    r = verify_bond(pledge=pledge, now="2026-12-31T00:00:00Z", attestation=attestation)
+    r = verify_bond(pledge=pledge, now=now, attestation=attestation)
     expected_ok = bool(expected["ok"])
     expected_code = expected.get("code")
     assert r.ok is expected_ok
     if not r.ok and expected_code is not None:
         assert r.code == expected_code
+    if r.ok and "days_unspent" in expected:
+        assert r.days_unspent == expected["days_unspent"]
+
+
+def _days_covering(utxos: list[dict[str, Any]], cover: int, now_iso: str) -> int:
+    # SPEC §8: oldest first until the sum reaches cover; the youngest taken sets the age.
+    total = 0
+    youngest = 0
+    for u in sorted(utxos, key=lambda u: (u["block_height"], u["txid"], u["vout"])):
+        total += int(u["value"])
+        youngest = max(youngest, int(u["block_time"]))
+        if total >= cover:
+            break
+    now = datetime.strptime(now_iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    return int((now.timestamp() - youngest) // 86_400)
 
 
 # ─── Shape B — state-transition ───────────────────────────────────────────
