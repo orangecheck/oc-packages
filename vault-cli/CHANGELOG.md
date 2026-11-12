@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.6
+
 - A command that asks for the vault passphrase takes the first line of stdin, a
   last line with no newline included, and exits 1 with
   `No passphrase given: input closed before a line.` when stdin ends before one.
