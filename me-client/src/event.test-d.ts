@@ -27,6 +27,15 @@ test('an entry from a server older than the codes, with a reason alone, is still
     expectTypeOf({ ...old, code: 'not_a_code' as const }).not.toMatchTypeOf<Rejected>();
 });
 
+test('a recorded entry carries its drop window, as a single fire does; a duplicate has none', () => {
+    type BatchRecorded = Extract<BatchEventResult, { status: 'recorded' }>;
+    expectTypeOf<keyof BatchRecorded>().toEqualTypeOf<'index' | 'status' | 'event' | 'drop'>();
+    expectTypeOf<BatchRecorded['drop']>().toEqualTypeOf<DropResponseBlock | undefined>();
+    expectTypeOf<
+        keyof Extract<BatchEventResult, { status: 'duplicate' }>
+    >().toEqualTypeOf<'index' | 'status' | 'event'>();
+});
+
 test('only a rejected entry has a code', () => {
     expectTypeOf<Extract<BatchEventResult, { status: 'recorded' }>>().not.toHaveProperty('code');
     expectTypeOf<Extract<BatchEventResult, { status: 'duplicate' }>>().not.toHaveProperty('code');

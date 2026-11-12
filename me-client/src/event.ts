@@ -337,6 +337,8 @@ export type BatchEventResult =
           index: number;
           status: 'recorded';
           event: BillableEvent;
+          /** The drop window the person's share vests in, when a drop schedule covers the subtype. */
+          drop?: DropResponseBlock;
       }
     | {
           index: number;
