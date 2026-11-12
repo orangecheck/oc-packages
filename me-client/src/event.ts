@@ -472,8 +472,9 @@ export interface VerifyEventResult {
  *   if (!result.ok) reportDivergence(result.issues);
  *
  * With `payPeriods`, an event billed while the project wasn't paying its
- * users is flagged `outside_pay_period`. Periods that have started never
- * change, so the period that paid an event is always still there.
+ * users is flagged `outside_pay_period`. A period that has started keeps its
+ * start; its end can still move, never to before now, so the period that paid
+ * an event is always still there.
  */
 function verify(
     envelope: BillableEvent,

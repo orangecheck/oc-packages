@@ -3,14 +3,17 @@ import type { PaymentAuthorizeOptions, PaymentResult } from './types';
 import { api } from './transport';
 
 /**
- * Authorize a payment through the person's orangecheck account. A Per action
- * event for your app, priced as a share of the payment; what the person
- * earns lands in their balance at ochk.app.
+ * Record a payment intent in the signed-in person's name. It settles nothing
+ * yet: me.ochk.io records the intent and answers `mode: 'stub'`,
+ * `settles: false`, `is_stub: true`. No sats move, your balance is not
+ * charged, and the person earns nothing from it.
  *
- * The user is prompted by me.ochk.io to consent to the specific payment
- * before this resolves. If the user declines or cancels, the result has
- * status `'cancelled'`, a non-billable telemetry record is emitted, and
- * NO billable event is created.
+ * The person is whoever is signed in: the oc_session cookie, or the sign-in
+ * token passed as `bearerToken`, made on orangecheck's own sites or on a live
+ * project's verified domain. There is no prompt. `description` (at most 280
+ * characters) stays private; the rest of the record is signed and anyone with
+ * `verify_url` can read it. An account records at most 20 a UTC day on each
+ * site. A refusal throws `MeClientError`.
  */
 async function authorize(opts: PaymentAuthorizeOptions): Promise<PaymentResult> {
     if (opts.amount_sats == null && opts.usd_cents == null) {

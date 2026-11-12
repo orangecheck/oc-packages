@@ -13,7 +13,7 @@
  *     domain: 'yoursite.com',
  *     display_name: 'Your Site',
  *   });
- *   await oc.config.save(config);
+ *   oc.config.validate(config); // then save it on ochk.app
  *
  * Templates differ on which subtypes are enabled (a content platform
  * doesn't need payment_authorization; a marketplace does) and on the
@@ -27,7 +27,7 @@
  *   const config = oc.config.fromTemplate('marketplace', { ... });
  *   config.events.payment_authorization!.site_pays = {
  *     kind: 'percent_of_amount',
- *     pct: 0.005, // 0.5% instead of the template's 0.75%
+ *     pct: 0.005, // 0.5% instead of the template's 0.609375%
  *   };
  */
 

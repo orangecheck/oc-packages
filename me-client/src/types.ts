@@ -169,9 +169,10 @@ export interface IntegratorEventConfig {
     class?: EventClass;
 }
 
-/** A complete integrator pricing config. Posted to me.ochk.io once at
- *  integration time, mutable via the configurator UI or this SDK any time
- *  after. */
+/** A complete integrator pricing config. Change it on ochk.app, which saves
+ *  it with POST /api/me/projects/<project_key> as the project's owner; this
+ *  SDK only builds and checks one. POST /api/integrator-config checks a
+ *  config without saving it. */
 export interface IntegratorPriceConfig {
     project_key: string;
     display_name: string;
@@ -265,11 +266,6 @@ export interface ValidationResult {
     errors: { subtype?: EventKey; message: string }[];
 }
 
-/**
- * Validate an integrator's pricing config against the platform's
- * non-negotiable rules. Run client-side before posting; the server runs
- * the same checks and rejects anything that fails.
- */
 const isRecord = (v: unknown): v is Record<string, unknown> =>
     typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -301,6 +297,15 @@ function eventShapeProblem(e: Record<string, unknown>): string | null {
     return null;
 }
 
+/**
+ * Check an integrator's pricing config locally: its shape, and each enabled
+ * event's own price limits (a fixed price of at least
+ * MIN_INTEGRATOR_PRICE_SATS, a percent in (0, 1], a user share in [0, 0.8]).
+ * An agent block is checked for shape only. me.ochk.io checks more when it
+ * saves, among them the domain, event labels, the operator's price bounds
+ * and a price that earns the person nothing, so a config that passes here
+ * can still be refused.
+ */
 export function validateIntegratorConfig(cfg: IntegratorPriceConfig): ValidationResult {
     const errors: ValidationResult['errors'] = [];
 
@@ -627,7 +632,14 @@ export interface PaymentAuthorizeOptions {
 
 export interface PaymentResult {
     id: string;
+    /** me.ochk.io answers only 'authorized' today; a refusal throws. */
     status: 'authorized' | 'failed' | 'cancelled';
+    /** 'stub': the intent is recorded and nothing settles. */
+    mode: 'stub';
+    /** False: no sats move and nobody is charged or paid. */
+    settles: boolean;
+    /** True while payments are recorded intents only. */
+    is_stub: boolean;
     sats_charged?: number;
     user_envelope_id?: string;
     verify_url?: string;

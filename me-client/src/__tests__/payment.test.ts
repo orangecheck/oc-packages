@@ -2,8 +2,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { payment } from '../payment';
 import { clearBearerToken, setBearerToken } from '../transport';
+import type { PaymentResult } from '../types';
 
 type Sent = { auth: string | null; body: Record<string, unknown> };
+
+// What me.ochk.io's /api/payment/authorize answers today: a recorded intent that settles nothing.
+const ANSWER = {
+    ok: true,
+    mode: 'stub',
+    settles: false,
+    id: 'oc-pay-x',
+    status: 'authorized',
+    is_stub: true,
+    sats_charged: 2100,
+    user_envelope_id: 'oc-pay-x',
+    identity: 'did:oc:x',
+    issued_at: '2026-11-12T00:00:00.000Z',
+    verify_url: 'https://me.ochk.io/verify/oc-pay-x',
+} satisfies PaymentResult & Record<string, unknown>;
 
 // Each request answers only after the test lets it, so two calls can be in flight at once.
 function stubFetch() {
@@ -13,7 +29,7 @@ function stubFetch() {
         const headers = new Headers(init?.headers);
         sent.push({ auth: headers.get('authorization'), body: JSON.parse(String(init?.body)) });
         await new Promise<void>((r) => release.push(r));
-        return Response.json({ id: 'pay_x', status: 'authorized' });
+        return Response.json(ANSWER);
     });
     const settle = async (calls = 1) => {
         for (let i = 0; i < 100 && release.length < calls; i++) await Promise.resolve();
@@ -37,7 +53,9 @@ describe('payment.authorize with a per-call bearerToken', () => {
             bearerToken: 'user-a.jwt',
         });
         await settle();
-        await expect(done).resolves.toEqual({ id: 'pay_x', status: 'authorized' });
+        const result = await done;
+        expect(result).toEqual(ANSWER);
+        expect([result.mode, result.settles, result.is_stub]).toEqual(['stub', false, true]);
         expect(sent).toHaveLength(1);
         expect(sent[0]!.auth).toBe('Bearer user-a.jwt');
         expect(sent[0]!.body).toEqual({ amount_sats: 2100, description: 'one coffee' });
