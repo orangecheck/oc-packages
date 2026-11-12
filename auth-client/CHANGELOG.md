@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.50.0] — 2026-11-12
+
 ### Added
 
 - A sign-out or an account switch that ochk.io refuses with 409
