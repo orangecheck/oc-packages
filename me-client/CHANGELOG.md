@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.62.0] — 2026-11-12
+
 ### Added
 
 - `PaymentResult` carries `mode`, `settles` and `is_stub`, as me.ochk.io
