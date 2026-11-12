@@ -5,9 +5,10 @@
  * and costs nothing, and me.ochk.io records no event.
  *
  * GET /api/integrator/config returns a project's `pay_periods`, past ones
- * included. Periods that have started never change, so any earning can be
- * checked against the period that paid it. Mirrors me.ochk.io's
- * lib/events/pay-periods.ts.
+ * included. A period that has started keeps its start and is never removed;
+ * until it ends, its end can still move, but never to before now. So any
+ * earning can be checked against the period that paid it. Mirrors
+ * me.ochk.io's lib/events/pay-periods.ts.
  */
 
 export interface PayPeriod {
