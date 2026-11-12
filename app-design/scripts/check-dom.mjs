@@ -167,8 +167,10 @@ async function copyFrom(host) {
 
 // SignMessage: while a wallet signs (its button aria-busy), the paste submit waits, with no spinner, and says why.
 {
-    const { host, unmount } = await mount(h(C.SignMessage, { address: 'bc1q', message: 'm', wallets: h('button', { type: 'button' }, 'Sign with UniSat'), onSignature: () => {} }));
+    const calls = [];
+    const { host, unmount } = await mount(h(C.SignMessage, { address: 'bc1q', message: 'm', wallets: h('button', { type: 'button' }, 'Sign with UniSat'), onSignature: (sig) => void calls.push(sig) }));
     const area = host.querySelector('textarea');
+    const form = host.querySelector('form');
     const submit = host.querySelector('button[type="submit"]');
     const wallet = [...host.querySelectorAll('button')].find((b) => b.textContent === 'Sign with UniSat');
     await act(async () => {
@@ -179,8 +181,13 @@ async function copyFrom(host) {
     check(!submit.disabled && !why(), 'SignMessage: the paste submit is held with no wallet signing');
     await act(async () => wallet.setAttribute('aria-busy', 'true'));
     check(submit.disabled && submit.getAttribute('aria-busy') !== 'true' && why(), 'SignMessage: a pasted signature can be sent while a wallet signs, or the wait is not said');
+    // A submit that skips the disabled button (requestSubmit, a site's own submit button) still waits.
+    await act(async () => form.requestSubmit());
+    check(calls.length === 0, `SignMessage: a form submit took a pasted signature while a wallet signs (${show(calls)})`);
     await act(async () => wallet.removeAttribute('aria-busy'));
     check(!submit.disabled && !why(), 'SignMessage: the paste submit stays held after the wallet stopped');
+    await act(async () => form.requestSubmit());
+    check(calls.length === 1 && calls[0] === 'sig', `SignMessage: the pasted signature was not taken once the wallet stopped (${show(calls)})`);
     await unmount();
 }
 
