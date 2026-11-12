@@ -8,6 +8,11 @@
   With 0.3.5 it exited 0 having done nothing, so `oc-vault run` in a script ran
   no command and reported success. Input is still masked, and an empty line
   still exits 1 with `No passphrase given.`
+- The passphrase prompt is written to stderr, so `oc-vault read`, `inject`,
+  `export` and `item` put only their output on stdout. When stdin is a
+  terminal, every character typed shows as `*`, each time the line is drawn,
+  and the terminal echoes nothing itself. Ctrl-C at the prompt exits 1 with
+  `No passphrase given: interrupted.`
 
 ## 0.3.5
 
