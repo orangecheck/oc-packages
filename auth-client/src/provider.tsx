@@ -26,6 +26,7 @@ import {
     tabSessionHeader,
     writeTabSession,
 } from './tab-session';
+import { isSeveralSessionsAnswer, SWITCH_SEVERAL_SESSIONS_TEXT } from './refusal';
 
 const SessionContext = React.createContext<OcSessionState | null>(null);
 
@@ -495,6 +496,11 @@ export function OcSessionProvider({
             }
             // 401: no session reached the host, so there is none to end.
             if (!res.ok && res.status !== 401) {
+                if (await isSeveralSessionsAnswer(res)) {
+                    // ochk.io cleared the extra cookies: show the account left.
+                    await refresh();
+                    return { ok: false, reason: 'several_sessions', status: 409 };
+                }
                 return { ok: false, reason: 'refused', status: res.status };
             }
             // The signed-out account's token is dead — the pin must not outlive it.
@@ -536,6 +542,10 @@ export function OcSessionProvider({
                 body: JSON.stringify({ did_oc: didOc }),
             });
             if (!res.ok) {
+                if (await isSeveralSessionsAnswer(res)) {
+                    await refresh();
+                    throw new Error(SWITCH_SEVERAL_SESSIONS_TEXT);
+                }
                 let reason = `http_${res.status}`;
                 try {
                     const body = (await res.json()) as { reason?: string };
