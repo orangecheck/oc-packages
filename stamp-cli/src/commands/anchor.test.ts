@@ -11,11 +11,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { runAnchor } from './anchor';
 
-// The calendars are not asked: advanceOts hands back a pending proof.
-vi.mock('../anchor-check.js', () => ({
-    advanceOts: async (e: StampEnvelope) => ({ ...e, ots: { ...PENDING } }),
-    otsFailure: () => 'unreachable',
+// The calendars are not asked: advanceOts hands back a pending proof, or fails when a test says so.
+const { advanceOts } = vi.hoisted(() => ({
+    advanceOts: vi.fn(async (e: StampEnvelope) => ({ ...e, ots: { ...PENDING } })),
 }));
+vi.mock('../anchor-check.js', () => ({ advanceOts, otsFailure: () => 'no calendar could be reached' }));
 
 // oc-stamp-protocol test-vectors/v01-minimal.json (placeholder signature).
 const ENVELOPE = {
@@ -64,8 +64,14 @@ async function anchor(stampPath: string, stdin?: string) {
     vi.spyOn(process, 'exit').mockImplementation(((c?: number) => {
         throw new Error(`exit ${c}`);
     }) as never);
-    await runAnchor({ stampPath, json: true });
-    return { out: out.join(''), log: log.join('\n'), err: err.join('\n') };
+    let exit: string | null = null;
+    try {
+        await runAnchor({ stampPath, json: true });
+    } catch (e) {
+        if (!(e instanceof Error) || !e.message.startsWith('exit ')) throw e;
+        exit = e.message;
+    }
+    return { out: out.join(''), log: log.join('\n'), err: err.join('\n'), exit };
 }
 
 describe('stamp anchor -', () => {
@@ -91,5 +97,23 @@ describe('stamp anchor -', () => {
         expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ ...ENVELOPE, ots: PENDING });
         expect(r.out).toBe('');
         expect(JSON.parse(r.log)).toMatchObject({ ok: true, status: 'pending', written: path });
+    });
+
+    it('writes the stamp as it was to stdout when the calendars fail, and exits 1', async () => {
+        advanceOts.mockRejectedValueOnce(new Error('calendars down'));
+        const r = await anchor('-', JSON.stringify(ENVELOPE));
+        expect(r.exit).toBe('exit 1');
+        expect(JSON.parse(r.out)).toEqual(ENVELOPE);
+        expect(r.err).toBe('error: no calendar could be reached');
+    });
+
+    it('leaves a path as it was when the calendars fail, and writes nothing to stdout', async () => {
+        const path = join(mkdtempSync(join(tmpdir(), 'stamp-cli-anchor-')), 'x.stamp');
+        writeFileSync(path, JSON.stringify(ENVELOPE) + '\n');
+        advanceOts.mockRejectedValueOnce(new Error('calendars down'));
+        const r = await anchor(path);
+        expect(r.exit).toBe('exit 1');
+        expect(readFileSync(path, 'utf8')).toBe(JSON.stringify(ENVELOPE) + '\n');
+        expect(r.out).toBe('');
     });
 });
