@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [2.18.2] — 2026-11-12
+
+- `SignMessage`'s notice that a wallet signed while the page was busy
+  ends with the hold, once what was held has been used or refused, not
+  at the next press. It no longer says "Sign again": while it shows, the
+  wallet row is held. check-dom covers the notice ending.
+
 ## [2.18.1] — 2026-11-12
 
 - `SignMessage` says `error` under the way in that led to it: under the
