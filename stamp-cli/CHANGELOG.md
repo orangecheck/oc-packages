@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-11-12
+
 ### Fixed
 
 - `git-stamp tag` and `stamp file`, asking for a signature, take the first

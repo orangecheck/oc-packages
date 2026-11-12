@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-11-12
+
 ### Fixed
 
 - `oc-vote create`, `vote` and `reveal`, asking for a signature, take the first line of stdin,

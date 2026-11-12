@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.18.1] — 2026-11-12
+
 - `SignMessage` says `error` under the way in that led to it: under the
   wallet row after a signature from `take` or a wallet press (the wallet's
   own failure, when the site passes it as `error`), under the paste field
