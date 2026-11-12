@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-11-12
+
 ### Added
 
 - `MessageChangedError` (`code: 'E_MESSAGE_CHANGED'`) and the `walletFailure`
