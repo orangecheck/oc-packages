@@ -915,10 +915,10 @@
   resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.3.0.tgz#ce818f7370b83e1c085766d4926fde2a757f9e84"
   integrity sha512-CaDeuDSoxMFawdGLQR9C4tiY3gUze/fsX25g56FJu20Z0Y2GeU+9g6Y5zFpAP1N91XbR9rpUGe7wsBF/hy/3gA==
 
-"@orangecheck/me-client@^0.59.0":
-  version "0.59.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.59.0.tgz#ca64b3eb2bfb7411efed2b4cc1abacd40db81837"
-  integrity sha512-f4rIOHFyoK++X1BYVBOiSV1xDZS41KIGjy0rgfwX3qpgQ+h0/SbmyX938oTT3E7a3YbLSEgOw6ciErGWDvFZIA==
+"@orangecheck/me-client@^0.62.0":
+  version "0.62.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.62.0.tgz#47b3e0a2fc16992d44358a19d5457c6ffe7aef10"
+  integrity sha512-V8VXT11gheaWjCGOgRDWWCYGUM8n7/edQs8yISqz1CKNqR1XpPpf5zQTWT1jvoMKbJuojyS5ilKEb9RFltJC8Q==
   dependencies:
     "@orangecheck/auth-core" "^2.26.1"
 
@@ -928,13 +928,6 @@
   integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==
   dependencies:
     "@noble/hashes" "^1.5.0"
-
-"@orangecheck/wallet-adapter@^0.7.0":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"
-  integrity sha512-1Rk1vWkCrHA5IRFqAbj35oHLs1du8HsZl/xhQH3ARV8zed8nIXl50vhJuzD3B3tNwiv62Z5a9ZjdXY/uSs0qsA==
-  dependencies:
-    "@orangecheck/bip322" "^1.1.0"
 
 "@orangecheck/wallet-adapter@^0.8.0":
   version "0.8.0"
