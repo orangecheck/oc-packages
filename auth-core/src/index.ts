@@ -1111,3 +1111,4 @@ export * from "./display-name";
 export * from "./family-origins";
 export * from "./identifiers";
 export * from "./retired-key";
+export * from "./owner-list";
