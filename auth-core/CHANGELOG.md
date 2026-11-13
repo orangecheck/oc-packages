@@ -11,6 +11,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.31.0] — 2026-11-14
+
+### Added
+
+- `ownerListEntries(raw)` and `isOnOwnerList(id, raw)`: the family owner list
+  (`OWNER_OC_ADDRESSES`) read one way. Entries are split on commas, trimmed and
+  kept only when non-empty; an id matches an entry exactly, case included. No
+  id, or a blank one, is never on the list. Pass the raw value in: neither reads
+  the environment.
+
 ## [2.30.0] — 2026-11-11
 
 ### Added
