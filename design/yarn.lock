@@ -804,12 +804,12 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-client@^2.41.0":
-  version "2.48.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.48.0.tgz#98d87a82f6124ad347f4a6a25fe4e16871133707"
-  integrity sha512-86m5nwlWhAs9CxiiN109T18qdKuYbs2N30tdDAYOSu/PBEtgmEdwKiwy//FcXnwPDNRTGdGL/z9rpXfgl1S30A==
+  version "2.50.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-client/-/auth-client-2.50.1.tgz#568c485ce972a6075f8eb068a767374b1e5ca526"
+  integrity sha512-1pMRY9noDclwszEC3Qtq/nhoC67NQufNWQc3242WqWmuL2+bUVb4Moi0Ml0e7ReaiCv+zgWwYt4UjkKq0o7xzA==
   dependencies:
     "@orangecheck/bip322" "^1.1.2"
-    "@orangecheck/wallet-adapter" "^0.7.0"
+    "@orangecheck/wallet-adapter" "^0.8.0"
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.24.0":
@@ -836,10 +836,10 @@
   dependencies:
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/wallet-adapter@^0.7.0":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"
-  integrity sha512-1Rk1vWkCrHA5IRFqAbj35oHLs1du8HsZl/xhQH3ARV8zed8nIXl50vhJuzD3B3tNwiv62Z5a9ZjdXY/uSs0qsA==
+"@orangecheck/wallet-adapter@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.8.0.tgz#b771a5079adaef01ae9283e943ea81ce757703cb"
+  integrity sha512-T2g5A+1lIABRpO+PrvcTpfOKL1e0vzb9gojYVvNPICv+4y79HqYgvT3U9CVxF1kNkB+jAcRjq4s3l40xvgi/kg==
   dependencies:
     "@orangecheck/bip322" "^1.1.0"
 
