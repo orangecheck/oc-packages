@@ -64,23 +64,16 @@
     }
   },
   "devDependencies": {
-    "@bitcoinerlab/secp256k1": "^1.2.0",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "bip322-js": "^3.0.0",
-    "bitcoinjs-lib": "6.1.8",
     "dom-accessibility-api": "^0.7.1",
-    "ecpair": "^2.1.0",
     "jsdom": "^29.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^4.1.11"
-  },
-  "resolutions": {
-    "bitcoinjs-lib": "6.1.8"
   },
   "engines": {
     "node": ">=18.0.0"

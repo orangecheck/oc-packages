@@ -7,9 +7,7 @@
  * path reads, then signs with a real key through getSigner.
  */
 
-import * as ecc from "@bitcoinerlab/secp256k1";
-import { Address, Signer } from "bip322-js";
-import { ECPairFactory } from "ecpair";
+import { addressFromPrivateKey, signMessage } from "@orangecheck/bip322";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,13 +17,12 @@ import { detectWallets } from "../detect";
 import { getSigner, verifyBip322 } from "../sign";
 import type { WalletId } from "../types";
 
-const pair = ECPairFactory(ecc).fromPrivateKey(Buffer.alloc(32, 7));
-const ADDRESS = Address.convertPubKeyIntoAddress(pair.publicKey, "p2wpkh").mainnet;
+const KEY = new Uint8Array(32).fill(7);
+const ADDRESS = addressFromPrivateKey(KEY, "p2wpkh");
 const MESSAGE = "67ea21d93ea2cc2d4ac4aa3527f3a9ff082246c7d81b2f4ead070b893e05e25e";
 
 function sign(m: string): string {
-  const sig = Signer.sign(pair.toWIF(), ADDRESS, m);
-  return typeof sig === "string" ? sig : Buffer.from(sig).toString("base64");
+  return signMessage(ADDRESS, m, KEY);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

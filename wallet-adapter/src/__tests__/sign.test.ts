@@ -6,8 +6,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// bitcoinjs-lib's ecc self-check fails under jsdom's Uint8Array, so these run
-// in node with a bare `window` object for the wallet globals.
+// These run in node with a bare `window` object for the wallet globals.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).window ??= {};
 

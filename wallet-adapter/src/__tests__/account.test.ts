@@ -6,37 +6,36 @@
  * hand it to the caller to publish. Real keys, real BIP-322.
  */
 
-import * as ecc from "@bitcoinerlab/secp256k1";
-import { Address, Signer } from "bip322-js";
-import { ECPairFactory } from "ecpair";
+import { addressFromPrivateKey, signMessage } from "@orangecheck/bip322";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// bitcoinjs-lib's ecc self-check fails under jsdom's Uint8Array, so these run
-// in node with a bare `window` object for the wallet globals.
+// These run in node with a bare `window` object for the wallet globals.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).window ??= {};
 
 import { assertSignedBy, getSigner, verifyBip322, WrongAccountError } from "../sign";
 
-const ECPair = ECPairFactory(ecc);
+type Key = { address: string; privateKey: Uint8Array };
 
-function key(seed: number, type: "p2tr" | "p2wpkh" | "p2pkh") {
-  const pair = ECPair.fromPrivateKey(Buffer.alloc(32, seed));
-  return {
-    address: Address.convertPubKeyIntoAddress(pair.publicKey, type).mainnet,
-    wif: pair.toWIF(),
-  };
+function key(seed: number, type: "p2tr" | "p2wpkh"): Key {
+  const privateKey = new Uint8Array(32).fill(seed);
+  return { address: addressFromPrivateKey(privateKey, type), privateKey };
 }
 
 const PRINCIPAL = key(7, "p2tr");
 const OTHER = key(9, "p2tr");
 const PRINCIPAL_SEGWIT = key(7, "p2wpkh");
-const PRINCIPAL_LEGACY = key(7, "p2pkh");
 const MESSAGE = "67ea21d93ea2cc2d4ac4aa3527f3a9ff082246c7d81b2f4ead070b893e05e25e";
 
-function sign(k: { address: string; wif: string }, m: string): string {
-  const sig = Signer.sign(k.wif, k.address, m);
-  return typeof sig === "string" ? sig : Buffer.from(sig).toString("base64");
+// Key 7's P2PKH address and its BIP-137 signature of MESSAGE, made once: the
+// family signer signs segwit and taproot only.
+const LEGACY = {
+  address: "1FvyAqqELFiQyaEWdhFbWF8MZapKPZS8J7",
+  signature: "Hycl8iJ8BzaRwLw6JraIUVkha7fuBRDkp5LXL241bkHKQxTb6QNCjTkVwLHysW6E76Rrjq1JVSTZFHDGcahsyQo=",
+};
+
+function sign(k: Key, m: string): string {
+  return signMessage(k.address, m, k.privateKey);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +47,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockUnisat(active: { address: string; wif: string }, withAccounts = true) {
+function mockUnisat(active: Key, withAccounts = true) {
   const signMessage = vi.fn(async (m: string) => sign(active, m));
   win().unisat = {
     signMessage,
@@ -58,7 +57,7 @@ function mockUnisat(active: { address: string; wif: string }, withAccounts = tru
 }
 
 function mockLeather(
-  active: { address: string; wif: string },
+  active: Key,
   opts: { reportsAddresses?: boolean; addresses?: string[] } = {},
 ) {
   const signMessage = vi.fn(async (m: string) => sign(active, m));
@@ -192,9 +191,9 @@ describe("verifyBip322", () => {
   it("accepts a legacy signature for a p2pkh address", async () => {
     await expect(
       verifyBip322({
-        address: PRINCIPAL_LEGACY.address,
+        address: LEGACY.address,
         message: MESSAGE,
-        signature: sign(PRINCIPAL_LEGACY, MESSAGE),
+        signature: LEGACY.signature,
       }),
     ).resolves.toBe(true);
   });
