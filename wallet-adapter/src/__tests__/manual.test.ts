@@ -5,10 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import ecc from "@bitcoinerlab/secp256k1";
-import * as bitcoin from "bitcoinjs-lib";
-import { Signer } from "bip322-js";
-import { ECPairFactory } from "ecpair";
+import { addressFromPrivateKey, signMessage } from "@orangecheck/bip322";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).window ??= {};
@@ -19,12 +16,10 @@ import {
   ManualSignUnavailable,
 } from "../sign";
 
-const key = ECPairFactory(ecc).makeRandom();
-const address = bitcoin.payments.p2wpkh({
-  pubkey: Buffer.from(key.publicKey),
-}).address!;
+const key = new Uint8Array(32).fill(3);
+const address = addressFromPrivateKey(key, "p2wpkh");
 const MESSAGE = "orangecheck test\nline two";
-const SIG = Signer.sign(key.toWIF(), address, MESSAGE) as string;
+const SIG = signMessage(address, MESSAGE, key);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const win = () => (globalThis as any).window;
@@ -53,11 +48,9 @@ describe("manual signing with onManualSign", () => {
   });
 
   it("still refuses a paste that does not verify for the address", async () => {
-    const other = ECPairFactory(ecc).makeRandom();
-    const otherAddr = bitcoin.payments.p2wpkh({
-      pubkey: Buffer.from(other.publicKey),
-    }).address!;
-    const foreign = Signer.sign(other.toWIF(), otherAddr, MESSAGE) as string;
+    const other = new Uint8Array(32).fill(4);
+    const otherAddr = addressFromPrivateKey(other, "p2wpkh");
+    const foreign = signMessage(otherAddr, MESSAGE, other);
     await expect(
       getSigner("manual", { address, onManualSign: async () => foreign })(
         MESSAGE,
