@@ -20,7 +20,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { createServer } from 'node:https';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
@@ -191,22 +191,31 @@ writeFileSync(join(dir, 'grounds.html'), doc('<div id="root"></div>', `<script>$
 writeFileSync(join(dir, 'grounds-nested.html'), doc('<div id="root"></div>', `<script>${COLOUR_KIT}</script><script src="grounds.js"></script>`, true));
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2' };
-const server = createServer((req, res) => {
+// Newer Chrome preloads HSTS for ochk.io, so a family host opens over https only: a one-day
+// certificate for the three names served here, which Chrome is told not to check.
+const OUTSIDE = 'ochk.example';
+const tls = { key: join(dir, 'key.pem'), cert: join(dir, 'cert.pem') };
+const made = spawnSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '1', '-subj', '/CN=stamp.ochk.io', '-addext', `subjectAltName=DNS:stamp.ochk.io,DNS:docs.ochk.io,DNS:${OUTSIDE}`, '-keyout', tls.key, '-out', tls.cert], { encoding: 'utf8' });
+if (made.status !== 0) {
+    console.error(`✗ logo: openssl made no certificate: ${made.error?.message ?? made.stderr}`);
+    rmSync(dir, { recursive: true, force: true });
+    process.exit(1);
+}
+const server = createServer({ key: readFileSync(tls.key), cert: readFileSync(tls.cert) }, (req, res) => {
     const path = join(dir, decodeURIComponent(new URL(req.url, 'http://x').pathname));
     if (!path.startsWith(dir) || !existsSync(path)) return res.writeHead(404).end();
     res.writeHead(200, { 'content-type': TYPES[extname(path)] ?? 'application/octet-stream' }).end(readFileSync(path));
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
-const at = (host, path) => `http://${host}:${port}/${path}`;
+const at = (host, path) => `https://${host}:${port}/${path}`;
 
 const { chromium } = require('playwright-core');
-// Two of the family's hosts and one outside it, all served here: one browser, one cookie jar. The outside
-// host stands for ochk.app, which Chrome only opens over https (.app is on the HSTS preload list).
-const OUTSIDE = 'ochk.example';
+// Two of the family's hosts and one outside it (OUTSIDE, standing for ochk.app), all served here: one
+// browser, one cookie jar.
 const browser = await chromium.launch({
     executablePath: chrome,
-    args: ['--use-angle=swiftshader', '--font-render-hinting=none', `--host-resolver-rules=MAP stamp.ochk.io 127.0.0.1, MAP docs.ochk.io 127.0.0.1, MAP ${OUTSIDE} 127.0.0.1`],
+    args: ['--use-angle=swiftshader', '--font-render-hinting=none', '--ignore-certificate-errors', `--host-resolver-rules=MAP stamp.ochk.io 127.0.0.1, MAP docs.ochk.io 127.0.0.1, MAP ${OUTSIDE} 127.0.0.1`],
 });
 try {
     // ── Grounds ──
