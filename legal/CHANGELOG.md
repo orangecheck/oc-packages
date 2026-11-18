@@ -8,6 +8,20 @@ plainly what was claimed before and what is claimed now.
 
 ## [Unreleased]
 
+## [0.7.37] — 2026-11-20
+
+### Changed — ochk.app's privacy policy says what a charter publishes about a guardian
+
+The `me` profile's Privacy policy.
+
+- **How a charter names you.** It said a federation charter lists the operator
+  key of each seated guardian, and nothing else. A guardian can now set a handle
+  and one public contact channel (a Nostr npub, an https:// address or an email
+  address) on ochk.app's operator page, and each charter that names their seat
+  publishes both beside the key, to anyone. Every guardian there signs that
+  text, so a charter already signed keeps them as signed; they leave our records
+  when the key is unbound or the account deleted. The note is dated 20 November.
+
 ## [0.7.36] — 2026-11-11
 
 ### Changed — ochk.app's privacy policy says what ochk.app keeps in your browser outside cookies

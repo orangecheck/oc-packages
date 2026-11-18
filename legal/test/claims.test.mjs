@@ -364,12 +364,14 @@ test('the ochk.app terms and privacy scope the no-legal-name claim and say what 
         'asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references',
         'an optional handle and email address that only the reviewer sees, for the decision',
         'The answers are held for the review',
-        'a federation charter lists the operator key of each seated guardian. Nothing else from an application is published yet',
+        'a federation charter lists the operator key of each seated guardian, with the handle and contact channel set on the operator page (below). Nothing else from an application is published yet',
+        "only if you set them on ochk.app's operator page: a handle and one public contact channel, a Nostr npub, an https:// address or an email address",
+        'They leave our records when you unbind the key or delete your account',
         'Nothing is checked against an ID',
     ]) {
         assert.ok(privacy.includes(fact), fact);
     }
-    // The charter text lists seat keys only (oc-me-web lib/operator/charter.ts), so no answer is said to be published.
+    // A charter prints what the operator page sets (oc-me-web lib/operator/operator-profile.ts), never an application's answers.
     assert.ok(!/published in the federation charter|charter publishes its handle/.test(privacy), 'no answer said to be published');
     for (const text of [terms, privacy]) {
         assert.ok(!/physical address\.|physical address['"]/.test(text), 'no unscoped no-legal-name claim');
@@ -502,10 +504,11 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
         me: {
-            first: '11 November',
-            updated: '2026-11-11',
-            lead: /^\*\*What changed, 8 October to 11 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
+            first: '20 November',
+            updated: '2026-11-20',
+            lead: /^\*\*What changed, 8 October to 20 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
             facts: [
+                'a guardian can set a handle and one public contact channel on the operator page',
                 'The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet',
                 "each of ochk.app's cookies and both of its page counters",
                 'what ochk.app keeps in your browser outside cookies (an operator key record in IndexedDB only if you make, restore or import one)',
@@ -534,6 +537,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // 0.7.34 says what a federation charter publishes from a guardian application, so they move to 11 November.
     // 0.7.35 adds the registry, the shares, every ochk.app cookie, its second page counter and the records the list left out, under the same date.
     // 0.7.36 adds what ochk.app keeps in your browser outside cookies, the operator key record among it, under the same date.
+    // 0.7.37 says what a charter publishes from the operator page, so the note and date move to 20 November.
     const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
     for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');

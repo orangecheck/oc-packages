@@ -212,15 +212,16 @@ const privacy: DocSpec = {
     metaDescription:
         'ochk.app privacy policy. No KYC, no PII required, and what orangecheck keeps about you.',
     effective: '2026-05-15',
-    updated: '2026-11-11',
+    updated: '2026-11-20',
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 October to 11 November 2026.** We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+            text: "**What changed, 8 October to 20 November 2026.** We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
         },
         {
             kind: 'bullets',
             items: [
+                { k: "20 November", v: "a guardian can set a handle and one public contact channel on the operator page, and each federation charter that names their seat publishes both beside the operator key." },
                 { k: "11 November", v: "a guardian application's answers are held for the review. The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet. The policy lists what a site can ask you to share, each of ochk.app's cookies and both of its page counters, what ochk.app keeps in your browser outside cookies (an operator key record in IndexedDB only if you make, restore or import one), and names records it left out: passkeys, a coin backing your account, your Google or GitHub id, the hashes kept beside your email, a session's id and the roster id that links accounts signed in from one browser, the site you first signed up through, and OC Chat devices." },
                 { k: "8 November", v: "while payouts are in testing, a balance above zero is settled by hand before your account is deleted. There is no cash-out to start yourself: contact us first." },
                 { k: "29 October", v: "the contact form sends your email address, an optional name, the topic and your message to our inbox through our email provider (Resend)." },
@@ -326,7 +327,11 @@ const privacy: DocSpec = {
                         },
                         {
                             k: 'guardian applications',
-                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The answers are held for the review. Two places publish from an application, to anyone: the operator registry at me.ochk.io/api/operator/registry lists the operator key of every accepted application, the operator id made from that key, and when it was accepted, whether or not it holds a seat; and a federation charter lists the operator key of each seated guardian. Nothing else from an application is published yet. Nothing is checked against an ID.',
+                            v: 'an application to run a guardian, made through ochk.app or by email to apply@ochk.io, holds your answers to the operator questionnaire, which asks, among other things, for a public handle, the name of the person or organisation that will run the guardian, its jurisdiction, a public contact channel, a key fingerprint and two references. Through ochk.app it can also hold an optional handle and email address that only the reviewer sees, for the decision. The answers are held for the review. Two places publish from an application, to anyone: the operator registry at me.ochk.io/api/operator/registry lists the operator key of every accepted application, the operator id made from that key, and when it was accepted, whether or not it holds a seat; and a federation charter lists the operator key of each seated guardian, with the handle and contact channel set on the operator page (below). Nothing else from an application is published yet. Nothing is checked against an ID.',
+                        },
+                        {
+                            k: 'how a charter names you',
+                            v: "only if you set them on ochk.app's operator page: a handle and one public contact channel, a Nostr npub, an https:// address or an email address. Each federation charter that names your key's seat publishes them to anyone, beside the key, and every guardian there signs that text, so a charter already signed keeps them as signed. They leave our records when you unbind the key or delete your account; a signed charter keeps its text.",
                         },
                         {
                             k: 'messages you send us',
