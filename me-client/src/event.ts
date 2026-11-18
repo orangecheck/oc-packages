@@ -57,9 +57,14 @@ export interface FireEventOptions {
     /** Billable event key · a built-in subtype OR a custom key defined on your
      *  project catalog. Class + label are resolved server-side from the catalog. */
     subtype: EventKey;
-    /** Human-readable action label that appears on the envelope.
-     *  Optional but encouraged — it's what the user sees in their
-     *  /me/activity ledger. */
+    /** What happened, in your words ("Connected Claude to their Studio"):
+     *  up to 280 characters of plain text, signed into the receipt. The
+     *  person sees it on their activity and on the receipt's page; without
+     *  one they see orangecheck's name for a built-in, or your own event's
+     *  key. Kept for a class B event and for your own events; a class A or
+     *  C built-in drops it. One that is not a string, is over 280
+     *  characters or has a character that hides or reorders text is 422
+     *  `invalid_action_label`. */
     action_label?: string;
     /** A note shown to the person the event names: up to 280 characters of
      *  plain text. Public: it is in the event's receipt, which anyone with its
