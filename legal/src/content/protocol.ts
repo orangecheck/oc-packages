@@ -499,7 +499,7 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'cosign.ochk.io, btc.ochk.io and globe.ochk.io use the cookie-free analytics described below.',
+                    text: 'cosign.ochk.io, btc.ochk.io and globe.ochk.io use the cookie-free analytics described above.',
                 },
             ],
         },
