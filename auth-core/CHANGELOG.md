@@ -11,6 +11,17 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - _(no pending changes)_
 
+## [2.32.0] — 2026-11-20
+
+### Added
+
+- `checkOcToken` answers `{ status: "invalid", reason: "audience" }` for a
+  genuine token whose `aud` the `audience` option does not accept: one made
+  for another site, or, with no `audience`, one made for a site at all. A
+  token that fails before that (signature, issuer, expiry) still carries no
+  reason. A wrong `audience` was the one misconfiguration a site could not
+  see.
+
 ## [2.31.0] — 2026-11-14
 
 ### Added
