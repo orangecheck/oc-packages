@@ -77,6 +77,8 @@ const BANNED = [
     [/up to three cookies of its own|two cookies of its own/i, 'ochk.app sets up to nine cookies of its own, besides oc_logo'],
     [/Page analytics use orangecheck’s own counter at insights\.ochk\.io/i, 'ochk.app also loads overlook.technology’s counter'],
     [/On me\.ochk\.io, five cookies/i, 'me.ochk.io sets only oc_logo; the others are set by ochk.io and its sites'],
+    // Plausible is no longer used (18 November 2026): page views are counted by oc insights alone.
+    [/plausible/i, 'no site loads Plausible; oc insights counts page views alone'],
 ];
 
 test('every doc renders', () => {
@@ -166,7 +168,17 @@ test('the ochk.app privacy policy names every cookie ochk.app sets, and the one 
     assert.match(cookies, /each kept for at most two minutes while a sign-in passes between ochk\.app and ochk\.io/);
     const meIo = text.slice(text.indexOf('On me.ochk.io, whichever'));
     assert.match(meIo, /Of these, me\.ochk\.io sets only oc_logo, when you open/);
-    assert.match(meIo, /two cookie-free counters[^:]*: \[Plausible\]\(https:\/\/plausible\.io\/privacy\) and the same orangecheck counter as on ochk\.app/);
+    assert.match(meIo, /Page views on me\.ochk\.io are counted only by the same orangecheck counter as on ochk\.app, at insights\.ochk\.io, which sets no cookie/);
+    assert.match(meIo, /No third-party analytics service counts them\./);
+});
+
+test('ochk.io and vault privacy say page views are counted by oc insights alone', () => {
+    const www = DOCS.find(([n]) => n === 'www/privacy')[1];
+    assert.match(www, /Page views are counted only by our own first-party, cookieless analytics \(oc insights, at insights\.ochk\.io\)/);
+    assert.match(www, /No third-party analytics service counts them, and there are no advertising or tracking cookies\./);
+    const vault = DOCS.find(([n]) => n === 'vault/privacy')[1];
+    assert.match(vault, /Page views are counted only by our own first-party, cookieless analytics at insights\.ochk\.io, which is sent the page's origin and path and nothing more of its address/);
+    assert.match(vault, /No third-party analytics service counts them, and there are no advertising or tracking cookies\./);
 });
 
 // ochk.app's two beacons (oc-app-web lib/oca/beacons.ts) and what overlook keeps (overlook.technology
@@ -490,8 +502,9 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // Each note names every change to what is kept or who sees it (site-attest, 2026-10-31).
     const notes = {
         www: {
-            first: '31 October',
+            first: '20 November',
             facts: [
+                'page views are counted only by our own cookieless analytics at insights.ochk.io; no third-party analytics service counts them',
                 'the owner consoles, analytics.ochk.io and vault.ochk.io',
                 'the roster id that links accounts signed in from one browser, the site you signed up through',
                 'a coin that backs it (its address, outpoint and amount, and the message you signed)',
@@ -509,6 +522,7 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             lead: /^\*\*What changed, 8 October to 20 November 2026\.\*\* We corrected this policy where it did not say what is kept, who sees it, or what deleting does to a balance\./,
             facts: [
                 'a guardian can set a handle and one public contact channel on the operator page',
+                "Page views on me.ochk.io are counted only by orangecheck's own counter at insights.ochk.io; no third-party analytics service counts them",
                 'The operator registry publishes the operator key of every accepted application and when it was accepted, and a federation charter the operator key of each seated guardian; nothing else from an application is published yet',
                 "each of ochk.app's cookies and both of its page counters",
                 'what ochk.app keeps in your browser outside cookies (an operator key record in IndexedDB only if you make, restore or import one)',
@@ -523,8 +537,9 @@ test('each privacy policy opens with a dated note of what changed, newest first'
             ],
         },
         vault: {
-            first: '31 October',
+            first: '20 November',
             facts: [
+                'page views are counted only by our own cookieless analytics at insights.ochk.io; no third-party analytics service counts them',
                 'an emailed team invite keeps the invitee',
                 'the email goes through our email provider (Resend)',
                 'keeps payment records under a keyed id, and is refused while you own a team that still has other members',
@@ -538,8 +553,10 @@ test('each privacy policy opens with a dated note of what changed, newest first'
     // 0.7.35 adds the registry, the shares, every ochk.app cookie, its second page counter and the records the list left out, under the same date.
     // 0.7.36 adds what ochk.app keeps in your browser outside cookies, the operator key record among it, under the same date.
     // 0.7.37 says what a charter publishes from the operator page, so the note and date move to 20 November.
-    const OCTOBER = /^\*\*What changed, 8 to 31 October 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
-    for (const [site, { first, facts, updated = '2026-11-06', lead: heading = OCTOBER }] of Object.entries(notes)) {
+    // 0.7.37 also says no third-party analytics service counts page views, which changes who sees them on
+    // ochk.io, me.ochk.io and vault.ochk.io, so each policy gets a 20 November note and date.
+    const NOVEMBER = /^\*\*What changed, 8 October to 20 November 2026\.\*\* We corrected this policy where it did not say what is kept or who sees it\./;
+    for (const [site, { first, facts, updated = '2026-11-20', lead: heading = NOVEMBER }] of Object.entries(notes)) {
         const doc = buildDoc(site, 'privacy');
         const [lead, list] = doc.preamble ?? [];
         assert.equal(lead?.kind, 'callout', site);

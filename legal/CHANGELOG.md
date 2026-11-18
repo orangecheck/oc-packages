@@ -22,6 +22,23 @@ The `me` profile's Privacy policy.
   text, so a charter already signed keeps them as signed; they leave our records
   when the key is unbound or the account deleted. The note is dated 20 November.
 
+### Changed — the privacy policies name no third-party analytics
+
+orangecheck no longer uses Plausible, so the Privacy policies of ochk.io (the
+`protocol` profile), ochk.app (the `me` profile) and OC Vault no longer name
+it. The Terms render exactly as before.
+
+- **Page analytics.** ochk.io's policy said we use Plausible Analytics
+  alongside our own cookieless analytics (oc insights). OC Vault's said its
+  page analytics use Plausible. ochk.app's said me.ochk.io's pages are counted
+  by Plausible and the orangecheck counter ochk.app uses. Each now says page
+  views are counted only by orangecheck's own counter at insights.ochk.io, and
+  that no third-party analytics service counts them. ochk.app's own two
+  counters are as before.
+
+Who sees a page view changed, so each policy's dated note names it under 20
+November, and ochk.io's and OC Vault's policies are dated 2026-11-20.
+
 ## [0.7.36] — 2026-11-11
 
 ### Changed — ochk.app's privacy policy says what ochk.app keeps in your browser outside cookies

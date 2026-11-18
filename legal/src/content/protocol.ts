@@ -239,15 +239,16 @@ const privacy: DocSpec = {
     metaDescription:
         'How OrangeCheck handles data and privacy. Non-custodial by design, minimal data collection, no account required, privacy-preserving analytics only.',
     effective: '2025-09-30',
-    updated: '2026-11-06',
+    updated: '2026-11-20',
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 to 31 October 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+            text: "**What changed, 8 October to 20 November 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
         },
         {
             kind: 'bullets',
             items: [
+                { k: "20 November", v: "page views are counted only by our own cookieless analytics at insights.ochk.io; no third-party analytics service counts them." },
                 { k: "31 October", v: "the owner consoles, analytics.ochk.io and vault.ochk.io's, show every email address masked, refuse an email as a search or action subject, and show a whole address only after a written reason is recorded." },
                 { k: "29 October", v: "an account also keeps its Google or GitHub id, the roster id that links accounts signed in from one browser, the site you signed up through, a coin that backs it (its address, outpoint and amount, and the message you signed), and OC Chat device vouches and revocations, which are also published to Nostr relays. relay.ochk.io keeps each record with a pseudonym of the sender's IP address, replaced each UTC day, and never the address itself. Our operators' first-sign-in email names only your did:oc and the kind of sign-in. The policy says what chat, cosign, btc and globe keep, who completes a deletion, and what stays." },
                 { k: "26 October", v: "a session row keeps no IP address, and the sign-in log keeps it for 90 days. relay.ochk.io is named, and our host's connection logs for it hold your IP address and connection times for 7 days. Claiming an OC Chat handle sends its fingerprint to three OpenTimestamps calendars and reads mempool.space, and each sees your IP address." },
@@ -409,7 +410,7 @@ const privacy: DocSpec = {
                 },
                 {
                     kind: 'para',
-                    text: 'A browser tab may also keep its own copy of a sign-in token in session storage, cleared when the tab closes. We use [Plausible Analytics](https://plausible.io/privacy) — cookie-free, no personal data, aggregate statistics only — alongside our own first-party, cookieless analytics (oc insights): no cookies, no cross-site identity, your IP address is hashed and immediately discarded (never stored), and Do-Not-Track / Global Privacy Control signals are honored. No advertising or tracking cookies.',
+                    text: 'A browser tab may also keep its own copy of a sign-in token in session storage, cleared when the tab closes. Page views are counted only by our own first-party, cookieless analytics (oc insights, at insights.ochk.io): no cookies, no cross-site identity, your IP address is hashed and immediately discarded (never stored), and Do-Not-Track / Global Privacy Control signals are honored. No third-party analytics service counts them, and there are no advertising or tracking cookies.',
                 },
             ],
         },
