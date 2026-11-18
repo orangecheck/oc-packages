@@ -1,55 +1,16 @@
 /**
- * The family's analytics, reported without any page's query or fragment.
- *
- * A page's query and fragment can hold values only that page should read.
- * Plausible's scripts send `location.href` and the full `document.referrer`
- * with every event, and its hash script records the fragment as part of the
- * page. So the kit sends Plausible's events itself: each page as origin and
- * path with its campaign tags, a referrer as its origin and only from another
- * site. The sender is a small inline script, so `window.plausible` works
- * before React loads; `useFamilyPageviews()` reports each route. oc-pulse
- * (insights.ochk.io) sends origin and path too.
+ * The family's analytics: oc-pulse, orangecheck's own cookieless counter at
+ * insights.ochk.io. The kit writes a small inline loader, so `window.ocpulse`
+ * queues events before the script arrives. oc-pulse reports each page as
+ * origin and path, never its query or fragment, a referrer as its origin, and
+ * counts a client-side route change itself.
  *
  * Nothing here imports Next. Next loads this package outside its bundle on
  * the server, where a bare `next/router` does not resolve and `next/router.js`
- * is a second copy of the router's module; the hook needs neither.
+ * is a second copy of the router's module.
  */
-import { useEffect } from 'react';
-
-declare global {
-    interface Window {
-        plausible?: (
-            event: string,
-            options?: { props?: Record<string, string | number | boolean>; callback?: () => void }
-        ) => void;
-    }
-}
-
-/** The query keys a pageview keeps: campaign tags, nothing a page might carry as a secret. */
-export const KEPT_QUERY_KEYS = [
-    'utm_source',
-    'utm_medium',
-    'utm_campaign',
-    'utm_content',
-    'utm_term',
-    'ref',
-] as const;
-
-/** A page's address as analytics may see it: origin and path, campaign tags only, never the fragment. */
-export function familyPageUrl(href: string): string {
-    const u = new URL(href);
-    const kept = new URLSearchParams();
-    for (const k of KEPT_QUERY_KEYS) {
-        const v = u.searchParams.get(k);
-        if (v !== null) kept.set(k, v);
-    }
-    const q = kept.toString();
-    return `${u.origin}${u.pathname}${q ? `?${q}` : ''}`;
-}
-
-const DOMAIN_RE = /^[a-z0-9][a-z0-9.-]{0,253}$/i;
 const SAFE_URL_RE = /^https:\/\/[a-z0-9.-]+(:\d+)?(\/[\w./+%@~,!$&'()*-]*)?$/i;
-// A first-party proxy path (a site rewrites it to plausible.io).
+// A first-party path, for a site that serves oc-pulse from its own origin.
 const SAFE_PATH_RE = /^\/[\w./-]*$/;
 const safeRef = (v: string | undefined) => (v && (SAFE_URL_RE.test(v) || SAFE_PATH_RE.test(v)) ? v : '');
 // An origin as `location.origin` reads it: https, a lowercase host, no port, path or slash.
@@ -68,58 +29,6 @@ ${script}
 }`;
 }
 
-/**
- * Plausible's sender, as script text. It reads `location.origin`,
- * `location.pathname` and `location.search` (for the campaign tags), never
- * `location.hash` or `location.href`. Exported for the tests.
- */
-export function plausibleSenderScript(domain: string, api: string): string {
-    const keep = JSON.stringify(KEPT_QUERY_KEYS);
-    return `(function () {
-    var API = ${JSON.stringify(api)}, DOMAIN = ${JSON.stringify(domain)}, KEEP = ${keep};
-    var loc = window.location, doc = document, queued = (window.plausible && window.plausible.q) || [];
-    function page() {
-        var q = new URLSearchParams(loc.search), kept = new URLSearchParams();
-        for (var i = 0; i < KEEP.length; i++) { var v = q.get(KEEP[i]); if (v !== null) kept.set(KEEP[i], v); }
-        var s = kept.toString();
-        return loc.origin + loc.pathname + (s ? '?' + s : '');
-    }
-    function origin(href) {
-        try { var u = new URL(href); return u.origin === loc.origin ? null : u.origin + '/'; } catch (e) { return null; }
-    }
-    function bare(href) {
-        try { var u = new URL(href); return u.origin + u.pathname; } catch (e) { return null; }
-    }
-    function ignored() {
-        try { if (window.localStorage && localStorage.getItem('plausible_ignore') === 'true') return true; } catch (e) { /* storage blocked */ }
-        return navigator.webdriver === true || loc.protocol === 'file:' || /^localhost$|^127\\.|\\.local$/.test(loc.hostname);
-    }
-    function send(name, opts) {
-        var done = opts && opts.callback;
-        if (ignored()) { if (done) done(); return; }
-        var body = { n: name, u: page(), d: DOMAIN, r: origin(doc.referrer) };
-        if (opts && opts.props) body.p = opts.props;
-        var text = JSON.stringify(body);
-        try {
-            if (navigator.sendBeacon && navigator.sendBeacon(API, new Blob([text], { type: 'text/plain' }))) { if (done) done(); return; }
-        } catch (e) { /* fall through to fetch */ }
-        try {
-            fetch(API, { method: 'POST', body: text, keepalive: true, headers: { 'Content-Type': 'text/plain' } })
-                .catch(function () {}).then(function () { if (done) done(); });
-        } catch (e) { if (done) done(); }
-    }
-    window.plausible = send;
-    for (var i = 0; i < queued.length; i++) send.apply(null, queued[i]);
-    // A click on a link to another site, as Plausible's outbound-links extension reports it.
-    doc.addEventListener('click', function (ev) {
-        var a = ev.target && ev.target.closest ? ev.target.closest('a[href]') : null;
-        if (!a) return;
-        var to = bare(a.href);
-        if (to && new URL(a.href).origin !== loc.origin) send('Outbound Link: Click', { props: { url: to } });
-    }, true);
-})();`;
-}
-
 function pulseLoaderScript(src: string, api: string): string {
     return `window.ocpulse = window.ocpulse || function () { (window.ocpulse.q = window.ocpulse.q || []).push(arguments) };
 (function () {
@@ -133,10 +42,6 @@ function pulseLoaderScript(src: string, api: string): string {
 }
 
 export interface FamilyAnalyticsProps {
-    /** The Plausible site. Default `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`, else `ochk.io` (the family rollup). */
-    domain?: string;
-    /** Plausible's event endpoint, a first-party path the site rewrites. Default `NEXT_PUBLIC_PLAUSIBLE_API`, else `/oc-insights/event`. */
-    api?: string;
     /** oc-pulse's script. Default `NEXT_PUBLIC_OCPULSE_SRC`, else insights.ochk.io's. */
     pulseSrc?: string;
     /** oc-pulse's endpoint. Default `NEXT_PUBLIC_OCPULSE_API`, else insights.ochk.io's. */
@@ -144,88 +49,40 @@ export interface FamilyAnalyticsProps {
     /** Default: in production only. */
     enabled?: boolean;
     /**
-     * The production origins this site reports from (`https://ochk.io`). Each
-     * beacon runs only when the page's origin is one of them, so a test or
+     * The production origins this site reports from (`https://ochk.io`). The
+     * loader runs only when the page's origin is one of them, so a test or
      * preview deployment of the same build reports nothing. Absent: every host
      * reports.
      */
     origins?: readonly string[];
 }
 
-/** The two scripts FamilyAnalytics writes; an empty string for a beacon that is off. */
+/** The script FamilyAnalytics writes; an empty string when oc-pulse is off. */
 export interface FamilyAnalyticsScripts {
-    plausible: string;
     ocpulse: string;
 }
 
 /**
- * The text of each script FamilyAnalytics writes for these props, which is
+ * The text of the script FamilyAnalytics writes for these props, which is
  * also what a Content-Security-Policy hashes (`@orangecheck/site-kit/csp`).
- * Values are validated as the sites validated them: a bad one turns that
- * beacon off rather than reaching the page.
+ * Values are validated as the sites validated them: a bad one never reaches
+ * the page, and a bad `pulseSrc` turns oc-pulse off.
  */
 export function familyAnalyticsScripts({
-    domain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? 'ochk.io',
-    api = process.env.NEXT_PUBLIC_PLAUSIBLE_API ?? '/oc-insights/event',
     pulseSrc = process.env.NEXT_PUBLIC_OCPULSE_SRC ?? 'https://insights.ochk.io/oc-pulse.js',
     pulseApi = process.env.NEXT_PUBLIC_OCPULSE_API ?? 'https://insights.ochk.io/oc-pulse/event',
     enabled = process.env.NODE_ENV === 'production',
     origins,
 }: FamilyAnalyticsProps = {}): FamilyAnalyticsScripts {
-    if (!enabled) return { plausible: '', ocpulse: '' };
+    if (!enabled) return { ocpulse: '' };
     const gate = (script: string) => (origins ? onlyOnOrigins(origins, script) : script);
-    const plausibleApi = DOMAIN_RE.test(domain) ? safeRef(api) : '';
     const src = safeRef(pulseSrc);
-    return {
-        plausible: plausibleApi ? gate(plausibleSenderScript(domain, plausibleApi)) : '',
-        ocpulse: src ? gate(pulseLoaderScript(src, safeRef(pulseApi))) : '',
-    };
+    return { ocpulse: src ? gate(pulseLoaderScript(src, safeRef(pulseApi))) : '' };
 }
 
-/** The analytics scripts for `_document`'s `<Head>`: `familyAnalyticsScripts`, each in a script element. */
+/** The analytics script for `_document`'s `<Head>`: `familyAnalyticsScripts`' oc-pulse loader in a script element. */
 export function FamilyAnalytics(props: FamilyAnalyticsProps) {
-    const { plausible: sender, ocpulse: loader } = familyAnalyticsScripts(props);
-    if (!sender && !loader) return null;
-    return (
-        <>
-            {sender ? (
-                <script data-oc-analytics="plausible" dangerouslySetInnerHTML={{ __html: sender }} />
-            ) : null}
-            {loader ? (
-                <script data-oc-analytics="ocpulse" dangerouslySetInnerHTML={{ __html: loader }} />
-            ) : null}
-        </>
-    );
-}
-
-/**
- * In `_app`: one pageview per page, reported as origin and path. It counts
- * the way oc-pulse and Plausible's own script do, so the lanes agree: a new
- * path reached with `history.pushState` (Next's router among them) or
- * `popstate`. A query change or a `replaceState` is not a new page. It listens
- * to history rather than to a router, so it needs no router of its own.
- */
-export function useFamilyPageviews(): void {
-    useEffect(() => {
-        let last = '';
-        const report = () => {
-            if (window.location.pathname === last) return;
-            last = window.location.pathname;
-            window.plausible?.('pageview');
-        };
-        report();
-        const history = window.history;
-        const push = history.pushState;
-        const pushed: typeof push = function (this: History, ...args) {
-            push.apply(this, args);
-            report();
-        };
-        history.pushState = pushed;
-        window.addEventListener('popstate', report);
-        return () => {
-            // Put back only what is still ours: another script may have wrapped it since.
-            if (history.pushState === pushed) history.pushState = push;
-            window.removeEventListener('popstate', report);
-        };
-    }, []);
+    const { ocpulse: loader } = familyAnalyticsScripts(props);
+    if (!loader) return null;
+    return <script data-oc-analytics="ocpulse" dangerouslySetInnerHTML={{ __html: loader }} />;
 }

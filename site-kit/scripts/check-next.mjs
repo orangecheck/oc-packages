@@ -3,20 +3,18 @@
  * Builds and starts a Next site that uses ./analytics and ./og the way the
  * family does (pages router, site-kit left out of transpilePackages, so Next
  * loads it outside its bundle on the server), and asks a static page and a
- * getServerSideProps page for a 200 with the analytics scripts in the HTML,
- * and the og route for a 1200×630 PNG. Its next.config.ts hashes the page's
- * inline scripts with ./csp while the config loads (app-design's theme script
- * and the analytics) in place of 'unsafe-inline', and `oc-site-kit csp-check`
- * must find every page's scripts in its header. A page view posted to
- * /oc-insights/event, rewritten to ./analytics-event's route, must reach a
- * stand-in upstream with the event, its type, the agent and an address only.
- * Also refuses any Next import in the built analytics entry: 0.3.0 imported
+ * getServerSideProps page for a 200 with the oc-pulse loader in the HTML as
+ * its only analytics, and the og route for a 1200×630 PNG. Its next.config.ts
+ * hashes the page's inline scripts with ./csp while the config loads
+ * (app-design's theme script and the analytics) in place of 'unsafe-inline',
+ * and `oc-site-kit csp-check` must find every page's scripts in its header. A
+ * route that imports `clientIp` from ./analytics-event must answer with the
+ * caller's address. Also refuses any Next import in the built analytics entry: 0.3.0 imported
  * `next/router.js`, a second copy of the router's module, and a bare
  * `next/router` does not resolve under Node's ESM loader. Run after `yarn build`.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { createServer as createHttpServer } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -44,17 +42,6 @@ const freePort = () =>
 
 const site = mkdtempSync(join(tmpdir(), 'site-kit-next-'));
 let server;
-// Plausible's stand-in: it keeps what reaches it and answers as Plausible does.
-const reached = [];
-const upstream = createHttpServer((req, res) => {
-    let body = '';
-    req.on('data', (d) => (body += d));
-    req.on('end', () => {
-        reached.push({ headers: req.headers, body });
-        res.writeHead(202, { 'content-type': 'text/plain' }).end('ok');
-    });
-});
-await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
 try {
     mkdirSync(join(site, 'node_modules', '@orangecheck'), { recursive: true });
     for (const dep of readdirSync(join(pkg, 'node_modules'))) {
@@ -74,14 +61,12 @@ try {
             "import { inlineHashes, themeScript } from '@orangecheck/site-kit/csp';\n" +
             "import { siteHeaders } from '@orangecheck/site-kit/headers';\n" +
             'const scriptHashes = inlineHashes([themeScript(), ...Object.values(familyAnalyticsScripts())]);\n' +
-            "export default { transpilePackages: ['@orangecheck/app-design'], async headers() { return siteHeaders({ csp: { scriptHashes } }); }, async rewrites() { return [{ source: '/oc-insights/event', destination: '/api/oc-insights/event' }]; } };\n"
+            "export default { transpilePackages: ['@orangecheck/app-design'], async headers() { return siteHeaders({ csp: { scriptHashes } }); } };\n"
     );
     writeFileSync(
         join(site, 'pages', '_app.js'),
         "import { ThemeProvider } from '@orangecheck/app-design/chrome';\n" +
-            "import { useFamilyPageviews } from '@orangecheck/site-kit/analytics';\n" +
             'export default function App({ Component, pageProps }) {\n' +
-            '    useFamilyPageviews();\n' +
             '    return <ThemeProvider><Component {...pageProps} /></ThemeProvider>;\n' +
             '}\n'
     );
@@ -100,14 +85,12 @@ try {
         "import { createOgHandler } from '@orangecheck/site-kit/og';\n" +
             "export default createOgHandler({ wordmark: 'oc·stamp', badge: 'V1 · PREVIEW', defaultTitle: 'sign anything.', host: 'STAMP.OCHK.IO', footer: '§', mark: <svg width=\"20\" height=\"20\" />, cards: { create: 'Create a stamp' } });\n"
     );
-    // A site's analytics route, as each site re-exports it; this one's upstream is the stand-in.
-    mkdirSync(join(site, 'pages', 'api', 'oc-insights'));
+    // A server route that reads the caller's address, as ochk.app's do.
     writeFileSync(
-        join(site, 'pages', 'api', 'oc-insights', 'event.js'),
-        "import { createAnalyticsEvent } from '@orangecheck/site-kit/analytics-event';\n" +
-            `export default createAnalyticsEvent('http://127.0.0.1:${upstream.address().port}/api/event');\n`
+        join(site, 'pages', 'api', 'ip.js'),
+        "import { clientIp } from '@orangecheck/site-kit/analytics-event';\n" +
+            'export default function ip(req, res) { res.status(200).json({ ip: clientIp(req) ?? null }); }\n'
     );
-    writeFileSync(join(site, 'pages', 'api', 'oc-insights', 'plausible.js'), "export { default } from '@orangecheck/site-kit/analytics-event';\n");
     writeFileSync(join(site, 'pages', 'index.js'), 'export default function Home() { return <p>static</p>; }\n');
     writeFileSync(
         join(site, 'pages', 'ssr.js'),
@@ -140,7 +123,8 @@ try {
         const res = await fetch(base + path);
         const html = await res.text();
         if (res.status !== 200) fail(`${path} answered ${res.status} under next start\n${log}`);
-        if (!html.includes('data-oc-analytics="plausible"')) fail(`${path} has no analytics script`);
+        if (!html.includes('data-oc-analytics="ocpulse"') || !html.includes('"https://insights.ochk.io/oc-pulse.js"')) fail(`${path} has no oc-pulse loader`);
+        if (html.split('data-oc-analytics=').length !== 2 || /plausible/i.test(html)) fail(`${path} writes analytics besides oc-pulse`);
         if (path === '/ssr' && !html.includes('property="og:image" content="https://stamp.ochk.io/api/og?page=create"')) {
             fail('/ssr does not share its own card in og:image');
         }
@@ -151,33 +135,9 @@ try {
     }
     const check = spawnSync(process.execPath, [join(pkg, 'dist', 'cli.js'), 'csp-check', '--min-pages', '2'], { cwd: site, encoding: 'utf8', env });
     if (check.status !== 0) fail(`csp-check exited ${check.status}\n${check.stdout}\n${check.stderr}`);
-    // The page view through the rewrite: the stand-in gets the event, its type, the agent and an address, and nothing of the session.
-    const event = '{"n":"pageview","u":"https://stamp.ochk.io/","d":"stamp.ochk.io","r":null}';
-    const sent = await fetch(base + '/oc-insights/event', {
-        method: 'POST',
-        body: event,
-        headers: {
-            'content-type': 'text/plain',
-            'user-agent': 'site-kit-check',
-            cookie: 'oc_session=probe-cookie; __Host-oc_session=probe-host',
-            authorization: 'Bearer probe-bearer',
-            'x-oc-tab-session': 'probe-tab',
-            referer: 'https://stamp.ochk.io/private?k=1',
-        },
-    });
-    if (sent.status !== 202 || (await sent.text()) !== 'ok') fail(`/oc-insights/event answered ${sent.status}, not the upstream's 202\n${log}`);
-    const got = reached.at(-1);
-    if (reached.length !== 1 || got.body !== event) fail(`the upstream got ${reached.length} requests, body ${JSON.stringify(got?.body)}`);
-    const leaked = Object.entries(got.headers)
-        .filter(([, v]) => /probe/.test(String(v)))
-        .map(([k]) => k);
-    for (const k of ['cookie', 'authorization', 'x-oc-tab-session', 'referer', 'origin']) if (k in got.headers && !leaked.includes(k)) leaked.push(k);
-    if (leaked.length) fail(`the upstream got ${leaked.join(', ')} from the page's request`);
-    if (got.headers['user-agent'] !== 'site-kit-check' || got.headers['content-type'] !== 'text/plain' || !/^(127\.0\.0\.1|::1)$/.test(got.headers['x-forwarded-for'] ?? '')) {
-        fail(`the upstream did not get the agent, type and address: ${JSON.stringify(got.headers)}`);
-    }
-    const plain = await fetch(base + '/api/oc-insights/plausible');
-    if (plain.status !== 405 || reached.length !== 1) fail(`the re-exported route answered a GET ${plain.status}, not 405`);
+    const ip = await fetch(base + '/api/ip');
+    const { ip: seen } = ip.status === 200 ? await ip.json() : {};
+    if (!/^(127\.0\.0\.1|::1)$/.test(seen ?? '')) fail(`/api/ip answered ${ip.status} with ${JSON.stringify(seen)}, not the caller's address\n${log}`);
     const pngs = {};
     for (const path of ['/api/og', '/api/og?title=hello&eyebrow=x', '/api/og?page=create']) {
         const res = await fetch(base + path);
@@ -189,11 +149,10 @@ try {
     }
     if (!pngs['/api/og?title=hello&eyebrow=x'].equals(pngs['/api/og'])) fail("/api/og drew a request's own text");
     if (pngs['/api/og?page=create'].equals(pngs['/api/og'])) fail('/api/og?page=create did not draw its card');
-    console.log("✓ next: a static and a getServerSideProps page answer 200 under next start, with the analytics scripts, og:image naming the page's card by key, and /api/og a 1200×630 PNG that draws only the site's cards");
-    console.log('✓ next: /oc-insights/event, rewritten to the kit\'s route, sends the upstream the event, its type, the agent and the address, and no cookie, bearer, tab pin or referer');
+    console.log("✓ next: a static and a getServerSideProps page answer 200 under next start, with the oc-pulse loader as their only analytics, og:image naming the page's card by key, and /api/og a 1200×630 PNG that draws only the site's cards");
+    console.log("✓ next: a route importing clientIp from ./analytics-event answers with the caller's address");
     console.log(`✓ next: script-src runs the theme and analytics scripts by hash, and csp-check reads every page clean (${check.stdout.trim().split('\n').pop()})`);
 } finally {
     server?.kill();
-    upstream.close();
     rmSync(site, { recursive: true, force: true });
 }

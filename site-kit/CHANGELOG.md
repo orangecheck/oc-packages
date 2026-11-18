@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.17.0
+
+The family's analytics are oc-pulse alone. Plausible is no longer used, so
+`FamilyAnalytics` writes only the oc-pulse loader, and the kit forwards no page
+view to Plausible.
+
+Breaking, in `./analytics`: `useFamilyPageviews`, `familyPageUrl`,
+`KEPT_QUERY_KEYS`, `plausibleSenderScript` and the `window.plausible`
+declaration are gone, and so are `FamilyAnalytics`' `domain` and `api` props
+(`NEXT_PUBLIC_PLAUSIBLE_DOMAIN`, `NEXT_PUBLIC_PLAUSIBLE_API`).
+`familyAnalyticsScripts()` returns `{ ocpulse }`; a site that spreads its
+`Object.values` into its script hashes needs no other change. oc-pulse counts
+a client-side route change itself, so `_app` drops the hook.
+
+Breaking, in `./analytics-event`: the default-export route,
+`createAnalyticsEvent` and `PLAUSIBLE_EVENT_URL` are gone. A site deletes its
+`src/pages/api/oc-insights/event.ts` and the `/oc-insights/event` rewrite.
+`clientIp(req)` stays at the same entry, and `onlyOnOrigins` is unchanged.
+
 ## 0.16.1
 
 `clientIp(req)` reads an address the way `./rate` does, so each spelling of

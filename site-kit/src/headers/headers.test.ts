@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { buildCsp, HSTS, inlineSources, relayOrigin, securityHeaders, siteHeaders, type CspOptions } from './index';
 
-/** stamp.ochk.io's Content-Security-Policy as served on 2026-10-20, before the kit. */
+/** stamp.ochk.io's Content-Security-Policy as served on 2026-10-20, before the kit, with example.com for its analytics host. */
 const STAMP_SERVED =
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://plausible.io https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://plausible.io https://insights.ochk.io https://attest.ochk.io https://ochk.io https://*.calendar.opentimestamps.org https://finney.calendar.eternitywall.com https://mempool.space https://blockstream.info wss://relay.damus.io wss://nos.lol wss://relay.snort.social wss://relay.primal.net wss://offchain.pub wss://relay.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://example.com https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://example.com https://insights.ochk.io https://attest.ochk.io https://ochk.io https://*.calendar.opentimestamps.org https://finney.calendar.eternitywall.com https://mempool.space https://blockstream.info wss://relay.damus.io wss://nos.lol wss://relay.snort.social wss://relay.primal.net wss://offchain.pub wss://relay.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 const STAMP: CspOptions = {
-    script: ['https://plausible.io', 'https://insights.ochk.io'],
+    script: ['https://example.com', 'https://insights.ochk.io'],
     connect: [
-        'https://plausible.io',
+        'https://example.com',
         'https://insights.ochk.io',
         'https://attest.ochk.io',
         'https://ochk.io',
@@ -104,8 +104,8 @@ describe('script hashes', () => {
     const scriptSrc = (o: CspOptions) => buildCsp(o).split('; ').find((d) => d.startsWith('script-src'));
 
     it("lists the page's inline scripts by hash in place of 'unsafe-inline'", () => {
-        expect(scriptSrc({ script: ['https://plausible.io'], scriptHashes: [A, B] })).toBe(
-            `script-src 'self' ${A} ${B} https://plausible.io`
+        expect(scriptSrc({ script: ['https://example.com'], scriptHashes: [A, B] })).toBe(
+            `script-src 'self' ${A} ${B} https://example.com`
         );
     });
 
