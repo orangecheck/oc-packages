@@ -4,6 +4,15 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.19.0] — 2026-11-20
+
+### Added
+
+- **`exchange_native_code` answers `audience`** for a genuine token made for
+  another site (or one made for no site), where it answered `invalid_token`.
+  `verify_session` already raised `InvalidSession("audience")` there. The same
+  reason as `@orangecheck/me-client` 0.63.0's, read from the shared vectors.
+
 ## [3.18.4] — 2026-11-10
 
 ### Changed

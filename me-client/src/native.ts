@@ -78,6 +78,8 @@ export interface ExchangeNativeCodeOptions {
  * - `bad_request`: a field ochk.io could not read.
  * - `invalid_token`, `no_session_handle`: the token did not verify for your
  *   `audience`.
+ * - `audience`: the token is genuine but was made for another site: check
+ *   that `audience` is your origin exactly.
  * - `session_ended`: the person ended their sessions everywhere.
  * - `bond_required`: the account does not meet your project's rule; `need`,
  *   `have` and `back_url` say what it asks and where to back the account, as
@@ -90,6 +92,7 @@ export type ExchangeNativeCodeRefusal =
     | 'bad_request'
     | 'invalid_token'
     | 'no_session_handle'
+    | 'audience'
     | 'session_ended'
     | 'unknown_project_key';
 

@@ -12,6 +12,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [0.63.0] — 2026-11-20
 
+### Added
+
+- `checkOcToken` answers `{ status: 'invalid', reason: 'audience' }` for a
+  genuine token made for another site, so a wrong `audience` (`www.` or not,
+  a port, `http` in development) can be told from a forged token. Its reason
+  is the new `OcTokenRefusal` (`OcSessionRefusal` or `'audience'`).
+  `exchangeNativeCode` answers the same reason. Depends on
+  `@orangecheck/auth-core` ^2.32.0, which reports it.
+
 ### Changed
 
 - The button's mark is the check as the ochk.app design draws it

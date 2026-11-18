@@ -42,6 +42,11 @@ describe('checkOcToken (me-client)', () => {
         expect(await checkOcToken('t', { audience: 'https://site.example' })).toEqual({ status: 'invalid' });
     });
 
+    it('says so when a genuine token was made for another site', async () => {
+        core.answer = { status: 'invalid', reason: 'audience' };
+        expect(await checkOcToken('t', { audience: 'https://site.example' })).toEqual({ status: 'invalid', reason: 'audience' });
+    });
+
     it('refuses a bound token with no handle unless the site opted out', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
         core.answer = { status: 'valid', session: { ...session, rh: undefined } };

@@ -149,6 +149,11 @@ describe('exchangeNativeCode', () => {
         expect(await exchangeNativeCode(INPUT, OPTS)).toEqual({ status: 'invalid', reason: 'invalid_token' });
     });
 
+    it('says when the token was made for another site', async () => {
+        answer = async () => Response.json({ ok: true, token: await token({ aud: 'https://other.example' }) });
+        expect(await exchangeNativeCode(INPUT, OPTS)).toEqual({ status: 'invalid', reason: 'audience' });
+    });
+
     it('throws on a mistake in the call, before sending anything', async () => {
         const bad: [unknown, unknown?][] = [
             [{ ...INPUT, code: '' }, OPTS],
