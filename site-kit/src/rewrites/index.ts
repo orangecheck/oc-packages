@@ -1,7 +1,7 @@
 /**
  * A next.config rewrite to another origin sends the visitor's request on to it, and under next start
  * the request's cookie, authorization and x-oc-tab-session go with it. A family site rewrites only
- * to paths of its own; a page view goes through `./analytics-event`'s route, never a rewrite.
+ * to paths of its own.
  *
  *   // a site's test
  *   import nextConfig from '../../next.config';

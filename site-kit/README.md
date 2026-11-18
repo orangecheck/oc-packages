@@ -19,8 +19,8 @@ Each site keeps its own deploy and passes its own values.
 | `./og` | `createOgHandler(card)`: app-design's 1200×630 share card on the node runtime. It draws only cards the site issues: `?page=<key>` from its `cards` map (a title, or `{ title, eyebrow }`), the default card for anything else. A request's own text is never drawn. Each card has one URL, the route or the route with `?page=<key>`, and any other query gets a 308 there; cards and redirects are `public, max-age=86400, s-maxage=86400`. `resolve: { name: lookup }` adds cards the site looks up, at `?name=<value>`, each kept as long as its lookup says (one that finds nothing: a 307 to the default card, kept as long but at most a day; a failed lookup: the default card, `no-store`); `basePath` puts a Next base path back on the 308. `home: { hero, top, wide }` draws app-design's `OgBento` at `?page=home`, for the site's home page to share (`cards` cannot then name `home`). Needs `@orangecheck/app-design` ^2.0.0. |
 | `./sitemap` | `writeSitemap(opts)`; also the `oc-site-kit sitemap` CLI. |
 | `./rate` | Server only. `networkOf(ip)`: an IPv4 address, or an IPv4-mapped IPv6 address in either spelling, as its /24, any other IPv6 address as its /48, anything else as `other:` and the text. `hostOf(ip)`: the one requester behind it, an IPv4 address itself or an IPv6 /64, always inside its `networkOf`. `keyedId(secret, purpose, kind, value)` and `networkKey(ip, secret, purpose)`: the keyed ids a cap counts under, never the address. Held to `test-vectors/network-key.json`. |
-| `./analytics` | `FamilyAnalytics` for `_document`, `useFamilyPageviews()` for `_app`, `familyPageUrl(href)`, `familyAnalyticsScripts(props)` (the text `FamilyAnalytics` writes, for a policy to hash). Plausible and oc-pulse see each page as origin and path with its campaign tags, never its query or fragment. |
-| `./analytics-event` | Server only. The default export is a pages API route for a site's `src/pages/api/oc-insights/event.ts`: it posts the page view to Plausible with the body, its Content-Type, the User-Agent and the client IP as `X-Forwarded-For`, and no other header. `createAnalyticsEvent(upstream)` points one elsewhere; `clientIp(req)` reads `x-real-ip`, then the first `x-forwarded-for` hop, then the socket, and only an address, read as `./rate` reads one: an IPv6 zone id is dropped, and an IPv4-mapped address in any spelling is its IPv4 address. |
+| `./analytics` | `FamilyAnalytics` for `_document`, `familyAnalyticsScripts(props)` (the text `FamilyAnalytics` writes, for a policy to hash) and `onlyOnOrigins(origins, script)`. It loads oc-pulse, orangecheck's own cookieless counter at insights.ochk.io, which sees each page as origin and path, never its query or fragment. |
+| `./analytics-event` | Server only. `clientIp(req)` reads `x-real-ip`, then the first `x-forwarded-for` hop, then the socket, and only an address, read as `./rate` reads one: an IPv6 zone id is dropped, and an IPv4-mapped address in any spelling is its IPv4 address. |
 | `./csp` | Node only, for next.config and tests. `scriptHash(text)`, `inlineHashes(scripts)`, `themeScript(props)` (the script app-design's `ThemeProvider` writes, rendered in a node of its own), and `cspCheck`, also the `oc-site-kit csp-check` CLI. |
 | `./document` | `ThemeColorMeta` for `_document`'s `<Head>`: the two `theme-color` metas, light and dark, from app-design's `THEME_COLOR` (the page's ground, generated from its tokens). Needs `@orangecheck/app-design` ^2.0.0. |
 | `./rewrites` | For a site's tests. `externalRewrites(nextConfig)` lists every rewrite, from every phase, whose destination is not a path on the site (a URL, `//host` or `/\host`); `isSitePath(destination)` is the test it applies. A family site keeps it empty. |
@@ -48,10 +48,6 @@ export default createMeHandler({ reader: createSessionReader() });
 // src/pages/_document.tsx, inside <Head>
 import { FamilyAnalytics } from '@orangecheck/site-kit/analytics';
 <FamilyAnalytics />
-
-// src/pages/_app.tsx
-import { useFamilyPageviews } from '@orangecheck/site-kit/analytics';
-useFamilyPageviews();
 ```
 
 ```json
@@ -192,35 +188,17 @@ if (recheckOnSeveralSessions(res.status, body)) showWhyAndAskAgain();
 
 ## Analytics
 
-A page's query and fragment can hold values only that page should read.
-Plausible's scripts send `location.href` and the full `document.referrer`
-with every event, and its hash script records the fragment as part of the
-page. So the kit sends Plausible's events itself, through the site's
-first-party `/oc-insights/event` proxy: the page as origin and path with
-`utm_*` and `ref`, a referrer as its origin and only from another site.
-`window.plausible` keeps working for custom events and Plausible's "Outbound
-Link: Click" (the target's origin and path). `plausible_ignore` and
-automation are honoured as Plausible's script honours them. What it drops:
-Plausible's engagement events (time on page, scroll depth). oc-pulse already
-sends origin and path.
+A page's query and fragment can hold values only that page should read. The
+family's analytics are oc-pulse alone, orangecheck's own counter at
+insights.ochk.io. It sets no cookie, sends each page as origin and path and a
+referrer as its origin, and counts a client-side route change itself, so
+`_app` needs no hook. `FamilyAnalytics` writes a small inline loader, so
+`window.ocpulse(name, { props })` queues a custom event before the script
+arrives. With `origins`, the loader runs only on those origins, and a test or
+preview deployment of the same build reports nothing.
 
-The proxy is a route of the site's own, not a rewrite to plausible.io. The
-event is sent from the page's origin, so the browser attaches that origin's
-cookies, and what a rewrite to another host passes on is the platform's
-choice. The route sends Plausible a request built from an allowlist: the body, its
-Content-Type, the User-Agent and the client IP. A session cookie, a bearer,
-the tab's session pin, the referer and every other header stay on the site.
-
-```ts
-// src/pages/api/oc-insights/event.ts
-export { default } from '@orangecheck/site-kit/analytics-event';
-
-// next.config.ts, rewrites()
-{ source: '/oc-insights/event', destination: '/api/oc-insights/event' }
-```
-
-No rewrite goes to another origin, Plausible's script included: the kit's
-sender is inline, so no page loads one. A site's test holds that:
+A family site rewrites only to paths of its own: a rewrite to another origin
+passes on the visitor's cookie, bearer and tab pin. A site's test holds that:
 
 ```ts
 import { externalRewrites } from '@orangecheck/site-kit/rewrites';

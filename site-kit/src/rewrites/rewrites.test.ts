@@ -6,12 +6,12 @@ import { externalRewrites, isSitePath } from './index';
 
 const SCRIPT = {
     source: '/oc-insights.js',
-    destination: 'https://plausible.io/js/script.outbound-links.pageview-props.tagged-events.js',
+    destination: 'https://example.com/js/script.js',
 };
 const EVENT = { source: '/oc-insights/event', destination: '/api/oc-insights/event' };
 
 describe('externalRewrites: the rewrites that send a request to another origin', () => {
-    it('finds a rewrite to plausible.io beside the site’s own', async () => {
+    it('finds a rewrite to another origin beside the site’s own', async () => {
         const config: NextConfig = { rewrites: async () => [SCRIPT, EVENT] };
         expect(await externalRewrites(config)).toEqual([SCRIPT]);
     });
@@ -60,7 +60,7 @@ describe('isSitePath', () => {
     it.each(['/', '/api/x', '/:path*', '/a//b'])('%s stays on the site', (d) => {
         expect(isSitePath(d)).toBe(true);
     });
-    it.each(['https://plausible.io/api/event', 'http://x', '//x', '/\\x', 'api/x', ''])('%s does not', (d) => {
+    it.each(['https://example.com/api/event', 'http://x', '//x', '/\\x', 'api/x', ''])('%s does not', (d) => {
         expect(isSitePath(d)).toBe(false);
     });
 });
