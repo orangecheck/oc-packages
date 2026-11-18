@@ -1,7 +1,7 @@
 # @orangecheck/mark
 
-The orangecheck mark, with no dependencies: an isometric check on a 16×8 grid,
-three faces. For a "Sign in with orangecheck" button, a page, a native app or a
+The orangecheck mark, with no dependencies: an isometric check on a 16×10 grid,
+three faces, drawn smooth or in pixels. For a "Sign in with orangecheck" button, a page, a native app or a
 game. The button itself is in [`@orangecheck/me-client`](https://www.npmjs.com/package/@orangecheck/me-client)
 (`/button`, `/react`); the rules for using it are at
 [ochk.io/docs/integration/sign-in-button](https://ochk.io/docs/integration/sign-in-button).
@@ -15,8 +15,8 @@ npm install @orangecheck/mark
 | Variant | Draws | Use it |
 |---|---|---|
 | `mono` | one colour, `currentColor` by default; the check at full strength, the sides at 0.6 and 0.3 | anywhere the text beside it has 3:1 contrast with the ground: it takes the host's text colour |
-| `brand` | the three oranges as drawn | on dark grounds only (the top face is about 1.3:1 on white) |
-| `tile` | the three oranges on their own ink tile | on any ground |
+| `brand` | as drawn: a near-white check on two oranges | on dark grounds only (the top face is about 1.1:1 on white) |
+| `tile` | the brand faces on their own ink tile | on any ground |
 
 ## Framework-free
 
@@ -26,11 +26,21 @@ import { markSvg } from '@orangecheck/mark';
 button.insertAdjacentHTML('afterbegin', markSvg({ variant: 'mono' }));
 ```
 
-`markSvg()` returns an `<svg>` sized `1.75em` wide (the tile `1.25em`), so it
-follows the font size of the text beside it. Width and height are attributes,
+`markSvg()` returns an `<svg>` sized `1.6em` wide and `1em` tall (the tile
+`1.5em` square), so it follows the font size of the text beside it. Width and height are attributes,
 never inline styles: any stylesheet can resize it, and a strict
 Content-Security-Policy needs nothing. Without a `title` it is decoration
 (`aria-hidden`); the button's label names it.
+
+`pixel: true` draws the pixel mark, the ochk.app design's drawing of the same check: 32×20
+cells, two per unit of the geometry. Pixels stay hard only where a cell is a
+whole number of device pixels, so draw it 32, 64, 96 or 128 px wide (the pixel
+tile, 48×48 cells, at 48, 96, 144 or 192 px). Use the smooth mark at text size,
+inside a button.
+
+```js
+markSvg({ variant: 'tile', pixel: true, width: '96' });
+```
 
 `flat: true` draws mono with every face at full strength: one shape, for forced
 colours or anything that cannot shade.
@@ -43,8 +53,11 @@ HTML parsing: use it where Trusted Types or a strict CSP refuse `innerHTML`.
 none.
 
 The geometry is exported for renderers that draw their own: `MARK_POINTS`,
-`MARK_VIEWBOX`, `MARK_FACES`, `MARK_MONO_OPACITY`, `MARK_TILE`, and
-`MARK_MIN_PX` (16: the smallest width it may be drawn at).
+`MARK_VIEWBOX`, `MARK_FACES`, `MARK_MONO_OPACITY`, `MARK_TILE`, `MARK_PIXEL`,
+`MARK_PIXEL_TILE`, `MARK_PIXEL_RUNS` (each face as `[x, y, length]` runs of
+cells), and `MARK_MIN_PX` (16: the smallest width it may be drawn at).
+`markPixelRuns(perUnit)` gives the pixel check's cells at 1, 1.5 or 2 cells a
+unit (16×10, 24×15 or 32×20), for a renderer drawing its own pixel lockup.
 
 ## React
 
@@ -61,7 +74,10 @@ import { OrangecheckMark } from '@orangecheck/mark/react';
 `assets/svg/` holds each variant as a standalone SVG (`orangecheck-mark-brand`,
 `-tile`, `-mono` in currentColor, `-mono-black`, `-mono-white`), and
 `assets/png/` the same at 16, 24, 32, 40, 48, 64, 80, 96, 128 and 256 px wide
-(the bare mark is half as tall: `-40` is 20px tall, `-80` its 2x). Godot 4
+(the bare mark is 5/8 as tall: `-32` is 20px tall, `-64` its 2x).
+`orangecheck-mark-pixel-brand` and `orangecheck-mark-pixel-tile` are the pixel
+mark, as SVG and as PNGs at whole pixels per cell: 32 to 512 px wide, and the
+tile 48 to 480 px. Godot 4
 imports the SVGs directly: set a `Button`'s `icon` to the mono SVG and keep your
 theme's font and colours.
 

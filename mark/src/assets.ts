@@ -1,23 +1,35 @@
 import { MARK_FACES, MARK_POINTS, MARK_TILE, markSvg, type MarkVariant } from './index';
 
-/** PNG widths written to assets/png, in px. The bare mark is half as tall; the tile is square. */
+/** PNG widths written to assets/png, in px. The bare mark is 5/8 as tall; the tile is square. */
 export const PNG_WIDTHS = [16, 24, 32, 40, 48, 64, 80, 96, 128, 256] as const;
 
-const FILES: Array<{ name: string; variant: MarkVariant; color?: string }> = [
-    { name: 'orangecheck-mark-brand', variant: 'brand' },
-    { name: 'orangecheck-mark-tile', variant: 'tile' },
-    { name: 'orangecheck-mark-mono', variant: 'mono' },
-    { name: 'orangecheck-mark-mono-black', variant: 'mono', color: '#0A0A0A' },
-    { name: 'orangecheck-mark-mono-white', variant: 'mono', color: '#FFFFFF' },
+/** The pixel mark's widths: whole pixels per cell (32 cells across; the tile 48). */
+export const PIXEL_PNG_WIDTHS = [32, 64, 96, 128, 256, 512] as const;
+export const PIXEL_TILE_PNG_WIDTHS = [48, 96, 144, 192, 384, 480] as const;
+
+const FILES: Array<{ name: string; variant: MarkVariant; color?: string; pixel?: true; widths: readonly number[] }> = [
+    { name: 'orangecheck-mark-brand', variant: 'brand', widths: PNG_WIDTHS },
+    { name: 'orangecheck-mark-tile', variant: 'tile', widths: PNG_WIDTHS },
+    { name: 'orangecheck-mark-mono', variant: 'mono', widths: [] },
+    { name: 'orangecheck-mark-mono-black', variant: 'mono', color: '#0A0A0A', widths: PNG_WIDTHS },
+    { name: 'orangecheck-mark-mono-white', variant: 'mono', color: '#FFFFFF', widths: PNG_WIDTHS },
+    { name: 'orangecheck-mark-pixel-brand', variant: 'brand', pixel: true, widths: PIXEL_PNG_WIDTHS },
+    { name: 'orangecheck-mark-pixel-tile', variant: 'tile', pixel: true, widths: PIXEL_TILE_PNG_WIDTHS },
 ];
 
-/** The standalone SVG files: px-sized, named, one per variant and colour. */
+/** The height of a file at width w: square for the tile, 5/8 for the mark. */
+export function heightAt(square: boolean, w: number): number {
+    return square ? w : (w * 5) / 8;
+}
+
+/** The standalone SVG files: px-sized, named, one per variant and colour, with the PNG widths each is written at. */
 export function assetSvgs() {
-    return FILES.map(({ name, variant, color }) => {
+    return FILES.map(({ name, variant, color, pixel, widths }) => {
         const square = variant === 'tile';
         const svgAt = (w: number, h: number) =>
-            markSvg({ variant, color, title: 'orangecheck', width: String(w) }).replace(/height="[^"]*"/, `height="${h}"`);
-        return { name, square, svg: `${svgAt(64, square ? 64 : 32)}\n`, svgAt };
+            markSvg({ variant, color, pixel, title: 'orangecheck', width: String(w) }).replace(/height="[^"]*"/, `height="${h}"`);
+        const base = pixel ? (square ? 96 : 64) : 64;
+        return { name, square, widths, svg: `${svgAt(base, heightAt(square, base))}\n`, svgAt };
     });
 }
 

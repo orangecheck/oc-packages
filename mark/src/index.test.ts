@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { MARK_FACES, MARK_MONO_OPACITY, MARK_POINTS, markDataUri, markSvg } from './index';
+import { MARK_FACES, MARK_MONO_OPACITY, MARK_PIXEL_RUNS, MARK_PIXEL_TILE, MARK_POINTS, markDataUri, markPixelRuns, markSvg } from './index';
 import { OrangecheckMark } from './react';
 
 const polygons = (svg: string) => [...svg.matchAll(/<polygon ([^>]*)\/?>/g)].map((m) => m[1]!);
@@ -39,12 +42,13 @@ describe('markSvg', () => {
         expect(polygons(tile)).toHaveLength(3);
     });
 
-    it('sizes in em with the 2:1 aspect, as attributes a stylesheet can override, never inline styles', () => {
+    it('sizes in em with the 8:5 aspect, as attributes a stylesheet can override, never inline styles', () => {
         const svg = markSvg();
-        expect(attr(svg, 'width')).toBe('1.75em');
-        expect(attr(svg, 'height')).toBe('0.875em');
-        expect(attr(markSvg({ width: '20px' }), 'height')).toBe('10px');
-        expect(attr(markSvg({ variant: 'tile' }), 'height')).toBe('1.25em');
+        expect(attr(svg, 'viewBox')).toBe('0 0 16 10');
+        expect(attr(svg, 'width')).toBe('1.6em');
+        expect(attr(svg, 'height')).toBe('1em');
+        expect(attr(markSvg({ width: '32px' }), 'height')).toBe('20px');
+        expect(attr(markSvg({ variant: 'tile' }), 'height')).toBe('1.5em');
         for (const v of ['mono', 'brand', 'tile'] as const) expect(markSvg({ variant: v })).not.toContain('style=');
     });
 
@@ -108,15 +112,20 @@ describe('OrangecheckMark', () => {
             );
             expect(attr(html, 'width')).toBe(attr(fromString, 'width'));
             expect(attr(html, 'height')).toBe(attr(fromString, 'height'));
+            const pixelHtml = renderToStaticMarkup(createElement(OrangecheckMark, { variant, pixel: true }));
+            const pixelString = markSvg({ variant, pixel: true });
+            expect(cells(pixelHtml)).toEqual(cells(pixelString));
+            expect(attr(pixelHtml, 'viewBox')).toBe(attr(pixelString, 'viewBox'));
+            expect(attr(pixelHtml, 'shape-rendering')).toBe('crispEdges');
         }
     });
 
     it('takes a title, a px size and the host props', () => {
-        const html = renderToStaticMarkup(createElement(OrangecheckMark, { title: 'orangecheck', size: 24, className: 'x' }));
+        const html = renderToStaticMarkup(createElement(OrangecheckMark, { title: 'orangecheck', size: 32, className: 'x' }));
         expect(html).toContain('role="img"');
         expect(html).toContain('<title>orangecheck</title>');
-        expect(attr(html, 'width')).toBe('24');
-        expect(attr(html, 'height')).toBe('12');
+        expect(attr(html, 'width')).toBe('32');
+        expect(attr(html, 'height')).toBe('20');
         expect(html).toContain('class="x"');
     });
 });
@@ -132,11 +141,97 @@ describe('markElement', () => {
         const { JSDOM } = await import('jsdom');
         const { markElement } = await import('./index');
         const doc = new JSDOM('<!doctype html>').window.document;
-        for (const variant of ['mono', 'brand', 'tile'] as const) {
-            const el = markElement(doc, { variant, title: 'orangecheck' });
-            const fromString = new JSDOM(markSvg({ variant, title: 'orangecheck' })).window.document.querySelector('svg')!;
+        for (const [variant, pixel] of [['mono', false], ['brand', false], ['tile', false], ['mono', true], ['brand', true], ['tile', true]] as const) {
+            const el = markElement(doc, { variant, title: 'orangecheck', pixel });
+            const fromString = new JSDOM(markSvg({ variant, title: 'orangecheck', pixel })).window.document.querySelector('svg')!;
             expect(el.namespaceURI).toBe('http://www.w3.org/2000/svg');
             expect(shape(el)).toEqual(shape(fromString));
         }
+    });
+});
+
+/** A drawing's cells: each <rect> run in its group's fill, sorted. */
+function cells(svg: string): string[] {
+    const out: string[] = [];
+    for (const g of svg.matchAll(/<g ([^>]*fill="[^"]*"[^>]*)>((?:<rect [^>]*\/>|<rect [^>]*><\/rect>)*)<\/g>/g)) {
+        const fill = `${attr(g[1]!, 'fill')}/${attr(g[1]!, 'fill-opacity') ?? 1}`;
+        for (const r of g[2]!.matchAll(/<rect ([^>]*?)\/?>/g)) out.push(`${fill} ${attr(r[1]!, 'x')},${attr(r[1]!, 'y')}+${attr(r[1]!, 'width')}`);
+    }
+    return out.sort();
+}
+
+describe('the pixel mark', () => {
+    const drawn = readFileSync(join(__dirname, '..', 'test-vectors', 'pixel-mark.txt'), 'utf8')
+        .split('\n')
+        .filter((l) => l && !l.startsWith('#'));
+
+    it("draws the design's pixel mark exactly, cell by cell, from the same three faces", () => {
+        expect(drawn).toHaveLength(20);
+        const grid = Array.from({ length: 20 }, () => Array<string>(32).fill('.'));
+        const letter = { top: 'T', left: 'L', right: 'R' } as const;
+        for (const face of ['top', 'left', 'right'] as const) {
+            for (const [x, y, w] of MARK_PIXEL_RUNS[face]) {
+                for (let i = x; i < x + w; i++) {
+                    expect(grid[y]![i], `cell ${i},${y} drawn twice`).toBe('.');
+                    grid[y]![i] = letter[face];
+                }
+            }
+        }
+        expect(grid.map((r) => r.join(''))).toEqual(drawn);
+    });
+
+    it('is whole cells in whole-pixel steps, crisp, and marked as pixel', () => {
+        const svg = markSvg({ variant: 'brand', pixel: true, width: '64' });
+        expect(attr(svg, 'viewBox')).toBe('0 0 32 20');
+        expect(attr(svg, 'height')).toBe('40');
+        expect(svg).toContain('shape-rendering="crispEdges"');
+        expect(svg).toContain('data-oc-pixel=""');
+        expect(polygons(svg)).toHaveLength(0);
+        for (const face of ['top', 'left', 'right'] as const) {
+            for (const run of MARK_PIXEL_RUNS[face]) expect(run.every(Number.isInteger)).toBe(true);
+        }
+        const fills = [...svg.matchAll(/<g fill="([^"]*)"/g)].map((m) => m[1]);
+        expect(fills).toEqual([MARK_FACES.left, MARK_FACES.right, MARK_FACES.top]);
+    });
+
+    it('centres the mark on the pixel tile, on whole cells', () => {
+        const tile = markSvg({ variant: 'tile', pixel: true });
+        expect(attr(tile, 'viewBox')).toBe('0 0 48 48');
+        expect(tile).toContain(`transform="${MARK_PIXEL_TILE.transform}"`);
+        expect(MARK_PIXEL_TILE.transform).toBe(`translate(${(48 - 32) / 2} ${(48 - 20) / 2})`);
+        expect(tile).toMatch(/<rect width="48" height="48" rx="12.5" fill="#0A0A0A"\/>/);
+    });
+
+    it('draws the same check at every whole-cell scale: every cell once, the faces meeting where they meet', () => {
+        const draw = (perUnit: number) => {
+            const [w, h] = [16 * perUnit, 10 * perUnit];
+            const grid = Array.from({ length: h }, () => Array<string>(w).fill('.'));
+            const runs = markPixelRuns(perUnit);
+            for (const [face, letter] of [['top', 'T'], ['left', 'L'], ['right', 'R']] as const) {
+                for (const [x, y, n] of runs[face]) {
+                    for (let i = x; i < x + n; i++) {
+                        expect(grid[y]![i], `${perUnit}: cell ${i},${y} drawn twice`).toBe('.');
+                        grid[y]![i] = letter;
+                    }
+                }
+            }
+            return grid.map((r) => r.join(''));
+        };
+        expect(draw(2)).toEqual(drawn);
+        expect(markPixelRuns(2)).toEqual(MARK_PIXEL_RUNS);
+        // One cell a unit, a lockup's: the check's tip, its elbow and the foot of its two sides.
+        const small = draw(1);
+        expect(small).toHaveLength(10);
+        expect(small[0]).toBe('.............TT.');
+        expect(small[9]).toBe('.....LR.........');
+        expect(draw(1.5)[14]).toBe('........LR..............');
+        for (const bad of [0, -1, 1.25, 0.1, 9, Number.NaN]) expect(() => markPixelRuns(bad)).toThrow(RangeError);
+    });
+
+    it('takes the mono colour and weights in pixels too', () => {
+        const svg = markSvg({ pixel: true });
+        expect([...svg.matchAll(/<g ([^>]*)>/g)].map((m) => attr(m[1]!, 'fill-opacity') ?? '1').sort()).toEqual(['0.3', '0.6', '1']);
+        expect(svg).not.toMatch(/#[0-9a-f]{6}/i);
+        expect(decodeURIComponent(markDataUri({ pixel: true, color: '#111111' }))).toContain('width="32"');
     });
 });

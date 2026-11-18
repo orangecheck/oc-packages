@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-import { assetSvgs, FAVICON_ICO_SIZES, FAVICON_PNGS, faviconSvg, icoFromPngs, PNG_WIDTHS, squareTileSvg } from '../dist/assets.mjs';
+import { assetSvgs, FAVICON_ICO_SIZES, FAVICON_PNGS, faviconSvg, heightAt, icoFromPngs, squareTileSvg } from '../dist/assets.mjs';
 
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 rmSync(out, { recursive: true, force: true });
@@ -20,11 +20,10 @@ mkdirSync(join(out, 'png'), { recursive: true });
 mkdirSync(join(out, 'favicon'), { recursive: true });
 
 for (const { name, svg } of assetSvgs()) writeFileSync(join(out, 'svg', `${name}.svg`), svg);
-for (const { name, square, svgAt } of assetSvgs()) {
-    if (name === 'orangecheck-mark-mono') continue; // currentColor has no colour outside a page
-    for (const w of PNG_WIDTHS) {
-        const h = square ? w : w / 2;
-        await sharp(Buffer.from(svgAt(w, h))).png({ compressionLevel: 9 }).toFile(join(out, 'png', `${name}-${w}.png`));
+// currentColor has no colour outside a page, so the plain mono SVG has no PNGs.
+for (const { name, square, widths, svgAt } of assetSvgs()) {
+    for (const w of widths) {
+        await sharp(Buffer.from(svgAt(w, heightAt(square, w)))).png({ compressionLevel: 9 }).toFile(join(out, 'png', `${name}-${w}.png`));
     }
 }
 // A site's icon set, from the tile.
@@ -35,4 +34,4 @@ for (const { file, size, square } of FAVICON_PNGS) writeFileSync(join(out, 'favi
 const ico = await Promise.all(FAVICON_ICO_SIZES.map(async (size) => ({ size, png: await tilePng(size) })));
 writeFileSync(join(out, 'favicon', 'favicon.ico'), icoFromPngs(ico));
 
-console.log(`assets: ${assetSvgs().length} SVGs, ${(assetSvgs().length - 1) * PNG_WIDTHS.length} PNGs, ${FAVICON_PNGS.length + 2} favicon files`);
+console.log(`assets: ${assetSvgs().length} SVGs, ${assetSvgs().reduce((n, a) => n + a.widths.length, 0)} PNGs, ${FAVICON_PNGS.length + 2} favicon files`);
