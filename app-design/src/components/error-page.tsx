@@ -28,7 +28,7 @@ const WORDS: Record<number, { name: string; title: string; detail: string }> = {
 /** With a code, the words default to that code's. Without one, nothing claims a code: say what happened. */
 type ErrorPageWords =
     | { code: number; title?: ReactNode; detail?: ReactNode }
-    | { code?: undefined; title: ReactNode; detail: ReactNode };
+    | { code?: undefined; title: NonNullable<ReactNode>; detail: NonNullable<ReactNode> };
 
 /**
  * A 404, a 500 or any other error, inside the site's own header and footer:

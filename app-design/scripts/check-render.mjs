@@ -375,6 +375,14 @@ const html = (el) => renderToStaticMarkup(el);
             check(cls && missing.length === 0, `${name}: its actions are not drawn in HERO_ACTIONS (${cls ? `missing ${missing.join(' ')}` : 'no row around them'})`);
         }
     }
+    // An error page with no code claims none: no code line, no retry. A code with a title draws that title.
+    {
+        const bare = html(h(C.ErrorPage, { title: 'Signed out', detail: 'Nothing is left to end.', art: null }));
+        check(!/Try again/.test(bare) && !/oca-eyebrow/.test(bare) && /Go home/.test(bare), 'ErrorPage with no code: it drew a code line or a retry, or lost its way home');
+        check(/Try again/.test(html(h(C.ErrorPage, { code: 500, art: null }))), 'ErrorPage code 500: no retry');
+        const owner = html(h(C.ErrorPage, { code: 403, title: 'Not on the owner allowlist', art: null }));
+        check(/<h1 [^>]*>Not on the owner allowlist<\/h1>/.test(owner) && !/This page isn/.test(owner) && />403<\/span> · Not available/.test(owner), 'ErrorPage code 403 with a title: the heading is not the given title under a 403 line');
+    }
     // A product without a page of its own links ochk.io's, and keeps all five.
     const F = require(join(here, '../dist/family.js'));
     const vault = F.selfHostedLegalLinks({ contact: false });

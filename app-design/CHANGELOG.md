@@ -26,6 +26,9 @@ package draws it follows.
 - `AppShell` from lg: the sidebar's lockup row is the bar's height, with its
   hairline, so the lockup sits on the account's line and one rule runs across
   the page. It sat 10px below that line, and the rule stopped at the sidebar.
+- `ErrorPage` with no `code` refuses an `undefined` or `null` `title` or
+  `detail` at the type level: with no code there are no default words, so
+  either drew an empty line.
 
 ## [2.18.2] — 2026-11-12
 
