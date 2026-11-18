@@ -223,15 +223,16 @@ const privacy: DocSpec = {
     metaDescription:
         'OC Vault privacy policy. End-to-end encrypted; OrangeCheck stores ciphertext only and cannot read your vault contents.',
     effective: '2026-05-15',
-    updated: '2026-11-06',
+    updated: '2026-11-20',
     preamble: [
         {
             kind: 'callout',
-            text: "**What changed, 8 to 31 October 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
+            text: "**What changed, 8 October to 20 November 2026.** We corrected this policy where it did not say what is kept or who sees it. Newest first; the [changelog](https://github.com/orangecheck/oc-packages/blob/main/legal/CHANGELOG.md) lists every change.",
         },
         {
             kind: 'bullets',
             items: [
+                { k: "20 November", v: "page views are counted only by our own cookieless analytics at insights.ochk.io; no third-party analytics service counts them." },
                 { k: "31 October", v: "an emailed team invite keeps the invitee's address on the invite and shows it to the team's managers, the email goes through our email provider (Resend), and its link carries the team key only sealed under a one-time code." },
                 { k: "29 October", v: "the browser extension is described. Deleting your account removes the sealed vault key and the rest of your vault data, keeps payment records under a keyed id, and is refused while you own a team that still has other members." },
                 { k: "8 October", v: "your vault is filed under your did:oc, and the vault key is stored on our server, sealed under your passphrase and your recovery code." },
@@ -339,7 +340,7 @@ const privacy: DocSpec = {
             blocks: [
                 {
                     kind: 'para',
-                    text: 'No cookies of vault.ochk.io\'s own. The family sign-in cookie `oc_session` (set by ochk.io: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days) and the appearance cookies `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` (your logo choice, set only when you open a page with `?logo=` in its address) apply here. Your vault data lives in your browser\'s IndexedDB, under your account. Page analytics use [Plausible](https://plausible.io/privacy) — cookie-free, no PII, aggregate only. No advertising or tracking cookies.',
+                    text: 'No cookies of vault.ochk.io\'s own. The family sign-in cookie `oc_session` (set by ochk.io: HttpOnly; Secure; SameSite=None; Domain=.ochk.io; 30 days) and the appearance cookies `oc_theme`, `oc_skin`, `oc_motion` and `oc_logo` (your logo choice, set only when you open a page with `?logo=` in its address) apply here. Your vault data lives in your browser\'s IndexedDB, under your account. Page views are counted only by our own first-party, cookieless analytics at insights.ochk.io, which is sent the page\'s origin and path and nothing more of its address. No third-party analytics service counts them, and there are no advertising or tracking cookies.',
                 },
             ],
         },
