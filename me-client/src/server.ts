@@ -87,6 +87,14 @@ export type { BondClaim, SessionPayload, VerifyOcOptions };
 /** Why a token that verified is still not a session here. */
 export type OcSessionRefusal = 'no_session_handle';
 
+/**
+ * Why {@link checkOcToken} refuses a token, when it can say: an
+ * {@link OcSessionRefusal}, or `audience`: the token is genuine but was made
+ * for another site. Check that `audience` is your origin exactly, scheme and
+ * port included.
+ */
+export type OcTokenRefusal = OcSessionRefusal | 'audience';
+
 export interface VerifyOcTokenOptions extends VerifyOcOptions {
     /**
      * Refuse a token bound to your site (one with `aud`) that carries no `rh`,
@@ -177,7 +185,7 @@ export async function verifyOcToken(
  */
 export type OcTokenCheck =
     | { status: 'valid'; session: SessionPayload }
-    | { status: 'invalid'; reason?: OcSessionRefusal }
+    | { status: 'invalid'; reason?: OcTokenRefusal }
     | { status: 'unavailable'; reason: 'key_set_unavailable' };
 
 /**
@@ -196,7 +204,7 @@ export async function checkOcToken(token: string, options: VerifyOcTokenOptions 
     checkRequireHandle(requireHandle);
     const checked = await checkOcTokenCore(token, core);
     if (checked.status === 'unavailable') return { status: 'unavailable', reason: 'key_set_unavailable' };
-    if (checked.status === 'invalid') return { status: 'invalid' };
+    if (checked.status === 'invalid') return checked.reason ? { status: 'invalid', reason: checked.reason } : { status: 'invalid' };
     if (lacksHandle(checked.session, requireHandle)) {
         warnNoHandle(checked.session);
         return { status: 'invalid', reason: 'no_session_handle' };

@@ -68,7 +68,8 @@ class NativeRefusal:
     longer allows native sign-in: start again), ``not_offered`` (this auth host does
     not offer native sign-in), ``bad_request``, ``invalid_token`` /
     ``no_session_handle`` (the token did not verify for your audience),
-    ``session_ended`` (the person ended their sessions everywhere),
+    ``audience`` (the token is genuine but was made for another site: check that
+    ``audience`` is your origin exactly), ``session_ended`` (the person ended their sessions everywhere),
     ``bond_required`` (the account does not meet your project's rule: ``need``,
     ``have`` and ``back_url`` say what it asks and where to back the account), or
     ``unknown_project_key``. ``unavailable``: ``auth_host_unavailable``,
@@ -177,7 +178,7 @@ def exchange_native_code(
     except InvalidSession as err:
         if err.reason in _UNAVAILABLE:
             return NativeRefusal("unavailable", err.reason)
-        if err.reason in ("no_session_handle", "unknown_project_key"):
+        if err.reason in ("no_session_handle", "unknown_project_key", "audience"):
             return NativeRefusal("invalid", err.reason)
         return NativeRefusal("invalid", "invalid_token")
     return NativeSignIn(token=token, session=session)
