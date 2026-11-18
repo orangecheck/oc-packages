@@ -894,9 +894,9 @@
     "@simplewebauthn/browser" "^13.3.0"
 
 "@orangecheck/auth-core@^2.24.0", "@orangecheck/auth-core@^2.26.1":
-  version "2.30.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.30.0.tgz#dd3b200279e374c89f6896cb3478ec48b31f33a7"
-  integrity sha512-Clw4uHWFrU3+jT3vvPGq6UdhbwMtw1UsCpsyS0rNdMarRCY5M92xHee/t0Z6JxzpGY18BXdX9kDHVyRa4jVTag==
+  version "2.31.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.31.0.tgz#73f7682e082188298fa25108d519f39a650201dd"
+  integrity sha512-qZb3V6HNwHQmkW/St0ZOu2I34P9cAGiQfQAyB0HrYLQpxI+Ooex5kzCYVbiX9OcXPYhUP6KlIE/BcfUpuupU/Q==
   dependencies:
     "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
