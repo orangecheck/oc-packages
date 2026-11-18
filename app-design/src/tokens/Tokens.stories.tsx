@@ -17,7 +17,7 @@ const SWATCHES: [string, string][] = [
     ['--brand', 'brand orange (fills)'],
     ['--oca-accent-display', 'accent, display text'],
     ['--oca-accent-ink', 'accent, small text'],
-    ['--oca-peach', 'mark top'],
+    ['--oca-peach', 'peach'],
     ['--oca-orange-light', 'mark left'],
     ['--oca-orange-deep', 'mark right'],
     ['--oca-ink', 'ink band'],

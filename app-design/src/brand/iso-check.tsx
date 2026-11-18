@@ -7,7 +7,7 @@ import { Mark } from './mark';
 import { PixelMark } from './pixel';
 
 export interface IsoCheckProps {
-    /** Width in px; the check keeps its 2:1 grid. */
+    /** Width in px; the check keeps its 8:5 box. */
     size?: number;
     /** Drop it into place on first paint, the deck's closing gesture. */
     settle?: boolean;

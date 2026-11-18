@@ -1,4 +1,4 @@
-export { AppIcon, Lockup, Mark, MARK_FACES } from './mark';
+export { AppIcon, Lockup, Mark, MARK_BOX, MARK_FACES, markHeight } from './mark';
 export type { AppIconProps, LockupProps, MarkProps } from './mark';
 export { LOGO_COOKIE, LOGO_DEFAULT, LOGOS, logoAttrs, logoScript } from './logo';
 export type { Logo } from './logo';

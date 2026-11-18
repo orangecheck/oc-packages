@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 
-import { MARK_FACES, MARK_POINTS } from '@orangecheck/mark';
+import { MARK_FACES, MARK_POINTS, MARK_TILE, MARK_VIEWBOX } from '@orangecheck/mark';
 
 import { cn } from '../lib/cn';
 import { logoAttrs, type Logo } from './logo';
@@ -8,29 +8,37 @@ import { PixelAppIcon, PixelMark, PixelWordmark } from './pixel';
 import { pixelFit } from './pixel-fit';
 
 /*
- * The isometric check, measured from the ochk.app design (iteration 2, slide 9) onto a 16×8 grid:
- * a chevron with a 3-unit short arm and a 5-unit long arm, one unit thick,
- * extruded two units. Three faces, three oranges. The geometry is @orangecheck/mark's,
- * the package integrators draw it from, so there is one mark.
+ * The isometric check as the ochk.app design draws it: a chevron with a 3-unit
+ * short arm and a 5-unit long arm, one unit thick, its sides four units deep,
+ * on a 16×10 box: a near-white check on two oranges. The geometry is
+ * @orangecheck/mark's, the package integrators draw it from, so there is one
+ * mark; its box is read from there too, so nothing here assumes a shape.
  */
 
 const { top: TOP, left: LEFT, right: RIGHT } = MARK_POINTS;
+
+/** The mark's box in its own units, from the package's viewBox. */
+const [, , boxWidth, boxHeight] = MARK_VIEWBOX.split(' ').map(Number) as [number, number, number, number];
+export const MARK_BOX = { width: boxWidth, height: boxHeight } as const;
+
+/** The height of a mark `width` wide. */
+export const markHeight = (width: number) => (width * MARK_BOX.height) / MARK_BOX.width;
 
 export { MARK_FACES, MARK_POINTS };
 
 export interface MarkProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
     /** Accessible name. Omit to render the mark as decoration. */
     title?: string;
-    /** Rendered width in px; height follows the 2:1 grid. */
+    /** Rendered width in px; height follows the mark's 8:5 box. */
     size?: number;
 }
 
 export function Mark({ title, size, className, ...rest }: MarkProps) {
     return (
         <svg
-            viewBox="0 0 16 8"
+            viewBox={MARK_VIEWBOX}
             width={size}
-            height={size ? size / 2 : undefined}
+            height={size ? markHeight(size) : undefined}
             role={title ? 'img' : undefined}
             aria-hidden={title ? undefined : true}
             className={cn('shrink-0', className)}
@@ -50,7 +58,7 @@ export function Mark({ title, size, className, ...rest }: MarkProps) {
  */
 export function MarkOutline({ className, ...rest }: Omit<SVGProps<SVGSVGElement>, 'children'>) {
     return (
-        <svg viewBox="-0.2 -0.2 16.4 8.4" aria-hidden className={cn('shrink-0 overflow-visible', className)} {...rest}>
+        <svg viewBox={`-0.2 -0.2 ${MARK_BOX.width + 0.4} ${MARK_BOX.height + 0.4}`} aria-hidden className={cn('shrink-0 overflow-visible', className)} {...rest}>
             {[TOP, LEFT, RIGHT].map((points) => (
                 <polygon
                     key={points}
@@ -87,11 +95,11 @@ export function AppIcon({ title, size = 32, className, ...rest }: AppIconProps) 
             <rect
                 width="24"
                 height="24"
-                rx="6.25"
+                rx={MARK_TILE.radius}
                 style={{ fill: 'var(--oca-icon-tile, #0A0A0A)', stroke: 'var(--oca-icon-ring, transparent)' }}
                 strokeWidth="0.5"
             />
-            <g transform="translate(4.25 8.1) scale(0.97)">
+            <g transform={MARK_TILE.transform}>
                 <polygon points={LEFT} fill={MARK_FACES.left} />
                 <polygon points={RIGHT} fill={MARK_FACES.right} />
                 <polygon points={TOP} fill={MARK_FACES.top} />

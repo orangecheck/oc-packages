@@ -128,7 +128,7 @@ const html = (el) => renderToStaticMarkup(el);
     check(handLabels.length === 0, `a label set by hand, not oca-label: ${handLabels.join(', ')}`);
 }
 
-// One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 8), never the square
+// One lockup in all chrome: the swoosh and the wordmark (Mark, viewBox 0 0 16 10), never the square
 // app icon (AppIcon, its 24-unit tile with rounded corners), which stays the favicon, app icon and OG mark.
 {
     const nav = [{ label: 'Start', items: [{ href: '/docs', label: 'Overview' }] }];
@@ -147,7 +147,7 @@ const html = (el) => renderToStaticMarkup(el);
     const iconIn = Object.entries(chrome)
         .map(([name, el]) => [name, html(el)])
         // The rail (the messenger's frame) draws no lockup of its own; the rest each draw one.
-        .filter(([name, out]) => icon.test(out) || (name !== 'AppShell rail' && !/viewBox="0 0 16 8"/.test(out)))
+        .filter(([name, out]) => icon.test(out) || (name !== 'AppShell rail' && !/viewBox="0 0 16 10"/.test(out)))
         .map(([name]) => name);
     check(iconIn.length === 0, `chrome draws the square app icon, or no swoosh lockup: ${iconIn.join(', ')}`);
 }

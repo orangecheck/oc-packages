@@ -152,7 +152,7 @@ check(title?.props.style.lineClamp === 3 && title.props.style.display === 'block
 check(String(title?.props.children ?? '').length <= 120, 'a long title is not cut');
 
 // The large art is on unless the caller leaves it out: the tone's dithered mark, its coarse 240px bake
-// doubled (480×240, each pixel twice), the peach top on ink and burnt, the ink top on paper, ink alone on brand (its orange
+// doubled (480×300, each pixel twice), its own near-white top on ink and burnt, the ink top on paper, ink alone on brand (its orange
 // sides would vanish into the ground). Baked art takes its
 // place. The lockup's small mark stays vector, so it keeps its edges when a feed shows the card at 300px.
 {
@@ -160,12 +160,12 @@ check(String(title?.props.children ?? '').length <= 120, 'a long title is not cu
     const dither = { paper: og.ogArt.ditherMarkInk240x2, ink: og.ogArt.ditherMark240x2, burnt: og.ogArt.ditherMark240x2, brand: og.ogArt.ditherMarkOnBrand240x2 };
     for (const [tone, a] of Object.entries(dither)) {
         const d = imgs({ tone });
-        check(d.length === 1 && d[0].props.src === a.src && d[0].props.width === 480 && d[0].props.height === 240, `${tone}: the default art is not the tone's dithered mark at 480×240`);
+        check(d.length === 1 && d[0].props.src === a.src && d[0].props.width === 480 && d[0].props.height === 300, `${tone}: the default art is not the tone's dithered mark at 480×300`);
     }
     check(imgs({}).length === 1 && imgs({})[0].props.src === og.ogArt.ditherMark240x2.src, 'the dithered mark is not on by default');
     // Its box sits on a 4px grid, so the doubled mark's 4px dots land on whole pixels when a feed shows the card at 300.
     const slot = walk(h(og.OgCard, { title: 'A page' })).find((e) => e.props.style?.position === 'absolute')?.props.style;
-    check(slot && (1200 - 480 - slot.right) % 4 === 0 && (630 - 240 - slot.bottom) % 4 === 0, 'the dithered mark is off the 4px grid');
+    check(slot && (1200 - 480 - slot.right) % 4 === 0 && (630 - 300 - slot.bottom) % 4 === 0, 'the dithered mark is off the 4px grid');
     // Each tone's card draws it at its own pixels: its art box, as rendered, holds the bake's colours and the ground's, no others.
     for (const [tone, [bg]] of Object.entries(grounds)) {
         const card = h(og.OgCard, { title: 'Prove who signed it, and when.', eyebrow: 'OC Stamp', product: 'stamp', host: 'stamp.ochk.io', tone });

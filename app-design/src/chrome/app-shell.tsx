@@ -455,8 +455,9 @@ function SidebarShell({
                     >
                         <AccountSlotContext.Provider value={APP_SLOT}>{account}</AccountSlotContext.Provider>
                     </header>
-                    <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 py-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
-                        <div className="flex items-center gap-1">
+                    <aside className="sticky top-0 hidden h-dvh w-[17rem] shrink-0 flex-col gap-6 overflow-y-auto px-4 pb-6 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex lg:self-start">
+                        {/* The bar's own height and hairline, so the lockup sits on the account's line and the rule runs across. */}
+                        <div className="-mx-4 flex h-[4.5rem] shrink-0 items-center gap-1 border-b border-border px-4">
                             <Link href={home} className={cn('min-w-0 px-2', HIT_LINK)}>
                                 <ProductLockup size={product ? 22 : 24} product={product} />
                                 <span className="sr-only"> home</span>

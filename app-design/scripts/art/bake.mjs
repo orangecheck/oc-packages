@@ -39,7 +39,9 @@ import { fileURLToPath } from 'node:url';
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const require = createRequire(join(pkg, 'package.json'));
 const sharp = require('sharp');
-const { MARK_FACES, MARK_POINTS, MARK_MONO_OPACITY } = require('@orangecheck/mark');
+const { MARK_FACES, MARK_POINTS, MARK_MONO_OPACITY, MARK_VIEWBOX } = require('@orangecheck/mark');
+/** The mark's box in its own units (16 by 10). */
+const [, , VW, VH] = MARK_VIEWBOX.split(' ').map(Number);
 
 const OUT = join(pkg, 'art');
 /** Each file's budget: a static 1-bit dither image is about 14 KB. */
@@ -112,7 +114,7 @@ function valueNoise(w, h, seed, cell, octaves) {
     return out;
 }
 
-/** Point-in-polygon for the mark's faces, in its 16×8 viewBox. */
+/** Point-in-polygon for the mark's faces, in its own viewBox. */
 function inside(px, py, points) {
     const p = points.split(' ').map((xy) => xy.split(',').map(Number));
     let hit = false;
@@ -133,7 +135,7 @@ const ON_BRAND = { top: 1, left: 0.5, right: 0.25 };
  * flat densities, so the orange sides do not vanish into an orange ground.
  */
 function ditherMark(width, topFace) {
-    const height = width / 2;
+    const height = (width * VH) / VW;
     const cell = Math.max(2, Math.round(width / 160));
     const data = Buffer.alloc(width * height * 4);
     const faces = topFace
@@ -149,12 +151,12 @@ function ditherMark(width, topFace) {
           ];
     for (let cy = 0; cy < height; cy += cell)
         for (let cx = 0; cx < width; cx += cell) {
-            const vx = ((cx + cell / 2) / width) * 16;
-            const vy = ((cy + cell / 2) / height) * 8;
+            const vx = ((cx + cell / 2) / width) * VW;
+            const vy = ((cy + cell / 2) / height) * VH;
             const face = faces.find(([name]) => inside(vx, vy, MARK_POINTS[name]));
             if (!face) continue;
             // A face is solid at its own tone and grainier toward its far edge; on brand, flat at its density.
-            const tone = topFace ? 0.55 + 0.45 * face[2] * (1 - (vy / 8) * 0.35) : face[2];
+            const tone = topFace ? 0.55 + 0.45 * face[2] * (1 - (vy / VH) * 0.35) : face[2];
             const t = BAYER[(cy / cell) % 8][(cx / cell) % 8];
             if (tone < t) continue;
             for (let y = cy; y < Math.min(cy + cell, height); y++)
