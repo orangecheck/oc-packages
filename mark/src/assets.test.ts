@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
-import { assetSvgs, FAVICON_ICO_SIZES, FAVICON_PNGS, faviconSvg, PNG_WIDTHS } from './assets';
+import { assetSvgs, FAVICON_ICO_SIZES, FAVICON_PNGS, faviconSvg, heightAt } from './assets';
 
 const dir = join(__dirname, '..', 'assets');
 
@@ -15,15 +15,28 @@ describe('assets/', () => {
         for (const { name, svg } of want) expect(readFileSync(join(dir, 'svg', `${name}.svg`), 'utf8')).toBe(svg);
     });
 
-    it('holds every PNG at its size: half as tall for the mark, square for the tile', async () => {
-        const names = assetSvgs().filter((a) => a.name !== 'orangecheck-mark-mono');
+    it('holds every PNG at its size: 5/8 as tall for the mark, square for the tile', async () => {
         const files = readdirSync(join(dir, 'png')).sort();
-        expect(files).toEqual(names.flatMap((a) => PNG_WIDTHS.map((w) => `${a.name}-${w}.png`)).sort());
-        for (const { name, square } of names) {
-            for (const w of PNG_WIDTHS) {
+        expect(files).toEqual(assetSvgs().flatMap((a) => a.widths.map((w) => `${a.name}-${w}.png`)).sort());
+        for (const { name, square, widths } of assetSvgs()) {
+            for (const w of widths) {
                 const meta = await sharp(join(dir, 'png', `${name}-${w}.png`)).metadata();
-                expect([meta.width, meta.height]).toEqual([w, square ? w : w / 2]);
+                expect([meta.width, meta.height]).toEqual([w, heightAt(square, w)]);
             }
+        }
+    });
+
+    it('writes the pixel mark only where each cell is whole pixels, and its edges stay hard', async () => {
+        for (const { name, square, widths } of assetSvgs().filter((a) => a.name.includes('-pixel-'))) {
+            for (const w of widths) expect(w % (square ? 48 : 32), `${name}-${w}`).toBe(0);
+            // At 2 px per cell no pixel is a blend: every opaque pixel is one of the faces or the tile.
+            const w = square ? 96 : 64;
+            const { data } = await sharp(join(dir, 'png', `${name}-${w}.png`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+            const seen = new Set<string>();
+            for (let i = 0; i < data.length; i += 4) if (data[i + 3] === 255) seen.add([data[i], data[i + 1], data[i + 2]].join(','));
+            const allowed = new Set(['245,242,239', '251,147,60', '234,88,11', '10,10,10']);
+            const blends = [...seen].filter((c) => !allowed.has(c));
+            expect(blends, `${name}-${w}`).toEqual([]);
         }
     });
 
