@@ -1,3 +1,4 @@
+import { markHeight } from '../brand/mark';
 import { cn } from '../lib/cn';
 import { png } from '../lib/png';
 import mark240 from '../../art/dither-mark-240.png';
@@ -22,7 +23,7 @@ import brand960 from '../../art/dither-mark-brand-960.png';
  */
 
 
-// Which art a ground takes: the ink top face on a light ground (paper, white), the peach one on a dark one, and
+// Which art a ground takes: the ink top face on a light ground (paper, white), its own near-white one on a dark one, and
 // ink alone on brand orange, where the mark's orange sides would vanish.
 const ART = {
     light: { 240: png(ink240), 480: png(ink480), 960: png(ink960) },
@@ -66,9 +67,9 @@ export function DitherMark({ size = 'md', sizes, ground = 'theme', title, classN
             src={ART[g][widths[0]!]}
             srcSet={widths.map((w) => `${ART[g][w]} ${w}w`).join(', ')}
             sizes={sizes ?? `${width}px`}
-            // The intrinsic 2:1 box, so nothing moves while it decodes.
+            // The mark's intrinsic box, so nothing moves while it decodes.
             width={width}
-            height={width / 2}
+            height={markHeight(width)}
             className={cn('h-auto w-full [image-rendering:pixelated]', shown)}
         />
     );

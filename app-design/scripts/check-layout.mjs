@@ -1768,7 +1768,10 @@ try {
                     const bar = [...document.querySelectorAll('[data-account]')].find((el) => el.getClientRects().length > 0).closest('header');
                     const main = document.querySelector('main');
                     const banner = document.querySelector('[data-banner]');
-                    const out = { aside: box(aside).toJSON(), bar: box(bar).toJSON(), main: box(main).toJSON(), banner: box(banner).toJSON(), barFirst: !!(bar.compareDocumentPosition(aside) & Node.DOCUMENT_POSITION_FOLLOWING) };
+                    // The sidebar's home lockup and the row that holds it, beside the bar.
+                    const home = aside.querySelector('a');
+                    const row = home.parentElement;
+                    const out = { aside: box(aside).toJSON(), bar: box(bar).toJSON(), main: box(main).toJSON(), banner: box(banner).toJSON(), barFirst: !!(bar.compareDocumentPosition(aside) & Node.DOCUMENT_POSITION_FOLLOWING), home: box(home).toJSON(), row: box(row).toJSON(), rowRule: getComputedStyle(row).borderBottomWidth };
                     scrollTo(0, 1200);
                     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                     out.asideTopScrolled = box(aside).top;
@@ -1790,6 +1793,15 @@ try {
                         Math.abs(desk.asideTopScrolled) < 1 &&
                         Math.abs(desk.barTopScrolled) < 1,
                     `[${width}] AppShell: the account bar is first in the page ${desk.barFirst} but drawn at ${JSON.stringify(desk.bar)}, the sidebar at ${JSON.stringify(desk.aside)} (scrolled top ${desk.asideTopScrolled}, the bar's ${desk.barTopScrolled}), main at ${JSON.stringify(desk.main)}`
+                );
+                // One bar across the page: the lockup on the account's line, the hairline under both at one height.
+                check(
+                    Math.abs(desk.home.top + desk.home.height / 2 - (desk.bar.top + desk.bar.height / 2)) < 1 &&
+                        Math.abs(desk.row.bottom - desk.bar.bottom) < 0.5 &&
+                        desk.row.left <= desk.aside.left + 0.5 &&
+                        desk.row.right >= desk.aside.right - 0.5 &&
+                        desk.rowRule === '1px',
+                    `[${width}] AppShell: the sidebar's lockup is at ${JSON.stringify(desk.home)} in a row at ${JSON.stringify(desk.row)} (rule ${desk.rowRule}), the bar at ${JSON.stringify(desk.bar)}`
                 );
             }
             // The family footer: a phone gets folded groups in 600px; a desk the columns.

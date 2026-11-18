@@ -15,17 +15,17 @@ import { PIXEL_MARK_OUTLINE, PIXEL_MARKS, PIXEL_WORDS } from './pixel.data';
 export type { PixelGrid } from './pixel-fit';
 
 export interface PixelMarkProps extends Omit<SVGProps<SVGSVGElement>, 'children'> {
-    /** small: 16 by 8 cells; medium: 24 by 12; art: 32 by 16, for the check drawn large. */
+    /** small: 16 by 10 cells; medium: 24 by 15; art: 32 by 20 (the design's own drawing), for the check drawn large. */
     grid?: PixelGrid | 'art';
     /** The cell in px. */
     cell?: number;
-    /** Rendered width in px, in place of `cell`; height follows the 2:1 grid. */
+    /** Rendered width in px, in place of `cell`; height follows the grid's 8:5. */
     size?: number;
     /** Accessible name. Omit to render the check as decoration. */
     title?: string;
 }
 
-/** The isometric check in square cells, its three faces in the mark's three oranges. */
+/** The isometric check in square cells, its three faces the mark's. */
 export function PixelMark({ grid = 'small', cell = 2, size, title, className, ...rest }: PixelMarkProps) {
     const m = PIXEL_MARKS[grid];
     const width = size ?? m.width * cell;
@@ -33,7 +33,7 @@ export function PixelMark({ grid = 'small', cell = 2, size, title, className, ..
         <svg
             viewBox={`0 0 ${m.width} ${m.height}`}
             width={width}
-            height={width / 2}
+            height={(width * m.height) / m.width}
             shapeRendering="crispEdges"
             role={title ? 'img' : undefined}
             aria-hidden={title ? undefined : true}

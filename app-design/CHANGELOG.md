@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [2.19.0] — 2026-11-20
+
+The brand's check is `@orangecheck/mark` 0.4.0's: the same chevron with its
+sides twice as deep, on a 16×10 box, and a near-white top. Every place the
+package draws it follows.
+
+- `Mark`, `MarkOutline`, `AppIcon` and `IsoCheck` draw the new check. `Mark`'s
+  height is 5/8 of its width (was half); a 30px header mark is 18.75px tall.
+  `AppIcon` takes its placement and corner from `MARK_TILE`.
+- The pixel logo's check (`PixelMark`, `PixelAppIcon`, the pixel lockups) is
+  baked from `markPixelRuns`: 16×10 cells for a header, 24×15 for the smaller
+  lockups, 32×20 for art. The hand-drawn copies of the check in
+  `scripts/logo/glyphs.mjs` are gone; the wordmark stays drawn by hand.
+- `art/dither-mark-*` are rebaked at 8:5 (240×150, 480×300, 960×600), and
+  `DitherMark` reserves that box. `ogArt`'s dithered marks carry the new
+  heights.
+- `MARK_BOX` (the mark's box, from the package's viewBox) and `markHeight` (a
+  mark's height at a width) are exported from the brand module, so nothing
+  assumes a shape.
+- `./og`: art at the lower right or centred takes its height from its rounded
+  width, so rounding never bends its aspect.
+- `AppShell` from lg: the sidebar's lockup row is the bar's height, with its
+  hairline, so the lockup sits on the account's line and one rule runs across
+  the page. It sat 10px below that line, and the rule stopped at the sidebar.
+
 ## [2.18.2] — 2026-11-12
 
 - `SignMessage`'s notice that a wallet signed while the page was busy

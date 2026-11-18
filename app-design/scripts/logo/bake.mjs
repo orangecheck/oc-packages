@@ -1,22 +1,25 @@
 #!/usr/bin/env node
 /*
- * Bakes the pixel logo (scripts/logo/glyphs.mjs, drawn by hand) into
- * src/brand/pixel.data.ts: SVG path data, every run of cells in a row one
- * rectangle, merged down the rows while it repeats. Nothing is drawn at run
- * time: no canvas, no font, the same paths in the server's HTML and the
- * browser's.
+ * Bakes the pixel logo into src/brand/pixel.data.ts: the wordmark from
+ * scripts/logo/glyphs.mjs, drawn by hand, and the check from
+ * @orangecheck/mark's own cells (markPixelRuns), so there is one check: SVG
+ * path data, every run of cells in a row one rectangle, merged down the rows
+ * while it repeats. Nothing is drawn at run time: no canvas, no font, the
+ * same paths in the server's HTML and the browser's.
  *
  *   node scripts/logo/bake.mjs           write src/brand/pixel.data.ts
  *   node scripts/logo/bake.mjs --check   fail if a glyph is malformed or the
  *                                        file differs from a fresh bake
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { LARGE, MARK, MARK_ART, MARK_MID, MEDIUM, SMALL } from './glyphs.mjs';
+import { LARGE, MEDIUM, SMALL } from './glyphs.mjs';
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const { markPixelRuns } = createRequire(join(pkg, 'package.json'))('@orangecheck/mark');
 const OUT = join(pkg, 'src/brand/pixel.data.ts');
 const CHECK = process.argv.includes('--check');
 const WORD = 'orangecheck';
@@ -126,9 +129,21 @@ function word(set, name) {
     };
 }
 
+/** The check at `perUnit` cells a unit as rows of T, L, R and ground, from the package's runs. */
+function markRows(perUnit) {
+    const rows = Array.from({ length: 10 * perUnit }, () => Array(16 * perUnit).fill('.'));
+    const runs = markPixelRuns(perUnit);
+    for (const [face, c] of [['top', 'T'], ['left', 'L'], ['right', 'R']])
+        for (const [x, y, n] of runs[face]) for (let i = x; i < x + n; i++) rows[y][i] = c;
+    return rows.map((r) => r.join('')).join('\n');
+}
+const MARK = markRows(1);
+const MARK_MID = markRows(1.5);
+const MARK_ART = markRows(2);
+
 function mark(block, name) {
     const g = grid(block, name, lines(block).length, /^[TLR.]+$/);
-    if (g.length * 2 !== g[0].length) fail(`${name} is ${g[0].length} by ${g.length}, not 2:1`);
+    if (g.length * 8 !== g[0].length * 5) fail(`${name} is ${g[0].length} by ${g.length}, not 8:5`);
     const face = (c) => path(rects(g, (x) => x === c));
     return { width: g[0].length, height: g.length, left: face('L'), right: face('R'), top: face('T') };
 }
@@ -153,8 +168,9 @@ function src(v, ind = '') {
 }
 
 const out = `/*
- * Baked by scripts/logo/bake.mjs from scripts/logo/glyphs.mjs, where the cells
- * are drawn. Edit the glyphs and bake again; never this file.
+ * Baked by scripts/logo/bake.mjs: the wordmark from scripts/logo/glyphs.mjs,
+ * where its cells are drawn, the check from @orangecheck/mark. Edit those and
+ * bake again; never this file.
  */
 
 /** The wordmark as one path on each lockup grid: small, a header's; medium, the smaller lockups'. */
@@ -163,7 +179,7 @@ export const PIXEL_WORDS = ${src({ small: whole(small), medium: whole(medium) })
 /** The large wordmark, letter by letter: the footer's signature. */
 export const PIXEL_SIGNATURE = ${src({ rows: large.rows, width: large.width, letters: large.letters })} as const;
 
-/** The check's faces on each grid: one cell a unit (16 by 8), one and a half (24 by 12), and two (32 by 16, art). */
+/** The check's faces on each grid: one cell a unit (16 by 10), one and a half (24 by 15), and two (32 by 20, art: the design's own drawing). */
 export const PIXEL_MARKS = ${src({ small: mark(MARK, 'MARK'), medium: mark(MARK_MID, 'MARK_MID'), art: mark(MARK_ART, 'MARK_ART') })} as const;
 
 /** The art check's hairline drawing: the error page's check, there but not filled in. */

@@ -413,7 +413,7 @@ try {
                             ground: img.dataset.ground,
                             natural: file.naturalWidth,
                             aspect: file.naturalWidth / file.naturalHeight,
-                            // The 2:1 box the element holds before any picture decodes (width and height map to aspect-ratio).
+                            // The 8:5 box the element holds before any picture decodes (width and height map to aspect-ratio).
                             reserved: ((r) => (r ? +r[1] / +r[2] : 0))(getComputedStyle(img).aspectRatio.match(/([\d.]+)\s*\/\s*([\d.]+)/)),
                             candidate: set.find(([u]) => u === img.currentSrc)?.[1] ?? null,
                             widest: Math.max(...set.map(([, w]) => w)),
@@ -427,15 +427,15 @@ try {
                 );
                 const theme = dark ? 'dark' : 'light';
                 const want = [['sm', 120, theme], ['md', 240, theme], ['lg', 480, theme], ['sized', 300, theme], ['md', 240, 'dark'], ['md', 240, 'brand']];
-                // The picked file is the candidate its descriptor names, 2:1, and enough pixels for the box at this density.
+                // The picked file is the candidate its descriptor names, the mark's 8:5, and enough pixels for the box at this density.
                 // A fixed size carries its own 2x bake, and a 2x screen draws from it pixel for pixel (md never from 240 alone).
                 const off = marks.flatMap((m, i) => {
                     const [kind, w, ground] = want[i] ?? [];
                     const fixed = kind !== 'sized';
                     const ok =
-                        m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 2 && m.reserved === 2 &&
+                        m.kind === kind && m.shown === 1 && m.svg === 0 && m.png && m.ground === ground && m.natural === m.candidate && m.aspect === 1.6 && m.reserved === 1.6 &&
                         (m.natural >= w * dpr || m.natural === m.widest) && (!fixed || (m.widest >= w * 2 && (dpr < 2 || m.natural === w * 2))) &&
-                        Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - w / 2) <= 0.5 && m.filled > 0.1 &&
+                        Math.abs(m.w - w) <= 0.5 && Math.abs(m.h - (w * 5) / 8) <= 0.5 && m.filled > 0.1 &&
                         // On brand orange the mark is ink alone: no orange or peach pixel. Elsewhere its faces show their colours.
                         (ground === 'brand' ? m.warm === 0 : m.colours >= 2 && m.warm > 0);
                     return ok ? [] : [JSON.stringify(m)];

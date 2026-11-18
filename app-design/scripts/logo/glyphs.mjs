@@ -1,19 +1,17 @@
 /*
- * The pixel logo, drawn by hand: every cell of the wordmark at three sizes
- * and of the check at three, for scripts/logo/bake.mjs to bake into
- * src/brand/pixel.data.ts. '#' is a cell, '.' is ground; for the check, T, L
- * and R are its top, left and right faces. Every glyph in a set has the set's
- * rows, and the cells are square wherever they are drawn.
+ * The pixel wordmark, drawn by hand: every cell of it at three sizes, for
+ * scripts/logo/bake.mjs to bake into src/brand/pixel.data.ts. '#' is a cell,
+ * '.' is ground. Every glyph in a set has the set's rows, and the cells are
+ * square wherever they are drawn.
  *
  * The large wordmark is the design's PixelWordmark (Inter 500 at 24px on 26 rows,
  * cut at alpha 110), cleaned by hand: stems three cells, bowls two, the same
  * curve on every round letter. The small one is drawn for a header (six-cell
  * x-height, one-cell strokes), where a rasterised Inter breaks up, and the
  * medium one for the smaller lockups, at one pixel a cell, so no lockup's
- * cells fall between pixels. The check is the 16 by 8 grid of
- * @orangecheck/mark at one cell a unit, one and a half and two, each cell the
- * face that covers most of it: its edges are the 2:1 steps of isometric pixel
- * art.
+ * cells fall between pixels. The check is not drawn here: bake.mjs takes its
+ * cells from @orangecheck/mark (markPixelRuns), at one cell a unit, one and a
+ * half and two.
  */
 
 /** The header's grid: a six-cell x-height, ascenders three cells over it, the descender three under. */
@@ -573,51 +571,3 @@ export const LARGE = {
         `,
     },
 };
-
-/** The check at one cell a unit, 16 by 8: a lockup's. */
-export const MARK = `
-    .............TT.
-    ...........TTTTR
-    .TT......TTTTRRR
-    LTTTT..TTTTRRRR.
-    LLLTTTTTTRRRR...
-    .LLLLTTRRRR.....
-    ...LLLRRR.......
-    .....LR.........
-`;
-
-/** The check at one and a half cells a unit, 24 by 12: the medium grid's. */
-export const MARK_MID = `
-    ....................TT..
-    ..................TTTTTT
-    ................TTTTTTRR
-    ..TT..........TTTTTTRRRR
-    TTTTTT......TTTTTTRRRRRR
-    LLTTTTTT..TTTTTTRRRRRR..
-    LLLLTTTTTTTTTTRRRRRR....
-    LLLLLLTTTTTTRRRRRR......
-    ..LLLLLLTTRRRRRR........
-    ....LLLLLRRRRR..........
-    ......LLLRRR............
-    ........LR..............
-`;
-
-/** The check at two cells a unit, 32 by 16: art. */
-export const MARK_ART = `
-    ...........................TT...
-    .........................TTTTTT.
-    .......................TTTTTTTTR
-    .....................TTTTTTTTRRR
-    ...TT..............TTTTTTTTRRRRR
-    .TTTTTT..........TTTTTTTTRRRRRRR
-    LTTTTTTTT......TTTTTTTTRRRRRRRR.
-    LLLTTTTTTTT..TTTTTTTTRRRRRRRR...
-    LLLLLTTTTTTTTTTTTTTRRRRRRRR.....
-    LLLLLLLTTTTTTTTTTRRRRRRRR.......
-    .LLLLLLLLTTTTTTRRRRRRRR.........
-    ...LLLLLLLLTTRRRRRRRR...........
-    .....LLLLLLLRRRRRRR.............
-    .......LLLLLRRRRR...............
-    .........LLLRRR.................
-    ...........LR...................
-`;

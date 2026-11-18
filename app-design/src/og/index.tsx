@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 
 import { LOGO_DEFAULT, type Logo } from '../brand/logo';
-import { MARK_FACES, MARK_POINTS } from '../brand/mark';
+import { MARK_BOX, MARK_FACES, MARK_POINTS, markHeight } from '../brand/mark';
 import { pixelFit } from '../brand/pixel-fit';
 import { PIXEL_MARKS, PIXEL_WORDS } from '../brand/pixel.data';
 import { appColors } from '../tokens';
@@ -61,7 +61,7 @@ export const SOCIAL_SIZE = { width: 1920, height: 1080 } as const;
 
 const { dark: D, light: L } = appColors;
 const INK = L.foreground;
-const PEACH = MARK_FACES.top;
+const TOP_FACE = MARK_FACES.top;
 const MONO = "'JetBrains Mono', 'OCA JetBrains Mono', monospace";
 const MONO_SET = new Set(MONO_CHARS);
 
@@ -92,11 +92,11 @@ interface Tone {
     /** The label row's square, and a numeral's colour. */
     accent: string;
     line: string;
-    /** The mark's top face: ink on a light ground, peach on a dark one. */
+    /** The mark's top face: ink on a light ground, its own near-white on a dark one. */
     top: string;
     /** A brand ground takes the ink mark: one colour at the mark's face opacities. */
     monoMark: boolean;
-    /** The default art's dithered mark: the peach top on a dark ground, the ink top on a light one, ink alone on brand. */
+    /** The default art's dithered mark: its own top on a dark ground, the ink top on a light one, ink alone on brand. */
     dither: 'mark' | 'ink' | 'brand';
 }
 
@@ -120,7 +120,7 @@ const TONES = {
         label: D.accentInk,
         accent: D.accentDisplay,
         line: D.hairlineStrong,
-        top: PEACH,
+        top: TOP_FACE,
         monoMark: false,
         dither: 'mark',
     },
@@ -131,7 +131,7 @@ const TONES = {
         label: L.burntAccent,
         accent: L.burntAccent,
         line: L.burntEmber,
-        top: PEACH,
+        top: TOP_FACE,
         monoMark: false,
         dither: 'mark',
     },
@@ -176,16 +176,16 @@ export interface OgImage {
 
 /** Baked art as PNG data URIs, for an OG route (satori draws PNG, not AVIF). Sites import ./art/* for pages. */
 export const ogArt = {
-    ditherMark: { src: png(ditherMark480), width: 480, height: 240 },
-    ditherMarkInk: { src: png(ditherMarkInk480), width: 480, height: 240 },
-    ditherMark240: { src: png(ditherMark240), width: 240, height: 120 },
-    ditherMarkInk240: { src: png(ditherMarkInk240), width: 240, height: 120 },
-    ditherMarkOnBrand: { src: png(ditherMarkOnBrand480), width: 480, height: 240 },
-    ditherMarkOnBrand240: { src: png(ditherMarkOnBrand240), width: 240, height: 120 },
+    ditherMark: { src: png(ditherMark480), width: 480, height: markHeight(480) },
+    ditherMarkInk: { src: png(ditherMarkInk480), width: 480, height: markHeight(480) },
+    ditherMark240: { src: png(ditherMark240), width: 240, height: markHeight(240) },
+    ditherMarkInk240: { src: png(ditherMarkInk240), width: 240, height: markHeight(240) },
+    ditherMarkOnBrand: { src: png(ditherMarkOnBrand480), width: 480, height: markHeight(480) },
+    ditherMarkOnBrand240: { src: png(ditherMarkOnBrand240), width: 240, height: markHeight(240) },
     /** The 240 marks with every pixel doubled: their 2px dots as 4px, drawn at 1:1 (satori smooths what it scales). */
-    ditherMark240x2: { src: png(ditherMark240x2), width: 480, height: 240 },
-    ditherMarkInk240x2: { src: png(ditherMarkInk240x2), width: 480, height: 240 },
-    ditherMarkOnBrand240x2: { src: png(ditherMarkOnBrand240x2), width: 480, height: 240 },
+    ditherMark240x2: { src: png(ditherMark240x2), width: 480, height: markHeight(480) },
+    ditherMarkInk240x2: { src: png(ditherMarkInk240x2), width: 480, height: markHeight(480) },
+    ditherMarkOnBrand240x2: { src: png(ditherMarkOnBrand240x2), width: 480, height: markHeight(480) },
     ditherField: { src: png(ditherField), width: 1200, height: 320 },
     halftoneField: { src: png(halftoneField), width: 320, height: 320 },
 } as const satisfies Record<string, OgImage>;
@@ -224,7 +224,7 @@ function MarkSvg({ width, tone }: { width: number; tone: Tone }) {
               }
             : { fill: name === 'top' ? tone.top : MARK_FACES[name] };
     return (
-        <svg width={width} height={width / 2} viewBox="0 0 16 8">
+        <svg width={width} height={markHeight(width)} viewBox={`0 0 ${MARK_BOX.width} ${MARK_BOX.height}`}>
             <polygon points={MARK_POINTS.left} {...face('left')} />
             <polygon points={MARK_POINTS.right} {...face('right')} />
             <polygon points={MARK_POINTS.top} {...face('top')} />
@@ -490,15 +490,16 @@ function artBox(art: NonNullable<OgTile['art']>, width: number, height: number, 
             return { left: 0, top: 0, width: r(Math.min((art.width * height) / art.height, width / 3)), height };
         case 'center': {
             // Centred art keeps clear of the tile's edges: at most 60% of its width.
-            const cw = Math.min(w, width * 0.6);
-            const ch = (cw * art.height) / art.width;
-            return { left: r((width - cw) / 2), top: r((height - ch) / 2 - 16 * k), width: r(cw), height: r(ch) };
+            // The height from the rounded width, so rounding never bends the art's aspect.
+            const cw = r(Math.min(w, width * 0.6));
+            const ch = r((cw * art.height) / art.width);
+            return { left: r((width - cw) / 2), top: r((height - ch) / 2 - 16 * k), width: cw, height: ch };
         }
         default: {
             // At the lower right, art leaves the foot's left half to the lockup and the body.
-            const rw = Math.min(w, width * 0.55);
-            const rh = (rw * h) / w;
-            return { left: r(width - rw), top: r(height - rh), width: r(rw), height: r(rh) };
+            const rw = r(Math.min(w, width * 0.55));
+            const rh = r((rw * h) / w);
+            return { left: width - rw, top: height - rh, width: rw, height: rh };
         }
     }
 }

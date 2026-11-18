@@ -1,6 +1,7 @@
 /*
- * Baked by scripts/logo/bake.mjs from scripts/logo/glyphs.mjs, where the cells
- * are drawn. Edit the glyphs and bake again; never this file.
+ * Baked by scripts/logo/bake.mjs: the wordmark from scripts/logo/glyphs.mjs,
+ * where its cells are drawn, the check from @orangecheck/mark. Edit those and
+ * bake again; never this file.
  */
 
 /** The wordmark as one path on each lockup grid: small, a header's; medium, the smaller lockups'. */
@@ -62,30 +63,30 @@ export const PIXEL_SIGNATURE = {
     ],
 } as const;
 
-/** The check's faces on each grid: one cell a unit (16 by 8), one and a half (24 by 12), and two (32 by 16, art). */
+/** The check's faces on each grid: one cell a unit (16 by 10), one and a half (24 by 15), and two (32 by 20, art: the design's own drawing). */
 export const PIXEL_MARKS = {
     small: {
         width: 16,
-        height: 8,
-        left: 'M0 3h1v1h-1zM0 4h3v1h-3zM1 5h4v1h-4zM3 6h3v1h-3zM5 7h1v1h-1z',
-        right: 'M15 1h1v1h-1zM13 2h3v1h-3zM11 3h4v1h-4zM9 4h4v1h-4zM7 5h4v1h-4zM6 6h3v1h-3zM6 7h1v1h-1z',
+        height: 10,
+        left: 'M0 3h1v1h-1zM0 4h3v1h-3zM0 5h5v1h-5zM0 6h6v1h-6zM1 7h5v1h-5zM3 8h3v1h-3zM5 9h1v1h-1z',
+        right: 'M15 1h1v1h-1zM13 2h3v1h-3zM11 3h5v1h-5zM9 4h7v1h-7zM7 5h8v1h-8zM6 6h7v1h-7zM6 7h5v1h-5zM6 8h3v1h-3zM6 9h1v1h-1z',
         top: 'M13 0h2v1h-2zM11 1h4v1h-4zM1 2h2v1h-2zM9 2h4v1h-4zM1 3h4v1h-4zM7 3h4v1h-4zM3 4h6v1h-6zM5 5h2v1h-2z',
     },
     medium: {
         width: 24,
-        height: 12,
-        left: 'M0 5h2v1h-2zM0 6h4v1h-4zM0 7h6v1h-6zM2 8h6v1h-6zM4 9h5v1h-5zM6 10h3v1h-3zM8 11h1v1h-1z',
-        right: 'M22 2h2v1h-2zM20 3h4v1h-4zM18 4h6v1h-6zM16 5h6v1h-6zM14 6h6v1h-6zM12 7h6v1h-6zM10 8h6v1h-6zM9 9h5v1h-5zM9 10h3v1h-3zM9 11h1v1h-1z',
+        height: 15,
+        left: 'M0 5h2v1h-2zM0 6h4v1h-4zM0 7h6v1h-6zM0 8h8v1h-8zM0 9h9v2h-9zM2 11h7v1h-7zM4 12h5v1h-5zM6 13h3v1h-3zM8 14h1v1h-1z',
+        right: 'M22 2h2v1h-2zM20 3h4v1h-4zM18 4h6v1h-6zM16 5h8v1h-8zM14 6h10v1h-10zM12 7h12v1h-12zM10 8h12v1h-12zM9 9h11v1h-11zM9 10h9v1h-9zM9 11h7v1h-7zM9 12h5v1h-5zM9 13h3v1h-3zM9 14h1v1h-1z',
         top: 'M20 0h2v1h-2zM18 1h6v1h-6zM16 2h6v1h-6zM2 3h2v1h-2zM14 3h6v1h-6zM0 4h6v1h-6zM12 4h6v1h-6zM2 5h6v1h-6zM10 5h6v1h-6zM4 6h10v1h-10zM6 7h6v1h-6zM8 8h2v1h-2z',
     },
     art: {
         width: 32,
-        height: 16,
-        left: 'M0 6h1v1h-1zM0 7h3v1h-3zM0 8h5v1h-5zM0 9h7v1h-7zM1 10h8v1h-8zM3 11h8v1h-8zM5 12h7v1h-7zM7 13h5v1h-5zM9 14h3v1h-3zM11 15h1v1h-1z',
-        right: 'M31 2h1v1h-1zM29 3h3v1h-3zM27 4h5v1h-5zM25 5h7v1h-7zM23 6h8v1h-8zM21 7h8v1h-8zM19 8h8v1h-8zM17 9h8v1h-8zM15 10h8v1h-8zM13 11h8v1h-8zM12 12h7v1h-7zM12 13h5v1h-5zM12 14h3v1h-3zM12 15h1v1h-1z',
+        height: 20,
+        left: 'M0 6h1v1h-1zM0 7h3v1h-3zM0 8h5v1h-5zM0 9h7v1h-7zM0 10h9v1h-9zM0 11h11v1h-11zM0 12h12v2h-12zM1 14h11v1h-11zM3 15h9v1h-9zM5 16h7v1h-7zM7 17h5v1h-5zM9 18h3v1h-3zM11 19h1v1h-1z',
+        right: 'M31 2h1v1h-1zM29 3h3v1h-3zM27 4h5v1h-5zM25 5h7v1h-7zM23 6h9v1h-9zM21 7h11v1h-11zM19 8h13v1h-13zM17 9h15v1h-15zM15 10h16v1h-16zM13 11h16v1h-16zM12 12h15v1h-15zM12 13h13v1h-13zM12 14h11v1h-11zM12 15h9v1h-9zM12 16h7v1h-7zM12 17h5v1h-5zM12 18h3v1h-3zM12 19h1v1h-1z',
         top: 'M27 0h2v1h-2zM25 1h6v1h-6zM23 2h8v1h-8zM21 3h8v1h-8zM3 4h2v1h-2zM19 4h8v1h-8zM1 5h6v1h-6zM17 5h8v1h-8zM1 6h8v1h-8zM15 6h8v1h-8zM3 7h8v1h-8zM13 7h8v1h-8zM5 8h14v1h-14zM7 9h10v1h-10zM9 10h6v1h-6zM11 11h2v1h-2z',
     },
 } as const;
 
 /** The art check's hairline drawing: the error page's check, there but not filled in. */
-export const PIXEL_MARK_OUTLINE = 'M27 0H29M25 1H27M29 1H31M23 2H25M31 2H32M21 3H23M29 3H31M3 4H5M19 4H21M27 4H29M1 5H3M5 5H7M17 5H19M25 5H27M0 6H1M7 6H9M15 6H17M23 6H25M31 6H32M1 7H3M9 7H11M13 7H15M21 7H23M29 7H31M3 8H5M11 8H13M19 8H21M27 8H29M5 9H7M17 9H19M25 9H27M0 10H1M7 10H9M15 10H17M23 10H25M1 11H3M9 11H11M13 11H15M21 11H23M3 12H5M11 12H13M19 12H21M5 13H7M17 13H19M7 14H9M15 14H17M9 15H11M13 15H15M11 16H13M0 6V10M1 5V7M1 10V11M3 4V5M3 7V8M3 11V12M5 4V5M5 8V9M5 12V13M7 5V6M7 9V10M7 13V14M9 6V7M9 10V11M9 14V15M11 7V8M11 11V12M11 15V16M12 12V16M13 7V8M13 11V12M13 15V16M15 6V7M15 10V11M15 14V15M17 5V6M17 9V10M17 13V14M19 4V5M19 8V9M19 12V13M21 3V4M21 7V8M21 11V12M23 2V3M23 6V7M23 10V11M25 1V2M25 5V6M25 9V10M27 0V1M27 4V5M27 8V9M29 0V1M29 3V4M29 7V8M31 1V3M31 6V7M32 2V6';
+export const PIXEL_MARK_OUTLINE = 'M27 0H29M25 1H27M29 1H31M23 2H25M31 2H32M21 3H23M29 3H31M3 4H5M19 4H21M27 4H29M1 5H3M5 5H7M17 5H19M25 5H27M0 6H1M7 6H9M15 6H17M23 6H25M1 7H3M9 7H11M13 7H15M21 7H23M3 8H5M11 8H13M19 8H21M5 9H7M17 9H19M7 10H9M15 10H17M31 10H32M9 11H11M13 11H15M29 11H31M11 12H13M27 12H29M25 13H27M0 14H1M23 14H25M1 15H3M21 15H23M3 16H5M19 16H21M5 17H7M17 17H19M7 18H9M15 18H17M9 19H11M13 19H15M11 20H13M0 6V14M1 5V7M1 14V15M3 4V5M3 7V8M3 15V16M5 4V5M5 8V9M5 16V17M7 5V6M7 9V10M7 17V18M9 6V7M9 10V11M9 18V19M11 7V8M11 11V12M11 19V20M12 12V20M13 7V8M13 11V12M13 19V20M15 6V7M15 10V11M15 18V19M17 5V6M17 9V10M17 17V18M19 4V5M19 8V9M19 16V17M21 3V4M21 7V8M21 15V16M23 2V3M23 6V7M23 14V15M25 1V2M25 5V6M25 13V14M27 0V1M27 4V5M27 12V13M29 0V1M29 3V4M29 11V12M31 1V3M31 10V11M32 2V10';

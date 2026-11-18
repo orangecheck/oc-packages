@@ -154,7 +154,8 @@ try {
             const at0 = `[${width}]`;
             // The measure itself, so a change to it is a change someone meant: ochk.app's bar as 2.0 drew it.
             check(want && want.header.h === (width >= 900 ? 69 : 57), `${at0} ochk.app's bar is ${want?.header.h} tall`);
-            check(want && want.mark?.h === 15 && want.mark?.w === 30, `${at0} ochk.app's mark is ${JSON.stringify(want?.mark)}`);
+            // 30 wide at the mark's 8:5 is 18.75 tall, 19 to the half pixel box() reads.
+            check(want && want.mark?.h === 19 && want.mark?.w === 30, `${at0} ochk.app's mark is ${JSON.stringify(want?.mark)}`);
             check(want && !(want.menu && want.family), `${at0} ochk.app's family menu and menu button are both in the bar`);
             for (const place of PLACES) {
                 const at = `[${width}] ${place}`;
