@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { markSvg } from '@orangecheck/mark';
 
 import { enhanceSignInButton, holdWidth, OUTCOME_COPY, SIGN_IN_BUSY_LABEL, SIGN_IN_LABELS } from '../button';
 import { SignInWithOrangecheck } from '../react';
@@ -308,9 +309,15 @@ describe('button.css', () => {
         expect(rule(':where([data-oc-sign-in])')).toMatch(/white-space:\s*nowrap/);
         const mark = rule(':where([data-oc-sign-in]) :where([data-oc-mark])');
         expect(mark).toMatch(/flex:\s*none/);
-        expect(mark).toMatch(/inline-size:\s*var\(--oc-mark-size,\s*1\.75em\)/);
-        expect(mark).toMatch(/aspect-ratio:\s*2\s*\/\s*1/);
-        expect(rule(":where([data-oc-sign-in]) :where([data-oc-mark='tile'])")).toMatch(/aspect-ratio:\s*1\s*\/\s*1/);
+        // The mark package's own size and aspect, so the placeholder and the drawn mark are one box.
+        expect(mark).toMatch(/inline-size:\s*var\(--oc-mark-size,\s*1\.6em\)/);
+        expect(mark).toMatch(/aspect-ratio:\s*8\s*\/\s*5/);
+        const tile = rule(":where([data-oc-sign-in]) :where([data-oc-mark='tile'])");
+        expect(tile).toMatch(/inline-size:\s*var\(--oc-mark-size,\s*1\.5em\)/);
+        expect(tile).toMatch(/aspect-ratio:\s*1\s*\/\s*1/);
+        const drawn = markSvg({ variant: 'mono' });
+        expect([drawn.match(/width="([^"]*)"/)?.[1], drawn.match(/viewBox="0 0 (\d+) (\d+)"/)?.slice(1).join('/')]).toEqual(['1.6em', '16/10']);
+        expect(markSvg({ variant: 'tile' }).match(/width="([^"]*)"/)?.[1]).toBe('1.5em');
     });
 
     it('gives the mark alone a square target of at least 44px', () => {

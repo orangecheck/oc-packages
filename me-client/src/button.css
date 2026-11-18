@@ -13,7 +13,7 @@
 :where([data-oc-sign-in]) {
     display: inline-flex;
     align-items: center;
-    gap: var(--oc-mark-gap, 0.5em);
+    gap: var(--oc-mark-gap, 0.6em);
     min-block-size: var(--oc-target, 44px);
     white-space: nowrap;
     cursor: pointer;
@@ -23,13 +23,13 @@
 :where([data-oc-sign-in]) :where([data-oc-mark]) {
     display: inline-block;
     flex: none;
-    inline-size: var(--oc-mark-size, 1.75em);
+    inline-size: var(--oc-mark-size, 1.6em);
     block-size: auto;
-    aspect-ratio: 2 / 1;
+    aspect-ratio: 8 / 5;
 }
 
 :where([data-oc-sign-in]) :where([data-oc-mark='tile']) {
-    inline-size: var(--oc-mark-size, 1.25em);
+    inline-size: var(--oc-mark-size, 1.5em);
     aspect-ratio: 1 / 1;
 }
 

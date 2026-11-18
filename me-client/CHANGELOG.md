@@ -10,6 +10,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.63.0] — 2026-11-20
+
+### Changed
+
+- The button's mark is the check as the ochk.app design draws it
+  (`@orangecheck/mark` 0.4.0):
+  its sides twice as deep, so at button size it reads as a check, not a dash,
+  and brand's top face near-white. `button.css` sizes it before it paints at
+  `1.6em` by `1em` (was `1.75em` by `0.875em`), the tile at `1.5em` (was
+  `1.25em`), and puts `0.6em` between mark and words (was `0.5em`). A
+  placeholder `<span data-oc-mark>` keeps its box. `--oc-mark-size` and
+  `--oc-mark-gap` still override both.
+
 ## [0.62.0] — 2026-11-12
 
 ### Added
