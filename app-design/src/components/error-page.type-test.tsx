@@ -9,4 +9,10 @@ export const errorPageTypeTests = [
     <ErrorPage key="bare" />,
     // @ts-expect-error a title alone leaves the line under it to a code it does not have
     <ErrorPage key="title-only" title="Signed out" />,
+    // @ts-expect-error a line alone leaves the heading to a code it does not have
+    <ErrorPage key="detail-only" detail="There is nothing left to end here." />,
+    // @ts-expect-error an empty title draws an empty heading
+    <ErrorPage key="title-undefined" title={undefined} detail="There is nothing left to end here." />,
+    // @ts-expect-error an empty line draws an empty paragraph
+    <ErrorPage key="detail-null" title="Signed out" detail={null} />,
 ];
