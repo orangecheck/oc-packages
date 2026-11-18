@@ -17,6 +17,8 @@ package's code and files; it grants no right to the trademark.
   delete"). "orangecheck" stays lowercase, and the words say what the button does.
 - Show it in documentation or interface copy that says your site works with
   orangecheck.
+- Ship this package's files (the SVGs and PNGs in `assets/`) inside your
+  website, app or game to draw the uses above.
 
 ## Only as drawn
 

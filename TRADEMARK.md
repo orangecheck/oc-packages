@@ -19,6 +19,9 @@ rights to use the OrangeCheck trademarks.
   under the same license.
 - **Run an unmodified node, verifier, or relay** that participates in the
   OrangeCheck protocol family.
+- **Show the orangecheck mark in a sign-in button** on your website, app or
+  game, and ship the mark's files in its build, as
+  [`@orangecheck/mark`'s own notice](mark/TRADEMARK.md) describes.
 
 ## What you may not do
 
