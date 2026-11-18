@@ -1,6 +1,6 @@
 {
     "name": "@orangecheck/me-client",
-    "version": "0.62.0",
+    "version": "0.63.0",
     "description": "Server and browser client for orangecheck sign-in and paying your users: withOcAuth for Next.js, ocAuthExpress and ocAuthHono (no env vars, no JWK handling), signInWithOc() popup, events, webhooks and the price taxonomy. No React.",
     "keywords": [
         "orangecheck",
@@ -104,7 +104,7 @@
     },
     "devDependencies": {
         "@orangecheck/auth-client": "^2.6.0",
-        "@orangecheck/mark": "^0.3.0",
+        "@orangecheck/mark": "^0.4.0",
         "@testing-library/react": "^16.3.2",
         "@types/node": "^22.0.0",
         "@types/react": "^18.3.12",

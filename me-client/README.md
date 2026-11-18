@@ -443,7 +443,8 @@ import '@orangecheck/me-client/button.css'; // optional: the mark's size, one li
 - While the window is open the button is `aria-busy` and `aria-disabled`, still
   focusable, keeps its width, and opens no second window.
 - `button.css` is optional and has zero specificity: every rule of yours wins.
-  It keeps the words on one line, sizes the mark before it paints (1.75em),
+  It keeps the words on one line, sizes the mark before it paints (1.6em wide,
+  the tile 1.5em),
   gives a 44px target, and draws the mark flat in your text colour when the
   system forces colours. Tune it with `--oc-mark-gap` and `--oc-mark-size`.
   `--oc-target` lowers the 44px minimum; 44px is the rule, so keep it unless
