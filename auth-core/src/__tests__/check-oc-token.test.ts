@@ -76,10 +76,30 @@ describe("checkOcToken · a bad token is not an outage", () => {
     keySet();
     const other = (await generateKeyPair(JWT_ALG, { extractable: true })).privateKey as CryptoKey;
     expect(await checkOcToken(await mint({}, other), { issuer: ISSUER })).toEqual({ status: "invalid" });
-    expect(await checkOcToken(await mint({ aud: "https://a.example" }), { issuer: ISSUER, audience: "https://b.example" })).toEqual({
+    expect(await checkOcToken("not a jwt", { issuer: ISSUER })).toEqual({ status: "invalid" });
+  });
+
+  it("names the audience when a genuine token was made for another site, and only then", async () => {
+    keySet();
+    const forA = await mint({ aud: "https://a.example" });
+    expect(await checkOcToken(forA, { issuer: ISSUER, audience: "https://b.example" })).toEqual({ status: "invalid", reason: "audience" });
+    // With no audience, a token made for a site is not a family session.
+    expect(await checkOcToken(forA, { issuer: ISSUER })).toEqual({ status: "invalid", reason: "audience" });
+    expect((await checkOcToken(forA, { issuer: ISSUER, audience: "https://a.example" })).status).toBe("valid");
+    // A forged or expired token says nothing about its audience: the signature and expiry come first.
+    const other = (await generateKeyPair(JWT_ALG, { extractable: true })).privateKey as CryptoKey;
+    expect(await checkOcToken(await mint({ aud: "https://a.example" }, other), { issuer: ISSUER, audience: "https://b.example" })).toEqual({
       status: "invalid",
     });
-    expect(await checkOcToken("not a jwt", { issuer: ISSUER })).toEqual({ status: "invalid" });
+    const expired = await new SignJWT({ did_oc: "did:oc:abc", aud: "https://a.example" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: KID })
+      .setSubject("acct-1")
+      .setJti("jti-1")
+      .setIssuer(ISSUER)
+      .setIssuedAt(Math.floor(Date.now() / 1000) - 600)
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 60)
+      .sign(privateKey);
+    expect(await checkOcToken(expired, { issuer: ISSUER, audience: "https://b.example" })).toEqual({ status: "invalid" });
   });
 
   it("answers unavailable when the key set can't be read and none is held", async () => {

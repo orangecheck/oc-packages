@@ -925,10 +925,15 @@ const ME_CLIENT_OPTIONS: ReadonlySet<string> = new Set([
  * read: `unavailable` when the issuer's JWKS can't be fetched and no copy
  * younger than `jwksMaxStaleMs` is held. That is an outage, not a refusal:
  * answer it 503 so the client tries again, never as "signed out".
+ *
+ * `invalid` carries `reason: "audience"` for a genuine token (signature,
+ * issuer and expiry all good) whose `aud` the `audience` option does not
+ * accept: one made for another site, or, with no `audience`, one made for a
+ * site at all. Any other failure carries no reason.
  */
 export type OcTokenCheck =
   | { status: "valid"; session: SessionPayload }
-  | { status: "invalid" }
+  | { status: "invalid"; reason?: "audience" }
   | { status: "unavailable" };
 
 const INVALID: OcTokenCheck = { status: "invalid" };
@@ -998,7 +1003,7 @@ export async function checkOcToken(
     // A retired key vouches only for what it signed before it retired, for at most a token's lifetime.
     const retiredAt = entry.retiredAt.get(kid);
     if (retiredAt !== undefined && !retiredKeyVouches(p, retiredAt)) return INVALID;
-    if (!audienceSatisfied(p.aud, options.audience)) return INVALID;
+    if (!audienceSatisfied(p.aud, options.audience)) return { status: "invalid", reason: "audience" };
     if (!handleBoundToOneAudience(p)) return INVALID;
     return { status: "valid", session: p };
   } catch {
