@@ -4,9 +4,9 @@
 > Hand-written prose below is the high-level overview; the docs site is the source of truth for every export, type, and signature.
 
 
-Server-side emit API for **oc insights** — the OrangeCheck family's first-party, protocol-aware event lane. It records what hosted Plausible is structurally blind to: BIP-322 sign success, Connect logins, settlements, attestations, votes, pledges, agent delegations — emitted from each app's own backend at the moment a protocol action commits.
+Server-side emit API for **oc insights** — the OrangeCheck family's first-party, protocol-aware event lane. It records what a page-view beacon is blind to: BIP-322 sign success, Connect logins, settlements, attestations, votes, pledges, agent delegations — emitted from each app's own backend at the moment a protocol action commits.
 
-It runs **alongside** Plausible, never instead of it. Pageviews stay on the Plausible beacon; this is the server-side product-analytics lane.
+Page views come from the oc-pulse beacon (insights.ochk.io); this is the server-side product-analytics lane beside it.
 
 ```bash
 npm install @orangecheck/insights-client

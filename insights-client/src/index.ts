@@ -2,8 +2,8 @@
  * @orangecheck/insights-client
  *
  * Server-side emit API for **oc insights** — the OrangeCheck family's
- * first-party, protocol-aware event lane. It records the things hosted
- * Plausible is structurally blind to: BIP-322 sign success, Connect
+ * first-party, protocol-aware event lane. It records the things a
+ * page-view beacon is blind to: BIP-322 sign success, Connect
  * logins, settlements, attestations, votes, pledges, agent delegations —
  * emitted from each app's own backend at the moment a protocol action
  * commits.
