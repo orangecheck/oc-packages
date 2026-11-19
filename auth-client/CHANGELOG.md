@@ -22,6 +22,12 @@ this file tracks the package's TS / Node / runtime API surface.
   the sign-in was asked, or to ask for a new one. Until ochk.io binds its
   links, it ignores `link_bind` and its links still open on ochk.io.
 
+### Changed
+
+- `OcLinkedIdentities` asks ochk.io for its email code at
+  `POST /api/auth/link/email-code`: a code issued to the signed-in account for
+  that address, which can only link it to that account.
+
 ## [2.50.1] — 2026-11-12
 
 ### Changed
