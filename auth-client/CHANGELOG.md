@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.51.0] — 2026-11-20
+
 ### Added
 
 - `OcSignIn` in first-party mode (ochk.app) binds the sign-in link ochk.io mails
