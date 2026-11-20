@@ -17,6 +17,9 @@ this file tracks the package's TS / Node / runtime API surface.
   so a site that verifies with its env key follows a key rotation before its
   env is updated. A token naming `publicJwk`'s own `kid` is checked against
   `publicJwk` alone, as before. Off by default.
+- `VERIFY_CONFIG_KEYS`: the options `verifySessionToken` reads. An unknown
+  option throws, so a library that passes `jwksFallback` checks this list
+  first; an older auth-core in the same app would refuse it.
 
 ## [2.32.0] — 2026-11-20
 
