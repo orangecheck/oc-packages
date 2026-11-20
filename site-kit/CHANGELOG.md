@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.18.0
 
 `createSessionReader` follows a key rotation. With auth-core 2.33.0 or later
 installed beside it, a session that names a key other than
