@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+`createSessionReader` follows a key rotation. With auth-core 2.33.0 or later
+installed beside it, a session that names a key other than
+`OC_AUTH_PUBLIC_JWK`'s is checked against ochk.io's published key set, so a
+rotation no longer signs everyone out of the site until its env is updated. A
+session naming the env key's own `kid` is still checked against that key alone.
+With an older auth-core the reader passes nothing new, since that auth-core
+would refuse the option.
+
 ## 0.17.0
 
 The family's analytics are oc-pulse alone. Plausible is no longer used, so
