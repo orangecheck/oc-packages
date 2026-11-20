@@ -9,6 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.33.1] — 2026-11-20
+
+### Changed
+
+- With `jwksFallback`, a `publicJwk` that has no `kid` is tried first. A token
+  it signed verifies locally whatever `kid` the token names, as it does
+  without the option, and only a token whose signature it refuses is checked
+  against the issuer's JWKS. A `publicJwk` with a `kid` routes as in 2.33.0.
+
 ## [2.33.0] — 2026-11-20
 
 ### Added
