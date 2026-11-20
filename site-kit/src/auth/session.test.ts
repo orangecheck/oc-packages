@@ -1,6 +1,6 @@
 import type { RevocationCheck, RevocationStatus } from '@orangecheck/auth-core';
 
-import { _resetFamilyRevocationCheckForTests, revocationKey } from '@orangecheck/auth-core';
+import { _resetFamilyRevocationCheckForTests, _resetJwksCachesForTests, revocationKey } from '@orangecheck/auth-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeKeys, mint, type Keys } from './fixtures';
@@ -183,5 +183,85 @@ describe('createSessionReader · ended sessions', () => {
         isRevoked.mockClear();
         await createSessionReader({ revocation: fixed('revoked'), isRevoked }).read(get({ cookie: `oc_session=${cookie}` }));
         expect(isRevoked).not.toHaveBeenCalled();
+    });
+});
+
+describe('createSessionReader · a rotated key', () => {
+    const published = (k: Keys) => JSON.parse(Buffer.from(k.publicJwk, 'base64url').toString('utf8'));
+    let urls: string[];
+    beforeEach(() => {
+        _resetJwksCachesForTests();
+        urls = [];
+    });
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        _resetJwksCachesForTests();
+    });
+    const serve = (...set: Keys[]) =>
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async (url: string) => {
+                urls.push(String(url));
+                return new Response(JSON.stringify({ keys: set.map(published) }));
+            })
+        );
+
+    it('reads a session the rotated-in key signed, from the published key set', async () => {
+        const next = makeKeys('next');
+        serve(keys, next);
+        const r = await createSessionReader({ revocation: false }).resolve(get({ cookie: `oc_session=${await mint(next, 'did:oc:next')}` }));
+        expect(r).toMatchObject({ ok: true, via: 'cookie', session: { did_oc: 'did:oc:next' } });
+        expect(urls).toEqual(['https://ochk.io/.well-known/jwks.json']);
+    });
+
+    it('checks a session naming the env key against the env key alone', async () => {
+        const impostor = makeKeys(keys.kid);
+        serve(keys, impostor);
+        const r = await createSessionReader({ revocation: false }).resolve(get({ cookie: `oc_session=${await mint(impostor, 'did:oc:x')}` }));
+        expect(r).toEqual({ ok: false, reason: 'no_session', tab: false });
+        expect(urls).toEqual([]);
+    });
+
+    it('refuses a kid the published set does not hold', async () => {
+        serve(keys);
+        const r = await createSessionReader({ revocation: false }).resolve(get({ cookie: `oc_session=${await mint(makeKeys('gone'), 'did:oc:x')}` }));
+        expect(r).toEqual({ ok: false, reason: 'no_session', tab: false });
+    });
+});
+
+describe('createSessionReader · the auth-core the site has locked', () => {
+    afterEach(() => {
+        vi.doUnmock('@orangecheck/auth-core');
+        vi.resetModules();
+    });
+
+    /** The verify config the reader hands auth-core, with or without its option list. */
+    async function configSeen(withKeys: boolean) {
+        vi.resetModules();
+        const seen: Record<string, unknown>[] = [];
+        vi.doMock('@orangecheck/auth-core', async (orig) => {
+            const { VERIFY_CONFIG_KEYS, ...rest } = await orig<typeof import('@orangecheck/auth-core')>();
+            return {
+                ...rest,
+                ...(withKeys ? { VERIFY_CONFIG_KEYS } : {}),
+                resolveSessionFromRequest: (...a: Parameters<typeof rest.resolveSessionFromRequest>) => {
+                    seen.push(a[1] as unknown as Record<string, unknown>);
+                    return rest.resolveSessionFromRequest(...a);
+                },
+            };
+        });
+        const { createSessionReader: fresh } = await import('./session');
+        const r = await fresh({ revocation: false }).resolve(get({ cookie: `oc_session=${await mint(keys, 'did:oc:aa')}` }));
+        expect(r).toMatchObject({ ok: true });
+        expect(seen).toHaveLength(1);
+        return seen[0]!;
+    }
+
+    it('passes jwksFallback to an auth-core that lists it', async () => {
+        expect((await configSeen(true)).jwksFallback).toBe(true);
+    });
+
+    it('leaves it out for an older one, which would refuse it', async () => {
+        expect(await configSeen(false)).not.toHaveProperty('jwksFallback');
     });
 });

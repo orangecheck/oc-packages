@@ -1,3 +1,4 @@
+import * as authCore from '@orangecheck/auth-core';
 import {
     familyRevocationCheck,
     resolveSessionFromRequest,
@@ -61,6 +62,15 @@ export interface SessionReader {
     read(req: OriginBearingRequest): Promise<SessionPayload | null>;
 }
 
+/**
+ * auth-core 2.33.0 and later read `jwksFallback`, so a key rotation does not sign
+ * everyone out here before OC_AUTH_PUBLIC_JWK is updated. An older one throws on
+ * it, and the site's own lockfile picks the auth-core, so ask first.
+ */
+const READS_JWKS_FALLBACK =
+    'VERIFY_CONFIG_KEYS' in authCore &&
+    (Reflect.get(authCore, 'VERIFY_CONFIG_KEYS') as readonly string[]).includes('jwksFallback');
+
 function verifyConfig() {
     const publicJwk = process.env.OC_AUTH_PUBLIC_JWK?.trim();
     if (!publicJwk) {
@@ -70,7 +80,8 @@ function verifyConfig() {
     if (publicJwk.startsWith('{')) {
         throw new Error('OC_AUTH_PUBLIC_JWK holds raw JSON; it must be the base64url-encoded JWK.');
     }
-    return { publicJwk, issuer: process.env.OC_AUTH_ISSUER ?? 'https://ochk.io' };
+    const fallback = READS_JWKS_FALLBACK ? { jwksFallback: true } : {};
+    return { publicJwk, issuer: process.env.OC_AUTH_ISSUER ?? 'https://ochk.io', ...fallback };
 }
 
 /** auth-core's TAB_SESSION_HEADER; a wire name, so it cannot change. */
