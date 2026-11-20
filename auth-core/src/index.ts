@@ -407,6 +407,13 @@ export interface VerifyConfig {
   issuer?: string;
   /** Accepted `aud` · see AudienceRule. Omit for family sessions. */
   audience?: AudienceRule;
+  /**
+   * True: a token that names a key other than `publicJwk`'s `kid` is checked
+   * against the issuer's published JWKS instead ({@link verifyOcToken}), so the
+   * site follows a key rotation before its env is updated. A token naming
+   * `publicJwk`'s own `kid` is checked against `publicJwk` alone.
+   */
+  jwksFallback?: boolean;
 }
 
 export interface SignConfig extends VerifyConfig {
@@ -417,7 +424,7 @@ export interface SignConfig extends VerifyConfig {
 }
 
 /** The options {@link verifySessionToken} and {@link resolveSessionFromRequest} read. */
-const VERIFY_CONFIG: ReadonlySet<string> = new Set<keyof VerifyConfig>(["publicJwk", "issuer", "audience"]);
+const VERIFY_CONFIG: ReadonlySet<string> = new Set<keyof VerifyConfig>(["publicJwk", "issuer", "audience", "jwksFallback"]);
 /**
  * The options {@link signSession} reads. `publicJwk` is part of the type and
  * harmless; `audience` is not read, since a token's audience is `claims.aud`.
@@ -542,6 +549,9 @@ export async function verifySessionToken(
   cfg: VerifyConfig,
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("verifySessionToken", cfg, VERIFY_CONFIG);
+  if (cfg.jwksFallback === true && namesAnotherKey(token, cfg.publicJwk)) {
+    return verifyOcToken(token, { issuer: cfg.issuer ?? DEFAULT_ISSUER, audience: cfg.audience });
+  }
   try {
     const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
       algorithms: [JWT_ALG],
@@ -554,6 +564,17 @@ export async function verifySessionToken(
     return p;
   } catch {
     return null;
+  }
+}
+
+/** The token's header names a `kid`, and it is not `publicJwk`'s. */
+function namesAnotherKey(token: string, publicJwk: string): boolean {
+  try {
+    const header = decodeJwk(token.split(".")[0] ?? "");
+    const kid = header.kid;
+    return typeof kid === "string" && kid !== "" && kid !== decodeJwk(publicJwk).kid;
+  } catch {
+    return false;
   }
 }
 

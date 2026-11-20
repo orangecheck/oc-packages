@@ -9,7 +9,14 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Added
+
+- `VerifyConfig.jwksFallback`. When true, `verifySessionToken` and
+  `resolveSessionFromRequest` check a token that names a key other than
+  `publicJwk`'s `kid` against the issuer's published JWKS (`verifyOcToken`),
+  so a site that verifies with its env key follows a key rotation before its
+  env is updated. A token naming `publicJwk`'s own `kid` is checked against
+  `publicJwk` alone, as before. Off by default.
 
 ## [2.32.0] — 2026-11-20
 
