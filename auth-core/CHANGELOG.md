@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.33.0] — 2026-11-20
+
 ### Added
 
 - `VerifyConfig.jwksFallback`. When true, `verifySessionToken` and
