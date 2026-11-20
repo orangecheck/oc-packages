@@ -5,6 +5,7 @@ import {
   _resetJwksCachesForTests,
   JWT_ALG,
   resolveSessionFromRequest,
+  VERIFY_CONFIG_KEYS,
   verifySessionToken,
   type VerifyConfig,
 } from "../index";
@@ -97,6 +98,16 @@ describe("verifySessionToken · jwksFallback", () => {
     expect(await verifySessionToken(token, { ...cfg, audience: SITE })).toBeNull();
     const ours = await mint(newKey, "new-key", { aud: SITE });
     expect((await verifySessionToken(ours, { ...cfg, audience: SITE }))?.aud).toBe(SITE);
+  });
+
+  it("lists the option, so a library can tell this auth-core reads it", async () => {
+    expect(VERIFY_CONFIG_KEYS).toContain("jwksFallback");
+    expect(Object.isFrozen(VERIFY_CONFIG_KEYS)).toBe(true);
+    const token = await mint(oldKey, "old-key");
+    for (const key of VERIFY_CONFIG_KEYS) {
+      const opts = { publicJwk: cfg.publicJwk, issuer: ISSUER, [key]: key === "jwksFallback" ? false : (cfg as never)[key] };
+      await expect(verifySessionToken(token, opts as VerifyConfig)).resolves.not.toBeUndefined();
+    }
   });
 
   it("refuses a misspelt option", async () => {

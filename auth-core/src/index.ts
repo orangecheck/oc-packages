@@ -423,8 +423,18 @@ export interface SignConfig extends VerifyConfig {
   kid: string;
 }
 
-/** The options {@link verifySessionToken} and {@link resolveSessionFromRequest} read. */
-const VERIFY_CONFIG: ReadonlySet<string> = new Set<keyof VerifyConfig>(["publicJwk", "issuer", "audience", "jwksFallback"]);
+/**
+ * The options {@link verifySessionToken} and {@link resolveSessionFromRequest} read.
+ * Exported so a library can pass an option only where the installed auth-core
+ * reads it: an unknown one throws.
+ */
+export const VERIFY_CONFIG_KEYS: readonly (keyof VerifyConfig)[] = Object.freeze([
+  "publicJwk",
+  "issuer",
+  "audience",
+  "jwksFallback",
+]);
+const VERIFY_CONFIG: ReadonlySet<string> = new Set<string>(VERIFY_CONFIG_KEYS);
 /**
  * The options {@link signSession} reads. `publicJwk` is part of the type and
  * harmless; `audience` is not read, since a token's audience is `claims.aud`.
