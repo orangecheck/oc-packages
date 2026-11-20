@@ -118,6 +118,65 @@ describe("verifySessionToken · jwksFallback", () => {
   });
 });
 
+describe("verifySessionToken · jwksFallback, env key with no kid", () => {
+  let bare: VerifyConfig;
+  beforeEach(() => {
+    const { kid: _kid, ...noKid } = oldKey.jwk;
+    bare = { ...cfg, publicJwk: env(noKid) };
+  });
+
+  it("checks what it signed locally, whatever kid the token names", async () => {
+    for (const kid of ["old-key", "test"]) {
+      expect((await verifySessionToken(await mint(oldKey, kid), bare))?.did_oc).toBe("did:oc:abc");
+    }
+    expect(fetches).toBe(0);
+  });
+
+  it("sends a token it did not sign to the JWKS", async () => {
+    expect((await verifySessionToken(await mint(newKey, "new-key"), bare))?.did_oc).toBe("did:oc:abc");
+    expect(fetches).toBe(1);
+  });
+
+  it("refuses its own expired token without a fetch", async () => {
+    const stale = await new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG, kid: "old-key" })
+      .setSubject("acct-1")
+      .setJti("jti-1")
+      .setIssuer(ISSUER)
+      .setIssuedAt(Math.floor(Date.now() / 1000) - 600)
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 300)
+      .sign(oldKey.privateKey);
+    expect(await verifySessionToken(stale, bare)).toBeNull();
+    expect(fetches).toBe(0);
+  });
+
+  it("refuses a stranger's key under any kid", async () => {
+    const stranger = await pair("new-key");
+    expect(await verifySessionToken(await mint(stranger, "new-key"), bare)).toBeNull();
+    expect(await verifySessionToken(await mint(stranger, "stranger-kid"), bare)).toBeNull();
+  });
+
+  it("checks a token naming no kid against the env key alone", async () => {
+    const unnamed = await new SignJWT({ did_oc: "did:oc:abc" })
+      .setProtectedHeader({ alg: JWT_ALG })
+      .setSubject("acct-1")
+      .setJti("jti-1")
+      .setIssuer(ISSUER)
+      .setIssuedAt()
+      .setExpirationTime("5m");
+    expect(await verifySessionToken(await unnamed.sign(oldKey.privateKey), bare)).not.toBeNull();
+    expect(await verifySessionToken(await unnamed.sign(newKey.privateKey), bare)).toBeNull();
+    expect(fetches).toBe(0);
+  });
+
+  it("without the option, fetches nothing", async () => {
+    const { jwksFallback: _off, ...staticOnly } = bare;
+    expect(await verifySessionToken(await mint(oldKey, "test"), staticOnly)).not.toBeNull();
+    expect(await verifySessionToken(await mint(newKey, "new-key"), staticOnly)).toBeNull();
+    expect(fetches).toBe(0);
+  });
+});
+
 describe("resolveSessionFromRequest · jwksFallback", () => {
   it("reads a rotated-in token from the cookie and from the tab header", async () => {
     const token = await mint(newKey, "new-key");

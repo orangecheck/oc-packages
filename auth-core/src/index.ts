@@ -411,7 +411,9 @@ export interface VerifyConfig {
    * True: a token that names a key other than `publicJwk`'s `kid` is checked
    * against the issuer's published JWKS instead ({@link verifyOcToken}), so the
    * site follows a key rotation before its env is updated. A token naming
-   * `publicJwk`'s own `kid` is checked against `publicJwk` alone.
+   * `publicJwk`'s own `kid` is checked against `publicJwk` alone. When
+   * `publicJwk` has no `kid`, it is tried first, and the JWKS only checks a
+   * token whose signature it refused.
    */
   jwksFallback?: boolean;
 }
@@ -559,33 +561,45 @@ export async function verifySessionToken(
   cfg: VerifyConfig,
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("verifySessionToken", cfg, VERIFY_CONFIG);
-  if (cfg.jwksFallback === true && namesAnotherKey(token, cfg.publicJwk)) {
-    return verifyOcToken(token, { issuer: cfg.issuer ?? DEFAULT_ISSUER, audience: cfg.audience });
-  }
+  const issuer = cfg.issuer ?? DEFAULT_ISSUER;
+  const named = cfg.jwksFallback === true ? keyNamed(token, cfg.publicJwk) : "env";
+  if (named === "other") return verifyOcToken(token, { issuer, audience: cfg.audience });
   try {
     const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
       algorithms: [JWT_ALG],
-      issuer: cfg.issuer ?? DEFAULT_ISSUER,
+      issuer,
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
     if (!audienceSatisfied(p.aud, cfg.audience)) return null;
     if (!handleBoundToOneAudience(p)) return null;
     return p;
-  } catch {
+  } catch (err) {
+    // An env key with no kid can't say which key a token names: one it did not sign goes to the JWKS.
+    if (named === "unknown" && signatureRefused(err)) return verifyOcToken(token, { issuer, audience: cfg.audience });
     return null;
   }
 }
 
-/** The token's header names a `kid`, and it is not `publicJwk`'s. */
-function namesAnotherKey(token: string, publicJwk: string): boolean {
+/**
+ * Which key a token's header names, against `publicJwk`: its own kid ("env"),
+ * another kid ("other"), or a kid that an env key without one can't place
+ * ("unknown"). A token naming no kid, or an unreadable one, is the env key's.
+ */
+function keyNamed(token: string, publicJwk: string): "env" | "other" | "unknown" {
   try {
-    const header = decodeJwk(token.split(".")[0] ?? "");
-    const kid = header.kid;
-    return typeof kid === "string" && kid !== "" && kid !== decodeJwk(publicJwk).kid;
+    const kid = decodeJwk(token.split(".")[0] ?? "").kid;
+    if (typeof kid !== "string" || kid === "") return "env";
+    const envKid = decodeJwk(publicJwk).kid;
+    if (typeof envKid !== "string" || envKid === "") return "unknown";
+    return kid === envKid ? "env" : "other";
   } catch {
-    return false;
+    return "env";
   }
+}
+
+function signatureRefused(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
 }
 
 // ─── Cookie helpers ─────────────────────────────────────────────────────
