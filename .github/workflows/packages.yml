@@ -181,6 +181,7 @@ jobs:
                     - insights-client
                     - btcpay
                     - mark
+                    - mcp
                     - auth-core
                     - auth-client
                     - legal
