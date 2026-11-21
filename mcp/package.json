@@ -1,0 +1,62 @@
+{
+  "name": "@orangecheck/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for orangecheck: search and read the docs, read a project's public config, check a domain's verification and a site's sign-in setup, and assemble an integration from the docs for your stack. Stdio, no credential.",
+  "keywords": [
+    "orangecheck",
+    "mcp",
+    "model-context-protocol",
+    "sign-in-with-oc",
+    "bitcoin",
+    "identity",
+    "docs"
+  ],
+  "author": "OrangeCheck",
+  "license": "MIT",
+  "homepage": "https://ochk.io/docs/integration/mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orangecheck/oc-packages.git",
+    "directory": "mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/orangecheck/oc-packages/issues"
+  },
+  "type": "module",
+  "bin": {
+    "orangecheck-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --maxWorkers=2",
+    "test:live": "OC_MCP_LIVE=1 vitest run --maxWorkers=2 src/__tests__/live.test.ts",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

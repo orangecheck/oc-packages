@@ -1,0 +1,239 @@
+# orangecheck docs
+
+> orangecheck is one account, with Bitcoin behind it. Underneath are six open protocols (Attest, Lock, Stamp, Vote, Agent, Pledge). Docs for signing people in with the account, its developer API, the protocols and the charter.
+
+Each link below is a page as plain markdown. Every written page in one file: https://ochk.io/docs/llms-full.txt
+
+## /docs
+
+- [orangecheck documentation](https://ochk.io/docs/index.md): orangecheck is one account, with Bitcoin behind it. Underneath are six open protocols (Attest, Lock, Stamp, Vote, Agent, Pledge). Docs for signing people in with the account, its developer API, the protocols and the charter.
+- [OrangeCheck Charter](https://ochk.io/docs/charter.md): Eight commitments OrangeCheck makes to its customers, the open protocol family, and the Bitcoin community. Single source of truth for the whole product family — ochk.app, vault.ochk.io, chat.ochk.io, cosign.ochk.io, and every protocol sibling.
+
+## /docs/getting-started
+
+- [Quickstart](https://ochk.io/docs/getting-started/quickstart.md): Pick a protocol, jump to its quickstart. Six protocols, six landing pages, each one a self-contained five-minute integration.
+- [Which protocol do I need?](https://ochk.io/docs/getting-started/which-protocol.md): A short decision tree across OC Attest, Lock, Stamp, Vote, Agent, and Pledge. Pick the right starting point in under a minute.
+
+## /docs/agent
+
+- [OC Agent](https://ochk.io/docs/agent.md): Bitcoin-identity-bound delegation authority. A principal grants an autonomous agent scoped action rights, bonded to sats, revocable on-demand. Every action the agent takes is non-repudiable and offline-verifiable.
+- [MCP servers — OC Agent](https://ochk.io/docs/agent/mcp.md): Sign each MCP tool call as an OC Agent action, send it with the request, and check it on the server before the tool runs.
+- [Private scope (v1.2)](https://ochk.io/docs/agent/private-scope.md): Confidential mode for the delegation scope list. The principal seals the canonical scope set with OC Lock to the agent + named verifiers; public Nostr observers see ciphertext, not scopes. Verification is unchanged for everyone with a recipient device key.
+- [Protocol walkthrough — OC Agent](https://ochk.io/docs/agent/protocol.md): How delegations, agent-actions, and revocations flow through the orangecheck stack.
+- [Quickstart — OC Agent](https://ochk.io/docs/agent/quickstart.md): Install @orangecheck/agent-signer and issue your first delegation in five minutes.
+- [Scope grammar — OC Agent](https://ochk.io/docs/agent/scopes.md): Declarative scope strings, constraint operators, sub-scope containment, and the MVP constraint-key registry.
+- [Security — OC Agent](https://ochk.io/docs/agent/security.md): Threat model, trust assumptions, implementation requirements, what OC Agent proves and does not prove.
+- [Specification — OC Agent v1](https://ochk.io/docs/agent/spec.md): Normative specification. Delegation, agent-action, revocation envelopes. Scope grammar. Verification algorithm. Error codes.
+- [Sub-delegation (v1.1)](https://ochk.io/docs/agent/sub-delegation.md): Chained authority — an agent grants a NARROWER slice of its delegated authority to another agent. Verifiers walk the chain back to a root v1.0 delegation and enforce strict scope/temporal containment at every link.
+- [Why OC Agent](https://ochk.io/docs/agent/why.md): The gap in the orangecheck stack, why not OAuth or UCAN, why scope strings, why bond the grant, why extend OC Stamp.
+
+## /docs/api-reference
+
+- [API reference](https://ochk.io/docs/api-reference.md): Machine-readable OpenAPI 3.1 specs for every orangecheck product / protocol surface that ships HTTP APIs. Generate clients with openapi-generator.
+- [API · attest.ochk.io · OC Attest](https://ochk.io/docs/api-reference/attest.md): Public verification API for OC Attest — check / verify / discover / publish-attestation / stats. Full OpenAPI 3.1 spec; interactive explorer at attest.ochk.io/api-explorer.
+- [API · ochk.io · auth host](https://ochk.io/docs/api-reference/auth-host.md): Public API surface for ochk.io — the orangecheck family auth host. Sign-in (BIP-322, email-OTP, Google/GitHub OAuth), OC Connect provisioning, JWKS, signed-challenge primitive, account ops, contact form.
+
+## /docs/attest
+
+- [OC Attest](https://ochk.io/docs/attest.md): Sybil resistance via proof of Bitcoin stake. The base-layer protocol in the orangecheck ecosystem.
+- [OC Attest — HTTP API](https://ochk.io/docs/attest/api.md): Every hosted endpoint the OC Attest protocol exposes. check, verify, challenge, discover, publish-attestation, stats.
+- [Bonds: back an account with a coin apps never see](https://ochk.io/docs/attest/bonds.md): One unspent coin backs one account. Apps see floors and a nullifier only ochk.io can compute, never the coin. Spec: oc-attest-protocol BOND.md.
+- [Guide: filter an airdrop](https://ochk.io/docs/attest/guides/airdrop.md): Turn a candidate list into a sybil-resistant allowlist using OC Attest. Bulk-check via the CLI or the SDK.
+- [Guide: gate an Express route](https://ochk.io/docs/attest/guides/express.md): Drop-in OC Attest middleware in 10 lines. Works with Express, Connect, and any Node HTTP framework.
+- [Sybil-filtered Nostr relay](https://ochk.io/docs/attest/guides/nostr-relay.md): Drop the oc-strfry plugin into a Nostr relay to reject events from unvetted pubkeys.
+- [Self-hosting the verifier](https://ochk.io/docs/attest/guides/self-hosting.md): Run OC Attest verification on your own server with the published packages: your relays, your Esplora, no call to attest.ochk.io.
+- [Guide: sign in with Bitcoin](https://ochk.io/docs/attest/guides/sign-in-with-bitcoin.md): End-to-end signed-challenge session auth. Password-less, custody-free, BIP-322-bound.
+- [How OC Attest works](https://ochk.io/docs/attest/how-it-works.md): Sign → publish → verify. The whole OC Attest protocol in one page.
+- [Quickstart](https://ochk.io/docs/attest/quickstart.md): Goal: get a real sybil-gate decision out of OC Attest with one curl, no account and no key.
+- [OC Attest — scoring](https://ochk.io/docs/attest/scoring.md): sats_bonded, days_unspent, score_v0. Advisory only. Raw metrics are the authoritative signal.
+- [Security](https://ochk.io/docs/attest/security.md): Summary of the OC Attest threat model: what an attestation proves, what it does not, the adversaries it is built for, and what a verifier must do. The authoritative copy is SECURITY.md in oc-attest-protocol.
+- [OC Attest — verification](https://ochk.io/docs/attest/verification.md): The exact algorithm a verifier runs. Six deterministic steps — offline-verifiable, with live chain state for metrics.
+
+## /docs/chat
+
+- [OC Chat · chat.ochk.io](https://ochk.io/docs/chat.md): End-to-end-encrypted chat where your orangecheck account is your inbox and a Bitcoin address (BIP-322) can be bound to it, the anti-spam is Lightning postage paid directly to the recipient, and a message can be sealed to open only at a future Bitcoin block height. A mode of OC Lock, not a seventh verb.
+- [Channels · OC Chat](https://ochk.io/docs/chat/channels.md): Founder-rooted public channels in OC Chat v1: the kind-30110 governance descriptor, kind-30111 posts, the Bitcoin-priced write gate (utxo-floor), roles, moderation tombstones, directory composition, and source-intake. Public channels make no E2EE claim — by design.
+- [Discoverability directory · OC Chat](https://ochk.io/docs/chat/directory.md): The opt-in, UTXO-gated, revocable directory that lets you be found by a human-readable handle without the searcher knowing your address. The Bitcoin gate, the social-graph firewall, forward-only revocation, and the deanonymization disclosures.
+- [Envelope & content addressing · OC Chat](https://ochk.io/docs/chat/envelope.md): The v0 wire chat.ochk.io sends, the envelope kinds OC Chat defines as its upgrade target, and the one cryptographic rule that differs — the recipient-exclusion id/AAD rule that lets a held envelope be re-keyed after the fact without breaking the signature or the ciphertext tag.
+- [How it works · OC Chat](https://ochk.io/docs/chat/how-it-works.md): The OC Chat mental model: one binding per device (ochk.io’s vouch, or a BIP-322 signature), an inbox derived from the device key, discovery over Nostr, gift-wrapped envelopes relays cannot read, and threading as a hash-chain inside the ciphertext.
+- [The three send modes · OC Chat](https://ochk.io/docs/chat/modes.md): speak-now, pay-to-reach, and seal-til-block — the three canonical OC Chat send modes, each adding exactly one Bitcoin-unique property: BIP-322 identity, a Lightning settled-sats preimage, and a block-height predicate.
+- [Postage (pay-to-reach) · OC Chat](https://ochk.io/docs/chat/postage.md): How a stranger pays Lightning postage directly to a recipient to land in their inbox — the recipient policy, the sender postage block, the offline recipient-side verification, the honest replay ceiling, and the named-Fedimint custodial fallback. OC operates no payment rail.
+- [Protocol walkthrough · OC Chat](https://ochk.io/docs/chat/protocol.md): A narrative tour of the six OC Chat flows: speak-now, multi-device, pay-to-reach, seal-til-block + release, standing-delivery (dead-man’s-switch), and institutional source-intake. The spec says what; this says why and how the flows compose.
+- [Quickstart · OC Chat](https://ochk.io/docs/chat/quickstart.md): Sign in, send your first end-to-end-encrypted message, and try each of the three send modes — speak-now, pay-to-reach, and seal-til-block.
+- [Seal-til-block · OC Chat](https://ochk.io/docs/chat/seal.md): The block-height timelock mode: wrap a message key to a named beacon that releases it only after the Bitcoin chain passes block N. The v0 drand-tlock profile, the hard chain gate, redundant beacons, standing delivery (dead-man’s-switch), and the Ed25519 substitution test run out loud.
+- [Security posture · OC Chat](https://ochk.io/docs/chat/security.md): OC Chat’s threat model and every named non-protection: no per-message forward secrecy, the beacon-trust seal, the postage replay ceiling, the directory deanonymization surface, the public-channel boundary, and the custody/money boundary. What OC Chat proves and what it explicitly does not.
+- [Specification · OC Chat](https://ochk.io/docs/chat/spec.md): The normative OC Chat v0 specification reference: envelope kinds, the recipient-exclusion content-addressing rule, the three send modes, threading, postage, the seal, transport, the directory, channels, the full error-code table, the Nostr kind registry (30110–30115), session devices and their step-up to a Bitcoin address, and the compliance checklist.
+- [Threading & attachments · OC Chat](https://ochk.io/docs/chat/threading.md): How OC Chat orders a conversation: thread state lives inside the encrypted payload as a parent_id hash-chain, never the plaintext created_at. Plus end-to-end-encrypted inline attachments and the blob-store upgrade.
+- [Transport & durable inbox · OC Chat](https://ochk.io/docs/chat/transport.md): How an OC Chat message travels: the NIP-59 gift-wrap, the v2 encrypted wrap that hides the social graph from relays, the opaque per-conversation durable-inbox queue routing, and NIP-42 relay AUTH for institutional metadata hardening.
+- [Why OC Chat · chat.ochk.io](https://ochk.io/docs/chat/why.md): The rationale behind OC Chat: why chat is a mode of OC Lock and not a seventh verb, why a Bitcoin address is the right identity, why the per-message signature had to die, and the Ed25519 substitution test run out loud on the block-height seal.
+
+## /docs/connect
+
+- [OC Connect](https://ochk.io/docs/connect.md): Keep your existing login. Drop in one server-side call and your users get an orangecheck account — no matter how they signed in.
+
+## /docs/cosign
+
+- [OC Cosign · cosign.ochk.io](https://ochk.io/docs/cosign.md): Bitcoin-native crowdfunding + co-founder matching. Run a block-height campaign, back at a tier, settle peer-to-peer over Lightning — only confirmed sats count. No KYC, no custody, never a securities platform.
+- [How OC Cosign works · OC Cosign](https://ochk.io/docs/cosign/how-it-works.md): The whole OC Cosign loop on one page: post a project, get cosigned (join / back / zap), match via double opt-in, message, post updates, and notify everyone behind you.
+- [OC Cosign quickstart · OC Cosign](https://ochk.io/docs/cosign/quickstart.md): Get started on OC Cosign in minutes — as a founder posting a project, or as a backer getting behind one.
+- [OC Cosign · Trust & safety](https://ochk.io/docs/cosign/trust.md): How OC Cosign stays honest: sats settle peer-to-peer, OC never takes custody, it is not a securities platform, and your interest stays private until you both opt in.
+
+## /docs/ecosystem
+
+- [Ecosystem (shared concepts)](https://ochk.io/docs/ecosystem.md): The plumbing every orangecheck protocol inherits — canonical message, BIP-322 signing, Nostr kind-30078, conformance vectors, security model.
+- [BIP-322 signing](https://ochk.io/docs/ecosystem/bip322.md): Every orangecheck sibling signs the canonical message via BIP-322. Why not legacy signmessage. Which wallets support it.
+- [The canonical message](https://ochk.io/docs/ecosystem/canonical-message.md): Every orangecheck sibling signs a canonical message in the same shape. Strict by design — no whitespace negotiations, no ordering ambiguity.
+- [Conformance vectors](https://ochk.io/docs/ecosystem/conformance.md): Cross-implementation test suites that prove reference SDKs produce byte-identical output. CI-enforced.
+- [Nostr publication](https://ochk.io/docs/ecosystem/nostr-kind-30078.md): How every orangecheck protocol publishes its artifacts on Nostr — kinds 30078–30115, d-tag conventions per protocol, multi-relay discovery defaults.
+- [Shared security model](https://ochk.io/docs/ecosystem/security.md): The threat model every orangecheck protocol inherits. What Bitcoin stake proofs protect against. What they do NOT.
+
+## /docs/federation
+
+- [OC-Me Federation v1 — Charter](https://ochk.io/docs/federation/oc-me-v1.md): The charter text for OC-Me Federation v1 — the Fedimint federation designed to hold ochk.app balances. No federation runs under it today. Guardians would sign an envelope naming the SHA-256 of its canonical bytes; users would verify that hash against /custody.
+
+## /docs/infrastructure
+
+- [relay.ochk.io — first-party Nostr relay](https://ochk.io/docs/infrastructure/relay.md): OrangeCheck's family Nostr relay. Kind-allowlisted, d-tag-prefix-gated, archived daily. strfry on Fly.io. Source: orangecheck/oc-relay-infra.
+
+## /docs/integration
+
+- [Integrating with orangecheck](https://ochk.io/docs/integration.md): Two ways to give your users an orangecheck account: let orangecheck be your sign-in with signInWithOc(), or add it to the login you already run with Connect.
+- [Sign in from an app or a game](https://ochk.io/docs/integration/native-sign-in.md): A desktop build or a game signs the player in through their own browser: a one-time code on a 127.0.0.1 listener, traded by your server for the same token the sign-in popup gives. No secret in the app.
+- [Run the whole funnel yourself](https://ochk.io/docs/integration/reference.md): The orangecheck onboarding funnel as small open sites in Node and Python: your own login, an orangecheck account through Connect, claiming at ochk.app, and sign in with orangecheck. Fork it and run it.
+- [The sign-in button](https://ochk.io/docs/integration/sign-in-button.md): A "Sign in with orangecheck" button that keeps your site's font, colour, radius, size, hover and focus, and carries the orangecheck mark: React, plain HTML, and files for native apps and games.
+
+## /docs/lock
+
+- [OC Lock](https://ochk.io/docs/lock.md): End-to-end encryption addressed to a Bitcoin address. Sealed envelopes, BIP-322-bound device keys, Nostr-published directory.
+- [Chat transport · OC Lock](https://ochk.io/docs/lock/chat.md): How OC Lock turns one-shot envelopes into a persistent chat inbox — the transport design, the trust model, the tradeoffs.
+- [OC Lock — device keys](https://ochk.io/docs/lock/device-keys.md): BIP-322-bound X25519 keys. Generation, binding, publication, revocation, rotation.
+- [Envelope format · OC Lock](https://ochk.io/docs/lock/envelope.md): Deep dive on the .lock envelope format — JSON schema, canonicalization, encryption steps, and wire-level examples.
+- [OC Lock — envelope format](https://ochk.io/docs/lock/envelope-format.md): The JSON shape of an OC Lock envelope, its canonicalization rule, and the fields every recipient must validate.
+- [OC Lock — how it works](https://ochk.io/docs/lock/how-it-works.md): Device keys → directory → seal → unseal. The full OC Lock encrypt/decrypt flow.
+- [Protocol walkthrough · OC Lock](https://ochk.io/docs/lock/protocol.md): Identity mode, payment mode, multi-device, self-vaults — with flow diagrams.
+- [Quickstart · OC Lock](https://ochk.io/docs/lock/quickstart.md): Register a device, seal an envelope, open an envelope — in under a minute.
+- [Security implications · OC Lock](https://ochk.io/docs/lock/security.md): A deliberate, honest read of what OC Lock protects, what it exposes, and how to use it without surprises.
+- [Specification · OC Lock](https://ochk.io/docs/lock/spec.md): A summary of the OC Lock v2 specification — envelope format, canonicalization, error codes.
+- [Why OC Lock · OC Lock](https://ochk.io/docs/lock/why.md): Why OC Lock exists — end-to-end encryption keyed to the Bitcoin address you already control.
+
+## /docs/me
+
+- [ochk.app](https://ochk.io/docs/me.md): One account, with Bitcoin behind it. People sign in the way they already do and can back their account with bitcoin they already hold, which stays in their wallet; apps that choose to pay their users pay them in sats. The product is ochk.app; me.ochk.io is the API host.
+- [ochk.app · HTTP API](https://ochk.io/docs/me/api.md): Every me.ochk.io HTTP endpoint · authentication, rate limits, response shapes, error codes.
+- [ochk.app · Custody contract](https://ochk.io/docs/me/custody.md): Federation custody descriptor schema, M-of-N graduation envelopes, guardian rotation. Maps the v1.2-draft-1 oc-attest extension to the ochk.app product surface. Not live yet: no federation is bound and orangecheck holds user balances during bring-up.
+- [ochk.app · Release schedule](https://ochk.io/docs/me/drops.md): When your users' shares are theirs: right away (the default), or in batches, weekly, monthly or when you say. Batch boundaries are Bitcoin blocks; every batch publishes a signed manifest and per-person proofs.
+- [ochk.app · Federation custody](https://ochk.io/docs/me/federation.md): The design for federation custody on ochk.app: guardians hold the bitcoin, and orangecheck's executor holds each user's claim as ecash and pays them out. The charter, how to check a federation. Not live: while the system is in testing, orangecheck holds every role.
+- [ochk.app · Glossary](https://ochk.io/docs/me/glossary.md): The words orangecheck uses for people and developers, what each one means, and what it is called in the API when the name differs.
+- [ochk.app · Integrations](https://ochk.io/docs/me/integrations.md): The orangecheck button beside your other sign-in providers, example prices, and errors. No Bitcoin knowledge needed from your users.
+- [ochk.app · Operator Program](https://ochk.io/docs/me/operator.md): How the guardian operator program works: applying, acceptance, and running a guardian, in the browser at ochk.app/me/operator or with the oc-guardian-kit CLI. The program is not open: while the system is in testing, orangecheck holds every role.
+- [ochk.app · Federation Charter](https://ochk.io/docs/me/operator/charter.md): How guardians ratify an orangecheck federation charter. Hash + version land on each federation record; signatures are public commitments verifiable offline. The oc-me-v1 charter text is at /docs/federation/oc-me-v1.
+- [ochk.app · In-Browser Operator Flow](https://ochk.io/docs/me/operator/in-browser.md): How ochk.app runs the guardian-program lifecycle in the browser: an Ed25519 key in IndexedDB that the page itself can read, a BIP-39 mnemonic backup, and the envelope round-trip with the kit.
+- [ochk.app · Operator Runbook](https://ochk.io/docs/me/operator/runbook.md): Run the oc-guardian binary on hardware you control. Docker pull, cosign verify, settings from the environment, status checks. The operator program is not open yet.
+- [ochk.app · Paying your users](https://ochk.io/docs/me/paying-users.md): Signing people in is free. Paying your users in sats is optional: always, in promos you schedule, or never. Pay periods, what the event API answers outside them, and how anyone checks an earning against the period that paid it.
+- [ochk.app · Quickstart](https://ochk.io/docs/me/quickstart.md): Two tracks. Sign in (free): create a project, add the sign-in popup, check the session on your server, choose who can sign in, check it before real people sign in. Pay your users (optional): when you pay, what each event earns, send events from your server, send a test event, go live.
+- [Who can sign in: every account, or backed accounts](https://ochk.io/docs/me/require-bond.md): Let in every orangecheck account, or only accounts backed by bitcoin. Set the floor in your project settings; withOcAuth enforces it.
+- [ochk.app · SDK reference](https://ochk.io/docs/me/sdk.md): @orangecheck/me-client SDK reference. Entry points: the main one (oc.* calls and types, no React), /server (withOcAuth for Next.js, ocAuthExpress, ocAuthHono, checkOcToken, verifyOcToken) and /popup (signInWithOc, browser only), plus /react, /button, /button-auto, /connect-consent and /integrator. Sign-in, events, webhooks, price configs, what users share, and other signals.
+- [ochk.app · Webhooks](https://ochk.io/docs/me/webhooks.md): Webhook signature verification, the signing key, raw-body warning, retry semantics, headers, the body, and full reception samples in Node, Python and Rust.
+
+## /docs/pledge
+
+- [OC Pledge](https://ochk.io/docs/pledge.md): Pledge your word to Bitcoin. Bond your stake. Anyone verifies the outcome. The sixth and final orangecheck primitive — forward-looking, BIP-322-signed, future-verifiable commitments.
+- [OC Pledge — Composition with the family](https://ochk.io/docs/pledge/composition.md): How OC Pledge composes with the other five orangecheck primitives. Gating on pledge history, agent-delegated pledges, stamp-resolved pledges, vote-resolved disputes, and confidential counterparty negotiation via Lock.
+- [OC Pledge — Enforcement by exposure](https://ochk.io/docs/pledge/enforcement-by-exposure.md): Why bonds are signals, not stake to seize. Why broken pledges are public records, not slashable balances. Why no-custody is the only correct call.
+- [OC Pledge — How it works](https://ochk.io/docs/pledge/how-it-works.md): The canonical pledge message, the seven resolution mechanisms, the outcome envelope, and the abandonment envelope. Three artifacts, one signed lifecycle.
+- [Protocol walkthrough · OC Pledge](https://ochk.io/docs/pledge/protocol.md): Narrative companion to the spec: five flows from preregistration to agent-signed pledges, with the resolution grammar in context.
+- [OC Pledge — Quickstart](https://ochk.io/docs/pledge/quickstart.md): Swear a pledge, publish it, and classify the outcome end-to-end. Five-minute walk-through using @orangecheck/pledge-core.
+- [OC Pledge — Resolution grammar](https://ochk.io/docs/pledge/resolution-grammar.md): The seven resolution mechanisms — chain_state, counterparty_signs, nostr_event_exists, stamp_published, http_get_hash, dns_record, vote_resolves — with their canonical query DSLs.
+- [OC Pledge — Security posture](https://ochk.io/docs/pledge/security.md): Threat model: address linkability through pledge history, dispute-gaming via contradictory outcome envelopes, bond-draining attacks, race-to-abandon. Mitigations + verifier obligations.
+- [OC Pledge — Specification](https://ochk.io/docs/pledge/spec.md): Normative pointer page. The seven documents (SPEC, PROTOCOL, NIP, REGISTRY, WHY, SECURITY and LIFECYCLE) live in the oc-pledge-protocol repo. The conformance vectors are required-pass for any conforming implementation.
+- [OC Pledge — State machine](https://ochk.io/docs/pledge/state-machine.md): Every pledge is in one of six states. Transitions are pure functions of (envelope, outcome, time, public state). Two verifiers with the same inputs produce the same classification.
+- [Why OC Pledge](https://ochk.io/docs/pledge/why.md): The other five orangecheck primitives describe the present. Pledge is the only one that projects commitment forward — without custody, without slashing, without an aggregated reputation score.
+
+## /docs/reference
+
+- [Status & error codes](https://ochk.io/docs/reference/error-codes.md): Every reason string `/api/check`, `/api/verify`, and the SDKs can return — with what it means and what to tell the user.
+- [Examples](https://ochk.io/docs/reference/examples.md): Every runnable orangecheck example in one place: the onboarding funnel in Node and Python, OC Agent integrations, OC Vote integrations, and the hosted demo.
+- [FAQ](https://ochk.io/docs/reference/faq.md): Common questions across the orangecheck ecosystem.
+- [Glossary](https://ochk.io/docs/reference/glossary.md): Every term used across the orangecheck ecosystem docs.
+- [Multi-account sign-in](https://ochk.io/docs/reference/multi-account.md): Hold multiple orangecheck accounts in one browser and switch between them without re-authenticating. How rosters work and what the surface looks like.
+
+## /docs/sdk
+
+- [SDKs](https://ochk.io/docs/sdk.md): Every published package in the orangecheck ecosystem — TypeScript, Python, CLIs — with which protocol it serves, which stack to pick, and a link to the full reference.
+- [@orangecheck/cli](https://ochk.io/docs/sdk/cli.md): oc shell — check / verify / discover / challenge, plus ochk.app integrator commands (API at me.ochk.io), from your terminal or a shell script.
+- [orangecheck (Python SDK)](https://ochk.io/docs/sdk/python.md): Python SDK for the orangecheck ecosystem: stake checks and attestations with the same conformance vectors as TypeScript, and ochk.app sign-in, billable events and webhooks for your backend.
+
+## /docs/stamp
+
+- [OC Stamp](https://ochk.io/docs/stamp.md): Bitcoin-block-anchored signed statements. Authorship via BIP-322, priority via OpenTimestamps. Offline-verifiable forever.
+- [Envelope format](https://ochk.io/docs/stamp/envelope.md): A stamp is a single canonical JSON object, referred to by file extension .stamp and MIME application/vnd.oc-stamp+json.
+- [OC Stamp — how it works](https://ochk.io/docs/stamp/how-it-works.md): Sign + anchor. Two steps, one self-contained envelope.
+- [Nostr directory](https://ochk.io/docs/stamp/nostr.md): Publishing to Nostr is optional. The envelope is self-contained and can travel over any transport (URL fragment, email, IPFS, QR code, paper, git).
+- [OpenTimestamps integration](https://ochk.io/docs/stamp/ots.md): OC Stamp uses OpenTimestamps for block-anchored priority. We do not reimplement OTS. We compose with it.
+- [OC Stamp — OpenTimestamps anchor](https://ochk.io/docs/stamp/ots-anchor.md): How @orangecheck/stamp-ots bridges OpenTimestamps proofs into a Stamp envelope.
+- [Protocol walkthrough](https://ochk.io/docs/stamp/protocol.md): Narrative companion to the spec. If you want the normative rules, read the spec. If you want to understand why and how, read this.
+- [Quickstart](https://ochk.io/docs/stamp/quickstart.md): Goal: go from a file on your disk to a published, verifiable stamp in under a minute.
+- [Security](https://ochk.io/docs/stamp/security.md): Summary of the threat model. The authoritative copy with every numbered attack scenario lives in SECURITY.md.
+- [Specification](https://ochk.io/docs/stamp/spec.md): The authoritative, normative spec is SPEC.md in the oc-stamp-protocol repo. This page is a summary keyed to the same section numbers so you can navigate between them.
+- [OC Stamp — use cases](https://ochk.io/docs/stamp/use-cases.md): Concrete patterns for OC Stamp — release signing, long-form provenance, legal self-notarization, DAO proposals, sybil-gated content.
+- [Why OC Stamp exists](https://ochk.io/docs/stamp/why.md): The short answer: the open web has no durable, permissionless, identity-bearing provenance primitive a normal user can create with a wallet they already own.
+
+## /docs/vault
+
+- [OC Vault · vault.ochk.io](https://ochk.io/docs/vault.md): Commercial encrypted-secrets vault from orangecheck. Passwords, TOTP codes, API keys, cards, identities, env-var bundles, and small files sealed client-side as ciphertext. Browser extension, CLI, and SDK on top. No recovery backdoor, zero lock-in.
+- [OC Vault · Developer platform](https://ochk.io/docs/vault/developer.md): The oc-vault CLI, the @orangecheck/vault-core SDK, ocv:// secret references, access tokens, and the GitHub Action — programmatic, zero-knowledge access to your encrypted vault.
+- [OC Vault · Browser extension](https://ochk.io/docs/vault/extension.md): The OC Vault browser extension — autofill for any site, save new logins as you create them, your full vault one toolbar click away. Manifest V3, zero-knowledge: the vault key never leaves the extension.
+- [OC Vault · Protocol](https://ochk.io/docs/vault/protocol.md): How OC Vault seals entries with OC Lock primitives: the vault key and its escrow, the per-entry AES-256-GCM record, the double-encrypted cloud blob that keeps the server blind to metadata, the device hand-off and the opt-in Bitcoin device tier, the portable export format, and the signed .lock export.
+- [OC Vault · Quickstart](https://ochk.io/docs/vault/quickstart.md): Five steps from cold to a working encrypted vault: sign in with Bitcoin, add an entry, audit your passwords, optionally pay on-chain for cloud sync, and export a portable backup.
+- [OC Vault · Security](https://ochk.io/docs/vault/security.md): An honest read of what OC Vault protects, what it exposes by design, the no-backdoor recovery tradeoff, and how the breach check preserves privacy with k-anonymity.
+- [OC Vault · Teams](https://ochk.io/docs/vault/teams.md): How OC Vault team vaults work: the team key, invite-URL fragments, escrow under your personal vault key, roles, seat limits, advisory edit-locks, the 8-second liveness poll, and how the collaborative-freshness signal differs from personal cloud sync.
+
+## /docs/vote
+
+- [OC Vote](https://ochk.io/docs/vote.md): Stake-weighted, sybil-resistant polls on Bitcoin. Three canonical weight modes. Offline-tallyable.
+- [api](https://ochk.io/docs/vote/api.md): The web UI is convenience. The curl output is the authoritative result.
+- [integration](https://ochk.io/docs/vote/integration.md): Concrete snippets for gating your community, DAO, forum, or app on an OC Vote poll.
+- [walkthrough](https://ochk.io/docs/vote/protocol.md): Narrative companion to the spec. Five flows, concrete scenarios, realistic addresses and block heights.
+- [quickstart](https://ochk.io/docs/vote/quickstart.md): Create a poll, cast a ballot, run a tally. No account. No chain transaction.
+- [secret ballot](https://ochk.io/docs/vote/secret-ballot.md): In secret mode, each ballot is an OC Lock envelope addressed to a poll-specific X25519 reveal keypair. After the deadline the creator publishes reveal_sk.
+- [security](https://ochk.io/docs/vote/security.md): Short form. The normative threat model lives in oc-vote-protocol/SECURITY.md — 14 numbered attack scenarios with status.
+- [specification](https://ochk.io/docs/vote/spec.md): This page is the human-readable mirror of oc-vote-protocol/SPEC.md v0. The GitHub version is the normative one — if this page ever drifts, the repo wins.
+- [OC Vote — tally algorithm](https://ochk.io/docs/vote/tally-algorithm.md): The deterministic pure function that turns (poll, ballots, chain-snapshot) into a tally.
+- [OC Vote — weight modes](https://ochk.io/docs/vote/weight-modes.md): one_per_address, sats, sats_days. The three canonical ways to resolve a ballot into a weight.
+- [why vote](https://ochk.io/docs/vote/why.md): Every open community in 2026 — Nostr relays, DAOs, grant committees, Bitcoin protocol debates, forum moderation bodies — eventually runs into the same problem: "how do we take a group decision without
+
+## Optional
+
+- [@orangecheck/agent-anthropic](https://ochk.io/docs/sdk/agent-anthropic/README.md): Auto-generated API reference for @orangecheck/agent-anthropic. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-core](https://ochk.io/docs/sdk/agent-core/README.md): Auto-generated API reference for @orangecheck/agent-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-langgraph](https://ochk.io/docs/sdk/agent-langgraph/README.md): Auto-generated API reference for @orangecheck/agent-langgraph. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-mcp](https://ochk.io/docs/sdk/agent-mcp/README.md): Auto-generated API reference for @orangecheck/agent-mcp. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-openai](https://ochk.io/docs/sdk/agent-openai/README.md): Auto-generated API reference for @orangecheck/agent-openai. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-signer](https://ochk.io/docs/sdk/agent-signer/README.md): Auto-generated API reference for @orangecheck/agent-signer. Source: TypeScript types in oc-packages.
+- [@orangecheck/agent-vercel](https://ochk.io/docs/sdk/agent-vercel/README.md): Auto-generated API reference for @orangecheck/agent-vercel. Source: TypeScript types in oc-packages.
+- [@orangecheck/airdrop-gate](https://ochk.io/docs/sdk/airdrop-gate/README.md): Auto-generated API reference for @orangecheck/airdrop-gate. Source: TypeScript types in oc-packages.
+- [@orangecheck/auth-client](https://ochk.io/docs/sdk/auth-client/README.md): Auto-generated API reference for @orangecheck/auth-client. Source: TypeScript types in oc-packages.
+- [@orangecheck/auth-core](https://ochk.io/docs/sdk/auth-core/README.md): Auto-generated API reference for @orangecheck/auth-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/bip322](https://ochk.io/docs/sdk/bip322/README.md): Auto-generated API reference for @orangecheck/bip322. Source: TypeScript types in oc-packages.
+- [@orangecheck/design](https://ochk.io/docs/sdk/design/README.md): Auto-generated API reference for @orangecheck/design. Source: TypeScript types in oc-packages.
+- [@orangecheck/gate](https://ochk.io/docs/sdk/gate/README.md): Auto-generated API reference for @orangecheck/gate. Source: TypeScript types in oc-packages.
+- [@orangecheck/insights-client](https://ochk.io/docs/sdk/insights-client/README.md): Auto-generated API reference for @orangecheck/insights-client. Source: TypeScript types in oc-packages.
+- [@orangecheck/lock-core](https://ochk.io/docs/sdk/lock-core/README.md): Auto-generated API reference for @orangecheck/lock-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/lock-crypto](https://ochk.io/docs/sdk/lock-crypto/README.md): Auto-generated API reference for @orangecheck/lock-crypto. Source: TypeScript types in oc-packages.
+- [@orangecheck/lock-device](https://ochk.io/docs/sdk/lock-device/README.md): Auto-generated API reference for @orangecheck/lock-device. Source: TypeScript types in oc-packages.
+- [@orangecheck/me-client](https://ochk.io/docs/sdk/me-client/README.md): Auto-generated API reference for @orangecheck/me-client. Source: TypeScript types in oc-packages.
+- [@orangecheck/me-client/popup](https://ochk.io/docs/sdk/me-client/popup/README.md): Auto-generated API reference for @orangecheck/me-client/popup. Source: TypeScript types in oc-packages.
+- [@orangecheck/me-client/server](https://ochk.io/docs/sdk/me-client/server/README.md): Auto-generated API reference for @orangecheck/me-client/server. Source: TypeScript types in oc-packages.
+- [@orangecheck/nostr-core](https://ochk.io/docs/sdk/nostr-core/README.md): Auto-generated API reference for @orangecheck/nostr-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/pledge-core](https://ochk.io/docs/sdk/pledge-core/README.md): Auto-generated API reference for @orangecheck/pledge-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/react](https://ochk.io/docs/sdk/react/README.md): Auto-generated API reference for @orangecheck/react. Source: TypeScript types in oc-packages.
+- [@orangecheck/relay-filter](https://ochk.io/docs/sdk/relay-filter/README.md): Auto-generated API reference for @orangecheck/relay-filter. Source: TypeScript types in oc-packages.
+- [@orangecheck/sdk](https://ochk.io/docs/sdk/sdk/README.md): Auto-generated API reference for @orangecheck/sdk. Source: TypeScript types in oc-packages.
+- [@orangecheck/stamp-core](https://ochk.io/docs/sdk/stamp-core/README.md): Auto-generated API reference for @orangecheck/stamp-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/stamp-ots](https://ochk.io/docs/sdk/stamp-ots/README.md): Auto-generated API reference for @orangecheck/stamp-ots. Source: TypeScript types in oc-packages.
+- [@orangecheck/ui](https://ochk.io/docs/sdk/ui/README.md): Auto-generated API reference for @orangecheck/ui. Source: TypeScript types in oc-packages.
+- [@orangecheck/vault-core](https://ochk.io/docs/sdk/vault-core/README.md): Auto-generated API reference for @orangecheck/vault-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/vote-core](https://ochk.io/docs/sdk/vote-core/README.md): Auto-generated API reference for @orangecheck/vote-core. Source: TypeScript types in oc-packages.
+- [@orangecheck/vote-react](https://ochk.io/docs/sdk/vote-react/README.md): Auto-generated API reference for @orangecheck/vote-react. Source: TypeScript types in oc-packages.
+- [@orangecheck/wallet-adapter](https://ochk.io/docs/sdk/wallet-adapter/README.md): Auto-generated API reference for @orangecheck/wallet-adapter. Source: TypeScript types in oc-packages.
+- [@orangecheck/webhook-verify](https://ochk.io/docs/sdk/webhook-verify/README.md): Auto-generated API reference for @orangecheck/webhook-verify. Source: TypeScript types in oc-packages.

@@ -83,6 +83,7 @@ on:
             - 'insights-client-v*'
             - 'btcpay-v*'
             - 'mark-v*'
+            - 'mcp-v*'
             - 'legal-v*'
             - 'auth-core-v*'
             - 'auth-client-v*'
@@ -140,7 +141,7 @@ jobs:
 
             # @orangecheck/sdk is the dep root for the original 7 packages.
             - name: Build SDK (dependency)
-              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'bip322' && steps.parse.outputs.package != 'design' && steps.parse.outputs.package != 'app-design' && steps.parse.outputs.package != 'site-kit' && steps.parse.outputs.package != 'mark' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-') && steps.parse.outputs.package != 'chat-core'
+              if: steps.parse.outputs.package != 'sdk' && steps.parse.outputs.package != 'bip322' && steps.parse.outputs.package != 'design' && steps.parse.outputs.package != 'app-design' && steps.parse.outputs.package != 'site-kit' && steps.parse.outputs.package != 'mark' && steps.parse.outputs.package != 'mcp' && !startsWith(steps.parse.outputs.package, 'lock-') && !startsWith(steps.parse.outputs.package, 'stamp-') && steps.parse.outputs.package != 'chat-core'
               working-directory: sdk
               run: |
                   yarn install --frozen-lockfile

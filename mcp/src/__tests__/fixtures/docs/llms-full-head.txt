@@ -1,0 +1,4 @@
+# orangecheck docs
+
+> orangecheck is one account, with Bitcoin behind it. Underneath are six open protocols (Attest, Lock, Stamp, Vote, Agent, Pledge). Docs for signing people in with the account, its developer API, the protocols and the charter.
+

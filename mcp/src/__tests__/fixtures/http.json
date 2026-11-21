@@ -1,0 +1,225 @@
+{
+    "recorded": "2026-11-21T22:29:35.126Z",
+    "responses": {
+        "https://ochk.io/docs/llms.txt": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/plain; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/llms.txt"
+        },
+        "https://ochk.io/docs/integration.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/integration.md"
+        },
+        "https://ochk.io/docs/integration/native-sign-in.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/integration/native-sign-in.md"
+        },
+        "https://ochk.io/docs/integration/reference.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/integration/reference.md"
+        },
+        "https://ochk.io/docs/integration/sign-in-button.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/integration/sign-in-button.md"
+        },
+        "https://ochk.io/docs/me/integrations.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/me/integrations.md"
+        },
+        "https://ochk.io/docs/me/quickstart.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/me/quickstart.md"
+        },
+        "https://ochk.io/docs/me/require-bond.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/me/require-bond.md"
+        },
+        "https://ochk.io/docs/me/sdk.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/me/sdk.md"
+        },
+        "https://ochk.io/docs/sdk/python.md": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/markdown; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "bodyFile": "docs/pages/sdk/python.md"
+        },
+        "https://ochk.io/docs/no-such-page-for-fixtures.md": {
+            "status": 404,
+            "headers": {
+                "content-type": "text/html; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'sha256-fcTtCQ9R0xd7VoMK8WXVofBOE9hbgI4tRUDe76FB27k=' 'sha256-3qajGektXJEGpEKRro1HOpJPjbZnMI/nP9IMUutpJKA=' 'sha256-cd+HpnSsLaEz1lKWBNn+k+xOe1m2p5ZgfjoyNvHy9eU=' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ochk.io https://attest.ochk.io https://insights.ochk.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en\" data-oc-app=\"ochk\" data-dpl-id=\"dpl_HL24yNdgaS5F1h7VEpDmHye2J12G\"><head><meta charSet=\"utf-8\" data-next-head=\"\"/><meta name=\"viewport\" content=\"width=device-width\" data-next-head=\"\"/><title data-next-head=\"\">Not found — orangecheck docs</title><meta name=\"title\" content=\"Not found — orangecheck docs\" data-next-head=\"\"/><meta name=\"description\" content=\"The orangecheck handbook. Six verbs — am, whisper, decide, declare, delegate, swear — mapped to identity, confidentiality, leg"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_FIXTURE/identity": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=60"
+            },
+            "body": "{\"ok\":true,\"display_name\":\"oc-onboarding-examples live smoke\",\"domain\":\"oc-onboarding-examples.vercel.app\",\"verified\":true,\"frozen\":false,\"moved_from\":null}"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_FIXTURE/sign-in": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "no-store"
+            },
+            "body": "{\"ok\":true,\"require_bond\":null}"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_FIXTURE/native": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "no-store"
+            },
+            "body": "{\"ok\":true,\"enabled\":false,\"name\":\"oc-onboarding-examples live smoke\",\"audiences\":[]}"
+        },
+        "https://me.ochk.io/api/integrator/config?project_key=pk_test_FIXTURE": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=120"
+            },
+            "body": "{\"ok\":true,\"config\":{\"project_key\":\"pk_test_FIXTURE\",\"display_name\":\"oc-onboarding-examples live smoke\",\"domain\":\"oc-onboarding-examples.vercel.app\",\"updated_at\":\"2026-10-23T20:04:00.458Z\",\"events\":{\"account_creation\":{\"enabled\":true,\"site_pays\":{\"kind\":\"fixed_sats\",\"sats\":1000},\"user_share_pct\":0.8},\"session_creation\":{\"enabled\":true,\"site_pays\":{\"kind\":\"fixed_sats\",\"sats\":50},\"user_share_pct\":0.8},\"payment_authorization\":{\"enabled\":true,\"site_pays\":{\"kind\":\"percent_of_amount\",\"pct\":0.005},\"user_share_pct\":0.8}}},\"drops\":[],\"pay_periods\":[]}"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_doesnotexist000/identity": {
+            "status": 404,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=60"
+            },
+            "body": "{\"ok\":false,\"error\":\"unknown_project\"}"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_doesnotexist000/sign-in": {
+            "status": 404,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "no-store"
+            },
+            "body": "{\"ok\":false,\"reason\":\"project_not_found\"}"
+        },
+        "https://me.ochk.io/api/integrator/pk_test_doesnotexist000/native": {
+            "status": 404,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "no-store"
+            },
+            "body": "{\"ok\":false,\"reason\":\"project_not_found\"}"
+        },
+        "https://me.ochk.io/api/integrator/config?project_key=pk_test_doesnotexist000": {
+            "status": 404,
+            "headers": {
+                "content-type": "application/json; charset=utf-8",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://insights.ochk.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: mediastream:; font-src 'self' data:; connect-src 'self' https://insights.ochk.io https://ochk.io https://attest.ochk.io https://mempool.space https://blockstream.info; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "body": "{\"ok\":false,\"reason\":\"project_not_found\",\"project_key\":\"pk_test_doesnotexist000\"}"
+        },
+        "https://cloudflare-dns.com/dns-query?name=ochk.io&type=TXT": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/dns-json"
+            },
+            "body": "{\"Status\":0,\"TC\":false,\"RD\":true,\"RA\":true,\"AD\":false,\"CD\":false,\"Question\":[{\"name\":\"ochk.io\",\"type\":16}],\"Answer\":[{\"name\":\"ochk.io\",\"type\":16,\"TTL\":244,\"data\":\"\\\"v=spf1 include:_spf.google.com ~all\\\"\"},{\"name\":\"ochk.io\",\"type\":16,\"TTL\":244,\"data\":\"\\\"oc-verify=2dfdd2d9679d75442d3ceef7ae068fc64a8cbb09b638a32b\\\"\"},{\"name\":\"ochk.io\",\"type\":16,\"TTL\":244,\"data\":\"\\\"google-site-verification=Wlrpl40U7tKGWOE96dAdEiKvf0FHtrgu-5L_7zf2J1s\\\"\"}]}"
+        },
+        "https://cloudflare-dns.com/dns-query?name=oc-onboarding-examples.vercel.app&type=TXT": {
+            "status": 200,
+            "headers": {
+                "content-type": "application/dns-json"
+            },
+            "body": "{\"Status\":0,\"TC\":false,\"RD\":true,\"RA\":true,\"AD\":false,\"CD\":false,\"Question\":[{\"name\":\"oc-onboarding-examples.vercel.app\",\"type\":16}],\"Authority\":[{\"name\":\"vercel.app\",\"type\":6,\"TTL\":843,\"data\":\"ns1.vercel-dns-3.com. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400\"}]}"
+        },
+        "https://oc-onboarding-examples.vercel.app/": {
+            "status": 200,
+            "headers": {
+                "content-type": "text/html; charset=utf-8",
+                "cross-origin-opener-policy": "same-origin-allow-popups",
+                "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'",
+                "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate"
+            },
+            "body": "<!DOCTYPE html><html lang=\"en\" data-dpl-id=\"dpl_34f1FjnZhLBa8A33UrME3Gpn7h4v\"><head><meta charSet=\"utf-8\" data-next-head=\"\"/><meta name=\"viewport\" content=\"width=device-width\" data-next-head=\"\"/><title data-next-head=\"\">Home · Example site</title><meta name=\"robots\" content=\"noindex\" data-next-head=\"\"/><meta name=\"oc-domain-verify\" content=\"e36045efea5cf9344183b7b24fe09078ad4f834b3c9cff1f\"/><link rel=\"preload\" href=\"/_next/static/immutable/chunks/0cc_3nydmj3ed.css\" as=\"style\"/><link rel=\"stylesheet\" href=\"/_next/static/immutable/chunks/0cc_3nydmj3ed.css\" data-n-g=\"\"/><noscript data-n-css=\"\"></noscript><script>(globalThis[\"TURBOPACK\"] || (globalThis[\"TURBOPACK\"] = [])).push({\"otherChunks\":[\"static/immutable/chunks/0v0o872jdarn0.js\",\"static/immutable/chunks/3pwrslpx4mlvt.js\",\"static/immutable/chunks/2ii7lbpaz8rkz.js\",\"static/immutable/chunks/2zymzg1gscdiq.js\",\"static/immutable/chunks/0cc_3nydmj3ed.css\"],\"runtimeModuleIds\":[2220,6784]});\n(globalThis[\"TURBOPACK\"] || (globalThis[\"TURBOPACK\"] = [])).push({\"otherChunks\":[\"static/immutable/chunks/04pi68iu1ft-z.js\"],\"runtimeModuleIds\":[2220,5856]});</script><script src=\"/_next/static/immutable/chunks/0v0o872jdarn0.js\" defer=\"\"></script><script src=\"/_next/static/immutable/chunks/3pwrslpx4mlvt.js\" defer=\"\"></script><script src=\"/_next/static/immutable/chunks/2ii7lbpaz8rkz.js\" defer=\"\"></script><script src=\"/_next/static/immutable/chunks/2zymzg1gscdiq.js\" defer=\"\"></script><script src=\"/_next/static/immutable/chunks/turbopack-1byz1flvc-bu1.js\" defer=\"\"></script><script src=\"/_next/static/immutable/chunks/04pi68iu1ft-z.js\" defer=\"\"></script><script src=\"/_next/static/build-TfctsWXpff2fKS/_buildManifest.js?dpl=dpl_34f1FjnZhLBa8A33UrME3Gpn7h4v\" defer=\"\"></script><script src=\"/_next/static/build-TfctsWXpff2fKS/_ssgManifest.js?dpl=dpl_34f1FjnZhLBa8A33UrME3Gpn7h4v\" defer=\"\"></script><script src=\"/_next/static/build-TfctsWXpff2fKS/_clientMiddlewareManifest.js?dpl=dpl_34f1FjnZhLBa8A33UrME3Gpn7h4v\" defer=\"\"></script></head><body><div id=\"__next\"><header class=\"top\"><a class=\"brand\" href=\"/\">Example site</a><nav><a href=\"/signin\">Sign in</a></nav></header><p class=\"banner\" role=\"status\">This copy only proves the domain. <a href=\"https://github.com/orangecheck/oc-onboarding-examples/tree/main/node-next#run-it-offline\">Run it yourself</a> to sign in.</p><main><h1>A site with its own login, and orangecheck behind it.</h1><p class=\"lead\">This is a reference: fork it, run it, and read how each step works. It walks the whole funnel a person meets.</p><ol class=\"funnel\"><li><strong>Sign up with this site’s own login.</strong> An email and a password, kept here.</li><li><strong>Get an orangecheck account through Connect.</strong> Without asking, or with an opt-in box: you choose which.</li><li><strong>Claim it at ochk.app.</strong> Then it is the person’s, to use on other sites or delete.</li><li><strong>Sign in with orangecheck.</strong> On its own, or linked to the account they already have here.</li><li><strong>Move to their own keys.</strong> Not open yet: orangecheck holds every key that can move funds while the system is in testing. See<!-- --> <a href=\"https://ochk.app/custody\">ochk.app/custody</a>.</li></ol><p class=\"actions\"><a class=\"button\" href=\"/signup\">Sign up</a><a class=\"button quiet\" href=\"/signin\">Sign in</a></p></main></div><script id=\"__NEXT_DATA__\" type=\"application/json\">{\"props\":{\"pageProps\":{\"info\":{\"mode\":\"live\",\"endedSessionsChecked\":true,\"proofOnly\":true},\"signedIn\":false},\"__N_SSP\":true},\"page\":\"/\",\"query\":{},\"buildId\":\"build-TfctsWXpff2fKS\",\"isFallback\":false,\"isExperimentalCompile\":false,\"gssp\":true,\"scriptLoader\":[]}</script></body></html>"
+        },
+        "http://oc-onboarding-examples.vercel.app/": {
+            "status": 308,
+            "headers": {
+                "content-type": "text/plain",
+                "location": "https://oc-onboarding-examples.vercel.app/"
+            },
+            "body": "Redirecting..."
+        },
+        "https://www.ochk.io/": {
+            "status": 308,
+            "headers": {
+                "content-type": "text/plain",
+                "location": "https://ochk.io/",
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
+            "body": "Redirecting...\n"
+        },
+        "http://ochk.io/": {
+            "status": 308,
+            "headers": {
+                "content-type": "text/plain",
+                "location": "https://ochk.io/"
+            },
+            "body": "Redirecting..."
+        }
+    }
+}
