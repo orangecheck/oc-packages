@@ -417,6 +417,8 @@ class _AudienceList:
             + quote(aud, safe="-_.!~*'()")
         )
         self._handles: dict[str, float] = {}
+        # An account's ended tokens folded at this audience: it ends a token by its sub, never a handle's session.
+        self._accounts: dict[str, float] = {}
         self._tokens: frozenset[str] = frozenset()
         self._at: Optional[float] = None
         # How old the list already was when fetched, by the wall clock.
@@ -454,8 +456,9 @@ class _AudienceList:
                 raise ValueError("revocations: unexpected body")
             if not all(isinstance(t, str) for t in doc["tokens"]):
                 raise ValueError("revocations: a token key is not a string")
-            _cutoffs(doc.get("accounts"), "accounts")
+            accounts = _cutoffs(doc.get("accounts"), "accounts")
             self._handles = _cutoffs(doc.get("handles"), "handles")
+            self._accounts = accounts
             self._tokens = frozenset(doc["tokens"])
             at: Any = doc.get("at")
             self._at = float(at) if _finite(at) else None
@@ -498,7 +501,7 @@ class _AudienceList:
                 return WarmPart("failed", problem)
             return _FETCHED if self._fetched_at != before else _KEPT
 
-    def status(self, rh: str, iat: Optional[float], jti: Optional[str] = None) -> str:
+    def status(self, rh: str, iat: Optional[float], jti: Optional[str] = None, sub: Optional[str] = None) -> str:
         with self._lock:
             self._refresh()
             if self._fetched_at is None:
@@ -506,6 +509,10 @@ class _AudienceList:
             # A token known to be ended stays ended, however old the copy.
             if isinstance(jti, str) and revocation_key("jti", jti) in self._tokens:
                 return "revoked"
+            if isinstance(sub, str):
+                folded = self._accounts.get(revocation_key("sub", sub))
+                if folded is not None and not (iat is not None and iat >= folded):
+                    return "revoked"
             cutoff = self._handles.get(rh)
             if cutoff is not None and not (iat is not None and iat >= cutoff):
                 return "revoked"
@@ -570,16 +577,19 @@ class RevocationList:
         """
         ``status`` for a token's claims, as ``integratorRevocationCheck`` reads them: a
         token with no ``rh`` key is ``"live"``, and ``"rh": null`` is a handle that is
-        not a string, so ``"revoked"``. :func:`verify_session` uses this.
+        not a string, so ``"revoked"``. :func:`verify_session` uses this. A token is
+        also ended by its account's cutoff in the list's ``accounts`` (its ended
+        tokens at this audience, folded), read against its ``sub``; ``status``, which
+        takes no ``sub``, never applies it to a session you started from a token.
         """
         if "rh" not in claims:
             return "live"
-        return self._status(claims["rh"], claims.get("aud"), claims.get("iat"), claims.get("jti"))
+        return self._status(claims["rh"], claims.get("aud"), claims.get("iat"), claims.get("jti"), claims.get("sub"))
 
-    def _status(self, rh: Any, aud: Any, iat: Optional[float], jti: Any = None) -> str:
+    def _status(self, rh: Any, aud: Any, iat: Optional[float], jti: Any = None, sub: Any = None) -> str:
         if not isinstance(rh, str) or not rh or not isinstance(aud, str) or not aud:
             return "revoked"
-        return self._list(aud).status(rh, iat, jti)
+        return self._list(aud).status(rh, iat, jti, sub)
 
 
 # ─── who may sign in (coin backing) ──────────────────────────────────────
