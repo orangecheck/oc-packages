@@ -216,11 +216,19 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.4.0.tgz#e6a3e98edbed3c8659b28bb8f9b18ca02ec8ea4b"
   integrity sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==
 
-"@orangecheck/auth-core@^2.26.1", "@orangecheck/auth-core@^2.27.0":
+"@orangecheck/auth-core@^2.27.0":
   version "2.27.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.27.0.tgz#02569bc54958089bb66d017a2ef8ccaf1f639a54"
   integrity sha512-kf+5qNDG9hSgmR3PKk88EgHrxGEF95jNeKjTDri6t0K9PxRBNZTRMEc4bIs8yulp+OS03PH2AS05iij3eI2QOw==
   dependencies:
+    jose "^6.2.2"
+
+"@orangecheck/auth-core@^2.32.0":
+  version "2.33.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.33.1.tgz#23a5e70c8fe716a417493e2d1ad596cdd854b373"
+  integrity sha512-AmAMyzZWRL27pAOvm5kqxBPGEROar6Vqk7tzHeuFmnRgp3pWA3PN/f/N1MEJqWnC27IESHVkV0CbBss4ic2gXw==
+  dependencies:
+    "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
 
 "@orangecheck/bip322@^1.1.3":
@@ -272,12 +280,12 @@
     "@noble/curves" "^1.6.0"
     "@orangecheck/lock-crypto" "^0.1.0"
 
-"@orangecheck/me-client@^0.59.0":
-  version "0.59.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.59.0.tgz#ca64b3eb2bfb7411efed2b4cc1abacd40db81837"
-  integrity sha512-f4rIOHFyoK++X1BYVBOiSV1xDZS41KIGjy0rgfwX3qpgQ+h0/SbmyX938oTT3E7a3YbLSEgOw6ciErGWDvFZIA==
+"@orangecheck/me-client@^0.63.0":
+  version "0.63.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.63.0.tgz#ed779c43af47265a6f35e8bae64cf781cde864d1"
+  integrity sha512-C1bAgdb+WqjCd8CKW2GzNSNVA5KtstuPBis0vdxO7QToLGzik2a+COXVGgmSNxMFkVxEy0gzmoESgIPoszSahA==
   dependencies:
-    "@orangecheck/auth-core" "^2.26.1"
+    "@orangecheck/auth-core" "^2.32.0"
 
 "@orangecheck/nostr-core@^0.8.2":
   version "0.8.3"
@@ -299,7 +307,7 @@
     "@scure/base" "^1.1.9"
     buffer "^6.0.3"
 
-"@orangecheck/stamp-core@^1.0.0":
+"@orangecheck/stamp-core@1.4.0", "@orangecheck/stamp-core@^1.0.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.4.0.tgz#7991ab7b2af1cd178b13e44cd30ba8534d1e58b3"
   integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==

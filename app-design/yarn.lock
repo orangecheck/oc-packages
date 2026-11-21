@@ -893,10 +893,18 @@
     "@orangecheck/wallet-adapter" "^0.8.0"
     "@simplewebauthn/browser" "^13.3.0"
 
-"@orangecheck/auth-core@^2.24.0", "@orangecheck/auth-core@^2.26.1":
+"@orangecheck/auth-core@^2.24.0":
   version "2.32.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.32.0.tgz#1bb802907e861c1f90968188b746979543bc1f0e"
   integrity sha512-1SRmkDoLtp4cMANT18Sh0SKK4LXOIFOBMIknxmch5hkaEbrK0y+ZjomOIOSRjb0Sqiz/pXVF9QwJNXrLJI9HdA==
+  dependencies:
+    "@orangecheck/stamp-core" "1.4.0"
+    jose "^6.2.2"
+
+"@orangecheck/auth-core@^2.32.0":
+  version "2.33.1"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.33.1.tgz#23a5e70c8fe716a417493e2d1ad596cdd854b373"
+  integrity sha512-AmAMyzZWRL27pAOvm5kqxBPGEROar6Vqk7tzHeuFmnRgp3pWA3PN/f/N1MEJqWnC27IESHVkV0CbBss4ic2gXw==
   dependencies:
     "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
@@ -915,12 +923,12 @@
   resolved "https://registry.yarnpkg.com/@orangecheck/mark/-/mark-0.4.0.tgz#3a3ebf7696f03b07712510a0aba6ae498eaf6a0d"
   integrity sha512-BOzoMpXZ7hRI+MyTMTuMwzQGJ4qqo8N6WyYa+LYhK3uA96YCyh+xqQsPVOGEcb+r4f33mPowX4JqWwiWxXihgg==
 
-"@orangecheck/me-client@^0.59.0":
-  version "0.59.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.59.0.tgz#ca64b3eb2bfb7411efed2b4cc1abacd40db81837"
-  integrity sha512-f4rIOHFyoK++X1BYVBOiSV1xDZS41KIGjy0rgfwX3qpgQ+h0/SbmyX938oTT3E7a3YbLSEgOw6ciErGWDvFZIA==
+"@orangecheck/me-client@^0.63.0":
+  version "0.63.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/me-client/-/me-client-0.63.0.tgz#ed779c43af47265a6f35e8bae64cf781cde864d1"
+  integrity sha512-C1bAgdb+WqjCd8CKW2GzNSNVA5KtstuPBis0vdxO7QToLGzik2a+COXVGgmSNxMFkVxEy0gzmoESgIPoszSahA==
   dependencies:
-    "@orangecheck/auth-core" "^2.26.1"
+    "@orangecheck/auth-core" "^2.32.0"
 
 "@orangecheck/stamp-core@1.4.0":
   version "1.4.0"
@@ -928,13 +936,6 @@
   integrity sha512-bewIib2F0hNWHM9iwtXH9B/MyE7HG0wKwLalqNqnylbz3ZxpMD6CyWqpH5s3sbOa+euWT4MXPzh23GDWorM7dw==
   dependencies:
     "@noble/hashes" "^1.5.0"
-
-"@orangecheck/wallet-adapter@^0.7.0":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@orangecheck/wallet-adapter/-/wallet-adapter-0.7.2.tgz#9a902fb385657107eae94024bf532eafa27f083a"
-  integrity sha512-1Rk1vWkCrHA5IRFqAbj35oHLs1du8HsZl/xhQH3ARV8zed8nIXl50vhJuzD3B3tNwiv62Z5a9ZjdXY/uSs0qsA==
-  dependencies:
-    "@orangecheck/bip322" "^1.1.0"
 
 "@orangecheck/wallet-adapter@^0.8.0":
   version "0.8.0"
