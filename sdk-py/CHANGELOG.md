@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [3.20.0] — 2026-11-21
+
+### Added
+
+- **`verify_session` and `RevocationList.status_for` read the list's
+  `accounts`.** Past its newest 16, an account's ended tokens at your origin
+  come as one cutoff there, under the feed key of the `sub` they carry
+  (`revocation_key("sub", sub)`). A token of that account issued before it is
+  `"revoked"`. `status(rh, aud, iat)`, which you call for a session you started
+  from a token, takes no `sub` and never reads it. As
+  `@orangecheck/auth-core`'s `integratorRevocationCheck` reads it.
+
 ## [3.19.0] — 2026-11-20
 
 ### Added

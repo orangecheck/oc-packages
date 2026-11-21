@@ -361,6 +361,26 @@ def test_verify_session_refuses_a_session_whose_handle_is_ended() -> None:
 
 
 @respx.mock
+def test_a_folded_cutoff_ends_the_token_and_never_a_session_asked_about_by_handle() -> None:
+    # An account's ended tokens at this audience, folded: me.ochk.io serves the cutoff in
+    # `accounts`, under the feed key of the tokens' sub, as auth-core reads it.
+    v = _rh_vector()
+    url = f"https://me.ochk.io/api/integrator/revocations?project_key={R['request']['project_key']}&aud={quote(v['audience'], safe='')}"
+    respx.get(url).mock(return_value=httpx.Response(200, json={
+        "v": 1, "at": V["now"], "tokens": [], "handles": {},
+        "accounts": {revocation_key("sub", v["claims"]["sub"]): v["claims"]["iat"] + 1},
+    }))
+    rl = _revocations()
+    # The token itself, at the exchange or kept as the session: ended.
+    with pytest.raises(SessionEnded):
+        verify_session(v["token"], v["audience"], jwks=V["session"]["jwks"], revocations=rl)
+    # A session the site started from it, asked about by rh, aud and iat: live.
+    assert rl.status(v["claims"]["rh"], v["audience"], v["claims"]["iat"]) == "live"
+    # A token of that account issued at or after the cutoff: live.
+    assert rl.status_for({**v["claims"], "iat": v["claims"]["iat"] + 1}) == "live"
+
+
+@respx.mock
 def test_verify_session_keeps_reads_refuses_writes_and_warns_once_while_the_list_cannot_be_read(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
