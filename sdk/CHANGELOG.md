@@ -9,6 +9,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `verifyChallenge()` also accepts a signature over the challenge without its
+  final LF. Sparrow on every sign path, Electrum's GUI, Nunchuk on Android and
+  Bitcoin Keeper trim the text before they sign it, and for a challenge whose
+  last value does not end in a space that removes exactly the final LF. Those
+  two texts are the only ones tried: a signature over the challenge with an
+  extra LF, CRLF line ends or a leading space is still `sig_invalid`, and the
+  message passed in is read as before.
+
 ## [1.26.2] — 2026-11-10
 
 ### Changed

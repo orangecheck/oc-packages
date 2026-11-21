@@ -158,6 +158,8 @@ export function issueChallenge(opts: IssueChallengeOptions): Challenge {
 }
 
 interface ParsedChallenge {
+    /** The canonical text, LF-ended, whether or not the message carried its final LF. */
+    text: string;
     address?: string;
     nonce?: string;
     issuedAt?: Date;
@@ -229,6 +231,7 @@ function parseChallenge(message: string): ParsedChallenge {
     }
     return {
         ...fieldsRead,
+        text,
         audience: extensions.find(([key]) => key === 'audience')?.[1],
         purpose: extensions.find(([key]) => key === 'purpose')?.[1],
     };
@@ -287,7 +290,9 @@ export interface VerifyChallengeResult {
 }
 
 /**
- * Verify a signed challenge. Returns the proven address on success.
+ * Verify a signed challenge. Returns the proven address on success. The signature may cover the
+ * canonical text or that text without its final LF, which is what a wallet that trims signs, and
+ * nothing else.
  *
  * The caller is responsible for nonce replay prevention — pass `expectedNonce`
  * with the value you stashed at issue time.
@@ -302,7 +307,7 @@ export async function verifyChallenge(
         return { ok: false, reason: 'malformed' };
     }
 
-    const { address, nonce, issuedAt, expiresAt, ack, audience, purpose } = parsed;
+    const { text, address, nonce, issuedAt, expiresAt, ack, audience, purpose } = parsed;
     if (!address || !nonce || !issuedAt || !expiresAt || !ack) {
         return { ok: false, reason: 'malformed' };
     }
@@ -336,7 +341,11 @@ export async function verifyChallenge(
     const sigBase64 = toBase64Maybe(opts.signature);
     const scheme = signatureScheme(sigBase64);
     if (!scheme) return { ok: false, reason: 'sig_unsupported_scheme' };
-    if (!verifyBitcoinSignature(address, opts.message, sigBase64)) {
+    // Sparrow, Electrum's GUI, Nunchuk Android and Keeper trim before signing: the final LF goes.
+    if (
+        !verifyBitcoinSignature(address, text, sigBase64) &&
+        !verifyBitcoinSignature(address, text.slice(0, -1), sigBase64)
+    ) {
         return { ok: false, reason: 'sig_invalid' };
     }
 
