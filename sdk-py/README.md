@@ -292,8 +292,10 @@ token stays valid until it expires.
 
 `issuer=` on `verify_session`, `check_oc_session`, `warm_session` and
 `revoke_token` names another auth host, such as a test stack's (3.2.0 or
-later): keys are fetched from `<issuer>/.well-known/jwks.json`, over https
-(http only on localhost). `jwks=` given explicitly wins, and nothing is fetched.
+later): keys are fetched from `<issuer>/.well-known/jwks.json`. The issuer, and
+`me_origin`, is one origin with no path: https, or http on `localhost`,
+`127.0.0.1` or `[::1]`; anything else raises ValueError before a request.
+`jwks=` given explicitly wins, and nothing is fetched.
 
 ### Sign in from an app on the person's device
 

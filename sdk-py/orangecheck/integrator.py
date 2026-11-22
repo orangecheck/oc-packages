@@ -35,7 +35,7 @@ import weakref
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote
 
 import httpx
 from cryptography.exceptions import InvalidSignature
@@ -296,29 +296,30 @@ _session_keys = _KeySet(SESSION_JWKS_URL)
 _webhook_keys = _KeySet(WEBHOOK_JWKS_URL)
 #: Key sets of issuers other than ochk.io (a test stack's auth host), by issuer.
 _issuer_keys: dict[str, _KeySet] = {}
-_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_OCTET = "(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
+_LABEL = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+# A name's last label starts with a letter, so a URL parser never reads it as an IPv4 address.
+_HOST = rf"\[::1\]|(?:{_OCTET}\.){{3}}{_OCTET}|(?:{_LABEL}\.)*[a-z](?:[a-z0-9-]{{0,61}}[a-z0-9])?"
+_ORIGIN = re.compile(rf"(https?)://({_HOST})(?::([1-9][0-9]{{0,4}}))?")
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]"})
+_ORIGIN_RULE = "one origin with no path: https, or http on localhost, 127.0.0.1 or [::1]"
 
 
-def _issuer_origin(issuer: str) -> str:
-    """An issuer as one origin, ``scheme://host[:port]``: https, or http on this machine only.
-    A path, a query, a fragment or a user name would send requests somewhere else on the
-    host (or carry credentials), so each is refused. A trailing slash is allowed."""
-    try:
-        parts = urlsplit(issuer) if isinstance(issuer, str) else None
-    except ValueError:
-        parts = None
-    if (
-        parts is None
-        or any(c in issuer for c in "?#@\\")
-        or parts.path not in ("", "/")
-        or not parts.hostname
-        or not (parts.scheme == "https" or (parts.scheme == "http" and parts.hostname in _LOCAL_HOSTS))
+def _issuer_origin(issuer: object, name: str = "issuer") -> str:
+    """An issuer, or where me.ochk.io is, as one origin, ``scheme://host[:port]`` in lower case:
+    https, or http on localhost, 127.0.0.1 or [::1] only. One trailing slash is dropped; a path,
+    a query, a fragment, a user name, the scheme's own port, space or any character outside
+    printable ASCII is refused. auth-core's ``parseIssuerOrigin`` takes the same set
+    (``auth-core/test-vectors/issuer-origin.json``)."""
+    origin = ""
+    if isinstance(issuer, str) and all("!" <= c <= "~" for c in issuer):
+        origin = issuer[:-1].lower() if issuer.endswith("/") else issuer.lower()
+    m = _ORIGIN.fullmatch(origin)
+    if m is None or (m[1] == "http" and m[2] not in _LOCAL_HOSTS) or (
+        m[3] is not None and (int(m[3]) > 65535 or m[3] == ("443" if m[1] == "https" else "80"))
     ):
-        raise ValueError(
-            f"issuer must be one https origin (http only on localhost), such as https://ochk.io, got {issuer!r}; "
-            "pass jwks= to verify offline"
-        )
-    return f"{parts.scheme}://{parts.netloc}"
+        raise ValueError(f"{name} must be {_ORIGIN_RULE}; got {issuer!r}")
+    return origin
 
 
 def _issuer_url(issuer: str) -> str:
@@ -544,7 +545,13 @@ class RevocationList:
                 raise ValueError(f"RevocationList: {name} must be one non-empty string")
         self._project_key = project_key
         self._secret = signing_secret
-        self._base = url[: -len("/api/integrator/revocations")] if url.endswith("/api/integrator/revocations") else url
+        path = "/api/integrator/revocations"
+        base = url[: -len(path)] if isinstance(url, str) and url.endswith(path) else url
+        try:
+            # Where me.ochk.io is, as me_origin is: the requests signed with the secret go there.
+            self._base = _issuer_origin(base, "its origin")
+        except ValueError as err:
+            raise ValueError(f"RevocationList: url must be <origin>{path}, {err}") from err
         self._lists: dict[str, _AudienceList] = {}
         self._warned = False
         self._new_locks()
@@ -676,11 +683,13 @@ class SignInPolicy:
     it, the last one read stands for ten minutes; with none read in that time,
     sign-in is refused (reason ``bond_policy_unavailable``) rather than let
     through unchecked. A key that names no project is refused with reason
-    ``unknown_project_key``.
+    ``unknown_project_key``. ``me_origin`` is one origin with no path, as an
+    issuer is; anything else raises ValueError here, before any request.
     """
 
     def __init__(self, project_key: str, *, me_origin: str = "https://me.ochk.io"):
-        self._url = me_origin.rstrip("/") + "/api/integrator/" + quote(project_key, safe="") + "/sign-in"
+        origin = _issuer_origin(me_origin, "me_origin")
+        self._url = origin + "/api/integrator/" + quote(project_key, safe="") + "/sign-in"
         self._need: Optional[dict[str, int]] = None
         self._read_at: Optional[float] = None
         self._read_wall = float("-inf")
@@ -867,9 +876,11 @@ def verify_session(
     (``https://your-site.example``, or ``http://localhost:5173`` while you
     develop). A token issued to any other origin, or a family token with no
     ``aud`` at all, is refused. The key set is fetched from
-    ``<issuer>/.well-known/jwks.json`` (``https://ochk.io``'s by default, over
-    https; http only on localhost) and cached for an hour; pass ``jwks`` to
-    verify offline, and it wins over the fetch.
+    ``<issuer>/.well-known/jwks.json`` (``https://ochk.io``'s by default) and
+    cached for an hour. The issuer is one origin with no path: https, or http
+    on localhost, 127.0.0.1 or [::1]; anything else raises ValueError before
+    the token is read. Pass ``jwks`` to verify offline, and it wins over the
+    fetch.
 
     Raises :class:`InvalidSession` on any failure. The token proves who signed
     in until it expires (up to 30 days). Pass ``revocations`` (a
@@ -888,6 +899,12 @@ def verify_session(
         raise TypeError("require_handle must be True or False")
     if require_bond is not None:
         _need_from(require_bond)
+    if jwks is None:
+        # A mistake in the call: answering malformed or issuer would sign out every user.
+        try:
+            _issuer_origin(issuer)
+        except ValueError as err:
+            raise ValueError(f"{err}; pass jwks= to verify offline") from err
     parts = token.split(".") if isinstance(token, str) else []
     if len(parts) != 3:
         raise InvalidSession("malformed")
