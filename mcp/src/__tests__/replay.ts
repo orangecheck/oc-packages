@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { Lookup } from '../domain.js';
+import type { DomainDeps, Lookup, Pin } from '../domain.js';
 import type { FetchLike } from '../http.js';
 
 // Recorded answers from the real endpoints (scripts/record-fixtures.mjs), replayed with no network.
@@ -80,4 +80,17 @@ export function lookupWith(missing: string[] = [], privateHosts: Record<string, 
         }
         return ['93.184.216.10'];
     };
+}
+
+/** A pin that fetches through the replay and records the addresses each connection was given. */
+export function pinVia(fetch: FetchLike, pins: string[][] = []): Pin {
+    return (addresses) => {
+        pins.push(addresses);
+        return { fetch, close: async () => undefined };
+    };
+}
+
+/** Deps for the domain and site checks, answered from the replay. */
+export function site(fetch: FetchLike, lookup: Lookup = lookupWith()): DomainDeps {
+    return { fetch, lookup, pin: pinVia(fetch) };
 }

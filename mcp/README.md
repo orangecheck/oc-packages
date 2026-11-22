@@ -10,7 +10,7 @@ claude mcp add orangecheck -- npx -y @orangecheck/mcp
 
 Then ask: _"Add sign in with orangecheck to this Next.js app"_, or _"Is https://yourapp.example ready for real people to sign in?"_
 
-Docs: [ochk.io/docs/integration/mcp](https://ochk.io/docs/integration/mcp). Node 20 or later.
+Docs: [ochk.io/docs/integration/mcp](https://ochk.io/docs/integration/mcp). Node 20.18.1 or later.
 
 ---
 
@@ -117,7 +117,7 @@ All seven are read-only.
 - `https://ochk.io/docs`: `llms.txt`, `llms-full.txt` and each page's `.md` copy, kept for ten minutes.
 - `https://me.ochk.io/api/integrator/…`: a project's public endpoints (config, identity, sign-in, native). They need no credential; a project key is not a secret.
 - `https://cloudflare-dns.com/dns-query`: the TXT lookup, as me.ochk.io makes it.
-- The site you name, for `check_setup` and `check_domain_verification`. It refuses IP addresses, and any host that resolves to a private or local address. It follows a redirect only to the same domain or its www twin.
+- The site you name, for `check_setup` and `check_domain_verification`. It refuses IP addresses, and any host that resolves to a private or local address, and connects only to the addresses it checked. It follows a redirect only to the same domain or its www twin.
 
 Each request carries `User-Agent: orangecheck-mcp/<version>`. Nothing else is sent anywhere: no telemetry, no account, no key.
 

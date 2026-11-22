@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Docs } from '../docs.js';
 import type { FetchLike } from '../http.js';
 import { createServer } from '../server.js';
-import { EXAMPLES_TOKEN, FIXTURE_KEY, lookupWith, replay, respond } from './replay.js';
+import { EXAMPLES_TOKEN, FIXTURE_KEY, replay, respond, site } from './replay.js';
 
 const open: Client[] = [];
 afterEach(async () => {
@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 async function connect(fetch: FetchLike = replay().fetch): Promise<Client> {
-    const server = createServer({ fetch, lookup: lookupWith(), docs: new Docs({ fetch }) });
+    const server = createServer({ ...site(fetch), docs: new Docs({ fetch }) });
     const [a, b] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: 'test', version: '0.0.0' });
     await server.connect(a);

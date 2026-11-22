@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Docs } from '../docs.js';
 import { checkSetup, formatSetup, type Finding } from '../setup.js';
-import { FIXTURE_KEY, lookupWith, netError, replay, respond } from './replay.js';
+import { FIXTURE_KEY, lookupWith, netError, replay, respond, site } from './replay.js';
 
 const EXAMPLES = 'https://oc-onboarding-examples.vercel.app/';
 
@@ -10,7 +10,7 @@ const byCheck = (fs: Finding[], check: string) => fs.filter((f) => f.check === c
 
 function deps(overrides = {}, missing: string[] = []) {
     const { fetch, calls } = replay(overrides);
-    return { deps: { fetch, lookup: lookupWith(missing), docs: new Docs({ fetch }) }, calls };
+    return { deps: { ...site(fetch, lookupWith(missing)), docs: new Docs({ fetch }) }, calls };
 }
 
 describe('checkSetup on a real, working site', () => {

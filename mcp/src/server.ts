@@ -1,16 +1,19 @@
 import { McpServer, ResourceTemplate, type CallToolResult } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
-import { checkDomain, defaultLookup, formatDomainCheck, type Lookup } from './domain.js';
+import { checkDomain, defaultLookup, formatDomainCheck, type Lookup, type Pin } from './domain.js';
 import { Docs, DOCS_URL, LLMS_URL, mdUrl, pageUrl, parsePageRef, readPart, search } from './docs.js';
 import { buildGuide, STACKS } from './guide.js';
 import { UpstreamError, VERSION, type FetchLike } from './http.js';
+import { pinnedFetch } from './pinned.js';
 import { formatProject, readProject } from './project.js';
 import { checkSetup, formatSetup } from './setup.js';
 
 export interface ServerOptions {
     fetch?: FetchLike;
     lookup?: Lookup;
+    /** How a site the user names is fetched: by default over a connection to the addresses lookup checked. */
+    pin?: Pin;
     /** Shared across servers in tests; one per process otherwise. */
     docs?: Docs;
 }
@@ -37,6 +40,7 @@ const DOCS_DOWN = `Until it answers, open ${DOCS_URL} in a browser. Don't write 
 export function createServer(opts: ServerOptions = {}): McpServer {
     const fetchImpl: FetchLike = opts.fetch ?? ((input, init) => fetch(input, init));
     const lookup = opts.lookup ?? defaultLookup;
+    const pin = opts.pin ?? pinnedFetch;
     const docs = opts.docs ?? new Docs({ fetch: fetchImpl });
 
     const server = new McpServer(
@@ -195,7 +199,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
         },
         async ({ domain, token }) => {
             try {
-                return text(formatDomainCheck(await checkDomain({ fetch: fetchImpl, lookup }, domain, token)));
+                return text(formatDomainCheck(await checkDomain({ fetch: fetchImpl, lookup, pin }, domain, token)));
             } catch (err) {
                 return failure(err);
             }
@@ -217,7 +221,7 @@ export function createServer(opts: ServerOptions = {}): McpServer {
         },
         async ({ site, project_key, token }) => {
             try {
-                return text(formatSetup(await checkSetup({ fetch: fetchImpl, lookup, docs }, { site, projectKey: project_key, token })));
+                return text(formatSetup(await checkSetup({ fetch: fetchImpl, lookup, pin, docs }, { site, projectKey: project_key, token })));
             } catch (err) {
                 return failure(err);
             }

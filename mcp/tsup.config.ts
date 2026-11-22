@@ -15,5 +15,5 @@ export default defineConfig({
     clean: true,
     treeshake: true,
     minify: false,
-    external: ['@modelcontextprotocol/server', 'zod'],
+    external: ['@modelcontextprotocol/server', 'undici', 'zod'],
 });

@@ -1,6 +1,6 @@
 /** The one way this server reads the network: a timeout, a size cap and errors that say what failed. */
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 export const USER_AGENT = `orangecheck-mcp/${VERSION} (+https://ochk.io/docs/integration/mcp)`;
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
