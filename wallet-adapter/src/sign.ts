@@ -1,6 +1,6 @@
 import { verifySignature } from "@orangecheck/bip322";
 
-import { toWalletError, WalletNotFoundError } from "./failure";
+import { toWalletError, TrimmedSignatureError, WalletNotFoundError } from "./failure";
 import type { SignFn, SignOptions, WalletId } from "./types";
 
 /**
@@ -49,16 +49,34 @@ export async function verifyBip322({
   return HEX_RE.test(sig) && sig.length % 2 === 0 && check(hexToBase64(sig));
 }
 
+/** The header of an `@orangecheck/sdk` auth challenge. */
+const AUTH_CHALLENGE = "orangecheck-auth\n";
+
 /**
  * Throw `WrongAccountError` unless `signature` is a valid BIP-322 (or legacy)
  * signature of `message` by `address`. Every signer runs this before returning.
+ * A wallet that trims (Sparrow, Electrum's GUI) signs a message without its
+ * final LF: that passes for an auth challenge, which `@orangecheck/sdk` 1.27.0
+ * verifies, and throws `TrimmedSignatureError` for any other message.
  */
 export async function assertSignedBy(args: {
   address: string;
   message: string;
   signature: string;
 }): Promise<void> {
-  if (!(await verifyBip322(args))) throw new WrongAccountError(args.address);
+  if (await verifyBip322(args)) return;
+  const { message } = args;
+  if (!message.endsWith("\n")) throw new WrongAccountError(args.address);
+  const bare = message.slice(0, -1);
+  if (await verifyBip322({ ...args, message: bare })) {
+    if (message.startsWith(AUTH_CHALLENGE)) return;
+    throw new TrimmedSignatureError();
+  }
+  const trimmed = message.trim();
+  if (trimmed !== bare && (await verifyBip322({ ...args, message: trimmed }))) {
+    throw new TrimmedSignatureError();
+  }
+  throw new WrongAccountError(args.address);
 }
 
 /** Signatures from every supported wallet are either base64 or hex. Anything

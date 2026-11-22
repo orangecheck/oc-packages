@@ -28,6 +28,7 @@ export {
 export {
     MessageChangedError,
     toWalletError,
+    TrimmedSignatureError,
     WalletNotFoundError,
     WalletRejectedError,
     walletFailure,

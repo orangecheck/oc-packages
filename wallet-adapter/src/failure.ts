@@ -11,6 +11,7 @@ export type WalletFailure =
   | "not-found"
   | "timed-out"
   | "changed"
+  | "trimmed"
   | "other";
 
 /** The person declined the request in their wallet. */
@@ -31,6 +32,18 @@ export class MessageChangedError extends Error {
   constructor(message = "the message changed while the wallet signed") {
     super(message);
     this.name = "MessageChangedError";
+  }
+}
+
+/**
+ * The wallet signed the message without its last line break, as Sparrow and Electrum's GUI do
+ * when they trim it, and only an auth challenge verifies that way.
+ */
+export class TrimmedSignatureError extends Error {
+  readonly code = "E_TRIMMED_SIGNATURE" as const;
+  constructor(message = "the wallet signed the message without its last line break") {
+    super(message);
+    this.name = "TrimmedSignatureError";
   }
 }
 
@@ -70,6 +83,7 @@ export function walletFailure(err: unknown): WalletFailure {
   if (code === "E_WRONG_ACCOUNT" || name === "WrongAccountError") return "wrong-account";
   if (code === "E_WALLET_NOT_FOUND" || name === "WalletNotFoundError") return "not-found";
   if (code === "E_MESSAGE_CHANGED" || name === "MessageChangedError") return "changed";
+  if (code === "E_TRIMMED_SIGNATURE" || name === "TrimmedSignatureError") return "trimmed";
   if (name === "TimeoutError" || name === "AbortError" || code === "E_TIMEOUT" || TIMEOUT_TEXT.test(message))
     return "timed-out";
   if (REJECTED_CODES.has(code) || REJECTED_TEXT.test(message)) return "rejected";
@@ -96,6 +110,12 @@ const TEXT: Record<WalletFailure, { plain: string; paste: string }> = {
   changed: {
     plain: "The message changed while your wallet signed. Sign the one shown now.",
     paste: "The message changed while your wallet signed. Sign the one shown now, or paste a signature.",
+  },
+  trimmed: {
+    plain:
+      "Your wallet removed the message's last line break before signing it, and this message needs it. Sign with a browser wallet, or a wallet that signs the text exactly as shown.",
+    paste:
+      "Your wallet removed the message's last line break before signing it, and this message needs it. Use a browser wallet, or paste a signature from a wallet that signs the text exactly as shown.",
   },
   other: {
     plain: "Your wallet did not sign. Try again.",
