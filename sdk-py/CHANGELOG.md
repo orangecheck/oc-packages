@@ -72,6 +72,28 @@ fragment, a user name, and plain http to any host but `localhost`,
   `https://ochk.io`. The issuer as given, with or without its trailing slash,
   is still taken, and with `jwks=` a stand-in issuer need not be an origin.
 
+## [3.21.0] — unreleased
+
+### Added
+
+- **`verify_webhook(..., project=...)`**: your project key. A delivery signed
+  for another project is refused as `InvalidWebhook("project")`. It is optional
+  until the next major version; a call without it warns once per process
+  (`UserWarning`).
+- **`max_age`**: the oldest delivery accepted, in seconds since it was first
+  sent (`WEBHOOK_MAX_AGE_SECONDS`, a day, by default).
+
+### Changed
+
+- **`verify_webhook` refuses a delivery whose signed body has no `id`,
+  `project_key` or `issued_at`** (`"incomplete"`; `issued_at` is a UTC time as
+  JavaScript's `toISOString` writes it), and one first sent more than a day
+  ago or more than five minutes ahead of this clock (`"stale"`). me.ochk.io
+  signs all three into every delivery, billable events and project notices
+  alike, and has for at least a day before this release. Deduplicate on the
+  body's `id`. The same answers as `@orangecheck/me-client` 0.64.0's, read from
+  the shared vectors.
+
 ## [3.20.0] — 2026-11-23
 
 ### Added

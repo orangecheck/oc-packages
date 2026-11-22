@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import json
+import warnings
 import os
 import threading
 import time
@@ -147,10 +148,10 @@ def test_webhook_stops_leaning_on_a_key_set_six_hours_old(fresh_key_sets: None) 
         side_effect=[httpx.Response(200, json=V["webhook"]["jwks"])] + [httpx.Response(503)] * 3
     )
     v = V["webhook"]["valid"][0]
-    verify_webhook(v["headers"], v["body"])
+    verify_webhook(v["headers"], v["body"], project=v["project"])
     integrator._webhook_keys._fetched_at = V["now"] - 6 * 3600 - 1
     with pytest.raises(InvalidWebhook) as err:
-        verify_webhook(v["headers"], v["body"])
+        verify_webhook(v["headers"], v["body"], project=v["project"])
     assert err.value.reason == "key_set_unavailable"
 
 
@@ -207,17 +208,45 @@ def test_sign_event_uses_the_clock_by_default() -> None:
 
 @pytest.mark.parametrize("v", V["webhook"]["valid"], ids=lambda v: v["name"])
 def test_webhook_accepts(v: dict[str, Any]) -> None:
-    event = verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"])
+    event = verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"])
     assert event == json.loads(v["body"])
+    assert {k: event[k] for k in v["signed"]} == v["signed"]
     lower = {k.lower(): val for k, val in v["headers"].items()}
-    assert verify_webhook(lower, v["body"].encode("utf-8"), jwks=V["webhook"]["jwks"]) == event
+    again = verify_webhook(lower, v["body"].encode("utf-8"), jwks=V["webhook"]["jwks"], project=v["project"])
+    assert again == event
 
 
 @pytest.mark.parametrize("v", V["webhook"]["invalid"], ids=lambda v: v["name"])
 def test_webhook_refuses(v: dict[str, Any]) -> None:
     with pytest.raises(InvalidWebhook) as err:
-        verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"])
+        verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"])
     assert err.value.reason == v["reason"]
+
+
+def test_webhook_takes_a_shorter_window_from_max_age() -> None:
+    v = next(x for x in V["webhook"]["valid"] if x["name"] == "a project notice as sent")
+    verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"], max_age=3601)
+    with pytest.raises(InvalidWebhook) as err:
+        verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"], max_age=3599)
+    assert err.value.reason == "stale"
+
+
+def test_webhook_without_project_accepts_any_and_warns_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(integrator, "_warned_no_project", False)
+    theirs = next(x for x in V["webhook"]["invalid"] if x["name"] == "signed for another project")
+    with pytest.warns(UserWarning, match="without project.*any project.*next major"):
+        verify_webhook(theirs["headers"], theirs["body"], jwks=V["webhook"]["jwks"])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        verify_webhook(theirs["headers"], theirs["body"], jwks=V["webhook"]["jwks"])
+
+
+def test_webhook_with_project_does_not_warn(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(integrator, "_warned_no_project", False)
+    v = V["webhook"]["valid"][0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"])
 
 
 @respx.mock
@@ -226,7 +255,7 @@ def test_webhook_fetches_me_ochk_io_dev_jwks(fresh_key_sets: None) -> None:
         return_value=httpx.Response(200, json=V["webhook"]["jwks"])
     )
     v = V["webhook"]["valid"][0]
-    assert verify_webhook(v["headers"], v["body"])["id"] == "oc-me-tv-1"
+    assert verify_webhook(v["headers"], v["body"], project=v["project"])["id"] == "oc-me-tv-1"
     assert route.call_count == 1
 
 

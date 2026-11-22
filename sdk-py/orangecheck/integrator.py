@@ -7,7 +7,7 @@ Three jobs, the same wire formats as ``@orangecheck/me-client``:
 
     session = verify_session(token, audience="https://your-site.example")
     header = sign_event(signing_secret, body)          # X-OC-Signature
-    event = verify_webhook(request.headers, raw_body)
+    event = verify_webhook(request.headers, raw_body, project=project_key)
 
     # Refuse a session the person ended everywhere (one list per process):
     revocations = RevocationList(project_key, signing_secret)
@@ -29,8 +29,10 @@ import logging
 import math
 import os
 import re
+import calendar
 import threading
 import time
+import warnings
 import weakref
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -1258,24 +1260,72 @@ def _header(headers: Mapping[str, Any], name: str) -> Optional[str]:
     return None
 
 
+#: The oldest delivery accepted: me.ochk.io's last retry comes about 20 h after the first send.
+WEBHOOK_MAX_AGE_SECONDS = 24 * 60 * 60
+_WEBHOOK_FUTURE_SKEW_SECONDS = 5 * 60
+_ISO_TIME = re.compile(r"\A(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,9})?Z\Z")
+_warned_no_project = False
+
+
+def _warn_no_project_once() -> None:
+    global _warned_no_project
+    if _warned_no_project:
+        return
+    _warned_no_project = True
+    warnings.warn(
+        "verify_webhook was called without project, so it accepts a delivery signed for any "
+        "project. Pass your project key; it is required from the next major version.",
+        UserWarning,
+        stacklevel=3,
+    )
+
+
+def _iso_time(value: Any) -> Optional[float]:
+    """A UTC time as JavaScript's toISOString writes it, naming a second that exists, or None."""
+    if not isinstance(value, str):
+        return None
+    m = _ISO_TIME.match(value)
+    if m is None:
+        return None
+    try:
+        whole = calendar.timegm(time.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S"))
+    except ValueError:
+        return None
+    if time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(whole)) != m.group(1):
+        return None
+    return whole + (float("0" + m.group(2)) if m.group(2) else 0.0)
+
+
 def verify_webhook(
     headers: Mapping[str, Any],
     body: Union[str, bytes],
     *,
     jwks: Optional[Mapping[str, Any]] = None,
+    project: Optional[str] = None,
+    max_age: float = WEBHOOK_MAX_AGE_SECONDS,
 ) -> dict[str, Any]:
     """
     Verify a webhook from me.ochk.io and return its parsed body.
 
-    Pass the request headers and the raw body, before any JSON parsing. The
-    signature is Ed25519 over those bytes: ``OC-Signature`` (hex) under the key
-    named by ``OC-Key-Id``, from ``https://me.ochk.io/api/dev-jwks`` (cached for
-    an hour; pass ``jwks`` to verify offline). The signature carries no
-    timestamp, and a delivery may arrive more than once, so deduplicate on
-    ``OC-Envelope-Id``.
+    Pass the request headers and the raw body, before any JSON parsing, and
+    ``project``, your project key. The signature is Ed25519 over those bytes:
+    ``OC-Signature`` (hex) under the key named by ``OC-Key-Id``, from
+    ``https://me.ochk.io/api/dev-jwks`` (cached for an hour; pass ``jwks`` to
+    verify offline).
+
+    Every delivery signs its ``id``, ``project_key`` and ``issued_at``. One key
+    signs every project's deliveries, so a delivery signed for another project
+    is refused as ``"project"``. ``project`` is optional until the next major
+    version, and a call without it warns once per process. A delivery first
+    sent more than ``max_age`` seconds ago (a day), or more than five minutes
+    ahead of this clock, is refused as ``"stale"``; one without the three
+    fields as ``"incomplete"``. A delivery may arrive more than once, so
+    deduplicate on its ``id``.
 
     Raises :class:`InvalidWebhook` on any failure.
     """
+    if project is None:
+        _warn_no_project_once()
     sig_hex = _header(headers, "OC-Signature")
     kid = _header(headers, "OC-Key-Id")
     if not sig_hex or not kid:
@@ -1311,4 +1361,18 @@ def verify_webhook(
         raise InvalidWebhook("malformed") from err
     if not isinstance(parsed, dict):
         raise InvalidWebhook("malformed")
+    sent_at = _iso_time(parsed.get("issued_at"))
+    if (
+        not isinstance(parsed.get("id"), str)
+        or not parsed["id"]
+        or not isinstance(parsed.get("project_key"), str)
+        or not parsed["project_key"]
+        or sent_at is None
+    ):
+        raise InvalidWebhook("incomplete")
+    if project is not None and parsed["project_key"] != project:
+        raise InvalidWebhook("project")
+    age = time.time() - sent_at
+    if age > max_age or -age > _WEBHOOK_FUTURE_SKEW_SECONDS:
+        raise InvalidWebhook("stale")
     return parsed

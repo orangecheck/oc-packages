@@ -253,6 +253,7 @@ const webhookVectors = {
         signedBut('no issued_at', drop2(hookBody, 'issued_at'), 'incomplete'),
         signedBut('issued_at not in the ISO form', delivery({ issued_at: String(NOW - 60) }), 'incomplete'),
         signedBut('issued_at on a day that does not exist', delivery({ issued_at: '2027-02-30T08:00:00.000Z' }), 'incomplete'),
+        signedBut('issued_at at second 60', delivery({ issued_at: '2027-01-15T07:58:60.000Z' }), 'incomplete'),
         signedBut('no id', drop2(hookBody, 'id'), 'incomplete'),
         signedBut('no project_key', drop2(hookBody, 'project_key'), 'incomplete'),
         signedBut('a project notice with no id, as sent before ids were signed', drop2(noticeBody, 'id'), 'incomplete'),
