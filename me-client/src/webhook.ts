@@ -18,6 +18,15 @@
  *     req.headers['oc-key-id']       // kid
  *   );
  *   if (!result.ok) return res.status(401).send(result.reason);
+ *   // result.id is the delivery's signed id: deduplicate on it.
+ *
+ * Pass `{ project: 'pk_live_…' }`, your project key. One key signs every
+ * project's deliveries, so without it a delivery signed for another project
+ * verifies too. It is optional until the next major version, and a verify
+ * without it warns once per process. A delivery is also refused when its
+ * signed `issued_at` is more than a day old (`maxAgeSeconds`) or more than five
+ * minutes ahead of this clock: retries end about twenty hours after the first
+ * send, and a dead letter sent again is signed again.
  *
  * The verifier auto-fetches and caches the webhook-signing JWKS at
  * `https://me.ochk.io/api/dev-jwks` for 1h. Pass `{ jwk }` to skip the
@@ -45,10 +54,22 @@ const DEFAULT_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_MAX_STALE_MS = 6 * 60 * 60 * 1000;
 /** An unknown kid refetches the key list at most this often per issuer. */
 const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
+/** The oldest delivery accepted: me.ochk.io's last retry comes about 20 h after the first send. */
+const DEFAULT_MAX_AGE_SECONDS = 24 * 60 * 60;
+/** How far ahead of this clock a delivery's `issued_at` may be. */
+const FUTURE_SKEW_MS = 5 * 60 * 1000;
+/** The form me.ochk.io writes `issued_at` in (toISOString), and the only one taken. */
+const ISSUED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
 
 export interface VerifyResult {
     ok: boolean;
     reason?: string;
+    /** When ok: the delivery's signed id. Deduplicate on it. */
+    id?: string;
+    /** When ok: the project the delivery was signed for. */
+    project_key?: string;
+    /** When ok: when it was first sent, an ISO time. */
+    issued_at?: string;
 }
 
 export interface OcPublicJwk {
@@ -74,6 +95,68 @@ export interface VerifyOptions {
     /** How old a cached JWKS may be and still stand in during an outage.
      *  Defaults to 6 hours; past it, verification fails closed. */
     jwksMaxStaleMs?: number;
+    /** Your project key. A delivery signed for another project is refused.
+     *  Optional until the next major version; without it, verify warns once. */
+    project?: string;
+    /** The oldest delivery accepted, in seconds since it was first sent.
+     *  Defaults to 24 hours. */
+    maxAgeSeconds?: number;
+}
+
+let warnedNoProject = false;
+
+/** Tests only: let the next verify without `project` warn again. */
+export function _resetWebhookWarningForTests(): void {
+    warnedNoProject = false;
+}
+
+function warnNoProjectOnce(): void {
+    if (warnedNoProject) return;
+    warnedNoProject = true;
+    console.warn(
+        '@orangecheck/me-client: webhook.verify was called without `project`, so it accepts a ' +
+            'delivery signed for any project. Pass your project key; it is required from the next major version.'
+    );
+}
+
+/** A UTC time as toISOString writes it, naming a second that exists (no Feb 30, no :60). */
+function isIsoTime(v: string): boolean {
+    if (!ISSUED_AT.test(v)) return false;
+    const t = Date.parse(v);
+    return Number.isFinite(t) && new Date(t).toISOString().slice(0, 19) === v.slice(0, 19);
+}
+
+/** The fields every delivery signs: its id, its project and when it was first sent. */
+function signedFields(msg: Uint8Array, options: VerifyOptions): VerifyResult {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(new TextDecoder().decode(msg));
+    } catch {
+        return { ok: false, reason: 'body is not JSON' };
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return { ok: false, reason: 'body is not a JSON object' };
+    }
+    const { id, project_key, issued_at } = parsed as Record<string, unknown>;
+    if (
+        typeof id !== 'string' ||
+        id === '' ||
+        typeof project_key !== 'string' ||
+        project_key === '' ||
+        typeof issued_at !== 'string' ||
+        !isIsoTime(issued_at)
+    ) {
+        return { ok: false, reason: 'missing a signed id, project_key or issued_at' };
+    }
+    if (options.project !== undefined && project_key !== options.project) {
+        return { ok: false, reason: `signed for another project (${project_key})` };
+    }
+    const age = Date.now() - Date.parse(issued_at);
+    if (age > (options.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS) * 1000) {
+        return { ok: false, reason: 'older than the accepted age (issued_at)' };
+    }
+    if (-age > FUTURE_SKEW_MS) return { ok: false, reason: 'issued_at is in the future' };
+    return { ok: true, id, project_key, issued_at };
 }
 
 type AuthKey = CryptoKey | KeyObject;
@@ -190,9 +273,10 @@ async function verifyEd25519(
  * JSON), the hex-encoded signature from the `OC-Signature` header, and
  * the kid from the `OC-Key-Id` header.
  *
- * Returns `{ ok: true }` on success, `{ ok: false, reason }` on any
- * failure (bad signature, kid not in JWKS, malformed signature,
- * network-only JWKS fetch failed without prior cache, etc.). Never
+ * Returns `{ ok: true, id, project_key, issued_at }` on success, and
+ * `{ ok: false, reason }` on any failure (bad signature, kid not in JWKS,
+ * malformed signature, a delivery for another project or outside the age
+ * window, a key list that cannot be fetched with none cached, etc.). Never
  * throws.
  */
 export async function verify(
@@ -201,6 +285,7 @@ export async function verify(
     kid: string | null | undefined,
     options: VerifyOptions = {}
 ): Promise<VerifyResult> {
+    if (options.project === undefined) warnNoProjectOnce();
     if (!sigHex) return { ok: false, reason: 'missing signature' };
     if (!kid) return { ok: false, reason: 'missing kid' };
     const sig = hexToBytes(sigHex);
@@ -237,8 +322,8 @@ export async function verify(
         if (!key) return { ok: false, reason: `kid ${kid} not in JWKS` };
     }
 
-    const ok = await verifyEd25519(key, sig, msg);
-    return ok ? { ok: true } : { ok: false, reason: 'signature does not match' };
+    if (!(await verifyEd25519(key, sig, msg))) return { ok: false, reason: 'signature does not match' };
+    return signedFields(msg, options);
 }
 
 /** Force-refresh the JWKS cache. Useful after a key rotation event

@@ -56,8 +56,19 @@ const V = JSON.parse(
   }[];
   webhook: {
     jwks: { keys: OcPublicJwk[] };
-    valid: { name: string; headers: Record<string, string>; body: string }[];
-    invalid: { name: string; headers: Record<string, string>; body: string }[];
+    valid: {
+      name: string;
+      headers: Record<string, string>;
+      body: string;
+      project: string;
+      signed: { id: string; project_key: string; issued_at: string };
+    }[];
+    invalid: {
+      name: string;
+      headers: Record<string, string>;
+      body: string;
+      project: string;
+    }[];
   };
 };
 
@@ -131,16 +142,19 @@ describe("event signatures · oc.event.fire", () => {
 describe("webhook signatures · oc.webhook.verify", () => {
   const jwk = V.webhook.jwks.keys[0]!;
 
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(V.now * 1000);
+  });
+
   it.each(V.webhook.valid)("accepts: $name", async (v) => {
     const r = await verifyWebhook(
       v.body,
       v.headers["OC-Signature"],
       v.headers["OC-Key-Id"],
-      {
-        jwk,
-      },
+      { jwk, project: v.project },
     );
-    expect(r).toEqual({ ok: true });
+    expect(r).toEqual({ ok: true, ...v.signed });
   });
 
   it.each(V.webhook.invalid)("refuses: $name", async (v) => {
@@ -148,9 +162,7 @@ describe("webhook signatures · oc.webhook.verify", () => {
       v.body,
       v.headers["OC-Signature"],
       v.headers["OC-Key-Id"],
-      {
-        jwk,
-      },
+      { jwk, project: v.project },
     );
     expect(r.ok).toBe(false);
   });
