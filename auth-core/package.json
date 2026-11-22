@@ -46,6 +46,11 @@
             "import": "./dist/identifiers.mjs",
             "require": "./dist/identifiers.js"
         },
+        "./issuer-origin": {
+            "types": "./dist/issuer-origin.d.ts",
+            "import": "./dist/issuer-origin.mjs",
+            "require": "./dist/issuer-origin.js"
+        },
         "./relay-assertion": {
             "types": "./dist/relay-assertion.d.ts",
             "import": "./dist/relay-assertion.mjs",

@@ -30,6 +30,11 @@ const ENTRIES = [
       'const did = "did:oc:" + "a".repeat(32); return [m.isDidOc(did), m.isDidOc(did + "\\n"), m.isDidOc(did.toUpperCase()), m.normalizeEmail(" Ann@Example.COM\\t")];',
     answer: [true, false, false, "ann@example.com"],
   },
+  {
+    name: "issuer-origin",
+    probe: 'return ["http://[::1]:3000", "https://ochk.io/api", "HTTPS://OCHK.IO/"].map((o) => m.parseIssuerOrigin(o)).concat(m.ISSUER_ORIGIN_RULE);',
+    answer: ["http://[::1]:3000", null, "https://ochk.io", "one origin with no path: https, or http on localhost, 127.0.0.1 or [::1]"],
+  },
 ];
 
 describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) => {

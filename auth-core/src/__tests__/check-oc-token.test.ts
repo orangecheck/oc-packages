@@ -165,7 +165,7 @@ describe("checkOcToken · a bad token is not an outage", () => {
   it("throws for an issuer it may not fetch from, as for an option it does not read", async () => {
     // A misconfigured issuer signs out every user; throwing surfaces it on the first request.
     keySet();
-    await expect(checkOcToken(await mint(), { issuer: "http://issuer.test" })).rejects.toThrow(/issuer must be https/);
+    await expect(checkOcToken(await mint(), { issuer: "http://issuer.test" })).rejects.toThrow(/issuer must be one origin/);
     expect(await verifyOcToken(await mint(), { issuer: "http://issuer.test" })).toBeNull();
   });
 
