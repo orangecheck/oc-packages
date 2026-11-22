@@ -9,6 +9,25 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `TrimmedSignatureError` (`code: 'E_TRIMMED_SIGNATURE'`) and the
+  `walletFailure` kind `trimmed`, with its `walletFailureText` sentence: "Your
+  wallet removed the message's last line break before signing it, and this
+  message needs it. Sign with a browser wallet, or a wallet that signs the text
+  exactly as shown."
+
+### Changed
+
+- `assertSignedBy`, and with it `OcWalletButton`'s paste panel and the
+  `manual` signer, reads a signature over a message without its final LF as a
+  wallet that trims what it signs: Sparrow, Electrum's GUI, Nunchuk on Android
+  and Bitcoin Keeper do. For an auth challenge (`orangecheck-auth`) it passes,
+  since `@orangecheck/sdk` 1.27.0 verifies a challenge signed that way. For any
+  other message it throws `TrimmedSignatureError` where it threw
+  `WrongAccountError`, so the person is told what happened rather than to
+  switch address. Every other edit of a message is still `WrongAccountError`.
+
 ## [0.8.0] — 2026-11-12
 
 ### Added
