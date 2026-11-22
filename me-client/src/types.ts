@@ -458,14 +458,17 @@ export interface DropResponseBlock {
  *   import type { WebhookPayload } from '@orangecheck/me-client';
  *
  *   export async function POST(req: Request) {
- *     const payload = (await req.json()) as WebhookPayload;
+ *     const body = await req.text();
+ *     const v = await oc.webhook.verify(body, req.headers.get('OC-Signature'),
+ *       req.headers.get('OC-Key-Id'), { project: process.env.OC_PROJECT_KEY });
+ *     if (!v.ok) return new Response(v.reason, { status: 401 });
+ *     const payload = JSON.parse(body) as WebhookPayload;
  *     if (payload.subtype === 'payment_authorization') {
- *       creditUser(payload.sub, payload.user_earned_sats);
+ *       creditUser(payload.sub, payload.user_earned_sats); // once per v.id
  *     }
  *   }
  *
  * Headers carry the signature and metadata (see WebhookHeaders below).
- * Verify the signature with `oc.webhook.verify({ body, headers, jwks })`.
  *
  * Privacy contract · the master oc identity is NEVER in the payload.
  * Integrators see `sub` (per-integrator anonymous id) plus any
@@ -486,6 +489,12 @@ export interface WebhookPayload extends BillableEvent {
      *  granted to this project. Wire format is string-keyed (every
      *  value is stringified · ints stringified, addresses as-is). */
     scopes?: Partial<Record<Scope, string>>;
+    /** The project the delivery was signed for. `oc.webhook.verify` checks it
+     *  against the `project` you pass. */
+    project_key: string;
+    /** When it was first sent, ISO. A retry keeps it; a dead letter sent again
+     *  is signed again with a new one. */
+    issued_at: string;
 }
 
 /**
@@ -494,9 +503,9 @@ export interface WebhookPayload extends BillableEvent {
  * connect.claimed, federation.migrating, federation.migration_cancelled).
  * Same signing + headers as billable deliveries; receivers subscribe
  * via the same `subscribed` list ('*' or the explicit subtype string).
- * Carries no user identity, except connect.claimed. It has no `id`: the
- * `OC-Envelope-Id` header is its only id, so deduplicate on that.
- * Discriminate on `kind` first, then `subtype`:
+ * Carries no user identity, except connect.claimed. Like a billable
+ * delivery it signs its `id`, `project_key` and `issued_at`; deduplicate on
+ * `id`. Discriminate on `kind` first, then `subtype`:
  *
  *   const payload = JSON.parse(body) as WebhookPayload | SystemWebhookPayload;
  *   if (payload.kind === 'oc-system-event' && payload.subtype === 'drop.closed') { … }
@@ -504,7 +513,11 @@ export interface WebhookPayload extends BillableEvent {
 export interface SystemWebhookPayload {
     kind: 'oc-system-event';
     subtype: string;
+    /** The notice's id. A notice sent again (a retry, a resent move) keeps it. */
+    id: string;
     project_key: string;
+    /** When it was first sent, ISO. */
+    issued_at: string;
     [extra: string]: unknown;
 }
 
@@ -576,10 +589,8 @@ export interface WebhookHeaders {
     /** kid of the key that signed it, published by me.ochk.io at
      *  https://me.ochk.io/api/dev-jwks (not ochk.io's sign-in keys). */
     'OC-Key-Id': string;
-    /** For a billable event, its `id`, the same as `payload.id`. A system
-     *  notice (`OC-Class: system`) has no `id` in its body: this header is
-     *  its only id, the delivery's own. Not signed. Deduplicate on
-     *  `payload.id` when there is one, else on this. */
+    /** The same as `payload.id`, for both kinds. Not signed: deduplicate on
+     *  the `id` that `oc.webhook.verify` returns. */
     'OC-Envelope-Id': string;
     /** Subtype · matches payload.subtype (built-in or a custom event key,
      *  or a system notice's subtype); lets routers branch on the header

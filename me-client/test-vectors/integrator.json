@@ -273,46 +273,87 @@
             {
                 "name": "a delivery as sent",
                 "headers": {
-                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Signature": "fd866714d520d383a1fd946e3530f42cada26ca3410355733ac56cfded48efa07b2a45584459afd8bc6fb8f333d5db523ab154f09e5859f0d634cdb50988be00",
                     "OC-Key-Id": "tv-webhook-1",
                     "OC-Envelope-Id": "oc-me-tv-1",
                     "OC-Class": "A"
                 },
-                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}"
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
+                "signed": {
+                    "id": "oc-me-tv-1",
+                    "project_key": "pk_test_tv",
+                    "issued_at": "2027-01-15T07:59:00.000Z"
+                }
+            },
+            {
+                "name": "a project notice as sent",
+                "headers": {
+                    "OC-Signature": "200c97eb70187a944486614ed8e1a6a68403de9f3837d3161efa0d5afbc1b5b5a5714d9b61b57114cc8ac04f5f3531ec5cb744d645dc6e9686d6aa441790e10f",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "sys_connect_claimed_tv",
+                    "OC-Class": "system"
+                },
+                "body": "{\"did_oc\":\"did:oc:0123456789abcdef0123456789abcdef\",\"sub\":\"ps_tv_0002\",\"kind\":\"oc-system-event\",\"subtype\":\"connect.claimed\",\"id\":\"sys_connect_claimed_tv\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:00:00.000Z\"}",
+                "project": "pk_test_tv",
+                "signed": {
+                    "id": "sys_connect_claimed_tv",
+                    "project_key": "pk_test_tv",
+                    "issued_at": "2027-01-15T07:00:00.000Z"
+                }
+            },
+            {
+                "name": "a retry a day old, less a minute",
+                "headers": {
+                    "OC-Signature": "eb696c1fe330de1d388d6794247b8ebb71a91e6a6728a6b44ff1cd32c4faaf86281b367cbc0b6cc6629dd3c23b4ebcc59c83bffe552daf793551d0a185d68b09",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-14T08:01:00.000Z\"}",
+                "project": "pk_test_tv",
+                "signed": {
+                    "id": "oc-me-tv-1",
+                    "project_key": "pk_test_tv",
+                    "issued_at": "2027-01-14T08:01:00.000Z"
+                }
             }
         ],
         "invalid": [
             {
                 "name": "body changed",
                 "headers": {
-                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Signature": "fd866714d520d383a1fd946e3530f42cada26ca3410355733ac56cfded48efa07b2a45584459afd8bc6fb8f333d5db523ab154f09e5859f0d634cdb50988be00",
                     "OC-Key-Id": "tv-webhook-1",
                     "OC-Envelope-Id": "oc-me-tv-1",
                     "OC-Class": "A"
                 },
-                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"B\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"B\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
                 "reason": "signature"
             },
             {
                 "name": "kid not in the set",
                 "headers": {
-                    "OC-Signature": "885d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Signature": "fd866714d520d383a1fd946e3530f42cada26ca3410355733ac56cfded48efa07b2a45584459afd8bc6fb8f333d5db523ab154f09e5859f0d634cdb50988be00",
                     "OC-Key-Id": "tv-unknown",
                     "OC-Envelope-Id": "oc-me-tv-1",
                     "OC-Class": "A"
                 },
-                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
                 "reason": "unknown_key"
             },
             {
                 "name": "signature not hex",
                 "headers": {
-                    "OC-Signature": "zz5d0ecd2eb1722b3b300def2dfd7d89b893aff165e3df343c83acf0802ec2ec1581d3c085880f6f0b600becd1ffad22b67b86d6ff1c540b56b14d8f886c3807",
+                    "OC-Signature": "zz866714d520d383a1fd946e3530f42cada26ca3410355733ac56cfded48efa07b2a45584459afd8bc6fb8f333d5db523ab154f09e5859f0d634cdb50988be00",
                     "OC-Key-Id": "tv-webhook-1",
                     "OC-Envelope-Id": "oc-me-tv-1",
                     "OC-Class": "A"
                 },
-                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
                 "reason": "malformed"
             },
             {
@@ -320,8 +361,129 @@
                 "headers": {
                     "OC-Key-Id": "tv-webhook-1"
                 },
-                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"project_key\":\"pk_test_tv\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\"}",
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
                 "reason": "missing"
+            },
+            {
+                "name": "signed for another project",
+                "headers": {
+                    "OC-Signature": "fd866714d520d383a1fd946e3530f42cada26ca3410355733ac56cfded48efa07b2a45584459afd8bc6fb8f333d5db523ab154f09e5859f0d634cdb50988be00",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_other",
+                "reason": "project"
+            },
+            {
+                "name": "a project notice for another project",
+                "headers": {
+                    "OC-Signature": "200c97eb70187a944486614ed8e1a6a68403de9f3837d3161efa0d5afbc1b5b5a5714d9b61b57114cc8ac04f5f3531ec5cb744d645dc6e9686d6aa441790e10f",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"did_oc\":\"did:oc:0123456789abcdef0123456789abcdef\",\"sub\":\"ps_tv_0002\",\"kind\":\"oc-system-event\",\"subtype\":\"connect.claimed\",\"id\":\"sys_connect_claimed_tv\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:00:00.000Z\"}",
+                "project": "pk_test_other",
+                "reason": "project"
+            },
+            {
+                "name": "more than a day old",
+                "headers": {
+                    "OC-Signature": "72dd1e0e216ef299518b0bccf4d4cbedcf54bad0d7c1c9bdcd7011342b05ffc4864ae1e8cc4045f5ee8ebfd61f86122dd06b7bc186b7b72969ee27ad7d0f3b04",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-14T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "stale"
+            },
+            {
+                "name": "ten minutes ahead of the clock",
+                "headers": {
+                    "OC-Signature": "2dd2f66b49b9a28de3a00191d187b23ecfcfac621e71f4bebde28ef8ee5a6c312395d44881336ffab1b94da0ed97fd13939cd27f5d541e5db29d9397fe914808",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T08:10:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "stale"
+            },
+            {
+                "name": "no issued_at",
+                "headers": {
+                    "OC-Signature": "4e52fa8b76745bff636b5268720014cc8ff562fffc925714538ba2297490b1a3c8a6439a7fddd493edaec1ba724983e610d4d0221482fc809d6af64cde99050a",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
+                "name": "issued_at not in the ISO form",
+                "headers": {
+                    "OC-Signature": "35802036559dc2d2d79cae5f1d50bce663ea000539d2be619dd28fd126d9936138d38b3dd9c6d49a28a0d40e8f90e453ba408ad87118d1bff21b899f6e343d04",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"1799999940\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
+                "name": "issued_at on a day that does not exist",
+                "headers": {
+                    "OC-Signature": "1ca3a6ba389e293783b17577775178ac6f9183204f7a359cf1c39e7e15c51b53b8e1dc095f2da5e02960faf1d2eba7520ebc84688ffa94a02e387fcffef26900",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-02-30T08:00:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
+                "name": "no id",
+                "headers": {
+                    "OC-Signature": "e321ebda5d17c663f2c761d57cbc12d0c7071de92fa18c6ae193de6c6d6ff0d840462667ab6d2685edf1660d7a98bbcf00b22bf5efdcf9893ae6f120055dad09",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
+                "name": "no project_key",
+                "headers": {
+                    "OC-Signature": "ff88e9780a07273fb59d15026507659867ceeba78fdf781fcf5ef7e33363ca582ac59a1d5c94abe1a5837a3068871fbf55cc1109e4536b8b5b2f773bb376bf08",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"issued_at\":\"2027-01-15T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
+                "name": "a project notice with no id, as sent before ids were signed",
+                "headers": {
+                    "OC-Signature": "67d0cd2b17c5f3bc84ff4dc543e4cb6b3836a5aa93011f402a4eeae653a1641c8d8e88709a2cd0f518ddc77d79aeddcc66caea0f52e11c7029573fd23b5b760c",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"did_oc\":\"did:oc:0123456789abcdef0123456789abcdef\",\"sub\":\"ps_tv_0002\",\"kind\":\"oc-system-event\",\"subtype\":\"connect.claimed\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:00:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
             }
         ]
     },

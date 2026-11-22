@@ -166,29 +166,86 @@ const eventVectors = [
     return { name: v.name, secret: SECRET, timestamp, fields: v.fields, body, header: `t=${timestamp},v1=${mac}` };
 });
 
-const hookBody = JSON.stringify({
-    id: 'oc-me-tv-1',
-    subtype: 'account_created',
-    class: 'A',
+// Every delivery signs its id, its project and when it was first sent.
+const iso = (t) => new Date(t * 1000).toISOString();
+const delivery = (fields) =>
+    JSON.stringify({
+        id: 'oc-me-tv-1',
+        subtype: 'account_created',
+        class: 'A',
+        kind: 'oc-billable-event',
+        sub: 'ps_tv_0001',
+        project_key: 'pk_test_tv',
+        issued_at: iso(NOW - 60),
+        ...fields,
+    });
+const drop2 = (body, key) => JSON.stringify(drop(JSON.parse(body), key));
+const hookBody = delivery({});
+const noticeBody = JSON.stringify({
+    did_oc: DID,
+    sub: 'ps_tv_0002',
+    kind: 'oc-system-event',
+    subtype: 'connect.claimed',
+    id: 'sys_connect_claimed_tv',
     project_key: 'pk_test_tv',
-    kind: 'oc-billable-event',
-    sub: 'ps_tv_0001',
+    issued_at: iso(NOW - 3600),
 });
-const hookSig = sign(null, Buffer.from(hookBody, 'utf8'), hook.privateKey).toString('hex');
-const headers = (sig, kid = 'tv-webhook-1') => ({
+const signHook = (body) => sign(null, Buffer.from(body, 'utf8'), hook.privateKey).toString('hex');
+const hookSig = signHook(hookBody);
+const headers = (sig, kid = 'tv-webhook-1', id = 'oc-me-tv-1', cls = 'A') => ({
     'OC-Signature': sig,
     'OC-Key-Id': kid,
-    'OC-Envelope-Id': 'oc-me-tv-1',
-    'OC-Class': 'A',
+    'OC-Envelope-Id': id,
+    'OC-Class': cls,
+});
+// Signed as sent, but refused for what it says. `project` is what the receiver passes.
+const signedBut = (name, body, reason, project = 'pk_test_tv') => ({
+    name,
+    headers: headers(signHook(body)),
+    body,
+    project,
+    reason,
 });
 const webhookVectors = {
     jwks: { keys: [hook.jwk] },
-    valid: [{ name: 'a delivery as sent', headers: headers(hookSig), body: hookBody }],
+    valid: [
+        {
+            name: 'a delivery as sent',
+            headers: headers(hookSig),
+            body: hookBody,
+            project: 'pk_test_tv',
+            signed: { id: 'oc-me-tv-1', project_key: 'pk_test_tv', issued_at: iso(NOW - 60) },
+        },
+        {
+            name: 'a project notice as sent',
+            headers: headers(signHook(noticeBody), 'tv-webhook-1', 'sys_connect_claimed_tv', 'system'),
+            body: noticeBody,
+            project: 'pk_test_tv',
+            signed: { id: 'sys_connect_claimed_tv', project_key: 'pk_test_tv', issued_at: iso(NOW - 3600) },
+        },
+        {
+            name: 'a retry a day old, less a minute',
+            headers: headers(signHook(delivery({ issued_at: iso(NOW - 86400 + 60) }))),
+            body: delivery({ issued_at: iso(NOW - 86400 + 60) }),
+            project: 'pk_test_tv',
+            signed: { id: 'oc-me-tv-1', project_key: 'pk_test_tv', issued_at: iso(NOW - 86400 + 60) },
+        },
+    ],
     invalid: [
-        { name: 'body changed', headers: headers(hookSig), body: hookBody.replace('A', 'B'), reason: 'signature' },
-        { name: 'kid not in the set', headers: headers(hookSig, 'tv-unknown'), body: hookBody, reason: 'unknown_key' },
-        { name: 'signature not hex', headers: headers('zz' + hookSig.slice(2)), body: hookBody, reason: 'malformed' },
-        { name: 'no signature header', headers: { 'OC-Key-Id': 'tv-webhook-1' }, body: hookBody, reason: 'missing' },
+        { name: 'body changed', headers: headers(hookSig), body: hookBody.replace('"A"', '"B"'), project: 'pk_test_tv', reason: 'signature' },
+        { name: 'kid not in the set', headers: headers(hookSig, 'tv-unknown'), body: hookBody, project: 'pk_test_tv', reason: 'unknown_key' },
+        { name: 'signature not hex', headers: headers('zz' + hookSig.slice(2)), body: hookBody, project: 'pk_test_tv', reason: 'malformed' },
+        { name: 'no signature header', headers: { 'OC-Key-Id': 'tv-webhook-1' }, body: hookBody, project: 'pk_test_tv', reason: 'missing' },
+        signedBut('signed for another project', hookBody, 'project', 'pk_test_other'),
+        signedBut('a project notice for another project', noticeBody, 'project', 'pk_test_other'),
+        signedBut('more than a day old', delivery({ issued_at: iso(NOW - 86400 - 60) }), 'stale'),
+        signedBut('ten minutes ahead of the clock', delivery({ issued_at: iso(NOW + 600) }), 'stale'),
+        signedBut('no issued_at', drop2(hookBody, 'issued_at'), 'incomplete'),
+        signedBut('issued_at not in the ISO form', delivery({ issued_at: String(NOW - 60) }), 'incomplete'),
+        signedBut('issued_at on a day that does not exist', delivery({ issued_at: '2027-02-30T08:00:00.000Z' }), 'incomplete'),
+        signedBut('no id', drop2(hookBody, 'id'), 'incomplete'),
+        signedBut('no project_key', drop2(hookBody, 'project_key'), 'incomplete'),
+        signedBut('a project notice with no id, as sent before ids were signed', drop2(noticeBody, 'id'), 'incomplete'),
     ],
 };
 

@@ -4,6 +4,16 @@ import { exportJWK, generateKeyPair, type KeyObject } from 'jose';
 import { verifyActivityAttestation, type ActivityAttestation, type ActivityAttestationBundle } from '../identity';
 import { verify } from '../webhook';
 
+/** A delivery as me.ochk.io signs it: its id, project and send time. */
+const delivery = () =>
+    JSON.stringify({
+        kind: 'oc-system-event',
+        subtype: 'escrow.low',
+        id: 'sys_test',
+        project_key: 'pk_test_keys',
+        issued_at: new Date(Date.now()).toISOString(),
+    });
+
 /**
  * A kid must name one of the key set's own keys. A kid that names no key in
  * the set is refused whatever it spells, and a key set may use any string as a
@@ -67,7 +77,7 @@ afterEach(() => {
 });
 
 describe('webhook key ids', () => {
-    const body = '{"type":"test"}';
+    const body = delivery();
     const bytes = new TextEncoder().encode(body);
 
     it.each(NAMES)('a kid that names no key in the set (%s) is refused', async (kid) => {
@@ -91,7 +101,7 @@ describe('key ids that join the set after it was cached', () => {
         const issuer = 'https://wh-join.test';
         const first = await signer('real-kid');
         const later = await signer('toString');
-        const body = '{"type":"test"}';
+        const body = delivery();
         const bytes = new TextEncoder().encode(body);
         serve([first.jwk]);
         expect((await verify(body, await first.sign(bytes), 'real-kid', { issuer })).ok).toBe(true);

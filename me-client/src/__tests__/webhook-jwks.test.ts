@@ -3,6 +3,16 @@ import { exportJWK, generateKeyPair } from 'jose';
 
 import { verify } from '../webhook';
 
+/** A delivery as me.ochk.io signs it: its id, project and send time. */
+const delivery = () =>
+    JSON.stringify({
+        kind: 'oc-system-event',
+        subtype: 'escrow.low',
+        id: 'sys_test',
+        project_key: 'pk_test_keys',
+        issued_at: new Date(Date.now()).toISOString(),
+    });
+
 const HOUR = 60 * 60 * 1000;
 
 async function makeSigner(kid: string) {
@@ -45,7 +55,7 @@ describe('the webhook key list, cached', () => {
     it('stands in for an unreachable key list for six hours, then refuses', async () => {
         const issuer = 'https://wh-stale-cap.test';
         const { jwk, sign } = await makeSigner('wh-a');
-        const body = '{"type":"test"}';
+        const body = delivery();
         const sig = await sign(body);
         serve([jwk]);
         const t0 = Date.now();
@@ -62,7 +72,7 @@ describe('the webhook key list, cached', () => {
     it('takes a shorter stand-in window from jwksMaxStaleMs', async () => {
         const issuer = 'https://wh-stale-option.test';
         const { jwk, sign } = await makeSigner('wh-b');
-        const body = '{"type":"test"}';
+        const body = delivery();
         const sig = await sign(body);
         serve([jwk]);
         const t0 = Date.now();
@@ -75,7 +85,7 @@ describe('the webhook key list, cached', () => {
     it('asks again for an unknown key at most once a minute', async () => {
         const issuer = 'https://wh-unknown-kid.test';
         const { jwk, sign } = await makeSigner('wh-c');
-        const body = '{"type":"test"}';
+        const body = delivery();
         const sig = await sign(body);
         serve([jwk]);
         const t0 = Date.now();
@@ -93,7 +103,7 @@ describe('the webhook key list, cached', () => {
     it('keeps the cached keys when an unknown key arrives during an outage', async () => {
         const issuer = 'https://wh-unknown-outage.test';
         const { jwk, sign } = await makeSigner('wh-d');
-        const body = '{"type":"test"}';
+        const body = delivery();
         const sig = await sign(body);
         serve([jwk]);
         expect((await verify(body, sig, 'wh-d', { issuer })).ok).toBe(true);
