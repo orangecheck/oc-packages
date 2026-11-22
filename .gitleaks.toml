@@ -13,3 +13,10 @@ regexes = ['''^pk_(?:test|live)_[A-Za-z0-9_-]+(?:\.\.\.|…)?$''']
 [[allowlists]]
 description = "vault-core's blob-format vectors: a throwaway vault key, passphrases and a device key that open only the test blobs beside them"
 paths = ['''^vault-core/vectors/blob-v1\.json$''']
+
+[[allowlists]]
+description = "mcp's test fixtures: the domain-verification tokens ochk.io and the onboarding examples publish in DNS and a meta tag"
+condition = "AND"
+paths = ['''^mcp/src/__tests__/replay\.ts$''']
+regexTarget = "line"
+regexes = ['''^export const (?:EXAMPLES_TOKEN|OCHK_TXT_TOKEN) = '[0-9a-f]{48}';$''']
