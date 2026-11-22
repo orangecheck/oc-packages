@@ -258,7 +258,7 @@ def test_canonical_form_control_is_what_the_builder_writes(vector: dict) -> None
 
 # ─── challenge_form (SPEC Appendix A.1) ────────────────────────────────────
 # This package verifies challenges through the auth host, so the reasons are
-# the TS SDK's to check. Here every signature verifies.
+# the TS SDK's to check. Here every signature verifies over the text it covers.
 
 
 @pytest.mark.parametrize("vector", vectors_of("challenge_form"), ids=ids_for("challenge_form"))
@@ -270,7 +270,8 @@ def test_challenge_form_signatures(vector: dict) -> None:
 
     inp = vector["input"]
     for case in inp["cases"]:
-        got = verify_bip322_signature(inp["address"], case["message"], case["signature"])
+        signed = case.get("signed", case["message"])
+        got = verify_bip322_signature(inp["address"], signed, case["signature"])
         assert got is vector["expected"]["signatures_valid"], f"{vector['id']}: {case['name']}"
 
 

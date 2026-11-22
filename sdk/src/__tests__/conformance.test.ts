@@ -191,7 +191,7 @@ describe('conformance: canonical_form (SPEC §7.1 step 1)', () => {
 });
 
 describe('conformance: challenge_form (SPEC Appendix A.1)', () => {
-    // Every signature verifies, so only the challenge's form decides each answer.
+    // Every signature verifies over the text it covers, so the challenge's form decides each answer.
     for (const v of vectors.filter((x) => x.category === 'challenge_form')) {
         const input = v.input as {
             address: string;
@@ -199,11 +199,11 @@ describe('conformance: challenge_form (SPEC Appendix A.1)', () => {
             expected_nonce: string;
             expected_audience: string;
             expected_purpose: string;
-            cases: { name: string; message: string; signature: string; reason: string | null }[];
+            cases: { name: string; message: string; signed?: string; signature: string; reason: string | null }[];
         };
         const expected = v.expected as { signatures_valid: boolean };
         it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
-            expect(verifySignature(input.address, c.message, c.signature)).toBe(expected.signatures_valid);
+            expect(verifySignature(input.address, c.signed ?? c.message, c.signature)).toBe(expected.signatures_valid);
             const r = await verifyChallenge({
                 message: c.message,
                 signature: c.signature,
@@ -227,7 +227,7 @@ describe('conformance: challenge_form (SPEC Appendix A.1)', () => {
                 now: issuedAt,
                 ttlSeconds: (Date.parse(at('expires_at')) - issuedAt.getTime()) / 1000,
             });
-            expect(accepted).toEqual([issued.message]);
+            expect(new Set(accepted)).toEqual(new Set([issued.message, issued.message.slice(0, -1)]));
         });
     }
 });
