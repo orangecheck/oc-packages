@@ -7,6 +7,13 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-11-21
+
+- A site the checks read is fetched over a connection to the addresses its
+  lookup returned and checked, through an undici dispatcher, with no second
+  lookup. TLS still verifies the certificate for the site's own name.
+- Requires Node 20.18.1 or later (undici 7.30.2).
+
 ## [0.1.0] — 2026-11-21
 
 First release: a stdio MCP server that needs no credential.

@@ -51,9 +51,9 @@ export async function checkSetup(
     const findings: Finding[] = [];
 
     const [https, http, twin, domainCheck, project, checklist] = await Promise.all([
-        fetchFollowing(deps.fetch, deps.lookup, start.toString()),
-        fetchFollowing(deps.fetch, deps.lookup, `http://${domain}${start.pathname}`, { stayOn: domain }),
-        fetchFollowing(deps.fetch, deps.lookup, `https://${twinOf(domain)}/`),
+        fetchFollowing(deps, start.toString()),
+        fetchFollowing(deps, `http://${domain}${start.pathname}`, { stayOn: domain }),
+        fetchFollowing(deps, `https://${twinOf(domain)}/`),
         checkDomain(deps, domain, input.token).catch((err: Error) => err),
         input.projectKey ? readProject(deps.fetch, input.projectKey).catch((err: Error) => err) : Promise.resolve(undefined),
         deps.docs

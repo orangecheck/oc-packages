@@ -13,6 +13,9 @@ const META_TAG_RE = /<meta\s+([^<>]{0,1000})\/?>/gi;
 
 export type Lookup = (host: string) => Promise<string[]>;
 
+/** A fetch whose connection goes to addresses already checked, never to a fresh lookup of the URL's host. */
+export type Pin = (addresses: string[]) => { fetch: FetchLike; close: () => Promise<void> };
+
 export const defaultLookup: Lookup = async (host) => (await dnsLookup(host, { all: true })).map((a) => a.address);
 
 /** A bare hostname from a domain or a URL, lowercase, or an error that says what was wrong. */
@@ -55,8 +58,8 @@ export function isPrivateAddress(addr: string): boolean {
     return /^(fc|fd|fe8|fe9|fea|feb|ff)/.test(a);
 }
 
-/** Resolves the host and refuses one that points inside a network: this runs on the developer's machine. */
-export async function assertPublicHost(host: string, lookup: Lookup): Promise<void> {
+/** Resolves the host once and refuses one that points inside a network; the addresses returned are the only ones to connect to. */
+export async function assertPublicHost(host: string, lookup: Lookup): Promise<string[]> {
     let addrs: string[];
     try {
         addrs = await lookup(host);
@@ -64,6 +67,7 @@ export async function assertPublicHost(host: string, lookup: Lookup): Promise<vo
         const code = (err as { code?: string }).code;
         throw new UpstreamError(`https://${host}/`, 'network', `${host} does not resolve${code ? ` (${code})` : ''}.`, { code });
     }
+    if (addrs.length === 0) throw new UpstreamError(`https://${host}/`, 'network', `${host} does not resolve.`, { code: 'ENODATA' });
     const inside = addrs.find(isPrivateAddress);
     if (inside) {
         throw new UpstreamError(
@@ -73,6 +77,7 @@ export async function assertPublicHost(host: string, lookup: Lookup): Promise<vo
             { code: 'PRIVATE_ADDRESS' }
         );
     }
+    return addrs;
 }
 
 /** The domain itself, or its www twin either way: the only redirects me.ochk.io's check follows. */
@@ -98,10 +103,14 @@ export interface FetchedPage {
     error?: UpstreamError;
 }
 
+export interface SiteDeps {
+    lookup: Lookup;
+    pin: Pin;
+}
+
 /** GET a URL, following up to four redirects by hand, each one checked before it is followed. */
 export async function fetchFollowing(
-    fetchImpl: FetchLike,
-    lookup: Lookup,
+    deps: SiteDeps,
     start: string,
     opts: { stayOn?: string; timeoutMs?: number; maxBytes?: number } = {}
 ): Promise<FetchedPage> {
@@ -112,13 +121,18 @@ export async function fetchFollowing(
         if (u.protocol !== 'https:' && u.protocol !== 'http:') return { hops, offsite: target };
         if (opts.stayOn && !sameSite(u.hostname, opts.stayOn)) return { hops, offsite: u.hostname };
         try {
-            await assertPublicHost(u.hostname, lookup);
-            const res = await request(fetchImpl, target, {
-                redirect: 'manual',
-                accept: 'text/html,*/*',
-                timeoutMs: opts.timeoutMs ?? 8_000,
-                maxBytes: opts.maxBytes ?? HOMEPAGE_MAX_BYTES,
-            });
+            const pinned = deps.pin(await assertPublicHost(u.hostname, deps.lookup));
+            let res: ReadResult;
+            try {
+                res = await request(pinned.fetch, target, {
+                    redirect: 'manual',
+                    accept: 'text/html,*/*',
+                    timeoutMs: opts.timeoutMs ?? 8_000,
+                    maxBytes: opts.maxBytes ?? HOMEPAGE_MAX_BYTES,
+                });
+            } finally {
+                await pinned.close().catch(() => undefined);
+            }
             const location = res.headers.get('location') ?? undefined;
             hops.push({ url: target, status: res.status, ...(location ? { location } : {}) });
             if (res.status >= 300 && res.status < 400 && location) {
@@ -188,9 +202,9 @@ export interface DomainCheck {
     };
 }
 
-export interface DomainDeps {
+export interface DomainDeps extends SiteDeps {
+    /** For the DNS-over-HTTPS resolver; the site itself is read through pin. */
     fetch: FetchLike;
-    lookup: Lookup;
 }
 
 export async function checkDomain(deps: DomainDeps, rawDomain: string, rawToken?: string): Promise<DomainCheck> {
@@ -217,7 +231,7 @@ export async function checkDomain(deps: DomainDeps, rawDomain: string, rawToken?
     }
 
     const meta: DomainCheck['meta'] = { ok: false, fetched: false, contents: [], hops: [] };
-    const page = await fetchFollowing(deps.fetch, deps.lookup, `https://${domain}/`, { stayOn: domain });
+    const page = await fetchFollowing(deps, `https://${domain}/`, { stayOn: domain });
     meta.hops = page.hops;
     if (page.error) {
         meta.error = page.error.message;
