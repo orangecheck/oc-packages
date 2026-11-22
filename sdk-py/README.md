@@ -189,7 +189,9 @@ httpx.post("https://me.ochk.io/api/integrator/event", content=body, headers={
     "X-OC-Signature": sign_event(SIGNING_SECRET, body),
 })
 
-event = verify_webhook(request.headers, raw_body)  # raises InvalidWebhook
+# Your project key: a delivery signed for another project is refused (3.21.0 or later).
+event = verify_webhook(request.headers, raw_body, project=PROJECT_KEY)  # raises InvalidWebhook
+event["id"]  # the signed id: deduplicate on it
 ```
 
 A token verifies until it expires, up to 30 days. To refuse one the person
