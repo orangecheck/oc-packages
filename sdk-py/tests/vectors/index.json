@@ -152,7 +152,7 @@
   {
     "id": "tv31",
     "category": "challenge_form",
-    "description": "orangecheck-auth challenges validly BIP-322 signed by burn key #1 that are not in their canonical form (SPEC Appendix A.1): each case's reason is malformed; the canonical control's is null"
+    "description": "orangecheck-auth challenges BIP-322 signed by burn key #1 (SPEC Appendix A.1): each one not in canonical form is malformed, however validly signed; the canonical text and that text without its final LF verify with a signature over either; a signature over any other text is sig_invalid. A case's signed, when present, is the text its signature covers"
   },
   {
     "id": "tv32",

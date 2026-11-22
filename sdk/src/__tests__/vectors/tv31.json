@@ -1,7 +1,7 @@
 {
   "id": "tv31",
   "category": "challenge_form",
-  "description": "orangecheck-auth challenges validly BIP-322 signed by burn key #1 that are not in their canonical form (SPEC Appendix A.1): each case's reason is malformed; the canonical control's is null",
+  "description": "orangecheck-auth challenges BIP-322 signed by burn key #1 (SPEC Appendix A.1): each one not in canonical form is malformed, however validly signed; the canonical text and that text without its final LF verify with a signature over either; a signature over any other text is sig_invalid. A case's signed, when present, is the text its signature covers",
   "input": {
     "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
     "scheme": "bip322",
@@ -147,6 +147,33 @@
         "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\nmemo: a\u0085b\npurpose: login\n",
         "signature": "AkgwRQIhAK956BtLloSJYCVQ3dMsuJM2QnAOkSxVPRvrSNybevsCAiAeUzhX2WrnLlvWD6tDeAO5eOaic93RZU1qaN7eTwCnwwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
         "reason": "malformed"
+      },
+      {
+        "name": "canonical, signed without its final LF",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signed": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login",
+        "signature": "AkgwRQIhAJS4VXDTQP7PH0citiqfe6vTrjIrA9xeqRlKHMc11G91AiBS6Liu/l18lzg/4p84nDkz2mZUNrtW72p1klPryMQHNAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null
+      },
+      {
+        "name": "without its final LF",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login",
+        "signature": "AkgwRQIhAJS4VXDTQP7PH0citiqfe6vTrjIrA9xeqRlKHMc11G91AiBS6Liu/l18lzg/4p84nDkz2mZUNrtW72p1klPryMQHNAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "reason": null
+      },
+      {
+        "name": "without its final LF, signed canonical",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login",
+        "signed": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\n",
+        "signature": "AkcwRAIgC2eRYl2Srt0hV9IMU8kNwZkWU609mNOnQhdkH/VN08ICIAf1OVJ5iEj/M57aA3L1v653k4lPpUihR6lBRAsJEamKASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": null
+      },
+      {
+        "name": "a last value ending in a space, signed trimmed",
+        "message": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nstatement: Sign in to example.com \n",
+        "signed": "orangecheck-auth\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nexpires_at: 2026-04-22T12:05:00Z\nack: I authorize this session under the OrangeCheck auth challenge.\naudience: https://example.com\npurpose: login\nstatement: Sign in to example.com",
+        "signature": "AkcwRAIgWYtfRoudN9AR3aV2LovH2h5RnhWQdrPttajuTG/bpU8CIBx843C+TMSobFs1hMvWK4teUg7FS+WAuASffKUnY4C0ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "reason": "sig_invalid"
       }
     ]
   },
