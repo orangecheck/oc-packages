@@ -13,6 +13,7 @@
 //     account issued before it (`iat < cutoff`) is ended.
 
 /** The claims a revocation decision reads. A verified session payload has them all. */
+import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from "./issuer-origin";
 import { refuseUnknownOptions } from "./options";
 
 export interface RevocableClaims {
@@ -43,7 +44,7 @@ export interface RevocationCheck {
 }
 
 export interface RevocationCheckOptions {
-  /** Default `${OC_AUTH_ISSUER ?? "https://ochk.io"}/api/auth/revocations`. */
+  /** Default `${OC_AUTH_ISSUER ?? "https://ochk.io"}/api/auth/revocations`, the issuer one origin with no path. */
   url?: string;
   /** This site's feed token. Default `OC_REVOCATION_FEED_TOKEN`. */
   token?: string;
@@ -112,6 +113,15 @@ const DEFAULT_SKEW_MS = 60_000;
 
 function env(name: string): string | undefined {
   return typeof process !== "undefined" ? process.env?.[name] : undefined;
+}
+
+/** Where a check sends its requests. Throws, before any request, on a value that is not one origin. */
+function originOf(value: string, named: string): string {
+  const origin = parseIssuerOrigin(value);
+  if (origin === null) {
+    throw new Error(`[@orangecheck/auth-core] ${named} must be ${ISSUER_ORIGIN_RULE}; got ${JSON.stringify(value)}`);
+  }
+  return origin;
 }
 
 /**
@@ -214,8 +224,10 @@ export function createRevocationCheck(opts: RevocationCheckOptions = {}): Revoca
 }
 
 function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean): RevocationCheck {
-  const issuer = (env("OC_AUTH_ISSUER") ?? "https://ochk.io").replace(/\/$/, "");
-  const url = opts.url ?? env("OC_REVOCATION_FEED_URL") ?? `${issuer}/api/auth/revocations`;
+  const url =
+    opts.url ??
+    env("OC_REVOCATION_FEED_URL") ??
+    `${originOf(env("OC_AUTH_ISSUER") ?? "https://ochk.io", "OC_AUTH_ISSUER")}/api/auth/revocations`;
   const token = opts.token ?? env("OC_REVOCATION_FEED_TOKEN")?.trim();
   const signer = opts.headers;
   const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
@@ -350,7 +362,10 @@ export interface IntegratorRevocationOptions
   projectKey?: string;
   /** Default `OC_SIGNING_SECRET`. */
   signingSecret?: string;
-  /** Default `OC_ME_ORIGIN`, else `https://me.ochk.io`. */
+  /**
+   * Default `OC_ME_ORIGIN`, else `https://me.ochk.io`. One origin with no path
+   * ({@link parseIssuerOrigin}); anything else throws when the check is made.
+   */
   meOrigin?: string;
 }
 
@@ -390,7 +405,10 @@ export function integratorRevocationCheck(
   const projectKey = (pk ?? env("OC_PROJECT_KEY"))?.trim();
   const secret = (signingSecret ?? env("OC_SIGNING_SECRET"))?.trim();
   if (!projectKey || !secret) return null;
-  const origin = (meOrigin ?? env("OC_ME_ORIGIN") ?? "https://me.ochk.io").replace(/\/$/, "");
+  const origin =
+    meOrigin !== undefined
+      ? originOf(meOrigin, "meOrigin")
+      : originOf(env("OC_ME_ORIGIN") ?? "https://me.ochk.io", "OC_ME_ORIGIN");
   const now = rest.now ?? Date.now;
   const lists = new Map<string, RevocationCheck>();
   const listFor = (aud: string): RevocationCheck => {

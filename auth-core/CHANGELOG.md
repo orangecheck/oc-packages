@@ -9,6 +9,60 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- **`parseIssuerOrigin` and `ISSUER_ORIGIN_RULE`**, also at
+  `@orangecheck/auth-core/issuer-origin`, an entry that imports nothing, so a
+  browser bundle can take it. The one rule for an origin a site names: an auth
+  host's issuer, or where me.ochk.io is. One origin with no path: https, or
+  http on `localhost`, `127.0.0.1` or `[::1]`. It is lower-cased and one
+  trailing slash is dropped; anything else is `null`.
+  `test-vectors/issuer-origin.json` is the table, and sdk-py is held to the
+  same file.
+
+### Changed
+
+- **`checkOcToken` takes its issuer by that rule.** An issuer that is one
+  origin answers as before. Keys are fetched from, and cached by, the
+  lower-case origin; the `iss` a token must carry is unchanged. A refused
+  issuer throws from `checkOcToken` and makes `verifyOcToken` answer `null`, as
+  `http://ochk.io` always did.
+- **`integratorRevocationCheck` takes `meOrigin` and `OC_ME_ORIGIN` by the same
+  rule, and the ochk.io feed takes `OC_AUTH_ISSUER` by it** when neither `url`
+  nor `OC_REVOCATION_FEED_URL` is set. A refused one throws when the check is
+  made, before any signed request.
+
+### Now refused
+
+As an issuer (`checkOcToken`), each of these used to be accepted:
+
+- a path: `http://localhost:3000/stand-in`, `https://ochk.io/api`,
+  `https://ochk.io//`
+- a query or a fragment: `https://ochk.io?x=1`, `https://ochk.io#top`
+- a user name: `https://user@ochk.io`, `https://user:secret@ochk.io`
+- a backslash: `https://ochk.io\`
+- the scheme's own port, port 0, an empty port or a leading zero:
+  `https://ochk.io:443`, `http://localhost:80`, `https://ochk.io:0`,
+  `https://ochk.io:`, `https://ochk.io:08443`
+- no `//` after the scheme: `https:ochk.io`, `https:/ochk.io`
+- a space at either end, or a tab or newline anywhere
+- a trailing dot, a label that starts or ends with a hyphen, an underscore, a
+  percent escape: `https://ochk.io.`, `https://-ochk.io`, `https://och_k.io`,
+  `https://och%6b.io`
+- a host outside printable ASCII: `https://bücher.example` (write its
+  `xn--` form), a Kelvin sign for `k`, a NUL
+- a short or zero-padded IPv4 address: `http://127.1:3000`, `https://127.1`,
+  `https://192.0.2`, `https://01.2.3.4`
+
+As `meOrigin`, `OC_ME_ORIGIN` or `OC_AUTH_ISSUER`, which were taken as given:
+anything that is not one origin, all of the above included, and plain http to
+any host but `localhost`, `127.0.0.1` and `[::1]`.
+
+### Now accepted
+
+- `http://[::1]`, with or without a port, as an issuer, as `localhost` and
+  `127.0.0.1` were.
+
 ## [2.33.1] — 2026-11-20
 
 ### Changed

@@ -22,6 +22,7 @@ import {
   type KeyObject,
 } from "jose";
 
+import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from "./issuer-origin";
 import { refuseUnknownOptions } from "./options";
 import { retiredKeyVouches } from "./retired-key";
 import { SAFE_METHODS } from "./revocation";
@@ -906,32 +907,8 @@ async function fetchJwks(
   return p;
 }
 
-function assertSafeIssuer(issuer: string): void {
-  let url: URL;
-  try {
-    url = new URL(issuer);
-  } catch {
-    throw new Error(
-      `[@orangecheck/auth-core] issuer must be an absolute URL, got ${issuer}`,
-    );
-  }
-  // Allow http only for loopback / local dev. Any production-shaped
-  // hostname (real DNS) is required to be https — JWKS fetched over
-  // plaintext HTTP is trivially MITM-able and would defeat the whole
-  // verification stack.
-  const isLoopback =
-    url.hostname === "localhost" ||
-    url.hostname === "127.0.0.1" ||
-    url.hostname === "::1";
-  if (url.protocol !== "https:" && !isLoopback) {
-    throw new Error(
-      `[@orangecheck/auth-core] issuer must be https (got ${url.protocol}//${url.hostname}); plaintext JWKS is not safe`,
-    );
-  }
-}
-
 export interface VerifyOcOptions {
-  /** Auth host issuer. Defaults to https://ochk.io. */
+  /** Auth host issuer, one origin with no path ({@link parseIssuerOrigin}). Defaults to https://ochk.io. */
   issuer?: string;
   /** JWKS cache TTL in ms. Defaults to 1 hour. Stale-on-error: if the
    *  cache exists, verification still works during a transient outage. */
@@ -996,12 +973,15 @@ export async function checkOcToken(
   const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
   const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
   // A mistake in the call: answering invalid would sign out every user.
-  assertSafeIssuer(issuer);
+  const origin = parseIssuerOrigin(issuer);
+  if (origin === null) {
+    throw new Error(`[@orangecheck/auth-core] issuer must be ${ISSUER_ORIGIN_RULE}; got ${JSON.stringify(issuer)}`);
+  }
   let entry: JwksCacheEntry;
   try {
     // Fast path: try the cache. If the kid isn't in the cache (e.g.
     // brand-new key just rotated in), fall through to a fresh fetch.
-    entry = await fetchJwks(issuer, ttl, maxStale);
+    entry = await fetchJwks(origin, ttl, maxStale);
   } catch {
     return { status: "unavailable" };
   }
@@ -1022,12 +1002,12 @@ export async function checkOcToken(
       // minute per issuer, so an unknown kid cannot be used to drive
       // unbounded refetches (see lastForcedRefresh).
       const now = Date.now();
-      const last = lastForcedRefresh.get(issuer) ?? 0;
+      const last = lastForcedRefresh.get(origin) ?? 0;
       if (now - last >= FORCED_REFRESH_MIN_INTERVAL_MS) {
-        lastForcedRefresh.set(issuer, now);
+        lastForcedRefresh.set(origin, now);
         // TTL 0 refetches while keeping the cached list as the stand-in.
         try {
-          entry = await fetchJwks(issuer, 0, maxStale);
+          entry = await fetchJwks(origin, 0, maxStale);
         } catch {
           return { status: "unavailable" };
         }
@@ -1036,7 +1016,7 @@ export async function checkOcToken(
     }
     // A key may have rotated in while the key set can't be fetched: that is an
     // outage, not a token the set does not know.
-    if (!key) return jwksFailing.has(issuer) ? { status: "unavailable" } : INVALID;
+    if (!key) return jwksFailing.has(origin) ? { status: "unavailable" } : INVALID;
     // A trailing slash on the issuer asked for names the same issuer.
     const bare = issuer.replace(/\/+$/, "");
     const res = await jwtVerify(token, key, {
@@ -1162,3 +1142,4 @@ export * from "./family-origins";
 export * from "./identifiers";
 export * from "./retired-key";
 export * from "./owner-list";
+export * from "./issuer-origin";
