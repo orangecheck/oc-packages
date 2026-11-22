@@ -16,8 +16,14 @@ this file tracks the package's TS / Node / runtime API surface.
   Bitcoin Keeper trim the text before they sign it, and for a challenge whose
   last value does not end in a space that removes exactly the final LF. Those
   two texts are the only ones tried: a signature over the challenge with an
-  extra LF, CRLF line ends or a leading space is still `sig_invalid`, and the
-  message passed in is read as before.
+  extra LF, CRLF line ends or a leading space is still `sig_invalid`, as is
+  one over a trim that also dropped a space from the last value, and the
+  message passed in is read as before. OC Attest 2.1.0, SPEC Appendix A.1
+  rule 6 and vector `tv31`.
+- If you store a challenge and its signature, a pair that `verifyChallenge()`
+  accepted may now fail a plain byte-for-byte BIP-322 re-verify of the stored
+  message. Re-check it with `verifyChallenge()`, or over the message and over
+  the message without its final LF.
 
 ## [1.26.2] — 2026-11-10
 
