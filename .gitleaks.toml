@@ -19,4 +19,4 @@ description = "mcp's test fixtures: the domain-verification tokens ochk.io and t
 condition = "AND"
 paths = ['''^mcp/src/__tests__/replay\.ts$''']
 regexTarget = "line"
-regexes = ['''^export const (?:EXAMPLES_TOKEN|OCHK_TXT_TOKEN) = '[0-9a-f]{48}';$''']
+regexes = ['''export const (?:EXAMPLES_TOKEN|OCHK_TXT_TOKEN) = '[0-9a-f]{48}';$''']
