@@ -27,6 +27,43 @@ All notable changes to the **`orangecheck`** Python package. Follows
 - **`verify_bip322_signature` reads a BIP-137 signature only at 65 bytes**:
   a header byte, then r and s, as `@orangecheck/bip322` reads it. A blob of
   any other length on a P2PKH address is `False`.
+- **One rule for every issuer and `me_origin`, held to auth-core's table**
+  (`auth-core/test-vectors/issuer-origin.json`, which auth-core's tests read
+  too): one origin with no path, https, or http on `localhost`, `127.0.0.1` or
+  `[::1]`. The origin requests go to is lower-cased. Every origin that was
+  already one origin answers as before.
+- **`me_origin` and the list's origin are checked when they are set.**
+  `SignInPolicy`, and the `verify_session`, `check_sign_in_rule` and
+  `exchange_native_code` that make one, raise ValueError for a refused
+  `me_origin` before any request; so does `RevocationList` for a `url` whose
+  origin, the part before `/api/integrator/revocations`, is refused.
+- **`verify_session` checks the issuer it would fetch keys from before it reads
+  the token**, as auth-core's `checkOcToken` does, so a refused issuer raises
+  ValueError rather than answering `malformed`.
+
+### Now refused
+
+As an issuer (`verify_session`, `revoke_token`, `exchange_native_code`), each
+of these used to be accepted:
+
+- the scheme's own port, port 0, an empty port, a leading zero or a port above
+  65535: `https://ochk.io:443`, `http://localhost:80`, `https://ochk.io:0`,
+  `https://ochk.io:`, `https://ochk.io:08443`, `https://ochk.io:65536`
+- a space at either end, or a tab or newline anywhere (which `urlsplit`
+  dropped)
+- a trailing dot, a label that starts or ends with a hyphen, an underscore, a
+  percent escape: `https://ochk.io.`, `https://-ochk.io`, `https://och_k.io`,
+  `https://och%6b.io`
+- a host outside printable ASCII: `https://bücher.example` (write its
+  `xn--` form), a Kelvin sign for `k`, a NUL
+- an IPv4 address that is short, zero-padded or out of range, or a last label
+  that is a number: `https://127.1`, `https://192.0.2`, `https://01.2.3.4`,
+  `https://256.0.0.1`, `https://ochk.123`, `https://ochk.0x1f`
+
+As `me_origin` or the list's origin, which were taken as given: anything that
+is not one origin, all of the above included, plus a path, a query, a
+fragment, a user name, and plain http to any host but `localhost`,
+`127.0.0.1` and `[::1]`.
 
 ## [3.20.0] — 2026-11-23
 
