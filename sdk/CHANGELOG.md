@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.27.0] — 2026-11-22
+
 ### Changed
 
 - `verifyChallenge()` also accepts a signature over the challenge without its
