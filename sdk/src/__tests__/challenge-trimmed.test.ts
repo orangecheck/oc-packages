@@ -1,8 +1,9 @@
 /**
  * Some wallets trim the text before they sign it: Sparrow on every sign path, Electrum's GUI,
- * Nunchuk on Android and Bitcoin Keeper. A challenge has no leading whitespace and its last value
- * ends in a printable character, so a trim removes exactly its final LF. A signature over the
- * challenge without that LF verifies, and over no other edit of it.
+ * Nunchuk on Android and Bitcoin Keeper. A challenge has no leading whitespace, so where its last
+ * value ends in a printable character a trim removes exactly its final LF. A signature over the
+ * challenge without that LF verifies, and over no other edit of it, a trim that also drops a space
+ * included.
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { ripemd160 } from '@noble/hashes/legacy.js';
@@ -128,6 +129,30 @@ describe.each(SIGNERS)('a challenge signed by a wallet that trims ($name)', ({ a
         }).message;
         const r = await verify(address, issued, sign(address, javaTrim(other), KEY));
         expect(r).toEqual({ ok: false, reason: 'sig_invalid' });
+    });
+
+    it('refuses a trim that also drops a space from the last value', async () => {
+        // A is the challenge with `purpose: login `, B the one with `purpose: login`: a trim makes them one text.
+        const a = issueChallenge({ address, nonce: NONCE, audience: 'https://ochk.io', purpose: 'login ', now: NOW })
+            .message;
+        expect(a.trim()).toBe(issued.trim());
+        const verifyA = (signature: string) =>
+            verifyChallenge({
+                message: a,
+                signature,
+                expectedNonce: NONCE,
+                expectedAudience: 'https://ochk.io',
+                expectedPurpose: 'login ',
+                now: NOW,
+            });
+        for (const signed of [a.trim(), issued.trim(), a.trimEnd(), javaTrim(a)]) {
+            expect(await verifyA(sign(address, signed, KEY))).toEqual({ ok: false, reason: 'sig_invalid' });
+        }
+        // That signature is B's, trimmed.
+        expect(await verify(address, issued, sign(address, a.trim(), KEY))).toMatchObject({ ok: true });
+        for (const signed of [a, a.slice(0, -1)]) {
+            expect(await verifyA(sign(address, signed, KEY))).toMatchObject({ ok: true, purpose: 'login ' });
+        }
     });
 
     it('still reads a text with an extra LF, CRLF or leading space as malformed', async () => {
