@@ -9,6 +9,16 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- **How and when a session signed in.** `SessionPayload` gains `amr` (the
+  sign-in's ceremonies, RFC 8176) and `auth_time` (its Unix seconds, OIDC).
+  `AUTH_METHODS` lists the five ceremonies: `bip322`, `passkey`, `email`,
+  `google`, `github`. `readSignInFacts(payload)` returns `{ amr, auth_time }`,
+  each null when the token does not state it clearly: an `amr` that is empty,
+  repeats a method or names one outside the list reads as null, never as part
+  of a list. Tokens minted before the auth host writes them state neither.
+
 ### Changed
 
 - **`OC_ME_ORIGIN` and `OC_AUTH_ISSUER` are trimmed before they are read**, as
