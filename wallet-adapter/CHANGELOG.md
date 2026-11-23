@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-23
+
 ### Changed
 
 - `assertSignedBy`, and with it `OcWalletButton`'s paste panel and every
