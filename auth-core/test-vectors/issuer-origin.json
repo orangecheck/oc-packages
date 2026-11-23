@@ -19,7 +19,8 @@
         { "input": "http://localhost:65535", "origin": "http://localhost:65535" },
         { "input": "https://192.0.2.10", "origin": "https://192.0.2.10" },
         { "input": "https://2fa.example", "origin": "https://2fa.example" },
-        { "input": "https://xn--bcher-kva.example", "origin": "https://xn--bcher-kva.example" }
+        { "input": "https://xn--bcher-kva.example", "origin": "https://xn--bcher-kva.example" },
+        { "input": "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example", "origin": "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example" }
     ],
     "refused": [
         "",
@@ -47,6 +48,8 @@
         "http://[::2]:3000",
         "http://[0:0:0:0:0:0:0:1]:3000",
         "http://::1:3000",
+        "https://[2001:db8::1]",
+        "http://[2001:db8::1]:3000",
         "http://localhost:3000/stand-in",
         "https://ochk.io/api",
         "https://ochk.io//",
@@ -68,6 +71,9 @@
         "https://ochk.io\n",
         "https://och\tk.io",
         "https://ochk.io.",
+        "https://ochk..io",
+        "https://.ochk.io",
+        "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example",
         "https://-ochk.io",
         "https://ochk-.io",
         "https://och_k.io",
