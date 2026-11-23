@@ -20,6 +20,10 @@
 
 import { importJWK, type CryptoKey, type KeyObject } from 'jose';
 
+import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from '@orangecheck/auth-core/issuer-origin';
+
+import { issuerOrigin } from './origin';
+
 const DEFAULT_ISSUER = 'https://me.ochk.io';
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 /** How old a key list may be and still stand in for one that can't be fetched. */
@@ -75,8 +79,8 @@ interface OcEnvelopePublicJwk {
 }
 
 export interface VerifyActivityOptions {
-    /** Override the me.ochk.io issuer (defaults to https://me.ochk.io).
-     *  Useful for staging / self-hosted dev. */
+    /** Override the me.ochk.io issuer (defaults to https://me.ochk.io):
+     *  one origin with no path. Useful for staging / self-hosted dev. */
     issuer?: string;
     /** Pass a JWK directly to skip the network fetch · convenient when
      *  embedding the public key in your service for air-gapped or
@@ -360,7 +364,12 @@ export async function verifyActivityAttestation(
             return { ok: false, reason: 'provided jwk failed import', checks };
         }
     } else {
-        const issuer = options.issuer ?? DEFAULT_ISSUER;
+        const issuer = parseIssuerOrigin(options.issuer ?? DEFAULT_ISSUER);
+        if (issuer === null) {
+            const reason = `issuer must be ${ISSUER_ORIGIN_RULE}`;
+            checks.push({ ok: false, label: 'JWK with matching kid present', detail: reason });
+            return { ok: false, reason, checks };
+        }
         const ttl = options.jwksCacheTtlMs ?? DEFAULT_TTL_MS;
         const maxStale = options.jwksMaxStaleMs ?? DEFAULT_MAX_STALE_MS;
         try {
@@ -430,8 +439,9 @@ export async function verifyActivityAttestation(
 /** Force-refresh the envelope-JWKS cache · useful after a key rotation
  *  if you don't want to wait for the TTL to expire. */
 export async function refreshEnvelopeJwks(issuer = DEFAULT_ISSUER): Promise<void> {
-    jwksCache.delete(issuer);
-    await fetchEnvelopeJwks(issuer, DEFAULT_TTL_MS);
+    const origin = issuerOrigin(issuer, 'refreshEnvelopeJwks: issuer');
+    jwksCache.delete(origin);
+    await fetchEnvelopeJwks(origin, DEFAULT_TTL_MS);
 }
 
 export const identity = {

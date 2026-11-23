@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateKeyPair, exportJWK, type KeyObject } from 'jose';
 
@@ -358,5 +360,27 @@ describe('the envelope key list, cached', () => {
         up = false;
         expect((await verifyActivityAttestation(unknown, { issuer })).ok).toBe(false);
         expect((await verifyActivityAttestation(known, { issuer })).ok).toBe(true);
+    });
+});
+
+describe('verifyActivityAttestation · the issuer', () => {
+    // auth-core's one rule for an origin a site names; me.ochk.io's envelope keys are read only from one.
+    const V = JSON.parse(
+        readFileSync(new URL('../../../auth-core/test-vectors/issuer-origin.json', import.meta.url), 'utf8')
+    ) as { refused: string[] };
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it.each(V.refused)('refuses %j without reading the key set', async (issuer) => {
+        const fetch = vi.fn();
+        vi.stubGlobal('fetch', fetch);
+        const { bundle } = await makeAttestation();
+        expect(await verifyActivityAttestation(bundle, { issuer })).toMatchObject({
+            ok: false,
+            reason: 'issuer must be one origin with no path: https, or http on localhost, 127.0.0.1 or [::1]',
+        });
+        expect(fetch).not.toHaveBeenCalled();
     });
 });
