@@ -1,6 +1,6 @@
 // scripts/land.sh against a scripted gh: a PR the queue has merged is reported
 // merged even when one read shows it open and out of the queue, and a real drop
-// still fails, with its reason. The same cases as oc-docs' copy of the script.
+// still fails, with its reason and the queue's. The same cases as oc-docs' copy of the script.
 //
 //   node --test scripts/land.test.mjs
 import { spawnSync } from 'node:child_process';
@@ -16,18 +16,22 @@ useTmpRoot(after);
 
 const SCRIPT = new URL('./land.sh', import.meta.url).pathname;
 
-/** One read of the PR, as the script's jq turns it into a tab-separated line. */
-const read = (state, inQueue, auto, entry = '-', merged = '-', head = 'h'.repeat(40)) =>
-    [state, inQueue, auto, entry, 'SUCCESS', merged, head].join('\t');
+/**
+ * One read of the PR, as the script's jq turns it into a tab-separated line. `left` is the queue's reason
+ * for its last removal of the PR, and `leftMain` the commit it names.
+ */
+const read = (state, inQueue, auto, entry = '-', merged = '-', head = 'h'.repeat(40), left = '-', leftMain = '-') =>
+    [state, inQueue, auto, entry, 'SUCCESS', merged, head, left, leftMain].join('\t');
 
 /**
- * Runs the script on PR 7 with gh answering `reads` in turn (the last repeats) and `compare` for main...head,
+ * Runs the script on PR 7 with gh answering `reads` in turn (the last repeats) and `compare` for head...main
+ * (its status, then the first of main's commits with the head's tree, or -),
  * from `cwd`, a scratch checkout whose origin names the repository, so the test needs no checkout of its own.
  * Every gh call's arguments land in `calls`.
  */
 function land(
     reads,
-    compare = 'diverged',
+    compare = 'diverged\t-',
     timeout = '30',
     cwd = checkout('git@github.com:orangecheck/oc-packages.git'),
 ) {
@@ -75,13 +79,56 @@ test('reports merged when the PR reads open and out of the queue for a moment af
     ]);
     assert.match(r.out, new RegExp(`land: merged; main is now ${'m'.repeat(40)} \\(PR #7\\)`));
     assert.equal(r.code, 0);
+    // One line per read, so a wait that stalls shows which field held it.
+    const stamp = String.raw`land: \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ PR #7`;
+    assert.match(r.out, new RegExp(`${stamp} state=OPEN in_queue=true auto=true entry=QUEUED checks=SUCCESS removed=-\n`));
+    assert.match(r.out, new RegExp(`${stamp} state=MERGED in_queue=false auto=false entry=- checks=SUCCESS removed=-\n`));
+    assert.equal(r.out.match(/ PR #7 state=/g).length, r.calls.match(/graphql/g).length);
 });
 
 test('reports merged when main already holds the PR head, though the PR still reads open', () => {
-    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'behind');
+    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'ahead\t-');
     assert.match(r.out, /land: merged; main holds hhhh/);
     assert.match(r.out, /the PR's head \(PR #7\)/);
     assert.equal(r.code, 0);
+});
+
+/** A read of the PR, open, after the queue last removed it for `reason`, naming main's commit `main`. */
+const leftQueue = (reason, main, inQueue = false) =>
+    read('OPEN', inQueue, inQueue, inQueue ? 'QUEUED' : '-', '-', 'h'.repeat(40), reason, main);
+
+test('reports merged when the queue says it removed the PR because it merged it, though the PR reads open', () => {
+    // PR #510: the queue moved main and removed the PR at once; GitHub read it MERGED 105 s later.
+    // Its record can follow the PR out of the queue by a second, so the read before a drop is not the last.
+    const m = 'm'.repeat(40);
+    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false), leftQueue('merged', m)]);
+    assert.match(r.out, new RegExp(`land: merged; main is now ${m} \\(PR #7\\)`));
+    assert.equal(r.code, 0);
+    assert.doesNotMatch(r.calls, /compare/);
+    // At once, on the first read that carries the queue's record, even while auto-merge still reads on.
+    const autoOn = read('OPEN', false, true, '-', '-', 'h'.repeat(40), 'merged', m);
+    const lagging = land([read('OPEN', true, true, 'QUEUED'), autoOn]);
+    assert.equal(lagging.code, 0);
+    assert.equal(lagging.calls.match(/graphql/g).length, 2);
+});
+
+test("reports merged when main holds a commit with the PR head's tree (a rebase merge)", () => {
+    const rebased = 'r'.repeat(40);
+    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], `diverged\t${rebased}`);
+    assert.match(r.out, new RegExp(`land: merged; main holds ${rebased}, with the PR's head's tree \\(PR #7\\)`));
+    assert.equal(r.code, 0);
+    assert.match(r.calls, /compare\/h{40}\.\.\.main/);
+    assert.match(r.out, new RegExp(`Z PR #7 compare=diverged tree_match=${rebased}\n`));
+});
+
+test("names the queue's reason when it dropped the PR, and no stale one while the PR is queued", () => {
+    const r = land([read('OPEN', true, true, 'QUEUED'), leftQueue('failed_checks', 'b'.repeat(40))]);
+    assert.match(r.out, /land: the queue dropped PR #7: its group run failed or main changed under it/);
+    assert.match(r.out, /under it \(the queue's reason: failed_checks\)\n/);
+    assert.equal(r.code, 1);
+    const queued = land([leftQueue('failed_checks', 'b'.repeat(40), true)], 'diverged\t-', '0');
+    assert.match(queued.out, /land: timed out waiting for the queue to merge PR #7\n/);
+    assert.equal(queued.code, 1);
 });
 
 test('fails a PR the queue really dropped, with the reason', () => {
@@ -90,20 +137,20 @@ test('fails a PR the queue really dropped, with the reason', () => {
     assert.equal(r.code, 1);
 });
 
-test('fails a dropped PR that main has not caught up with (compare reads "ahead")', () => {
-    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'ahead');
+test('fails a dropped PR that main has not caught up with (compare reads "behind")', () => {
+    const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'behind\t-');
     assert.match(r.out, /land: the queue dropped PR #7/);
     assert.equal(r.code, 1);
 });
 
 test('re-reads before it reports a timeout', () => {
     assert.match(
-        land([read('OPEN', true, true, 'QUEUED')], 'diverged', '0').out,
+        land([read('OPEN', true, true, 'QUEUED')], 'diverged\t-', '0').out,
         /land: timed out waiting for the queue to merge PR #7/,
     );
     const merged = land(
         [read('OPEN', true, true, 'QUEUED'), read('MERGED', false, false, '-', 'm'.repeat(40))],
-        'diverged',
+        'diverged\t-',
         '0',
     );
     assert.equal(merged.code, 0);
@@ -117,7 +164,7 @@ test('fails a PR the queue cannot merge, unless a fresh read shows it merged', (
 
 test('fails a closed PR and a failed check at once', () => {
     assert.match(land([read('CLOSED', false, false)]).out, /land: PR #7 was closed/);
-    const failed = land([['OPEN', 'true', 'true', 'QUEUED', 'FAILURE', '-', 'h'].join('\t')]);
+    const failed = land([['OPEN', 'true', 'true', 'QUEUED', 'FAILURE', '-', 'h', '-', '-'].join('\t')]);
     assert.match(failed.out, /a check failed on PR #7/);
     assert.equal(failed.code, 1);
 });
@@ -129,17 +176,17 @@ test('reads the repository from origin, in each form GitHub hands out', () => {
         'https://github.com/acme/widgets.git',
         'ssh://git@github.com/acme/widgets.git',
     ]) {
-        const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'behind', '30', checkout(url));
+        const r = land([read('OPEN', true, true, 'QUEUED'), read('OPEN', false, false)], 'ahead\t-', '30', checkout(url));
         assert.equal(r.code, 0, `${url}: ${r.out}`);
         assert.match(r.calls, / -f o=acme -f r=widgets -F n=7 /, url);
-        assert.match(r.calls, /repos\/acme\/widgets\/compare\/main\.\.\./, url);
+        assert.match(r.calls, /repos\/acme\/widgets\/compare\/h{40}\.\.\.main/, url);
     }
 });
 
 test('refuses an origin that is not a GitHub repository, before it calls gh', () => {
     const r = land(
         [read('MERGED', false, false, '-', 'm'.repeat(40))],
-        'behind',
+        'ahead\t-',
         '30',
         checkout('https://gitlab.com/acme/widgets.git'),
     );
