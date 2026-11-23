@@ -1,0 +1,94 @@
+{
+  "id": "tv36",
+  "category": "signed_text",
+  "description": "attestations for burn key #1's address whose signature covers the canonical text or that text without its final LF, which verify (SPEC \u00a74.1), or another text, which is sig_invalid: a second LF, CRLF, a leading space, or a trim that also drops a space or U+00A0 ending the last value; a message given without its final LF is decode_error, whatever its signature covers. A case's signed is the text its signature covers when that is not message, and its code the first of decode_error and the signature codes a verifier returns",
+  "input": {
+    "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+    "now": "2026-04-22T12:00:00Z",
+    "cases": [
+      {
+        "name": "canonical, signed over the canonical text (control)",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkcwRAIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIEaey/lWb9/qAvYYEqtk2uguncaCkhKD/VYiOJj9h2faASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "code": "sig_ok_bip322"
+      },
+      {
+        "name": "canonical, signed without its final LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.",
+        "signature": "AkgwRQIhALwOQUtOn6WGCsiuRTijEoPEH25Kgi14gkIb4FkbDANMAiBdriVgkaE/Zm19AXEA7Z6apvkMiz/Gn8KP1vbmanNONwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_ok_bip322"
+      },
+      {
+        "name": "canonical, BIP-137 signed without its final LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.",
+        "signature": "Jy5ShHg+0ZL18kS6JUrgqJRWtRlaeFsf2JKJ6ZrHQvSnYCqBspg2CRosTxI/49pSVjpOKe5rYrQtf1oQ4e6nGLU=",
+        "code": "sig_ok_legacy"
+      },
+      {
+        "name": "canonical, signed with a second LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n\n",
+        "signature": "AkcwRAIgRa1445wdRh1vk20px+7hTKl7xDZte6T5/52uLVN/8AoCIA72x7et4xKNpqdUxtMBtZvJemmRs5W7+4Rko/8iTVxCASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "canonical, signed with CRLF in place of the final LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\r\n",
+        "signature": "AkcwRAIgOzgZPW/AGU+SgjyjmYjs9DXWz8jnl4l3vzgTtdNn3c0CIBnyVFu+HkFpNw1pCNjKmbFNoJ0i0OFs7an0HoVi9KFpASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "canonical, signed with a leading space",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signed": " orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkgwRQIhAIZIK1FL+65bfwoRo4bQq/4xbu7WKVVM5Ypd9Gz4twJQAiBYkFedJtWkjzPtTIjyVtkK+HLsn/eA4z6HI4saoq4p8AEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "a scope ending in a space, signed without its final LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice \n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice ",
+        "signature": "AkgwRQIhAO8Ybwy3zr7SEEmKcpEEuC3GP+2wHYrbno3u3z1BeLDzAiAEqeq6gv1N+q3u9E0xClVH3XfT23AOIPMyhEcLhRkDbgEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_ok_bip322"
+      },
+      {
+        "name": "a scope ending in a space, signed over the trimmed text",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice \n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice",
+        "signature": "AkgwRQIhANvWrAYLTCxuzxGvSGYEuUs1iYtb/uHHuZZC9o4p99PTAiAicJcMqWnWLw14nKyVhb6nzN5i1pFzsKQEIRALWkPU/wEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "a scope ending in U+00A0, signed without its final LF",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice\u00a0\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice\u00a0",
+        "signature": "AkgwRQIhAIi8U2ng/UiWn+UTRhYCMLn3Hvaza0H3SNH2bOK5QEG2AiBsRfdyQ6nxEp+Qbmm/7ceVLt7/PPQ56py3HddcA596eAEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_ok_bip322"
+      },
+      {
+        "name": "a scope ending in U+00A0, signed over the trimmed text",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice\u00a0\n",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\nscope: x:@alice",
+        "signature": "AkgwRQIhANvWrAYLTCxuzxGvSGYEuUs1iYtb/uHHuZZC9o4p99PTAiAicJcMqWnWLw14nKyVhb6nzN5i1pFzsKQEIRALWkPU/wEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "the message given without its final LF, signed over it",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.",
+        "signature": "AkgwRQIhALwOQUtOn6WGCsiuRTijEoPEH25Kgi14gkIb4FkbDANMAiBdriVgkaE/Zm19AXEA7Z6apvkMiz/Gn8KP1vbmanNONwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "decode_error"
+      },
+      {
+        "name": "the message given without its final LF, signed over the canonical text",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.",
+        "signed": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkcwRAIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIEaey/lWb9/qAvYYEqtk2uguncaCkhKD/VYiOJj9h2faASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "code": "decode_error"
+      }
+    ]
+  },
+  "expected": {}
+}

@@ -1,0 +1,50 @@
+{
+  "id": "tv37",
+  "category": "bond_signature",
+  "description": "tv25's P2WPKH bond message by private key 1, BIP-322 simple and BIP-137 signed without its final LF, which verify inside the signing window with tv25's bond id (BOND.md \u00a73 step 4, SPEC \u00a74.1); a signature over the message with a second LF or with CRLF is sig_invalid, and the message given without its final LF is bond_malformed. A bond's or case's signed is the text its signature covers when that is not message",
+  "input": {
+    "now": "2026-10-16T12:05:00Z",
+    "bonds": [
+      {
+        "address": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+        "signed": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.",
+        "signature": "AkgwRQIhAP1qpe4elxOeqrkzzzhPOIjv6ulYxY6Zss/WPuMWeQJXAiBuMAA00/21dyfq3jQa3SkaZrNGuYikChJOCoN40+dnrAEhAnm+Zn753LusVaBilc6HCwcCm/zbLc4o2VnygVsW+BeY"
+      },
+      {
+        "address": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+        "signed": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.",
+        "signature": "J/XKB0IFf2jypgrh0ph0qAvv4GOgb/O6Ruicx6lZuYXlJPIO0vtBO3+xk4dWpHVvlhrGxiJ9SyXe1CT4R/10xP0="
+      }
+    ],
+    "cases": [
+      {
+        "now": "2026-10-16T12:05:00Z",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+        "signed": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n\n",
+        "signature": "AkgwRQIhALSD7I8dm0z7QPKmmYOEMuM1CD5Gc/kqiN9b8hNr5cMfAiBPfLpynbswvzjAJ2wH3xpMUcOGxUEazdAseK8xzsPvegEhAnm+Zn753LusVaBilc6HCwcCm/zbLc4o2VnygVsW+BeY",
+        "reason": "sig_invalid"
+      },
+      {
+        "now": "2026-10-16T12:05:00Z",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\n",
+        "signed": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.\r\n",
+        "signature": "AkgwRQIhAP7C+dlwASLM4tI2YSEKMJR4d/baRFE7xu0iUgQpZZP2AiALIG8L8gJ5wRgQWafihmp/GBWHL5zeYXUrxoiaa7NxcQEhAnm+Zn753LusVaBilc6HCwcCm/zbLc4o2VnygVsW+BeY",
+        "reason": "sig_invalid"
+      },
+      {
+        "now": "2026-10-16T12:05:00Z",
+        "message": "orangecheck-bond\naddress: bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4\noutpoint: 1bd631f9d28188be398bae26c018e93ec4d276d25d8f969b6cbc28eab13686c9:0\nsubject: did:oc:0123456789abcdef0123456789abcdef\nnonce: 00112233445566778899aabbccddeeff\nissued_at: 2026-10-16T12:00:00Z\nexpires_at: 2026-10-16T12:10:00Z\nack: I back this subject with this coin. It stays in my wallet.",
+        "signature": "AkgwRQIhAP1qpe4elxOeqrkzzzhPOIjv6ulYxY6Zss/WPuMWeQJXAiBuMAA00/21dyfq3jQa3SkaZrNGuYikChJOCoN40+dnrAEhAnm+Zn753LusVaBilc6HCwcCm/zbLc4o2VnygVsW+BeY",
+        "reason": "bond_malformed"
+      }
+    ]
+  },
+  "expected": {
+    "bond_ids": [
+      "c4a9465c3b161eccb18c479649ef93149ac38124def8c3b9c7552bb1915d129e",
+      "c4a9465c3b161eccb18c479649ef93149ac38124def8c3b9c7552bb1915d129e"
+    ]
+  }
+}

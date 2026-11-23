@@ -383,6 +383,69 @@ describe('conformance: network_prefix (SPEC §7.1 step 3)', () => {
     }
 });
 
+describe('conformance: signature_scheme (SPEC §4)', () => {
+    // The signature's bytes decide each code, whichever scheme the caller names.
+    // Each valid signature goes on to read the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+    const SIGNATURE_CODES: StatusCode[] = ['sig_ok_bip322', 'sig_ok_legacy', 'sig_invalid', 'sig_unsupported_script'];
+
+    for (const v of vectors.filter((x) => x.category === 'signature_scheme')) {
+        const input = v.input as {
+            now: string;
+            cases: { name: string; address: string; message: string; signature: string; code: StatusCode }[];
+        };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date(input.now));
+            expect(verifySignature(c.address, c.message, c.signature)).toBe(c.code.startsWith('sig_ok_'));
+            for (const scheme of ['bip322', 'legacy'] as const) {
+                const r = await verify({ addr: c.address, msg: c.message, sig: c.signature, scheme });
+                expect(r.codes.filter((code) => SIGNATURE_CODES.includes(code))).toEqual([c.code]);
+            }
+        });
+    }
+});
+
+describe('conformance: signed_text (SPEC §4.1)', () => {
+    // Each signature covers its case's signed text; the verifier is given its message.
+    // Each valid signature goes on to read the chain, stubbed here with no coins.
+    beforeEach(() => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+        );
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+    const CODES: StatusCode[] = ['decode_error', 'sig_ok_bip322', 'sig_ok_legacy', 'sig_invalid'];
+
+    for (const v of vectors.filter((x) => x.category === 'signed_text')) {
+        const input = v.input as {
+            address: string;
+            now: string;
+            cases: { name: string; message: string; signed?: string; signature: string; code: StatusCode }[];
+        };
+        it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date(input.now));
+            expect(verifySignature(input.address, c.signed ?? c.message, c.signature)).toBe(true);
+            const r = await verify({ addr: input.address, msg: c.message, sig: c.signature });
+            expect(CODES.find((code) => r.codes.includes(code)) ?? null).toBe(c.code);
+        });
+    }
+});
+
 describe('conformance: bond_extension (SPEC §2.2)', () => {
     for (const v of vectors.filter((x) => x.category === 'bond_extension')) {
         const values = v.input.values as string[];
@@ -422,18 +485,19 @@ describe('conformance: bonds (BOND.md)', () => {
         it(`${v.id}: ${v.description}`, () => {
             const input = v.input as {
                 now?: string;
-                bonds?: { message: string; signature: string }[];
-                cases?: { now: string; message: string; signature: string; reason: string }[];
+                // A bond or case's `signed` is the text its signature covers, when that is not `message`.
+                bonds?: { message: string; signed?: string; signature: string }[];
+                cases?: { now: string; message: string; signed?: string; signature: string; reason: string }[];
             };
             for (const [i, b] of (input.bonds ?? []).entries()) {
-                const r = verifyBondSignature({ ...b, now: new Date(input.now!) });
+                const r = verifyBondSignature({ message: b.message, signature: b.signature, now: new Date(input.now!) });
                 expect(r).toMatchObject({
                     ok: true,
                     bond_id: (v.expected as { bond_ids: string[] }).bond_ids[i],
                 });
             }
             for (const c of input.cases ?? []) {
-                const r = verifyBondSignature({ ...c, now: new Date(c.now) });
+                const r = verifyBondSignature({ message: c.message, signature: c.signature, now: new Date(c.now) });
                 expect(r).toEqual({ ok: false, reason: c.reason });
             }
         });
@@ -481,6 +545,8 @@ describe('conformance: vector index loaded', () => {
                 'value_form',
                 'value_as_written',
                 'network_prefix',
+                'signature_scheme',
+                'signed_text',
             ])
         );
     });

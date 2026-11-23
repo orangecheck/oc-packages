@@ -395,6 +395,47 @@ def test_network_prefix_builder(vector: dict) -> None:
                 build()
 
 
+# ─── signature_scheme (SPEC §4) ────────────────────────────────────────────
+# This package has no attestation verifier, so the codes are the TS SDK's to
+# check. Here each signature verifies exactly when its code is a sig_ok_ one.
+
+
+@pytest.mark.parametrize("vector", vectors_of("signature_scheme"), ids=ids_for("signature_scheme"))
+def test_signature_scheme_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+
+    for case in vector["input"]["cases"]:
+        got = verify_bip322_signature(case["address"], case["message"], case["signature"])
+        assert got is case["code"].startswith("sig_ok_"), f"{vector['id']}: {case['name']}"
+
+
+# ─── signed_text (SPEC §4.1) ───────────────────────────────────────────────
+# This package has no attestation verifier, so the decode_error cases are the
+# TS SDK's to check. Here each signature verifies over the text it covers, and
+# the signed-text rule bond checks use accepts it over the message exactly
+# when its code is a sig_ok_ one.
+
+
+@pytest.mark.parametrize("vector", vectors_of("signed_text"), ids=ids_for("signed_text"))
+def test_signed_text_signatures(vector: dict) -> None:
+    from orangecheck import verify_bip322_signature
+
+    if verify_bip322_signature is None:
+        pytest.skip("install orangecheck[verify] to exercise BIP-322 vectors")
+    from orangecheck.verify_sig import signs_text
+
+    inp = vector["input"]
+    for case in inp["cases"]:
+        signed = case.get("signed", case["message"])
+        assert verify_bip322_signature(inp["address"], signed, case["signature"]), case["name"]
+        if case["code"] != "decode_error":
+            got = signs_text(inp["address"], case["message"], case["signature"])
+            assert got is case["code"].startswith("sig_ok_"), f"{vector['id']}: {case['name']}"
+
+
 # ─── Cross-impl meta-check ─────────────────────────────────────────────────
 
 
@@ -419,6 +460,8 @@ def test_vector_set_complete() -> None:
         "value_form",
         "value_as_written",
         "network_prefix",
+        "signature_scheme",
+        "signed_text",
     }
     assert len(VECTORS) >= 28
 
