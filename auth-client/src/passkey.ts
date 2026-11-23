@@ -4,8 +4,10 @@
  *   - `signin` needs no session: the passkey is discoverable and names its account.
  *   - `layer` adds a passkey to the wallet sign-in this browser just made.
  *
- * Only a passkey its account's Bitcoin address has signed for can sign in;
- * ochk.io answers `passkey_not_recognised` for any other.
+ * Only a passkey its account's Bitcoin address has signed for can sign in.
+ * ochk.io answers `passkey_not_for_signin` for a key it holds that has no such
+ * signature, which still steps up, and `passkey_not_recognised` for a key it
+ * does not hold or has removed. Only the second tells the browser the key is unknown.
  */
 
 import {
@@ -40,7 +42,10 @@ function isCancel(err: unknown): boolean {
     return err instanceof Error && /NotAllowed|Abort|aborted|cancel/i.test(`${err.name} ${err.message}`);
 }
 
-/** Tell the browser's passkey manager a key ochk.io no longer knows, where it has the call (WebAuthn L3 §5.1.10.2). */
+/**
+ * Tell the browser's passkey manager a key ochk.io does not hold, where it has the call (WebAuthn L3 §5.1.10.2).
+ * The manager may hide or delete it, so this is never sent for a key ochk.io still holds.
+ */
 function signalUnknown(rpId: string | undefined, credentialId: string): void {
     const pkc = (globalThis as { PublicKeyCredential?: unknown }).PublicKeyCredential as
         | { signalUnknownCredential?: (o: { rpId: string; credentialId: string }) => Promise<void> }
