@@ -1,7 +1,7 @@
 {
   "id": "tv35",
   "category": "signature_scheme",
-  "description": "attestations for burn key #1's addresses whose signature's bytes decide its scheme (SPEC §4): a ful or pof prefix is sig_unsupported_script, 65 bytes without the smp prefix is BIP-137, and anything else BIP-322 simple; a BIP-137 signature verifies (sig_ok_legacy) when the key it recovers derives the address, either key form for 1…, the compressed key for 3… and bc1q, its BIP-86 output key for bc1p, whatever the header's address-type flag says, and is sig_invalid by another key, from an uncompressed key on a segwit address, or with a header above 42; a BIP-137 signature cut to 64 bytes or given a 66th is read as BIP-322 simple; BIP-322 simple verifies (sig_ok_bip322) on bc1q with or without smp and on 3…, and is sig_invalid on 1…, which has no simple form, and on a bc1p spent by a script path, since a bc1p address signs only by its key path (§1). Each case's code is the signature code a verifier returns",
+  "description": "attestations for burn key #1's addresses whose signature's bytes decide its scheme (SPEC §4): a ful or pof prefix is sig_unsupported_script, 65 bytes without the smp prefix is BIP-137, and anything else BIP-322 simple; a BIP-137 signature verifies (sig_ok_legacy) when the key it recovers derives the address, either key form for 1…, the compressed key for 3… and bc1q, its BIP-86 output key for bc1p, whatever the header's address-type flag says, and is sig_invalid by another key, from an uncompressed key on a segwit address, or with a header above 42; a BIP-137 signature cut to 64 bytes or given a 66th is read as BIP-322 simple; BIP-322 simple verifies (sig_ok_bip322) on bc1q with or without smp and on 3…, and on bc1p by its key path, and is sig_invalid on 1…, which has no simple form, on a bc1p spent by a script path, since a bc1p address signs only by its key path (§1), and wherever it breaks a rule BIP-322 holds a transaction's signature to: a high S on bc1q or 3…, a size that is not a minimal CompactSize, a byte after the witness stack, or on bc1p an explicit 0x00 hash type, an annex or an empty second item. A BIP-137 signature is not held to a low S. Each case's code is the signature code a verifier returns",
   "input": {
     "identities": [
       {
@@ -154,6 +154,13 @@
         "code": "sig_invalid"
       },
       {
+        "name": "BIP-137 header 40 on bc1q with a high S: BIP-137 is not held to a low S",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "KAjrmZw/Y38iHbiX3fCRgt4sTafmNsz6CtOrzV3Fv+28swDaanxtGjq21Q0vU7f/wlPptqVfc/7d7Rd9AnAPGEc=",
+        "code": "sig_ok_legacy"
+      },
+      {
         "name": "BIP-322 simple on bc1q (control)",
         "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
         "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
@@ -193,6 +200,83 @@
         "address": "1C6Rc3w25VHud3dLDamutaqfKWqhrLRTaD",
         "message": "orangecheck\nidentities: github:conformance\naddress: 1C6Rc3w25VHud3dLDamutaqfKWqhrLRTaD\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
         "signature": "smpAkcwRAIgKSh7oh37YcCtWT5FquwrE+u568urfhmwr+CkA30A6mkCIFXq8G1NVo7YfQMcOtvyDO3KThqUp4pbiWfqG758A5mqASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p by its key path (control)",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AUDxsEmt70aqQ8QOaZZXqrW6UHjod1N76kc+pBvIxP4Q194frbX34mfBw5wRF0cm8TBpf35UClmBEC/sFYL0zmf8",
+        "code": "sig_ok_bip322"
+      },
+      {
+        "name": "BIP-322 simple on bc1q with a high S",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkgwRQIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIQC5YTQGqZAgFf0J5+1UmyUWjBEWZB02HD5psCXz0q7ZZwEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on 3… (P2SH-P2WPKH) with a high S",
+        "address": "35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i",
+        "message": "orangecheck\nidentities: github:conformance\naddress: 35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkgwRQIgWAud4hPFE+rD6AE/Kk/GbDEesr3usSKic/9bpWhKPhsCIQCENskqqypdsmI7bOy7qKJrstaawaoVDUvJD8gx7BqxyQEhAxuExVZ7EmRAmV0+1aq6BWXXHhg0YEgZ/5wX9enV3QeP",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1q with a byte after the witness stack",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkcwRAIgDZwjAF3arnstRM+racHU7USgcq0DRZyNugENRAPGQzECIEaey/lWb9/qAvYYEqtk2uguncaCkhKD/VYiOJj9h2faASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48A",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on 3… (P2SH-P2WPKH) with a byte after the witness stack",
+        "address": "35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i",
+        "message": "orangecheck\nidentities: github:conformance\naddress: 35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkcwRAIgWAud4hPFE+rD6AE/Kk/GbDEesr3usSKic/9bpWhKPhsCIHvJNtVU1aJNncSTE0RXXZMH2EIlBTOS7/bCllrkG494ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48A",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p with a byte after the witness stack",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AUDxsEmt70aqQ8QOaZZXqrW6UHjod1N76kc+pBvIxP4Q194frbX34mfBw5wRF0cm8TBpf35UClmBEC/sFYL0zmf8AA==",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p with an explicit 0x00 hash type",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AUHxsEmt70aqQ8QOaZZXqrW6UHjod1N76kc+pBvIxP4Q194frbX34mfBw5wRF0cm8TBpf35UClmBEC/sFYL0zmf8AA==",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p with an annex",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkDxsEmt70aqQ8QOaZZXqrW6UHjod1N76kc+pBvIxP4Q194frbX34mfBw5wRF0cm8TBpf35UClmBEC/sFYL0zmf8AVA=",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p with an empty second item",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkDxsEmt70aqQ8QOaZZXqrW6UHjod1N76kc+pBvIxP4Q194frbX34mfBw5wRF0cm8TBpf35UClmBEC/sFYL0zmf8AA==",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1q with its item count not a minimal CompactSize",
+        "address": "bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1q0xcqpzrky6eff2g52qdye53xkk9jxkvrh6yhyw\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "/QIARzBEAiANnCMAXdquey1Ez6tpwdTtRKByrQNFnI26AQ1EA8ZDMQIgRp7L+VZv3+oC9hgSq2Ta6C6dxoKSEoP9ViI4mP2HZ9oBIQMbhMVWexJkQJldPtWqugVl1x4YNGBIGf+cF/Xp1d0Hjw==",
+        "code": "sig_invalid"
+      },
+      {
+        "name": "BIP-322 simple on bc1p with its signature length not a minimal CompactSize",
+        "address": "bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t",
+        "message": "orangecheck\nidentities: github:conformance\naddress: bc1p33wm0auhr9kkahzd6l0kqj85af4cswn276hsxg6zpz85xe2r0y8syx4e5t\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "Af1AAPGwSa3vRqpDxA5plleqtbpQeOh3U3vqRz6kG8jE/hDX3h+ttffiZ8HDnBEXRybxMGl/flQKWYEQL+wVgvTOZ/w=",
         "code": "sig_invalid"
       },
       {
