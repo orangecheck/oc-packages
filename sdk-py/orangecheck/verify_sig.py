@@ -16,8 +16,11 @@ dependency (at import time).
   (P2PKH, P2SH-P2WPKH, P2WPKH, P2TR), whatever its header flag says;
   anything else is BIP-322 simple, with or without the finalized BIP's
   ``smp`` prefix. A ``ful`` or ``pof`` signature is not supported.
-- A BIP-322 simple signature for a P2WPKH or P2SH-P2WPKH address must be a
-  signature and the 33-byte key that address commits to. That is checked
+- A BIP-322 simple witness is the whole signature (OC Attest SPEC §4): for
+  P2WPKH and P2SH-P2WPKH exactly a signature and the 33-byte key that
+  address commits to, for P2TR exactly one item, 64 bytes or 65 ending in
+  SIGHASH_ALL, each size a minimal CompactSize, and nothing after the
+  stack. Any other address type has no simple form here. That is checked
   here, before ``bip322`` runs, so it holds whatever version is installed.
 - Bech32 addresses verify only in their canonical lowercase spelling; pass
   what a person typed or scanned through
@@ -204,7 +207,7 @@ def _decode_base64(s: str) -> bytes:
 
 
 def _read_compact_size(b: bytes, i: int) -> Tuple[int, int]:
-    """(value, next index), or (-1, i) when it runs past the end."""
+    """(value, next index), or (-1, i) when it runs past the end or is not minimal."""
     if i >= len(b):
         return -1, i
     width = {0xFD: 2, 0xFE: 4, 0xFF: 8}.get(b[i], 0)
@@ -212,7 +215,11 @@ def _read_compact_size(b: bytes, i: int) -> Tuple[int, int]:
         return b[i], i + 1
     if i + 1 + width > len(b):
         return -1, i
-    return int.from_bytes(b[i + 1 : i + 1 + width], "little"), i + 1 + width
+    n = int.from_bytes(b[i + 1 : i + 1 + width], "little")
+    # A transaction's CompactSize is minimal, as Bitcoin Core's ReadCompactSize requires.
+    if n < {2: 0xFD, 4: 0x10000, 8: 0x100000000}[width]:
+        return -1, i
+    return n, i + 1 + width
 
 
 def _witness_stack(sig: bytes) -> Optional[List[bytes]]:
@@ -231,12 +238,18 @@ def _witness_stack(sig: bytes) -> Optional[List[bytes]]:
 
 
 def _witness_fits(addr: DecodedAddress, sig: bytes) -> bool:
-    """A key-hash address's witness carries the key the address commits to."""
+    """BIP-322 simple's witness is the whole signature (OC Attest SPEC §4)."""
     stack = _witness_stack(sig)
     if not stack:
         return False
+    if addr.type == "p2tr":
+        # The key path: one Schnorr signature, SIGHASH_DEFAULT (64 bytes) or SIGHASH_ALL.
+        return len(stack) == 1 and (
+            len(stack[0]) == 64 or (len(stack[0]) == 65 and stack[0][64] == 0x01)
+        )
     if addr.type not in ("p2wpkh", "p2sh"):
-        return True
+        return False
+    # A signature and the key the address commits to; P2SH means P2SH-P2WPKH.
     if len(stack) != 2 or len(stack[1]) != 33 or stack[1][0] not in (2, 3):
         return False
     pkh = _hash160(stack[1])

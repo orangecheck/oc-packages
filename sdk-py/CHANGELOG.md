@@ -15,6 +15,12 @@ All notable changes to the **`orangecheck`** Python package. Follows
   LF (`bond_malformed` without it), and the bond id is still its hash. OC
   Attest 2.2.0, BOND.md §3 step 4, vector `tv37`; the same rule as
   `@orangecheck/sdk`'s `verifyBondSignature()`.
+- **`verify_bip322_signature` holds the rest of a BIP-322 simple witness
+  to the shape BIP-322 requires** before it checks the signature: for P2TR
+  exactly one item, 64 bytes or 65 ending in SIGHASH_ALL, and for every
+  address each size a minimal CompactSize. A simple signature on any
+  address but P2WPKH, P2SH-P2WPKH and P2TR is `False`. The same answers as
+  `@orangecheck/bip322` 1.2.0. OC Attest 2.2.0 SPEC §4, vector `tv35`.
 - **`verify_bip322_signature` reads a BIP-137 signature only at 65 bytes**:
   a header byte, then r and s, as `@orangecheck/bip322` reads it. A blob of
   any other length on a P2PKH address is `False`.
