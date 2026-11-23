@@ -38,3 +38,60 @@ function readAmr(value: unknown): AuthMethod[] | null {
 function readTime(value: unknown): number | null {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
+
+
+/** What a caller requires of a sign-in: every ceremony in `amr`, and an `auth_time` at most `maxAge` seconds ago. */
+export interface SignInRequirement {
+  amr?: readonly AuthMethod[];
+  maxAge?: number;
+}
+
+/** How far ahead of the checker's clock a token's `auth_time` may be. */
+export const AUTH_TIME_SKEW_SECS = 60;
+
+const REQUIREMENT_KEYS: ReadonlySet<string> = new Set(["amr", "maxAge"]);
+
+/**
+ * `requirement` as {@link satisfiesSignInRule} reads it. Throws on one it
+ * cannot read: not an object, a key other than `amr` and `maxAge`, a method
+ * outside {@link AUTH_METHODS}, or a `maxAge` that is not a whole number of
+ * seconds from 0. A misspelt key would otherwise require nothing.
+ */
+export function parseSignInRequirement(requirement: unknown): { amr: AuthMethod[]; maxAge?: number } {
+  if (requirement === null || typeof requirement !== "object" || Array.isArray(requirement)) {
+    throw new TypeError("@orangecheck/auth-core: a sign-in requirement must be an object");
+  }
+  const unknown = Object.keys(requirement).filter((k) => !REQUIREMENT_KEYS.has(k));
+  if (unknown.length > 0) {
+    throw new TypeError(`@orangecheck/auth-core: a sign-in requirement reads only amr and maxAge, not ${unknown.join(", ")}`);
+  }
+  const { amr = [], maxAge } = requirement as { amr?: unknown; maxAge?: unknown };
+  if (!Array.isArray(amr) || !amr.every((m) => typeof m === "string" && KNOWN.has(m))) {
+    throw new TypeError(`@orangecheck/auth-core: a sign-in requirement's amr lists only ${AUTH_METHODS.join(", ")}`);
+  }
+  if (maxAge !== undefined && !(typeof maxAge === "number" && Number.isSafeInteger(maxAge) && maxAge >= 0)) {
+    throw new TypeError("@orangecheck/auth-core: a sign-in requirement's maxAge is whole seconds from 0");
+  }
+  return maxAge === undefined ? { amr: [...amr] as AuthMethod[] } : { amr: [...amr] as AuthMethod[], maxAge };
+}
+
+/**
+ * Whether a token's sign-in meets `requirement` at `now`, in Unix seconds. A
+ * fact the token does not state meets nothing, so a token minted before the
+ * facts were written meets any requirement but an empty one. Throws on a
+ * requirement {@link parseSignInRequirement} refuses, or a `now` that is not a
+ * finite number.
+ */
+export function satisfiesSignInRule(
+  payload: { amr?: unknown; auth_time?: unknown },
+  requirement: SignInRequirement,
+  now: number = Math.floor(Date.now() / 1000),
+): boolean {
+  const { amr, maxAge } = parseSignInRequirement(requirement);
+  if (!Number.isFinite(now)) throw new TypeError("@orangecheck/auth-core: now must be Unix seconds");
+  const facts = readSignInFacts(payload);
+  if (amr.length > 0 && !amr.every((m) => facts.amr?.includes(m))) return false;
+  if (maxAge === undefined) return true;
+  if (facts.auth_time === null || facts.auth_time > now + AUTH_TIME_SKEW_SECS) return false;
+  return now - facts.auth_time <= maxAge;
+}

@@ -18,6 +18,15 @@ this file tracks the package's TS / Node / runtime API surface.
   each null when the token does not state it clearly: an `amr` that is empty,
   repeats a method or names one outside the list reads as null, never as part
   of a list. Tokens minted before the auth host writes them state neither.
+- **One sign-in rule.** `satisfiesSignInRule(payload, { amr, maxAge }, now?)`
+  says whether a token's sign-in meets a requirement: every ceremony in `amr`
+  among the token's, and an `auth_time` at most `maxAge` seconds before `now`
+  and at most `AUTH_TIME_SKEW_SECS` (60) after it. A fact the token does not
+  state meets nothing; an empty requirement is met by every token.
+  `parseSignInRequirement` throws on one it cannot read (a key other than
+  `amr` and `maxAge`, an unknown method, a `maxAge` that is not whole seconds
+  from 0), since a misspelt key would otherwise require nothing.
+  `test-vectors/sign-in-rule.json` holds the rule's cases, for every SDK.
 
 ### Changed
 
