@@ -14,11 +14,14 @@ export function toBase64Maybe(sig: string): string {
 /**
  * Whether `sigBase64` signs `text` for `address`, or signs `text` without its
  * final LF, which is what a wallet that trims the text before signing it signs
- * (OC Attest SPEC §4.1). No other text is tried.
+ * (OC Attest SPEC §4.1). The caller passes the canonical text, which ends in
+ * exactly one LF; the form without it is tried only for such a text, and no
+ * other text is tried.
  */
 export function signsText(address: string, text: string, sigBase64: string): boolean {
     if (verifyBitcoinSignature(address, text, sigBase64)) return true;
-    return text.endsWith('\n') && verifyBitcoinSignature(address, text.slice(0, -1), sigBase64);
+    const oneLf = text.endsWith('\n') && !text.endsWith('\n\n');
+    return oneLf && verifyBitcoinSignature(address, text.slice(0, -1), sigBase64);
 }
 
 /**

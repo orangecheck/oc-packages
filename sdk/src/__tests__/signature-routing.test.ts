@@ -11,7 +11,8 @@ import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { createBase58check } from '@scure/base';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildCanonicalMessage, issueChallenge, signatureIsValid, verify, verifyChallenge } from '../index';
+import { buildCanonicalMessage, issueChallenge, signatureIsValid, signsText, verify, verifyChallenge } from '../index';
+import { toBase64Maybe } from '../utils/signature';
 import generated from './fixtures/bip322-official-generated.json';
 
 const base58check = createBase58check(sha256);
@@ -120,11 +121,13 @@ describe('signature routing', () => {
         it('the official simple vectors verify; the error vectors do not', async () => {
             for (const v of generated.simple.filter((s) => s.type === 'p2wpkh' || s.type === 'p2tr')) {
                 for (const sig of [v.bip322_signatures[0]!, v.bip322_signatures[0]!.replace(/^smp/, '')]) {
-                    expect(await signatureIsValid({ addr: v.address, msg: v.message, sig })).toBe(true);
+                    expect(signsText(v.address, v.message, sig)).toBe(true);
+                    // Their messages are no attestation, so signatureIsValid counts none of them.
+                    expect(await signatureIsValid({ addr: v.address, msg: v.message, sig })).toBe(false);
                 }
             }
             for (const v of generated.error) {
-                expect(await signatureIsValid({ addr: v.address, msg: v.message, sig: v.signature }), v.description).toBe(false);
+                expect(signsText(v.address, v.message, toBase64Maybe(v.signature)), v.description).toBe(false);
             }
         });
 

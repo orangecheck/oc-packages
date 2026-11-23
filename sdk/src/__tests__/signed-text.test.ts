@@ -116,6 +116,22 @@ describe.each(SIGNERS)('an attestation signed by a wallet that trims ($name)', (
         expect(kept.codes.filter((c) => OK.includes(c))).toHaveLength(1);
     });
 
+    it('tries no shorter text for a message passed with a second LF', async () => {
+        const text = msg + '\n';
+        const sig = signed(msg);
+        expect(signsText(address, text, sig)).toBe(false);
+        expect(await signatureIsValid({ addr: address, msg: text, sig })).toBe(false);
+        expect(signsText(address, msg, sig)).toBe(true);
+    });
+
+    it('counts no signature valid over a message that is not a canonical attestation', async () => {
+        for (const text of [msg + '\n', msg.slice(0, -1), 'hello\n']) {
+            const sig = signed(text);
+            expect(signsText(address, text, sig)).toBe(true);
+            expect(await signatureIsValid({ addr: address, msg: text, sig })).toBe(false);
+        }
+    });
+
     it('reads a message passed without its final LF as not canonical, whatever it signs', async () => {
         for (const sig of [signed(msg), signed(msg.slice(0, -1))]) {
             const r = await verify({ addr: address, msg: msg.slice(0, -1), sig });
@@ -149,6 +165,11 @@ describe.each(SIGNERS)('a bond signed by a wallet that trims ($name)', ({ addres
             ok: false,
             reason: 'sig_invalid',
         });
+    });
+
+    it('tries no shorter text for a bond passed with a second LF', () => {
+        expect(signsText(address, message + '\n', signed(message))).toBe(false);
+        expect(signsText(address, message, signed(message))).toBe(true);
     });
 
     it('reads a bond passed without its final LF as malformed', () => {
