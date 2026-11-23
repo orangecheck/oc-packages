@@ -16,6 +16,19 @@ All notable changes to the **`orangecheck`** Python package. Follows
   from a token, takes no `sub` and never reads it. As
   `@orangecheck/auth-core`'s `integratorRevocationCheck` reads it.
 
+### Changed
+
+- **`verify_bip322_signature` checks a P2WPKH or P2SH-P2WPKH simple
+  signature's key itself.** The witness must be exactly a signature and the
+  33-byte key that the address commits to, before `bip322` runs, whatever
+  version of it is installed. A witness stack that is empty, or that does not
+  parse to its last byte, is `False`. A panic in the bridge is `False` too,
+  never raised.
+- **The `verify` and `dev` extras need `bip322` 0.3 or later** on Python 3.10
+  and up. On 3.9, which `bip322` 0.3 does not support, they keep 0.2.
+  `pip install -U "orangecheck[verify]"` moves an older install up; upgrading
+  without the extra leaves `bip322` where it is.
+
 ## [3.19.0] — 2026-11-20
 
 ### Added

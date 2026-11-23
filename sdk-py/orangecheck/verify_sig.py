@@ -16,6 +16,9 @@ dependency (at import time).
   (P2PKH, P2SH-P2WPKH, P2WPKH, P2TR), whatever its header flag says;
   anything else is BIP-322 simple, with or without the finalized BIP's
   ``smp`` prefix. A ``ful`` or ``pof`` signature is not supported.
+- A BIP-322 simple signature for a P2WPKH or P2SH-P2WPKH address must be a
+  signature and the 33-byte key that address commits to. That is checked
+  here, before ``bip322`` runs, so it holds whatever version is installed.
 - Bech32 addresses verify only in their canonical lowercase spelling; pass
   what a person typed or scanned through
   ``orangecheck.address.normalize_address`` first.
@@ -29,7 +32,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import re
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
@@ -200,6 +203,46 @@ def _decode_base64(s: str) -> bytes:
     return base64.b64decode(clean + "=" * (-len(clean) % 4))
 
 
+def _read_compact_size(b: bytes, i: int) -> Tuple[int, int]:
+    """(value, next index), or (-1, i) when it runs past the end."""
+    if i >= len(b):
+        return -1, i
+    width = {0xFD: 2, 0xFE: 4, 0xFF: 8}.get(b[i], 0)
+    if width == 0:
+        return b[i], i + 1
+    if i + 1 + width > len(b):
+        return -1, i
+    return int.from_bytes(b[i + 1 : i + 1 + width], "little"), i + 1 + width
+
+
+def _witness_stack(sig: bytes) -> Optional[List[bytes]]:
+    """The items of a serialized witness stack, or None unless it is exactly one."""
+    count, i = _read_compact_size(sig, 0)
+    if count < 0 or count > len(sig):
+        return None
+    items = []
+    for _ in range(count):
+        n, i = _read_compact_size(sig, i)
+        if n < 0 or i + n > len(sig):
+            return None
+        items.append(sig[i : i + n])
+        i += n
+    return items if i == len(sig) else None
+
+
+def _witness_fits(addr: DecodedAddress, sig: bytes) -> bool:
+    """A key-hash address's witness carries the key the address commits to."""
+    stack = _witness_stack(sig)
+    if not stack:
+        return False
+    if addr.type not in ("p2wpkh", "p2sh"):
+        return True
+    if len(stack) != 2 or len(stack[1]) != 33 or stack[1][0] not in (2, 3):
+        return False
+    pkh = _hash160(stack[1])
+    return (pkh if addr.type == "p2wpkh" else _hash160(b"\x00\x14" + pkh)) == addr.program
+
+
 def _verify_bip137(addr: DecodedAddress, message: str, sig: bytes) -> bool:
     flag = sig[0] - 27
     if not 0 <= flag <= 15:
@@ -270,6 +313,8 @@ def verify_bip322_signature(address: str, message: str, signature: str) -> bool:
     # No valid witness serializes to 65 bytes, so a 65-byte blob is BIP-137.
     if not prefixed and (addr.type == "p2pkh" or len(sig) == 65):
         return _verify_bip137(addr, message, sig)
+    if not _witness_fits(addr, sig):
+        return False
     try:
         _bip322.verify_simple_encoded(address, message, base64.b64encode(sig).decode("ascii"))
     except _bip322.VerificationError:
@@ -277,5 +322,10 @@ def verify_bip322_signature(address: str, message: str, signature: str) -> bool:
     except Exception:
         # Any other surprise (unusual address shape, a witness the bridge
         # cannot parse) counts as "not a valid sig" for our purposes.
+        return False
+    except BaseException as e:
+        # pyo3 raises a Rust panic as PanicException, which is not an Exception.
+        if type(e).__name__ != "PanicException":
+            raise
         return False
     return True
