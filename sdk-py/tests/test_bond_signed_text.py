@@ -47,6 +47,15 @@ def test_a_signature_over_another_text_is_refused(signature: str) -> None:
     assert verify_bond_signature(MESSAGE, signature, now=NOW) == (False, "sig_invalid")
 
 
+def test_no_shorter_text_is_tried_for_a_text_with_a_second_lf() -> None:
+    from orangecheck.verify_sig import signs_text
+
+    bond = TV25["input"]["bonds"][0]
+    assert signs_text(bond["address"], MESSAGE, bond["signature"])
+    assert not signs_text(bond["address"], MESSAGE + "\n", bond["signature"])
+    assert signs_text(bond["address"], MESSAGE, OVER_TRIMMED[0])
+
+
 @pytest.mark.parametrize("signature", OVER_TRIMMED)
 def test_the_bond_passed_without_its_final_lf_is_malformed(signature: str) -> None:
     assert verify_bond_signature(MESSAGE[:-1], signature, now=NOW) == (False, "bond_malformed")

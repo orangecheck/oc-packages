@@ -351,8 +351,11 @@ def signs_text(address: str, text: str, signature: str) -> bool:
     """
     ``True`` when ``signature`` signs ``text`` for ``address``, or signs
     ``text`` without its final LF, which is what a wallet that trims the text
-    before signing it signs (OC Attest SPEC §4.1). No other text is tried.
+    before signing it signs (OC Attest SPEC §4.1). The caller passes the
+    canonical text, which ends in exactly one LF; the form without it is
+    tried only for such a text, and no other text is tried.
     """
     if verify_bip322_signature(address, text, signature):
         return True
-    return text.endswith("\n") and verify_bip322_signature(address, text[:-1], signature)
+    one_lf = text.endswith("\n") and not text.endswith("\n\n")
+    return one_lf and verify_bip322_signature(address, text[:-1], signature)
