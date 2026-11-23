@@ -1260,7 +1260,7 @@ def _header(headers: Mapping[str, Any], name: str) -> Optional[str]:
     return None
 
 
-#: The oldest delivery accepted: me.ochk.io's last retry comes about 20 h after the first send.
+#: The oldest delivery accepted. me.ochk.io signs each send, retries included, as it sends it.
 WEBHOOK_MAX_AGE_SECONDS = 24 * 60 * 60
 _WEBHOOK_FUTURE_SKEW_SECONDS = 5 * 60
 _ISO_TIME = re.compile(r"\A(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,9})?Z\Z")
@@ -1316,11 +1316,11 @@ def verify_webhook(
     Every delivery signs its ``id``, ``project_key`` and ``issued_at``. One key
     signs every project's deliveries, so a delivery signed for another project
     is refused as ``"project"``. ``project`` is optional until the next major
-    version, and a call without it warns once per process. A delivery first
-    sent more than ``max_age`` seconds ago (a day), or more than five minutes
-    ahead of this clock, is refused as ``"stale"``; one without the three
-    fields as ``"incomplete"``. A delivery may arrive more than once, so
-    deduplicate on its ``id``.
+    version, and a call without it warns once per process. A delivery signed
+    more than ``max_age`` seconds ago (a day), or more than five minutes ahead
+    of this clock, is refused as ``"stale"``; one without the three fields as
+    ``"incomplete"``. A delivery may arrive more than once, a retry signed
+    again with a new ``issued_at``, so deduplicate on its ``id``.
 
     Raises :class:`InvalidWebhook` on any failure.
     """
