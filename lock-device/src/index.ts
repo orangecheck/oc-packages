@@ -360,5 +360,5 @@ export {
     signedTime,
 } from './live.js';
 export type { LiveOptions } from './live.js';
-export { boundNostrKeys, verifyDeviceRecords, verifyNostrEvent } from './verify.js';
+export { bindingSigTexts, boundNostrKeys, verifyDeviceRecords, verifyNostrEvent } from './verify.js';
 export type { VerifyDeviceRecordsOptions } from './verify.js';
