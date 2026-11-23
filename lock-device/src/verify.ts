@@ -21,11 +21,13 @@ export function verifyNostrEvent(event: NostrEvent): boolean {
 
 /**
  * The texts a device record's `binding_sig` may cover (OC Lock SPEC §3.3): its
- * statement, and the statement without its final LF, which is what a wallet that
- * trims the text before signing it signs. A reader tries these and no other.
+ * statement, and, when the statement ends in exactly one LF, the statement
+ * without it, which is what a wallet that trims the text before signing it
+ * signs. A reader tries these and no other.
  */
 export function bindingSigTexts(statement: string): string[] {
-    return statement.endsWith('\n') ? [statement, statement.slice(0, -1)] : [statement];
+    const oneLf = statement.endsWith('\n') && !statement.endsWith('\n\n');
+    return oneLf ? [statement, statement.slice(0, -1)] : [statement];
 }
 
 export interface VerifyDeviceRecordsOptions {
