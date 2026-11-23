@@ -27,6 +27,12 @@ this file tracks the package's TS / Node / runtime API surface.
   `amr` and `maxAge`, an unknown method, a `maxAge` that is not whole seconds
   from 0), since a misspelt key would otherwise require nothing.
   `test-vectors/sign-in-rule.json` holds the rule's cases, for every SDK.
+- **`reproofFresh(payload, { max_age_secs })`**, for a gate that moves money or
+  releases an identity: a fresh `sudo_at`, or a fresh `step_up_at` on a session
+  whose sign-in named more than a passkey. A passkey cannot vouch for itself,
+  so one synced passkey never both signs in and opens such a gate. A session
+  with no `amr` (minted before the auth host wrote it) counts its step-up as
+  before; an `amr` that does not read counts it not at all.
 
 ### Changed
 
