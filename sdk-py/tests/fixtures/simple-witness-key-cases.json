@@ -1,0 +1,26 @@
+{
+ "about": "BIP-322 simple signatures on 3… addresses whose P2WPKH-shaped witness is by KEY (secp256k1 secret 0x07 repeated 32 times, never for real use) over the address's BIP-322 to_sign: a P2SH of OP_TRUE, and another key's P2SH-P2WPKH. Neither address commits to KEY, so each is False, on every bip322 the extra installs. The control is that other key signing its own 3… address: True.",
+ "cases": [
+  {
+   "name": "3… of OP_TRUE with a P2WPKH-shaped witness",
+   "address": "3MaB7QVq3k4pQx3BhsvEADgzQonLSBwMdj",
+   "message": "orangecheck\nmed-4/5 review\nnonce: 7\n",
+   "signature": "AkcwRAIgcMoid3u5ufzkZlBvsJAuJO81xOuoMkj6HVhEW/5OpWkCIF/WKyYXnSRQfx8bGl+NfcbwgWzPNDicIMPDRVxPNjJ7ASECmJwLdstWOXH9yb7zHsBsNWDzJJ1u6eXYPFdiVZbgX28=",
+   "expect": false
+  },
+  {
+   "name": "another key's 3… P2SH-P2WPKH, witness by KEY over its to_sign",
+   "address": "3N722gUQ2YmphkTzm9nsgD8rkxh1xvukYC",
+   "message": "orangecheck\nmed-4/5 review\nnonce: 7\n",
+   "signature": "AkgwRQIhAMJnY0m3YvmyE3+ALuPg0f4QOis5l2labKxs+XrFCc0UAiABZ67Wb2LO3JobhtP17/aBt2px79ILk8T371kq6l0YPAEhApicC3bLVjlx/cm+8x7AbDVg8ySdbunl2DxXYlWW4F9v",
+   "expect": false
+  },
+  {
+   "name": "another key's 3… signed by that key (control)",
+   "address": "3N722gUQ2YmphkTzm9nsgD8rkxh1xvukYC",
+   "message": "orangecheck\nmed-4/5 review\nnonce: 7\n",
+   "signature": "AkgwRQIhAK/rqRC5r9iiJJyGCUmqts1fn7nFKTeV/bX3AEpxvqcQAiA0W7WwD1Z1uXgppgHFtRKS+aCJDSLT65ggparNEixlVgEhAlazKLMMi/WDniQFh0eHlAi9s2JB3JwufGGfqhKykgln",
+   "expect": true
+  }
+ ]
+}

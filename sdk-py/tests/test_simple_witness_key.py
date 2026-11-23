@@ -27,6 +27,7 @@ GOOD_P2WPKH = next(
 )
 # The compressed secp256k1 generator: a valid key that no corpus address commits to.
 OTHER_KEY = bytes.fromhex("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")
+WITNESS_KEY_CASES = json.loads((Path(__file__).parent / "fixtures" / "simple-witness-key-cases.json").read_text())
 
 
 def stack(case: dict) -> List[bytes]:
@@ -106,6 +107,14 @@ def test_a_stack_with_bytes_left_over_is_refused(bridge_says_yes: None) -> None:
     assert not vs.verify_bip322_signature(
         GOOD_P2SH["address"], GOOD_P2SH["message"], base64.b64encode(sig).decode("ascii")
     )
+
+
+@pytest.mark.parametrize("case", WITNESS_KEY_CASES["cases"], ids=lambda c: c["name"])
+def test_a_witness_by_a_key_the_address_does_not_commit_to_is_refused_whatever_the_bridge_says(
+    case: dict, bridge_says_yes: None
+) -> None:
+    # A P2WPKH-shaped witness by KEY on 3… addresses that do not commit to it, and a control.
+    assert vs.verify_bip322_signature(case["address"], case["message"], case["signature"]) is case["expect"]
 
 
 def test_a_bridge_panic_is_false(monkeypatch: pytest.MonkeyPatch) -> None:
