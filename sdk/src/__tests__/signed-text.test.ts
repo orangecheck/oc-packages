@@ -16,6 +16,7 @@ import {
     buildCanonicalMessage,
     generateAttestationId,
     signatureIsValid,
+    signsText,
     verify,
     verifyBondSignature,
 } from '../index';
@@ -86,6 +87,7 @@ describe.each(SIGNERS)('an attestation signed by a wallet that trims ($name)', (
         expect(r.codes.filter((c) => OK.includes(c))).toHaveLength(1);
         expect(r.attestation_id).toBe(await generateAttestationId(msg));
         expect(await signatureIsValid({ addr: address, msg, sig })).toBe(true);
+        expect(signsText(address, msg, sig)).toBe(true);
     });
 
     it('still verifies a signature over the message itself', async () => {
@@ -103,6 +105,7 @@ describe.each(SIGNERS)('an attestation signed by a wallet that trims ($name)', (
         const r = await verify({ addr: address, msg, sig });
         expect(r.codes).toContain('sig_invalid');
         expect(await signatureIsValid({ addr: address, msg, sig })).toBe(false);
+        expect(signsText(address, msg, sig)).toBe(false);
     });
 
     it('refuses a trim that also drops a space ending the last value', async () => {

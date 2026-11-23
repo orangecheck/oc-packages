@@ -32,6 +32,13 @@ this file tracks the package's TS / Node / runtime API surface.
   `verifyBondSignature()`, or over the message and over the message without
   its final LF.
 
+### Added
+
+- `signsText(address, text, signature)`: whether a base64 signature signs
+  `text`, or `text` without its final LF, for `address`. It is the check the
+  functions above make, synchronous, for a caller that verifies a signature
+  itself.
+
 ## [1.27.0] — 2026-11-22
 
 ### Changed

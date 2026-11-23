@@ -83,7 +83,7 @@ async function verifySignature({ addr, msg, sig }: SignatureVerifyInput): Promis
     return scheme === 'legacy' ? 'sig_ok_legacy' : 'sig_ok_bip322';
 }
 
-/** True when `sig` is a valid signature by `addr` over `msg`; no chain lookup. */
+/** True when `sig` is a valid signature by `addr` over `msg`, or over `msg` without its final LF (SPEC §4.1); no chain lookup. */
 export async function signatureIsValid(input: SignatureVerifyInput): Promise<boolean> {
     try {
         const code = await verifySignature(input);
