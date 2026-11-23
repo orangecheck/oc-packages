@@ -11,6 +11,8 @@ import { verify } from '../webhook';
  */
 
 const NAMES = ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf'];
+// One issuer per kid, so each case reads its own key set; a host holds no underscore or capital.
+const host = (kid: string) => kid.toLowerCase().replace(/[^a-z0-9]/g, 'x');
 
 function serve(keys: unknown[]): void {
     vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ keys }), { status: 200 }));
@@ -72,7 +74,7 @@ describe('webhook key ids', () => {
         const inSet = await signer('real-kid');
         const outside = await signer(kid);
         serve([inSet.jwk]);
-        const r = await verify(body, await outside.sign(bytes), kid, { issuer: `https://wh-none-${kid}.test` });
+        const r = await verify(body, await outside.sign(bytes), kid, { issuer: `https://wh-none-${host(kid)}.test` });
         expect(r.ok).toBe(false);
         expect(r.reason).toBe(`kid ${kid} not in JWKS`);
     });
@@ -80,7 +82,7 @@ describe('webhook key ids', () => {
     it.each(NAMES)('a set may name its own key %s, and that key verifies', async (kid) => {
         const own = await signer(kid);
         serve([own.jwk]);
-        expect((await verify(body, await own.sign(bytes), kid, { issuer: `https://wh-own-${kid}.test` })).ok).toBe(true);
+        expect((await verify(body, await own.sign(bytes), kid, { issuer: `https://wh-own-${host(kid)}.test` })).ok).toBe(true);
     });
 });
 
@@ -114,7 +116,7 @@ describe('activity attestation key ids', () => {
         const outside = await signer(kid);
         serve([inSet.jwk]);
         const r = await verifyActivityAttestation(await attestation(kid, outside.sign), {
-            issuer: `https://id-none-${kid}.test`,
+            issuer: `https://id-none-${host(kid)}.test`,
         });
         expect(r.ok).toBe(false);
         expect(r.reason).toBe(`kid ${kid} not in envelope JWKS`);
@@ -123,7 +125,7 @@ describe('activity attestation key ids', () => {
     it.each(NAMES)('a set may name its own key %s, and that key verifies', async (kid) => {
         const own = await signer(kid);
         serve([own.jwk]);
-        const r = await verifyActivityAttestation(await attestation(kid, own.sign), { issuer: `https://id-own-${kid}.test` });
+        const r = await verifyActivityAttestation(await attestation(kid, own.sign), { issuer: `https://id-own-${host(kid)}.test` });
         expect(r.ok).toBe(true);
     });
 });

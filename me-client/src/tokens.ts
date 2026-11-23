@@ -10,6 +10,7 @@
  * in the call itself throws, before anything is read or sent.
  */
 
+import { issuerOrigin } from './origin';
 import { inheritedKeys } from './own-options';
 
 const DEFAULT_ISSUER = 'https://ochk.io';
@@ -101,30 +102,6 @@ export type RevokeTokenResult =
 const REVOKE_OPTIONS: ReadonlySet<string> = new Set<keyof RevokeTokenOptions>(['issuer', 'timeoutMs']);
 
 /**
- * The issuer as one origin, `scheme://host[:port]`: https, or http on this
- * machine only. A path, a query, a fragment or a user name would send the
- * tokens somewhere else on the host (or carry credentials), so each is refused.
- */
-export function issuerOrigin(issuer: unknown, where = 'revokeToken'): string {
-    if (typeof issuer !== 'string') fail(`${where}: issuer must be a URL`);
-    const refuse = (): never =>
-        fail(`${where}: issuer must be one https origin (http only on this machine), such as https://ochk.io, got ${issuer}`);
-    if (/[?#@\\]/.test(issuer)) refuse();
-    let url: URL;
-    try {
-        url = new URL(issuer);
-    } catch {
-        return refuse();
-    }
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) refuse();
-    if (url.pathname !== '/' || url.search !== '' || url.hash !== '' || url.username !== '' || url.password !== '') {
-        refuse();
-    }
-    return url.origin;
-}
-
-/**
  * End a sign-in token at the auth host (`POST /api/auth/revoke`), on every
  * site that reads the list of ended sessions. Holding a token is the authority
  * to end it; nothing else is sent. Call it once your own session has taken
@@ -151,7 +128,7 @@ export function revokeToken(
     ) {
         fail(`revokeToken: pass one token, or 1 to ${MAX_TOKENS}, each a non-empty string of at most ${MAX_TOKEN_LENGTH} characters`);
     }
-    const origin = issuerOrigin(options.issuer ?? DEFAULT_ISSUER);
+    const origin = issuerOrigin(options.issuer ?? DEFAULT_ISSUER, 'revokeToken: issuer');
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     if (typeof timeoutMs !== 'number' || !(timeoutMs > 0 && timeoutMs <= MAX_TIMEOUT_MS)) {
         fail(`revokeToken: timeoutMs must be above 0 and at most ${MAX_TIMEOUT_MS}`);

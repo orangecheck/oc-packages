@@ -10,6 +10,46 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every issuer and `meOrigin` is taken by auth-core's one rule**
+  (`parseIssuerOrigin`, so `@orangecheck/auth-core` is now `^2.34.0`): one origin
+  with no path, https, or http on `localhost`, `127.0.0.1` or `[::1]`. That
+  covers `revokeToken`, `exchangeNativeCode`, `checkOcSession`, `withOcAuth`,
+  `ocAuthExpress`, `ocAuthHono`, `checkSignInRule`, `webhook.verify`,
+  `webhook.fetchJwks`, `identity.verifyActivityAttestation` and
+  `identity.refreshEnvelopeJwks`. Every origin that was already one origin
+  answers as before.
+- **Where a refused one is caught.** The adapters throw when they are made,
+  `checkOcSession` and `checkSignInRule` when they are called, and
+  `exchangeNativeCode` before it sends anything. `webhook.verify` and
+  `verifyActivityAttestation`, which never throw, answer `ok: false` with the
+  rule as the reason and fetch nothing.
+
+### Now refused
+
+As the issuer of `revokeToken` and `exchangeNativeCode`, each of these used to
+be accepted:
+
+- the scheme's own port, port 0, an empty port or a leading zero:
+  `https://ochk.io:443`, `http://localhost:80`, `https://ochk.io:0`,
+  `https://ochk.io:`, `https://ochk.io:08443`
+- no `//` after the scheme: `https:ochk.io`, `https:/ochk.io`
+- a space at either end, or a tab or newline anywhere
+- a trailing dot, a label that starts or ends with a hyphen, an underscore, a
+  percent escape: `https://ochk.io.`, `https://-ochk.io`, `https://och_k.io`,
+  `https://och%6b.io`
+- a host outside printable ASCII: `https://bücher.example` (write its
+  `xn--` form), a Kelvin sign for `k`, a NUL
+- a short or zero-padded IPv4 address, or a long form of `[::1]`:
+  `http://127.1:3000`, `https://127.1`, `https://192.0.2`, `https://01.2.3.4`,
+  `http://[0:0:0:0:0:0:0:1]:3000`
+
+As `meOrigin` anywhere, and as the issuer `webhook` and `identity` read keys
+from, which were taken as given: anything that is not one origin, all of the
+above included, plus a path, a query, a fragment, a user name, and plain http
+to any host but `localhost`, `127.0.0.1` and `[::1]`.
+
 ## [0.63.0] — 2026-11-20
 
 ### Added

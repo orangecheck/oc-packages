@@ -31,6 +31,10 @@
 
 import { importJWK, type CryptoKey, type KeyObject } from 'jose';
 
+import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from '@orangecheck/auth-core/issuer-origin';
+
+import { issuerOrigin } from './origin';
+
 /** me.ochk.io signs its own webhook deliveries; the family auth host does not.
  *  Its published key lives at /api/dev-jwks (the path is historical — the note
  *  in that document names it as the production webhook-signing key). */
@@ -57,7 +61,7 @@ export interface OcPublicJwk {
 }
 
 export interface VerifyOptions {
-    /** Override the issuer. Defaults to https://me.ochk.io. */
+    /** Override the issuer: one origin with no path. Defaults to https://me.ochk.io. */
     issuer?: string;
     /** Pass a JWK directly to skip the network fetch entirely. Useful
      *  for tests, edge runtimes that can't fetch, or integrators that
@@ -214,7 +218,8 @@ export async function verify(
             return { ok: false, reason: 'could not import provided jwk' };
         }
     } else {
-        const issuer = options.issuer ?? DEFAULT_ISSUER;
+        const issuer = parseIssuerOrigin(options.issuer ?? DEFAULT_ISSUER);
+        if (issuer === null) return { ok: false, reason: `issuer must be ${ISSUER_ORIGIN_RULE}` };
         const ttl = options.jwksCacheTtlMs ?? DEFAULT_TTL_MS;
         const maxStale = options.jwksMaxStaleMs ?? DEFAULT_MAX_STALE_MS;
         try {
@@ -239,8 +244,9 @@ export async function verify(
 /** Force-refresh the JWKS cache. Useful after a key rotation event
  *  if you don't want to wait for the TTL to expire. */
 export async function fetchJwksForce(issuer = DEFAULT_ISSUER): Promise<void> {
-    jwksCache.delete(issuer);
-    await fetchJwks(issuer, DEFAULT_TTL_MS);
+    const origin = issuerOrigin(issuer, 'webhook.fetchJwks: issuer');
+    jwksCache.delete(origin);
+    await fetchJwks(origin, DEFAULT_TTL_MS);
 }
 
 export const webhook = { verify, fetchJwks: fetchJwksForce };

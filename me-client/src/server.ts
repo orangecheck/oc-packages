@@ -79,6 +79,7 @@ import {
     type SessionRequestHeaders,
 } from '@orangecheck/auth-core';
 
+import { issuerOrigin } from './origin';
 import { inheritedKeys } from './own-options';
 
 export { bondMeets, readBondClaim, readBondNeed };
@@ -572,6 +573,9 @@ function checkOptions(options: WithOcAuthOptions): void {
         );
     }
     refuseInherited('', options, KNOWN_OPTIONS);
+    // Keys, the sign-in rule and the list of ended sessions are read there: refuse a bad one before any request.
+    if (options.issuer !== undefined) issuerOrigin(options.issuer, 'issuer');
+    if (options.meOrigin !== undefined) issuerOrigin(options.meOrigin, 'meOrigin');
     checkRequireHandle(options.requireHandle);
     const bond = options.requireBond;
     if (bond === undefined) return;
@@ -647,7 +651,7 @@ function standing(slot: string): BondNeed | null | undefined {
  * and the request is refused rather than let through unchecked.
  */
 async function projectRequirement(options: WithOcAuthOptions): Promise<ProjectRule> {
-    const base = (options.meOrigin ?? 'https://me.ochk.io').replace(/\/$/, '');
+    const base = issuerOrigin(options.meOrigin ?? 'https://me.ochk.io', 'meOrigin');
     const key = options.projectKey!;
     const slot = `${base} ${key}`;
     const unknownAt = unknownKeys.get(slot);

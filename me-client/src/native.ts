@@ -22,7 +22,7 @@ import type { RevocationCheck, SessionPayload } from '@orangecheck/auth-core';
 
 import { checkOcSession, checkOcToken, checkSignInRule, type WithOcAuthOptions } from './server';
 import { inheritedKeys } from './own-options';
-import { issuerOrigin } from './tokens';
+import { issuerOrigin } from './origin';
 
 const DEFAULT_ISSUER = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -171,7 +171,9 @@ export async function exchangeNativeCode(
     if (typeof projectKey !== 'string' || projectKey.length === 0 || projectKey.length > MAX_FIELD_LENGTH) {
         fail('needs your project key: options.projectKey, or OC_PROJECT_KEY');
     }
-    const issuer = issuerOrigin(options.issuer ?? DEFAULT_ISSUER, 'exchangeNativeCode');
+    const issuer = issuerOrigin(options.issuer ?? DEFAULT_ISSUER, 'exchangeNativeCode: issuer');
+    const meOrigin =
+        options.meOrigin === undefined ? undefined : issuerOrigin(options.meOrigin, 'exchangeNativeCode: meOrigin');
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     if (typeof timeoutMs !== 'number' || !(timeoutMs > 0 && timeoutMs <= MAX_TIMEOUT_MS)) {
         fail(`timeoutMs must be above 0 and at most ${MAX_TIMEOUT_MS}`);
@@ -187,7 +189,7 @@ export async function exchangeNativeCode(
     if (verified.status === 'invalid') return { status: 'invalid', reason: verified.reason ?? 'invalid_token' };
 
     // The list of ended sessions, as a write, exactly as the adapters read it.
-    const where = options.meOrigin ? { meOrigin: options.meOrigin } : {};
+    const where = meOrigin ? { meOrigin } : {};
     const checked = await checkOcSession(
         { authorization: `Bearer ${token}` },
         {
