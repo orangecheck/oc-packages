@@ -4,7 +4,7 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
-## [3.20.0] — 2026-11-21
+## [3.20.0] — 2026-11-23
 
 ### Added
 
