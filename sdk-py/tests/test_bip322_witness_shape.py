@@ -89,3 +89,16 @@ def test_the_witness_parser_itself_refuses_a_size_that_is_not_minimal(vector: di
     assert _witness_stack(blob) is not None
     assert _witness_stack(b"\xfd" + bytes([blob[0], 0]) + blob[1:]) is None
     assert _witness_stack(blob[:1] + b"\xfd" + bytes([blob[1], 0]) + blob[2:]) is None
+
+
+def test_a_simple_signature_on_p2wsh_is_refused_whatever_the_bridge_says(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from orangecheck import verify_sig
+
+    monkeypatch.setattr(verify_sig._bip322, "verify_simple_encoded", lambda *a: None)
+    # BIP-173's P2WSH example. Only P2WPKH, P2SH-P2WPKH and P2TR have a simple form here.
+    p2wsh = "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3"
+    signature = P2WPKH["bip322_signatures"][0]
+    assert verify_bip322_signature(P2WPKH["address"], P2WPKH["message"], signature)
+    assert not verify_bip322_signature(p2wsh, P2WPKH["message"], signature)
