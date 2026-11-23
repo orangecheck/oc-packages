@@ -18,9 +18,12 @@ this file tracks the package's TS / Node / runtime API surface.
   the field goes). `only` shows the passkey button alone. Both call ochk.io's
   `POST /api/auth/passkey/options` with `{kind: "signin"}` and
   `POST /api/auth/passkey/verify`, and hand the account and token to
-  `onSuccess` as the other ways do. A passkey ochk.io does not recognise for
-  sign-in reads as a sentence, and the browser is told it is unknown where it
-  has `PublicKeyCredential.signalUnknownCredential`. Until ochk.io serves
+  `onSuccess` as the other ways do. Each refusal reads as its own sentence.
+  ochk.io answers `passkey_not_for_signin` for a key it holds that is not set
+  up to sign in (it still steps up), and `passkey_not_recognised` for one it
+  does not hold or has removed. Only the second tells the browser the key is
+  unknown, where it has `PublicKeyCredential.signalUnknownCredential`, so a
+  step-up key stays in the person's passkey manager. Until ochk.io serves
   those routes, leave `passkey` off.
 - `passkey="layered"` signs in with the wallet alone (no email, no provider),
   then asks for the passkey behind a tap ("Confirm with your passkey",

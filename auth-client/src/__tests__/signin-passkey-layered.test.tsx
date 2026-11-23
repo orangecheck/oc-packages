@@ -114,7 +114,7 @@ describe('OcSignIn · passkey="layered"', () => {
     });
 
     it('hands nothing over when the passkey is refused, and lets the person try again', async () => {
-        stubFetch({ status: 401, body: { ok: false, reason: 'passkey_not_recognised' } });
+        stubFetch({ status: 401, body: { ok: false, reason: 'passkey_not_for_signin' } });
         const onSuccess = vi.fn();
         render(<OcSignIn audience="https://ochk.io" passkey="layered" onSuccess={onSuccess} />);
         await signInWithWallet();

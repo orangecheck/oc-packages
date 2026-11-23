@@ -118,8 +118,8 @@ describe('OcSignIn · passkey', () => {
         expect(onSuccess).toHaveBeenCalledWith(ACCOUNT, 'tok');
     });
 
-    it('says in words when the passkey cannot sign in, and tells the browser the key is unknown', async () => {
-        stubFetch({ status: 401, body: { ok: false, reason: 'passkey_not_recognised' } });
+    async function refusedAtVerify(verify: { status: number; body: unknown }) {
+        stubFetch(verify);
         const signal = vi.fn(async () => {});
         vi.stubGlobal('PublicKeyCredential', { signalUnknownCredential: signal });
         const onSuccess = vi.fn();
@@ -127,10 +127,36 @@ describe('OcSignIn · passkey', () => {
         await act(async () => {
             fireEvent.click(passkeyButton()!);
         });
-        expect(screen.getByText(/isn't set up to sign in/)).not.toBeNull();
-        expect(signal).toHaveBeenCalledWith({ rpId: 'ochk.io', credentialId: 'cred-1' });
-        expect(onSuccess).not.toHaveBeenCalled();
         vi.unstubAllGlobals();
+        expect(onSuccess).not.toHaveBeenCalled();
+        return signal;
+    }
+
+    it('a key ochk.io does not hold: says so, and tells the browser the key is unknown', async () => {
+        const signal = await refusedAtVerify({ status: 401, body: { ok: false, reason: 'passkey_not_recognised' } });
+        expect(screen.getByText("That passkey isn't on any orangecheck account. It may have been removed. Sign in another way.")).not.toBeNull();
+        expect(signal).toHaveBeenCalledWith({ rpId: 'ochk.io', credentialId: 'cred-1' });
+    });
+
+    it('a key ochk.io holds that does not sign in: says how to turn it on, and the browser keeps it', async () => {
+        const signal = await refusedAtVerify({ status: 401, body: { ok: false, reason: 'passkey_not_for_signin' } });
+        expect(
+            screen.getByText(
+                "That passkey isn't set up to sign in. Sign in another way, then turn it on for sign-in in your account."
+            )
+        ).not.toBeNull();
+        expect(signal).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['passkey_not_for_signin', { status: 401, body: { ok: false, reason: 'passkey_not_for_signin' } }],
+        ['challenge_expired', { status: 400, body: { ok: false, reason: 'challenge_expired' } }],
+        ['passkey_failed', { status: 400, body: { ok: false, reason: 'passkey_failed' } }],
+        ['rate_limited', { status: 429, body: { ok: false, reason: 'rate_limited' } }],
+        ['no reason at all', { status: 500, body: {} }],
+    ])('tells the browser nothing for any other refusal: %s', async (_reason, verify) => {
+        const signal = await refusedAtVerify(verify);
+        expect(signal).not.toHaveBeenCalled();
     });
 
     it('with: autofill runs a conditional request while the email field shows, and stops on a switch to the wallet', async () => {

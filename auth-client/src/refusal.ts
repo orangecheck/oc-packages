@@ -98,8 +98,10 @@ const EMAIL_ERRORS: Record<string, string> = {
 };
 
 const PASSKEY_ERRORS: Record<string, string> = {
-    passkey_not_recognised:
+    passkey_not_for_signin:
         "That passkey isn't set up to sign in. Sign in another way, then turn it on for sign-in in your account.",
+    passkey_not_recognised:
+        "That passkey isn't on any orangecheck account. It may have been removed. Sign in another way.",
     cancelled: 'The passkey prompt closed. Try again when you are ready.',
     passkey_failed: "Your device couldn't use a passkey. Try again, or sign in another way.",
 };

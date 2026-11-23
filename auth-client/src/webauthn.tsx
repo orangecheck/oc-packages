@@ -255,7 +255,7 @@ export interface UsePasskeySignInReturn {
 /**
  * Sign in with a passkey that the account's Bitcoin address has signed for.
  * Never throws: it resolves `{ ok: false, reason }` (`cancelled`,
- * `passkey_not_recognised`, …) and sets `error`. On a family site it then
+ * `passkey_not_for_signin`, `passkey_not_recognised`, …) and sets `error`. On a family site it then
  * reads the session again, so the page sees who signed in.
  */
 export function usePasskeySignIn(opts?: UseHostOptions): UsePasskeySignInReturn {
