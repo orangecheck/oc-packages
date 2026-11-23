@@ -168,5 +168,20 @@
     "id": "tv34",
     "category": "network_prefix",
     "description": "attestations validly BIP-322 signed by burn key #1 for its mainnet, testnet or regtest address (SPEC §7.1 step 3): the message selects testnet or signet only by that exact network value and mainnet otherwise, so each case's reason, with the verifier in test mode where test_mode says so, is bad_request for an address of another network, before network_testmode, network_testmode for a testnet address outside test mode, and null for the controls and for a mainnet address under any other network value; a case's builder says whether a builder writes its extensions for its address or refuses them, and it writes no network value but mainnet, testnet or signet"
+  },
+  {
+    "id": "tv35",
+    "category": "signature_scheme",
+    "description": "attestations for burn key #1's addresses whose signature's bytes decide its scheme (SPEC §4): a ful or pof prefix is sig_unsupported_script, 65 bytes without the smp prefix is BIP-137, and anything else BIP-322 simple; a BIP-137 signature verifies (sig_ok_legacy) when the key it recovers derives the address, either key form for 1…, the compressed key for 3… and bc1q, its BIP-86 output key for bc1p, whatever the header's address-type flag says, and is sig_invalid by another key, from an uncompressed key on a segwit address, or with a header above 42; BIP-322 simple verifies (sig_ok_bip322) on bc1q with or without smp and is sig_invalid on 1…, which has no simple form. Each case's code is the signature code a verifier returns"
+  },
+  {
+    "id": "tv36",
+    "category": "signed_text",
+    "description": "attestations for burn key #1's address whose signature covers the canonical text or that text without its final LF, which verify (SPEC §4.1), or another text, which is sig_invalid: a second LF, CRLF, a leading space, or a trim that also drops a space or U+00A0 ending the last value; a message given without its final LF is decode_error, whatever its signature covers. A case's signed is the text its signature covers when that is not message, and its code the first of decode_error and the signature codes a verifier returns"
+  },
+  {
+    "id": "tv37",
+    "category": "bond_signature",
+    "description": "tv25's P2WPKH bond message by private key 1, BIP-322 simple and BIP-137 signed without its final LF, which verify inside the signing window with tv25's bond id (BOND.md §3 step 4, SPEC §4.1); a signature over the message with a second LF or with CRLF is sig_invalid, and the message given without its final LF is bond_malformed. A bond's or case's signed is the text its signature covers when that is not message"
   }
 ]
