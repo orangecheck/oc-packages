@@ -1,7 +1,9 @@
+import { secp256k1 } from '@noble/curves/secp256k1';
+import { sha256 } from '@noble/hashes/sha2';
 import { bech32, bech32m } from '@scure/base';
 import { describe, expect, it } from 'vitest';
 
-import { decodeAddress, normalizeAddress, verifySignature } from '../src/index';
+import { addressFromPrivateKey, decodeAddress, normalizeAddress, verifySignature } from '../src/index';
 import attestations from './fixtures/attestations.json';
 import corpus from './fixtures/bip322-js-6.1.8.json';
 
@@ -15,6 +17,8 @@ const SIG_HELLO =
 const SIG_TR_HELLO =
     'AUHd69PrJQEv+oKTfZ8l+WROBHuy9HKrbFCJu7U1iK2iiEy1vMU5EfMtjc+VSHM7aU0SDbak5IUZRVno2P5mjSafAQ==';
 
+// secp256k1's group order.
+const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
 const b64 = (b: Uint8Array) => Buffer.from(b).toString('base64');
 const bytes = (s: string) => Uint8Array.from(Buffer.from(s, 'base64'));
 
@@ -77,10 +81,67 @@ describe('stricter than bip322-js', () => {
         expect(verifySignature(P2WPKH, 'Hello World', b64(sig))).toBe(false);
     });
 
+    it('requires a low S, as BIP-322 does of a transaction signature; bip322-js accepted a high one', () => {
+        const sig = bytes(SIG_HELLO);
+        const der = sig.subarray(2, 2 + sig[1]! - 1);
+        const rLen = der[3]!;
+        const s = BigInt('0x' + Buffer.from(der.subarray(6 + rLen)).toString('hex'));
+        const high = N - s;
+        const highBytes = Buffer.from(high.toString(16).padStart(64, '0'), 'hex');
+        // A minimal positive DER integer: drop leading zeros, keep one if the top bit is set.
+        let body = highBytes.subarray(highBytes.findIndex((b) => b !== 0));
+        if (body[0]! & 0x80) body = Buffer.concat([Buffer.from([0]), body]);
+        const r = der.subarray(4, 4 + rLen);
+        const newDer = Buffer.concat([
+            Buffer.from([0x30, 4 + r.length + body.length, 0x02, r.length]),
+            r,
+            Buffer.from([0x02, body.length]),
+            body,
+            Buffer.from([0x01]),
+        ]);
+        const pubkey = sig.subarray(2 + sig[1]!);
+        const witness = Buffer.concat([Buffer.from([0x02, newDer.length]), newDer, pubkey]);
+        expect(high > N / 2n).toBe(true);
+        expect(verifySignature(P2WPKH, 'Hello World', SIG_HELLO)).toBe(true);
+        expect(verifySignature(P2WPKH, 'Hello World', b64(witness))).toBe(false);
+    });
+
+    it('refuses a witness whose sizes are not minimal CompactSizes, as a transaction must write them', () => {
+        const sig = bytes(SIG_HELLO);
+        const longCount = Buffer.concat([Buffer.from([0xfd, sig[0]!, 0x00]), sig.subarray(1)]);
+        const longLength = Buffer.concat([
+            sig.subarray(0, 1),
+            Buffer.from([0xfd, sig[1]!, 0x00]),
+            sig.subarray(2),
+        ]);
+        expect(verifySignature(P2WPKH, 'Hello World', b64(longCount))).toBe(false);
+        expect(verifySignature(P2WPKH, 'Hello World', b64(longLength))).toBe(false);
+    });
+
     it('refuses a 65-byte Schnorr signature carrying SIGHASH_DEFAULT', () => {
         const sig = bytes(SIG_TR_HELLO);
         sig[sig.length - 1] = 0x00;
         expect(verifySignature(P2TR, 'Hello World', b64(sig))).toBe(false);
+    });
+});
+
+describe('legacy BIP-137', () => {
+    it('accepts a high S, as Bitcoin Core does: a BIP-137 signature is not a transaction signature', () => {
+        const key = new Uint8Array(32).fill(7);
+        const address = addressFromPrivateKey(key, 'p2wpkh');
+        const message = 'high S under BIP-137';
+        const msg = Buffer.from(message);
+        const prefix = Buffer.from('\u0018Bitcoin Signed Message:\n');
+        const hash = sha256(sha256(Buffer.concat([prefix, Buffer.from([msg.length]), msg])));
+        const low = secp256k1.sign(hash, key, { prehash: false, lowS: true });
+        const compact = low.toBytes('compact');
+        const s = BigInt('0x' + Buffer.from(compact.subarray(32)).toString('hex'));
+        const highS = Buffer.from((N - s).toString(16).padStart(64, '0'), 'hex');
+        // (r, n - s) under the other recovery id recovers the same key.
+        const high = Uint8Array.from([39 + (low.recovery! ^ 1), ...compact.subarray(0, 32), ...highS]);
+        expect(N - s > N / 2n).toBe(true);
+        expect(verifySignature(address, message, b64(Uint8Array.from([39 + low.recovery!, ...compact])))).toBe(true);
+        expect(verifySignature(address, message, b64(high))).toBe(true);
     });
 });
 
