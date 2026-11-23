@@ -74,8 +74,12 @@ export {
     useWebAuthnRegister,
     useWebAuthnList,
     useStepUpAuth,
+    usePasskeySignIn,
 } from './webauthn';
 export type {
+    BindSigner,
+    PasskeySignInResult,
+    UsePasskeySignInReturn,
     WebAuthnCredentialPublic,
     WebAuthnRegisterStatus,
     WebAuthnAssertionStatus,

@@ -28,6 +28,20 @@ this file tracks the package's TS / Node / runtime API surface.
   that names both. Left at the passkey step, the sign-in hands the site
   nothing. A first-party site has no family session to add to, so its props
   type leaves `layered` out, and the form says so in place if it is passed.
+- `usePasskeySignIn()` runs the same ceremony from a site's own UI:
+  `signIn({ kind?, add?, credentials? })` resolves `{ ok: true, account, token? }`
+  or `{ ok: false, reason }`, never throws, and on a family site reads the
+  session again.
+- `useWebAuthnRegister().register({ label, bind })` lets the new key sign in
+  too. When ochk.io answers `register/verify` with a `binding_statement`,
+  `bind(statement, address)` signs it with the wallet that holds the address
+  it names (BIP-322, e.g. through `@orangecheck/wallet-adapter`'s `getSigner`),
+  and the hook posts `{ credential_id, address, signature }` to
+  `/api/auth/webauthn/bind`. It signs only an `oc-passkey:bind:v1` statement
+  about the key this device just made. The result says how it went in
+  `binding` (`{ ok: true }`, or `{ ok: false, reason }`); the key is
+  registered for step-up either way, and a result with no statement offered
+  is as before.
 
 ## [2.51.0] — 2026-11-20
 
