@@ -78,7 +78,7 @@ export function parseSignInRequirement(requirement: unknown): { amr: AuthMethod[
 /**
  * Whether a token's sign-in meets `requirement` at `now`, in Unix seconds. A
  * fact the token does not state meets nothing, so a token minted before the
- * facts were written meets any requirement but an empty one. Throws on a
+ * facts were written meets only an empty requirement. Throws on a
  * requirement {@link parseSignInRequirement} refuses, or a `now` that is not a
  * finite number.
  */
