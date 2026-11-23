@@ -1,7 +1,7 @@
 {
   "id": "tv35",
   "category": "signature_scheme",
-  "description": "attestations for burn key #1's addresses whose signature's bytes decide its scheme (SPEC §4): a ful or pof prefix is sig_unsupported_script, 65 bytes without the smp prefix is BIP-137, and anything else BIP-322 simple; a BIP-137 signature verifies (sig_ok_legacy) when the key it recovers derives the address, either key form for 1…, the compressed key for 3… and bc1q, its BIP-86 output key for bc1p, whatever the header's address-type flag says, and is sig_invalid by another key, from an uncompressed key on a segwit address, or with a header above 42; a BIP-137 signature cut to 64 bytes or given a 66th is read as BIP-322 simple; BIP-322 simple verifies (sig_ok_bip322) on bc1q with or without smp and on 3…, and on bc1p by its key path, and is sig_invalid on 1…, which has no simple form, on a bc1p spent by a script path, since a bc1p address signs only by its key path (§1), and wherever it breaks a rule BIP-322 holds a transaction's signature to: a high S on bc1q or 3…, a size that is not a minimal CompactSize, a byte after the witness stack, or on bc1p an explicit 0x00 hash type, an annex or an empty second item. A BIP-137 signature is not held to a low S. Each case's code is the signature code a verifier returns",
+  "description": "attestations for burn key #1's addresses whose signature's bytes decide its scheme (SPEC §4): a ful or pof prefix is sig_unsupported_script, 65 bytes without the smp prefix is BIP-137, and anything else BIP-322 simple; a BIP-137 signature verifies (sig_ok_legacy) when the key it recovers derives the address, either key form for 1…, the compressed key for 3… and bc1q, its BIP-86 output key for bc1p, whatever the header's address-type flag says, and is sig_invalid by another key, from an uncompressed key on a segwit address, or with a header above 42; a BIP-137 signature cut to 64 bytes or given a 66th is read as BIP-322 simple; BIP-322 simple verifies (sig_ok_bip322) on bc1q with or without smp and on 3…, and on bc1p by its key path, and is sig_invalid on 1…, which has no simple form, on 3… with a witness by a key the address does not commit to, on a bc1p spent by a script path, since a bc1p address signs only by its key path (§1), and wherever it breaks a rule BIP-322 holds a transaction's signature to: a high S on bc1q or 3…, a size that is not a minimal CompactSize, a byte after the witness stack, or on bc1p an explicit 0x00 hash type, an annex or an empty second item. A BIP-137 signature is not held to a low S. Each case's code is the signature code a verifier returns",
   "input": {
     "identities": [
       {
@@ -180,6 +180,13 @@
         "message": "orangecheck\nidentities: github:conformance\naddress: 35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
         "signature": "AkcwRAIgWAud4hPFE+rD6AE/Kk/GbDEesr3usSKic/9bpWhKPhsCIHvJNtVU1aJNncSTE0RXXZMH2EIlBTOS7/bCllrkG494ASEDG4TFVnsSZECZXT7VqroFZdceGDRgSBn/nBf16dXdB48=",
         "code": "sig_ok_bip322"
+      },
+      {
+        "name": "BIP-322 simple on 3… (P2SH-P2WPKH) with a witness by another key",
+        "address": "35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i",
+        "message": "orangecheck\nidentities: github:conformance\naddress: 35LM1A29K95ADiQ8rJ9uEfVZCKffZE4D9i\npurpose: portable reputation attestation (non-custodial)\nnonce: 0011223344556677889900aabbccddee\nissued_at: 2026-04-22T12:00:00Z\nack: I attest control of this address and bind it to my identities.\n",
+        "signature": "AkgwRQIhAJCJf+QfhjMd63BQZIk7i0AEIwcYFNmGVnkWYMKDHi3PAiAZA0/cNPtwlW/fKmke2qDz9hB3quNZQE5UZTX5rTZT+QEhAk1LbNE2EDLKm9KuudkAqk1F2erYCslCM3TEUaclTQdm",
+        "code": "sig_invalid"
       },
       {
         "name": "BIP-322 simple spending a one-leaf bc1p by its script path: key path only",
