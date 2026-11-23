@@ -492,8 +492,8 @@ export interface WebhookPayload extends BillableEvent {
     /** The project the delivery was signed for. `oc.webhook.verify` checks it
      *  against the `project` you pass. */
     project_key: string;
-    /** When it was first sent, ISO. A retry keeps it; a dead letter sent again
-     *  is signed again with a new one. */
+    /** When this send was signed, ISO. Each retry is signed again with a new
+     *  one; `id` stays the same. */
     issued_at: string;
 }
 
@@ -516,7 +516,7 @@ export interface SystemWebhookPayload {
     /** The notice's id. A notice sent again (a retry, a resent move) keeps it. */
     id: string;
     project_key: string;
-    /** When it was first sent, ISO. */
+    /** When this send was signed, ISO. */
     issued_at: string;
     [extra: string]: unknown;
 }
