@@ -76,6 +76,12 @@ describe("a pasted signature from a wallet that trims", () => {
     }
   });
 
+  it.each(TAKEN)("is refused as trimmed for %s ending in a second LF, signed without it", async (_, message) => {
+    const doubled = `${message}\n`;
+    await expect(pasted(doubled, message)).rejects.toBeInstanceOf(TrimmedSignatureError);
+    await expect(pasted(doubled, doubled)).resolves.toBeUndefined();
+  });
+
   it.each(TAKEN)("is refused as trimmed for %s whose trim took more than the final LF", async (_, message) => {
     const spaced = `${message.slice(0, -1)} \n`;
     await expect(pasted(spaced, spaced.trim())).rejects.toBeInstanceOf(TrimmedSignatureError);
