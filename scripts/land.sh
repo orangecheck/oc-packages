@@ -15,8 +15,12 @@
 # fails on one for good, a fake one in a test included. Rebase isn't needed first: the queue rebases onto main itself, so
 # the commits main takes are new ones; a release tag goes on the commit main
 # holds, never the branch's.
-# Before it says a PR was dropped, it reads the PR again: one the queue has just
-# merged can still read as open for a moment, and main may already hold it.
+# A PR the queue took counts as landed when it reads MERGED, when the queue says
+# it removed the PR because it merged it (GitHub once took 105 s to read MERGED
+# after that, PR #510), or when main holds the PR's head or a commit with the
+# head's tree (a rebase merge onto the main the PR was based on). Before it says
+# a PR was dropped, it reads the PR again for each of these. Each read prints a
+# line on stderr, so a wait that stalls shows which field held it.
 # The repository is the one origin names, so oc-docs and oc-packages run the
 # same file. LAND_GH and LAND_POLL (seconds) are for the script's tests.
 set -euo pipefail
@@ -53,28 +57,48 @@ fi
 # shellcheck disable=SC2016 # GraphQL variables, not shell ones
 query='query($o: String!, $r: String!, $n: Int!) { repository(owner: $o, name: $r) { pullRequest(number: $n) {
     state isInMergeQueue autoMergeRequest { enabledAt } mergeQueueEntry { state } mergeCommit { oid } headRefOid
-    commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } }'
+    commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+    timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+        nodes { ... on RemovedFromMergeQueueEvent { reason beforeCommit { oid } } } } } } }'
 read_pr() {
     local line
     line=$(gh api graphql -f query="$query" -f o="${repo%/*}" -f r="${repo#*/}" -F n="$number" --jq '.data.repository.pullRequest
         | [.state, .isInMergeQueue, (.autoMergeRequest != null), (.mergeQueueEntry.state // "-"),
-           (.commits.nodes[0].commit.statusCheckRollup.state // "-"), (.mergeCommit.oid // "-"), .headRefOid] | @tsv')
-    IFS=$'\t' read -r state in_queue auto entry checks merged head <<< "$line"
+           (.commits.nodes[0].commit.statusCheckRollup.state // "-"), (.mergeCommit.oid // "-"), .headRefOid,
+           ((.timelineItems.nodes[0].reason // "-") | if . == "" then "-" else . end),
+           (.timelineItems.nodes[0].beforeCommit.oid // "-")] | @tsv')
+    IFS=$'\t' read -r state in_queue auto entry checks merged head left left_main <<< "$line"
+    echo "land: $(stamp) PR #$number state=$state in_queue=$in_queue auto=$auto entry=$entry checks=$checks removed=$left" >&2
 }
+stamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 verb='is now'
 finish() {
     echo "land: merged; main $verb $merged (PR #$number)"
     exit 0
 }
-# Whether the PR landed after all: merged on a fresh read, or main holds its head.
+# The queue's record of why it last removed the PR: "merged" names the commit main moved to.
+queue_merged() {
+    [ "$left" = merged ] && [ "$left_main" != - ] && merged=$left_main
+}
+# Whether the PR landed after all, on a fresh read (see the header).
 landed() {
-    local i status
+    local i status match
     for i in 1 2 3; do
         read_pr
         [ "$state" != MERGED ] || return 0
-        status=$(gh api "repos/$repo/compare/main...$head" --jq .status 2> /dev/null || echo unknown)
-        if [ "$status" = behind ] || [ "$status" = identical ]; then
+        if queue_merged; then return 0; fi
+        # main's commits since it forked from the head, and the first of them with the head's tree.
+        # shellcheck disable=SC2016 # a jq variable, not a shell one
+        IFS=$'\t' read -r status match <<< "$(gh api "repos/$repo/compare/$head...main" --jq '.base_commit.commit.tree.sha as $t
+            | [.status, ([.commits[] | select(.commit.tree.sha == $t) | .sha][0] // "-")] | @tsv' 2> /dev/null || echo unknown)"
+        echo "land: $(stamp) PR #$number compare=$status tree_match=${match:--}" >&2
+        if [ "$status" = ahead ] || [ "$status" = identical ]; then
             merged="$head, the PR's head"
+            verb=holds
+            return 0
+        fi
+        if [ -n "$match" ] && [ "$match" != - ]; then
+            merged="$match, with the PR's head's tree"
             verb=holds
             return 0
         fi
@@ -82,9 +106,12 @@ landed() {
     done
     return 1
 }
-# Refuse with the reason, unless a fresh read shows the PR landed.
+# Refuse with the reason, and the queue's own once it removed the PR, unless a fresh read shows the PR landed.
 dropped() {
-    landed || refuse "$1"
+    if ! landed; then
+        [ "$left" = - ] || [ "$in_queue" = true ] || set -- "$1 (the queue's reason: $left)"
+        refuse "$1"
+    fi
     finish
 }
 
@@ -96,6 +123,8 @@ while :; do
         MERGED) finish ;;
         CLOSED) refuse "PR #$number was closed" ;;
     esac
+    # Checked on every read: the PR's other fields can lag behind the queue's record.
+    if queue_merged; then finish; fi
     case $checks in FAILURE | ERROR) refuse "a check failed on PR #$number: gh pr checks $number -R $repo" ;; esac
     [ "$entry" != UNMERGEABLE ] || dropped "the queue can't merge PR #$number: its group run failed or it conflicts with main"
     [ "$in_queue" = true ] && queued=1
