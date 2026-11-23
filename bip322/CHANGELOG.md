@@ -8,7 +8,20 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- _(no pending changes)_
+### Changed
+
+- `verifySignature` holds a BIP-322 simple signature to a transaction's
+  rules, as BIP-322 does (OC Attest 2.2.0 SPEC §4):
+  - a P2WPKH or P2SH-P2WPKH signature whose S is above half the curve
+    order is refused (BIP-146 low S);
+  - a witness whose item count or item length is not a minimal
+    CompactSize is refused, as Bitcoin Core's `ReadCompactSize` refuses it.
+
+  A high-S ECDSA signature is now refused, as BIP-322 requires; every
+  wallet we could read at source signs low-S. A legacy BIP-137 signature
+  is not a transaction's and is still accepted with a high S, as Bitcoin
+  Core's `verifymessage` accepts it. The Python `orangecheck` package's
+  `verify_bip322_signature` gives the same answers.
 
 ## [1.1.3] — 2026-10-25
 

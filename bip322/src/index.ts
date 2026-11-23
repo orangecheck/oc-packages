@@ -153,7 +153,8 @@ function parseWitness(bytes: Uint8Array): Uint8Array[] | null {
         let n = 0;
         for (let i = width - 1; i >= 0; i--) n = n * 256 + bytes[at + i]!;
         at += width;
-        return n;
+        // A transaction's CompactSize is minimal, as Bitcoin Core's ReadCompactSize requires.
+        return n < (width === 2 ? 0xfd : width === 4 ? 0x10000 : 0x100000000) ? null : n;
     };
     const count = readSize();
     if (count === null) return null;
@@ -267,14 +268,14 @@ function verifySimple(addr: DecodedAddress, message: string, witnessBytes: Uint8
             addr.type === 'p2wpkh'
                 ? equal(pkh, addr.program)
                 : addr.type === 'p2sh' && equal(hash160(scriptFor.p2wpkh(pkh)), addr.program);
-        // BIP-322: every signature uses SIGHASH_ALL.
+        // BIP-322: every signature uses SIGHASH_ALL, strict DER and a low S, as a transaction's must.
         const der = sig!.length > 0 && sig![sig!.length - 1] === 0x01 ? parseStrictDer(sig!.subarray(0, -1)) : null;
         if (!bound || !der) return false;
         const hash = segwitV0Sighash(outpoint, pkh);
         return attempt(() =>
             secp256k1.verify(new secp256k1.Signature(der.r, der.s).toBytes('compact'), hash, pubkey!, {
                 format: 'compact',
-                lowS: false,
+                lowS: true,
                 prehash: false,
             })
         );
