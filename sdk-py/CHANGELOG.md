@@ -80,17 +80,19 @@ fragment, a user name, and plain http to any host but `localhost`,
   for another project is refused as `InvalidWebhook("project")`. It is optional
   until the next major version; a call without it warns once per process
   (`UserWarning`).
-- **`max_age`**: the oldest delivery accepted, in seconds since it was first
-  sent (`WEBHOOK_MAX_AGE_SECONDS`, a day, by default).
+- **`max_age`**: the oldest delivery accepted, in seconds since it was signed
+  (`WEBHOOK_MAX_AGE_SECONDS`, a day, by default).
 
 ### Changed
 
 - **`verify_webhook` refuses a delivery whose signed body has no `id`,
   `project_key` or `issued_at`** (`"incomplete"`; `issued_at` is a UTC time as
-  JavaScript's `toISOString` writes it), and one first sent more than a day
-  ago or more than five minutes ahead of this clock (`"stale"`). me.ochk.io
-  signs all three into every delivery, billable events and project notices
-  alike, and has for at least a day before this release. Deduplicate on the
+  JavaScript's `toISOString` writes it), and one signed more than a day ago
+  or more than five minutes ahead of this clock (`"stale"`). me.ochk.io signs
+  all three into every delivery, billable events and project notices alike,
+  and has for at least a day before this release. It signs each send as it
+  sends it, retries included, so a retry keeps the delivery's `id` and carries
+  its own `issued_at`. Deduplicate on the
   body's `id`. The same answers as `@orangecheck/me-client` 0.64.0's, read from
   the shared vectors.
 
