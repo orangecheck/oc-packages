@@ -26,6 +26,7 @@ import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from "./issuer-origin";
 import { refuseUnknownOptions } from "./options";
 import { retiredKeyVouches } from "./retired-key";
 import { SAFE_METHODS } from "./revocation";
+import { readSignInFacts } from "./sign-in";
 
 export const JWT_ALG = "EdDSA" as const;
 export const SESSION_COOKIE = "oc_session" as const;
@@ -346,6 +347,23 @@ export function verifySudoClaim(
   if (opts.max_age_secs <= 0) return false;
   const ageSec = Math.floor(Date.now() / 1000) - payload.sudo_at;
   return ageSec >= 0 && ageSec < opts.max_age_secs;
+}
+
+/**
+ * Whether a session holds a fresh re-proof for a gate that moves money or
+ * releases identity: a fresh `sudo_at` (an email code or a wallet signature),
+ * or a fresh `step_up_at` (a passkey tap) on a session whose sign-in named
+ * more than a passkey. A passkey cannot vouch for itself, so one synced
+ * passkey never both signs in and opens such a gate. A session that states no
+ * `amr` was minted before the auth host wrote it, and its step-up counts as it
+ * always has; an `amr` that does not read ({@link readSignInFacts}) does not.
+ */
+export function reproofFresh(payload: SessionPayload, opts: { max_age_secs: number }): boolean {
+  if (verifySudoClaim(payload, opts)) return true;
+  if (!verifyStepUpClaim(payload, opts)) return false;
+  if (payload.amr === undefined) return true;
+  const { amr } = readSignInFacts(payload);
+  return amr !== null && amr.some((m) => m !== "passkey");
 }
 
 /**
