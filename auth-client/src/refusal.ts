@@ -97,6 +97,13 @@ const EMAIL_ERRORS: Record<string, string> = {
         "An account in this browser was signed out while you were signing in, so this sign-in wasn't kept. Send a new code to sign in again.",
 };
 
+const PASSKEY_ERRORS: Record<string, string> = {
+    passkey_not_recognised:
+        "That passkey isn't set up to sign in. Sign in another way, then turn it on for sign-in in your account.",
+    cancelled: 'The passkey prompt closed. Try again when you are ready.',
+    passkey_failed: "Your device couldn't use a passkey. Try again, or sign in another way.",
+};
+
 /**
  * `bad_request` means the host's body schema failed. Fetching a challenge
  * that is the address; submitting a signature it is the pasted signature
@@ -119,14 +126,15 @@ export function networkError(authOrigin: string): string {
 
 export function humanSigninError(
     reason: string,
-    path: 'wallet' | 'email',
+    path: 'wallet' | 'email' | 'passkey',
     step: 'challenge' | 'submit' = 'challenge'
 ): string {
     // A reason that is not a code is already a sentence.
     if (!/^[a-z0-9_]+$/.test(reason)) return reason;
     const own =
         (path === 'wallet' && step === 'submit' && ownWord(SUBMIT_ERRORS, reason)) ||
-        (path === 'email' && ownWord(EMAIL_ERRORS, reason));
+        (path === 'email' && ownWord(EMAIL_ERRORS, reason)) ||
+        (path === 'passkey' && ownWord(PASSKEY_ERRORS, reason));
     if (own) return own;
     return (
         ownWord(SIGNIN_ERRORS, reason) ??
@@ -143,7 +151,7 @@ export function humanSigninError(
  */
 export function failureMessage(
     err: unknown,
-    path: 'wallet' | 'email',
+    path: 'wallet' | 'email' | 'passkey',
     step: 'challenge' | 'submit',
     authOrigin: string
 ): string {

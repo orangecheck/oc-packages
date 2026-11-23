@@ -39,6 +39,7 @@
 
 import { isFamilyOrigin } from '@orangecheck/auth-core/family-origins';
 import { normalizeEmail } from '@orangecheck/auth-core/identifiers';
+import { browserSupportsWebAuthnAutofill } from '@simplewebauthn/browser';
 import * as React from 'react';
 
 import { addressInputValue } from './address';
@@ -55,6 +56,8 @@ import {
 } from './held-link';
 import type { HeldLink } from './held-link';
 import { LinkPromptStep } from './linked-identities';
+import { cancelPasskeyAutofill, passkeyCeremony } from './passkey';
+import type { PasskeyPath } from './passkey';
 import { useOptionalOcSession } from './provider';
 import {
     endedSigninText,
@@ -152,6 +155,14 @@ interface OcSignInBaseProps {
      * Useful for B2B-only sites that don't want to expose email-OTP.
      */
     paths?: { wallet?: boolean; email?: boolean };
+    /**
+     * Offer a passkey. `off`, the default, offers none. `with` adds a "Sign in
+     * with a passkey" button, and the passkey in the email field's autofill.
+     * `only` offers the passkey alone. Only a passkey its account's Bitcoin
+     * address has signed for can sign in. The page follows it; the site's
+     * server still checks the session (auth-core `satisfiesSignInRule`).
+     */
+    passkey?: PasskeyPath;
     /**
      * Whether to show the "also link my other identity" checkbox on the
      * sign-in form. **On by default.** The checkbox is optional and
@@ -382,13 +393,15 @@ export function OcSignIn({
     className,
     mode,
     providerHref,
+    passkey = 'off',
 }: OcSignInProps): React.ReactElement {
-    const walletEnabled = paths?.wallet ?? true;
-    const emailEnabled = paths?.email ?? true;
+    const passkeyOnly = passkey === 'only';
+    const walletEnabled = !passkeyOnly && (paths?.wallet ?? true);
+    const emailEnabled = !passkeyOnly && (paths?.email ?? true);
     const firstParty = mode === 'first-party';
     // First-party: the family cookie must be neither sent nor set.
     const credentials: RequestCredentials = firstParty ? 'omit' : 'include';
-    const linkPrompt = linkPromptProp && !firstParty;
+    const linkPrompt = linkPromptProp && !firstParty && !passkeyOnly;
     const providerSession = useOptionalOcSession();
     const recheck = onSeveralSessions ?? providerSession?.refresh;
 
@@ -521,7 +534,7 @@ export function OcSignIn({
     );
 
     const handleSuccess = React.useCallback(
-        async (account: OcAccount, token: string | undefined, via: 'wallet' | 'email') => {
+        async (account: OcAccount, token: string | undefined, via: 'wallet' | 'email' | 'passkey') => {
             // The post-sign-in handoff — custom `onSuccess`, else navigation.
             const proceed = () => {
                 // Per-tab · the user just completed a ceremony IN this tab —
@@ -532,8 +545,9 @@ export function OcSignIn({
             };
 
             // Linking is opt-in via the form checkbox. Unchecked (or the
-            // checkbox suppressed) → ordinary sign-in.
-            if (!linkPrompt || !linkAlso) {
+            // checkbox suppressed) → ordinary sign-in. A passkey that signs
+            // in already has the account's wallet behind it.
+            if (!linkPrompt || !linkAlso || via === 'passkey') {
                 proceed();
                 return;
             }
@@ -565,6 +579,21 @@ export function OcSignIn({
         },
         [onSuccess, linkPrompt, linkAlso, navigate, authOrigin]
     );
+
+    const onPasskey = (a: OcAccount, t?: string) => void handleSuccess(a, t, 'passkey');
+
+    if (passkeyOnly) {
+        return (
+            <div className={className} data-oc-signin="">
+                <PasskeyButton
+                    authOrigin={authOrigin}
+                    add={addMode}
+                    credentials={credentials}
+                    onSuccess={onPasskey}
+                />
+            </div>
+        );
+    }
 
     if (!walletEnabled && !emailEnabled) {
         return (
@@ -674,6 +703,17 @@ export function OcSignIn({
                     menu.
                 </div>
             )}
+            {passkey === 'with' && (
+                <div style={{ marginBottom: 16 }}>
+                    <PasskeyButton
+                        authOrigin={authOrigin}
+                        add={addMode}
+                        credentials={credentials}
+                        onSuccess={onPasskey}
+                        quiet
+                    />
+                </div>
+            )}
             {/* Providers-first (ochk.io homepage): the familiar Google /
                 GitHub on-ramp leads, with the wallet/email panel below the
                 divider. Everywhere else this block stays at the bottom. */}
@@ -748,6 +788,7 @@ export function OcSignIn({
                         firstParty={firstParty}
                         onSeveralSessions={recheck}
                         onSuccess={(a, t) => void handleSuccess(a, t, 'email')}
+                        onPasskey={passkey === 'with' ? onPasskey : undefined}
                     />
                 )}
             </div>
@@ -1046,6 +1087,73 @@ function ProviderSignIn({
                     {buttons}
                 </>
             )}
+        </div>
+    );
+}
+
+/* --- passkey --- */
+
+/** Beside the other ways in, quiet like the provider buttons; alone, the form's one primary button. */
+const quietPasskeyStyle: React.CSSProperties = {
+    boxSizing: 'border-box',
+    width: '100%',
+    minHeight: 44,
+    padding: '0.6rem 0.875rem',
+    border: '1px solid var(--border, #27272a)',
+    borderRadius: SIGNIN_BUTTON_RADIUS,
+    background: 'transparent',
+    color: 'var(--foreground, #fafafa)',
+    fontFamily: SIGNIN_FONT,
+    fontSize: signinSize(12),
+    cursor: 'pointer',
+};
+
+function PasskeyButton({
+    authOrigin,
+    add,
+    credentials,
+    onSuccess,
+    quiet = false,
+}: Omit<FlowProps, 'onSeveralSessions'> & { quiet?: boolean }): React.ReactElement {
+    const uid = React.useId();
+    const [busy, setBusy] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+
+    async function run() {
+        if (busy) return;
+        setError(null);
+        setBusy(true);
+        try {
+            const r = await passkeyCeremony({ authOrigin, kind: 'signin', credentials, add });
+            if (r.ok) {
+                onSuccess(r.account, r.token);
+                return;
+            }
+            setError(humanSigninError(r.reason, 'passkey'));
+        } catch (err) {
+            setError(failureMessage(err, 'passkey', 'submit', authOrigin));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <div data-oc-signin-passkey="">
+            <button
+                type="button"
+                onClick={() => void run()}
+                aria-disabled={busy || undefined}
+                aria-describedby={describedBy(error && `${uid}-error`)}
+                style={
+                    quiet
+                        ? { ...quietPasskeyStyle, opacity: busy ? 0.5 : 1 }
+                        : { ...submitStyle(busy), marginTop: 0 }
+                }
+            >
+                {busy ? 'Waiting for your passkey…' : quiet ? 'Sign in with a passkey' : <Submit>Sign in with a passkey</Submit>}
+            </button>
+            {error && <ErrorLine id={`${uid}-error`}>{error}</ErrorLine>}
+            <Busy>{busy ? 'Waiting for your passkey…' : null}</Busy>
         </div>
     );
 }
@@ -1427,7 +1535,12 @@ function EmailFlow({
     firstParty,
     onSuccess,
     onSeveralSessions,
-}: FlowProps & { firstParty: boolean }): React.ReactElement {
+    onPasskey,
+}: FlowProps & {
+    firstParty: boolean;
+    /** Set when the site offers a passkey: the email field offers it in autofill too. */
+    onPasskey?: (account: OcAccount, token?: string) => void;
+}): React.ReactElement {
     const uid = React.useId();
     const [stage, setStage] = React.useState<EmailStage>('enter');
     const [email, setEmail] = React.useState('');
@@ -1448,6 +1561,32 @@ function EmailFlow({
         codeError: `${uid}-code-error`,
         listed: `${uid}-listed`,
     };
+
+    // Autofill offers a passkey while the email field is on screen, and stops when it goes.
+    const onPasskeyRef = React.useRef(onPasskey);
+    React.useEffect(() => {
+        onPasskeyRef.current = onPasskey;
+    });
+    const autofill = onPasskey !== undefined && stage === 'enter';
+    React.useEffect(() => {
+        if (!autofill) return;
+        let live = true;
+        void (async () => {
+            try {
+                if (!(await browserSupportsWebAuthnAutofill()) || !live) return;
+                const r = await passkeyCeremony({ authOrigin, kind: 'signin', credentials, add, autofill: true });
+                if (!live) return;
+                if (r.ok) onPasskeyRef.current?.(r.account, r.token);
+                else if (r.step === 'verify') setEmailError(humanSigninError(r.reason, 'passkey'));
+            } catch {
+                // Autofill is an extra: the field works without it.
+            }
+        })();
+        return () => {
+            live = false;
+            cancelPasskeyAutofill();
+        };
+    }, [autofill, authOrigin, credentials, add]);
 
     /** Ask the host to email a code. Returns a human error, or null on success. */
     async function sendCode(address: string): Promise<string | null> {
@@ -1576,7 +1715,7 @@ function EmailFlow({
                     data-oca-field=""
                     id={`${uid}-email`}
                     type="email"
-                    autoComplete="email"
+                    autoComplete={onPasskey ? 'username webauthn' : 'email'}
                     value={email}
                     onChange={(e) => {
                         setEmail(e.target.value);
