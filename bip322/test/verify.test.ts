@@ -32,6 +32,13 @@ describe('BIP-322 test vectors', () => {
         expect(verifySignature(P2TR, 'Hello World', SIG_TR_HELLO)).toBe(true);
     });
 
+    it('refuses each with a byte after its witness stack: the witness is the whole signature', () => {
+        const extra = (sig: string) => b64(Uint8Array.from([...bytes(sig), 0x00]));
+        expect(verifySignature(P2WPKH, '', extra(SIG_EMPTY))).toBe(false);
+        expect(verifySignature(P2WPKH, 'Hello World', extra(SIG_HELLO))).toBe(false);
+        expect(verifySignature(P2TR, 'Hello World', extra(SIG_TR_HELLO))).toBe(false);
+    });
+
     it('refuses each signature over the other message', () => {
         expect(verifySignature(P2WPKH, 'Hello World', SIG_EMPTY)).toBe(false);
         expect(verifySignature(P2WPKH, '', SIG_HELLO)).toBe(false);
