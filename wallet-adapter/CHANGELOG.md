@@ -19,8 +19,11 @@ this file tracks the package's TS / Node / runtime API surface.
   `@orangecheck/sdk` 1.28.0 (OC Attest 2.2.0 SPEC §4.1) and
   `@orangecheck/lock-device` 0.9.0 (OC Lock 2.6.0 SPEC §3.3). Any other
   message signed that way still throws `TrimmedSignatureError`. A site that
-  publishes what a wallet signs should take this version only once everyone
-  who reads what it publishes runs those verifiers.
+  publishes a device record writes the text the signature covers as its
+  content (`signedBindingText` in lock-device 0.9.0), which every
+  lock-device reader accepts, 0.8.0 included. An attestation or bond keeps
+  its canonical text, so one signed that way verifies for readers on
+  `@orangecheck/sdk` 1.28.0.
 
 ## [0.8.1] — 2026-11-23
 
