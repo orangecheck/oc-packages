@@ -244,6 +244,9 @@ def _witness_fits(addr: DecodedAddress, sig: bytes) -> bool:
 
 
 def _verify_bip137(addr: DecodedAddress, message: str, sig: bytes) -> bool:
+    # A header byte, then r and s: 65 bytes, as @orangecheck/bip322 requires.
+    if len(sig) != 65:
+        return False
     flag = sig[0] - 27
     if not 0 <= flag <= 15:
         return False
