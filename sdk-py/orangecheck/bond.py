@@ -129,10 +129,12 @@ def verify_bond_signature(
 ) -> tuple[bool, str]:
     """
     Check a signed bond message: shape, subject, signing window, signature.
-    Returns ``(True, bond_id)`` or ``(False, reason)`` with BOND.md's reason
-    codes. Requires the ``[verify]`` extra for the signature.
+    The signature may cover the message without its final LF (BOND.md §3
+    step 4); the message passed in still needs it. Returns ``(True, bond_id)``
+    or ``(False, reason)`` with BOND.md's reason codes. Requires the
+    ``[verify]`` extra for the signature.
     """
-    from .verify_sig import verify_bip322_signature
+    from .verify_sig import signs_text
 
     fields = parse_bond_message(message)
     if fields is None:
@@ -147,6 +149,6 @@ def verify_bond_signature(
         return False, "bond_not_yet_valid"
     if _when(fields.expires_at).timestamp() + skew_seconds < at:
         return False, "bond_expired"
-    if not verify_bip322_signature(fields.address, message, signature):
+    if not signs_text(fields.address, message, signature):
         return False, "sig_invalid"
     return True, bond_id(message)
