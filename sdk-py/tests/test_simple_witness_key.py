@@ -72,6 +72,15 @@ def test_a_key_hash_witness_of_another_shape_is_refused(items: List[bytes], brid
     assert not vs.verify_bip322_signature(GOOD_P2SH["address"], GOOD_P2SH["message"], encode(items))
 
 
+@pytest.mark.parametrize("case", [GOOD_P2SH, GOOD_P2WPKH], ids=["p2sh", "p2wpkh"])
+def test_a_key_after_the_committed_key_is_refused_whatever_the_bridge_says(
+    case: dict, bridge_says_yes: None
+) -> None:
+    # The signature and the key the address commits to, then another 33-byte key: three items.
+    sig, key = stack(case)
+    assert not vs.verify_bip322_signature(case["address"], case["message"], encode([sig, key, OTHER_KEY]))
+
+
 def test_an_empty_taproot_witness_is_refused(bridge_says_yes: None) -> None:
     taproot = next(c for c in CORPUS if c["address"].startswith("bc1p"))
     assert not vs.verify_bip322_signature(taproot["address"], taproot["message"], encode([]))
