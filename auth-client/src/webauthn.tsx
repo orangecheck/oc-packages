@@ -1,9 +1,11 @@
 /**
  * WebAuthn / passkey hooks for OrangeCheck consumer subdomains.
  *
- * Three hooks, all routing through the auth host (rpId='ochk.io'):
+ * Four hooks, all routing through the auth host (rpId='ochk.io'):
  *
- *   - `useWebAuthnRegister()` — bind a hardware key to the account.
+ *   - `useWebAuthnRegister()` — bind a hardware key to the account, and
+ *                                with `bind`, let it sign in.
+ *   - `usePasskeySignIn()`    — sign in with a passkey that can.
  *   - `useWebAuthnList()`     — read + rename + revoke registered keys.
  *   - `useStepUpAuth()`       — prove possession of a key before a
  *                                sensitive action; the auth host
@@ -27,7 +29,9 @@ import {
     type RegistrationResponseJSON,
 } from '@simplewebauthn/browser';
 
-import { useOcSession } from './provider';
+import { passkeyCeremony, type PasskeyKind } from './passkey';
+import { useOcSession, useOptionalOcSession } from './provider';
+import type { OcAccount } from './types';
 import { resolveConfig, type OcAuthConfig } from './types';
 
 // ─── Shared types ───────────────────────────────────────────────────────
@@ -79,14 +83,67 @@ function isAbortError(err: unknown): boolean {
 // ─── useWebAuthnRegister ────────────────────────────────────────────────
 
 export type WebAuthnRegisterResult =
-    | { ok: true; credential: WebAuthnCredentialPublic }
+    | {
+          ok: true;
+          credential: WebAuthnCredentialPublic;
+          /** Present when ochk.io offered a binding: whether the key now signs in, and why not. */
+          binding?: { ok: true } | { ok: false; reason: string };
+      }
     | { ok: false; reason: string };
+
+/**
+ * Signs `statement` with the wallet that holds `address`, BIP-322, e.g.
+ * `(statement, address) => getSigner(walletId, { address })(statement)` from
+ * `@orangecheck/wallet-adapter`.
+ */
+export type BindSigner = (statement: string, address: string) => Promise<string>;
 
 export interface UseWebAuthnRegisterReturn {
     status: WebAuthnRegisterStatus;
     error: Error | null;
-    register: (args?: { label?: string }) => Promise<WebAuthnRegisterResult>;
+    /** With `bind`, an account with a verified Bitcoin address has the wallet sign for
+     *  the new key, so it can sign in as well as step up. */
+    register: (args?: { label?: string; bind?: BindSigner }) => Promise<WebAuthnRegisterResult>;
     reset: () => void;
+}
+
+const BINDING_PREFIX = 'oc-passkey:bind:v1\n';
+
+/** The address a binding statement names, if it is a v1 statement about this very key; else null. */
+function bindingAddress(statement: string, credentialId: string): string | null {
+    if (!statement.startsWith(BINDING_PREFIX) || !statement.endsWith('\n')) return null;
+    const lines = statement.slice(0, -1).split('\n');
+    if (lines.length !== 8 || lines[4] !== `credential_id: ${credentialId}`) return null;
+    const address = /^address: ([A-Za-z0-9]{14,90})$/.exec(lines[1] ?? '')?.[1];
+    return address ?? null;
+}
+
+async function bindKey(
+    authOrigin: string,
+    statement: string,
+    credentialId: string,
+    sign: BindSigner
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const address = bindingAddress(statement, credentialId);
+    if (!address) return { ok: false, reason: 'binding_statement_mismatch' };
+    let signature: string;
+    try {
+        signature = await sign(statement, address);
+    } catch {
+        return { ok: false, reason: 'cancelled' };
+    }
+    try {
+        const r = await fetch(`${authOrigin}/api/auth/webauthn/bind`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential_id: credentialId, address, signature }),
+        });
+        const j = (await r.json()) as { ok?: boolean; reason?: string };
+        return r.ok && j.ok ? { ok: true } : { ok: false, reason: j.reason ?? `bind_failed_${r.status}` };
+    } catch (e) {
+        return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+    }
 }
 
 export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterReturn {
@@ -100,7 +157,7 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
     }, []);
 
     const register = React.useCallback(
-        async (args?: { label?: string }): Promise<WebAuthnRegisterResult> => {
+        async (args?: { label?: string; bind?: BindSigner }): Promise<WebAuthnRegisterResult> => {
             setError(null);
             setStatus('requesting-options');
             try {
@@ -141,6 +198,7 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
                 const verifyBody = (await verifyRes.json()) as {
                     ok: boolean;
                     credential?: WebAuthnCredentialPublic;
+                    binding_statement?: unknown;
                     reason?: string;
                 };
                 if (!verifyRes.ok || !verifyBody.ok || !verifyBody.credential) {
@@ -149,8 +207,16 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
                     setStatus('error');
                     return { ok: false, reason };
                 }
+                const statement = verifyBody.binding_statement;
+                // The key is registered either way; the binding only lets it sign in too.
+                const binding =
+                    typeof statement !== 'string'
+                        ? undefined
+                        : args?.bind
+                          ? await bindKey(authOrigin, statement, attestation.id, args.bind)
+                          : { ok: false as const, reason: 'not_bound' };
                 setStatus('success');
-                return { ok: true, credential: verifyBody.credential };
+                return { ok: true, credential: verifyBody.credential, ...(binding ? { binding } : {}) };
             } catch (e) {
                 const reason = e instanceof Error ? e.message : String(e);
                 setError(new Error(reason));
@@ -162,6 +228,82 @@ export function useWebAuthnRegister(opts?: UseHostOptions): UseWebAuthnRegisterR
     );
 
     return { status, error, register, reset };
+}
+
+// ─── usePasskeySignIn ───────────────────────────────────────────────────
+
+export type PasskeySignInResult =
+    | { ok: true; account: OcAccount; token?: string }
+    | { ok: false; reason: string };
+
+export interface UsePasskeySignInReturn {
+    status: WebAuthnAssertionStatus;
+    error: Error | null;
+    /**
+     * `signin` (default) needs no session; `layer` adds the passkey to the wallet
+     * sign-in this browser just made. `credentials: 'omit'` on a first-party site,
+     * which takes the token and sets its own cookie.
+     */
+    signIn: (args?: {
+        kind?: PasskeyKind;
+        add?: boolean;
+        credentials?: RequestCredentials;
+    }) => Promise<PasskeySignInResult>;
+    reset: () => void;
+}
+
+/**
+ * Sign in with a passkey that the account's Bitcoin address has signed for.
+ * Never throws: it resolves `{ ok: false, reason }` (`cancelled`,
+ * `passkey_not_recognised`, …) and sets `error`. On a family site it then
+ * reads the session again, so the page sees who signed in.
+ */
+export function usePasskeySignIn(opts?: UseHostOptions): UsePasskeySignInReturn {
+    const authOrigin = resolveAuthOrigin(opts);
+    const refresh = useOptionalOcSession()?.refresh;
+    const [status, setStatus] = React.useState<WebAuthnAssertionStatus>('idle');
+    const [error, setError] = React.useState<Error | null>(null);
+
+    const reset = React.useCallback(() => {
+        setStatus('idle');
+        setError(null);
+    }, []);
+
+    const signIn = React.useCallback(
+        async (args?: {
+            kind?: PasskeyKind;
+            add?: boolean;
+            credentials?: RequestCredentials;
+        }): Promise<PasskeySignInResult> => {
+            setError(null);
+            setStatus('authenticating');
+            const credentials = args?.credentials ?? 'include';
+            try {
+                const r = await passkeyCeremony({
+                    authOrigin,
+                    kind: args?.kind ?? 'signin',
+                    credentials,
+                    add: args?.add,
+                });
+                if (!r.ok) {
+                    setError(new Error(r.reason));
+                    setStatus('error');
+                    return { ok: false, reason: r.reason };
+                }
+                if (credentials !== 'omit') await refresh?.();
+                setStatus('success');
+                return { ok: true, account: r.account, ...(r.token ? { token: r.token } : {}) };
+            } catch (e) {
+                const reason = e instanceof Error ? e.message : String(e);
+                setError(new Error(reason));
+                setStatus('error');
+                return { ok: false, reason };
+            }
+        },
+        [authOrigin, refresh]
+    );
+
+    return { status, error, signIn, reset };
 }
 
 // ─── useWebAuthnList ────────────────────────────────────────────────────
