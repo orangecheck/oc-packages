@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
+    bindingSigTexts,
     computeNostrEventId,
     liveDevices,
     signedBindingText,
@@ -132,6 +133,13 @@ describe('signedBindingText', () => {
         );
         expect(await signedBindingText(statement, address, 'sig', { verifyBip322: over(`${statement}\n`) })).toBeNull();
         expect(await signedBindingText(statement, address, 'sig', { verifyBip322: over(statement.slice(0, -2)) })).toBeNull();
+    });
+
+    it('tries no shorter text for a statement that ends in a second LF', async () => {
+        const doubled = `${statement}\n`;
+        expect(bindingSigTexts(doubled)).toEqual([doubled]);
+        expect(await signedBindingText(doubled, address, 'sig', { verifyBip322: over(statement) })).toBeNull();
+        expect(await signedBindingText(doubled, address, 'sig', { verifyBip322: over(doubled) })).toBe(doubled);
     });
 
     it('names text without a final LF only when the signature covers it as it stands', async () => {
