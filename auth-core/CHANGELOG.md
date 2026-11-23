@@ -24,9 +24,10 @@ this file tracks the package's TS / Node / runtime API surface.
 
 - **`checkOcToken` takes its issuer by that rule.** An issuer that is one
   origin answers as before. Keys are fetched from, and cached by, the
-  lower-case origin; the `iss` a token must carry is unchanged. A refused
-  issuer throws from `checkOcToken` and makes `verifyOcToken` answer `null`, as
-  `http://ochk.io` always did.
+  lower-case origin, and a token's `iss` may name the issuer as given, without
+  its trailing slash, or as that origin. A refused issuer throws from
+  `checkOcToken` and makes `verifyOcToken` answer `null`, as `http://ochk.io`
+  always did.
 - **`integratorRevocationCheck` takes `meOrigin` and `OC_ME_ORIGIN` by the same
   rule, and the ochk.io feed takes `OC_AUTH_ISSUER` by it** when neither `url`
   nor `OC_REVOCATION_FEED_URL` is set. A refused one throws when the check is
@@ -62,6 +63,10 @@ any host but `localhost`, `127.0.0.1` and `[::1]`.
 
 - `http://[::1]`, with or without a port, as an issuer, as `localhost` and
   `127.0.0.1` were.
+- As a token's `iss`, the issuer's lower-case origin, in `checkOcToken` and
+  `verifySessionToken`: an issuer of `HTTPS://OCHK.IO` takes ochk.io's tokens,
+  whose `iss` is `https://ochk.io`. `verifySessionToken` also takes the issuer
+  without its trailing slash, as `checkOcToken` already did.
 
 ## [2.33.1] — 2026-11-20
 

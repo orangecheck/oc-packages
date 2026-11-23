@@ -1,14 +1,17 @@
 import { readFileSync } from "node:fs";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   _resetJwksCachesForTests,
   checkOcToken,
   createRevocationCheck,
   integratorRevocationCheck,
+  JWT_ALG,
   parseIssuerOrigin,
   verifyOcToken,
+  verifySessionToken,
 } from "../index";
 
 // The one rule for an origin a site names: an auth host's issuer, or me.ochk.io.
@@ -76,6 +79,59 @@ describe("checkOcToken takes its issuer by that rule", () => {
     await expect(checkOcToken("a.b.c", { issuer: input })).rejects.toThrow(/issuer must be one origin/);
     expect(await verifyOcToken("a.b.c", { issuer: input })).toBeNull();
     expect(r.urls).toEqual([]);
+  });
+});
+
+describe("a token's iss names its issuer by that rule", () => {
+  let signer: CryptoKey;
+  let jwk: Record<string, unknown>;
+  beforeAll(async () => {
+    const pair = await generateKeyPair(JWT_ALG, { extractable: true });
+    signer = pair.privateKey as CryptoKey;
+    jwk = { ...(await exportJWK(pair.publicKey)), kid: "k-origin", alg: JWT_ALG };
+  });
+  const mint = (iss: string) =>
+    new SignJWT({ ...SESSION })
+      .setProtectedHeader({ alg: JWT_ALG, kid: "k-origin" })
+      .setIssuer(iss)
+      .setExpirationTime("5m")
+      .sign(signer);
+  /** Serves the key set at every URL and records each one asked for. */
+  function serve() {
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", async (url: RequestInfo | URL) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
+    });
+    return urls;
+  }
+
+  it.each(V.accepted)("checkOcToken with issuer $input takes iss $origin", async ({ input, origin }) => {
+    const urls = serve();
+    expect(await checkOcToken(await mint(origin), { issuer: input, audience: SESSION.aud })).toMatchObject({
+      status: "valid",
+    });
+    expect(urls).toEqual([`${origin}/.well-known/jwks.json`]);
+  });
+
+  it.each(V.accepted)("checkOcToken with issuer $input takes iss $input", async ({ input }) => {
+    serve();
+    expect(await checkOcToken(await mint(input), { issuer: input, audience: SESSION.aud })).toMatchObject({
+      status: "valid",
+    });
+  });
+
+  it.each(V.accepted)("verifySessionToken with issuer $input takes iss $origin", async ({ input, origin }) => {
+    const publicJwk = Buffer.from(JSON.stringify(jwk)).toString("base64url");
+    expect(await verifySessionToken(await mint(origin), { publicJwk, issuer: input, audience: SESSION.aud })).toMatchObject({
+      sub: SESSION.sub,
+    });
+  });
+
+  it("refuses an iss that names another origin", async () => {
+    serve();
+    const check = await checkOcToken(await mint("https://other.example"), { issuer: "https://OCHK.io", audience: SESSION.aud });
+    expect(check.status).toBe("invalid");
   });
 });
 

@@ -549,6 +549,12 @@ export async function signSession(
   return jwt.sign(await loadPrivateKey(cfg.privateJwk));
 }
 
+/** The `iss` values that name `issuer`: as given, without its trailing slash, or as its origin. */
+function issuerNames(issuer: string): string[] {
+  const origin = parseIssuerOrigin(issuer);
+  return [...new Set([issuer, issuer.replace(/\/+$/, ""), ...(origin === null ? [] : [origin])])];
+}
+
 /**
  * Crypto-only JWT verify. Returns the payload on success, `null` on
  * any failure (bad signature, expired, wrong issuer, malformed).
@@ -568,7 +574,7 @@ export async function verifySessionToken(
   try {
     const res = await jwtVerify(token, await loadPublicKey(cfg.publicJwk), {
       algorithms: [JWT_ALG],
-      issuer,
+      issuer: issuerNames(issuer),
     });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return null;
@@ -1017,12 +1023,7 @@ export async function checkOcToken(
     // A key may have rotated in while the key set can't be fetched: that is an
     // outage, not a token the set does not know.
     if (!key) return jwksFailing.has(origin) ? { status: "unavailable" } : INVALID;
-    // A trailing slash on the issuer asked for names the same issuer.
-    const bare = issuer.replace(/\/+$/, "");
-    const res = await jwtVerify(token, key, {
-      algorithms: [JWT_ALG],
-      issuer: bare === issuer ? issuer : [issuer, bare],
-    });
+    const res = await jwtVerify(token, key, { algorithms: [JWT_ALG], issuer: issuerNames(issuer) });
     const p = res.payload as SessionPayload;
     if (!p.sub || !p.did_oc || !p.jti) return INVALID;
     // A retired key vouches only for what it signed before it retired, for at most a token's lifetime.
