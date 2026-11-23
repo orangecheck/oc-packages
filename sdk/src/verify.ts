@@ -83,9 +83,15 @@ async function verifySignature({ addr, msg, sig }: SignatureVerifyInput): Promis
     return scheme === 'legacy' ? 'sig_ok_legacy' : 'sig_ok_bip322';
 }
 
-/** True when `sig` is a valid signature by `addr` over `msg`, or over `msg` without its final LF (SPEC §4.1); no chain lookup. */
+/**
+ * True when `msg` is an attestation in canonical form (SPEC §7.1 step 1) and
+ * `sig` is a valid signature by `addr` over it, or over it without its final LF
+ * (SPEC §4.1); no chain lookup. The caller passes the canonical text: any other
+ * message is false, whatever it signs.
+ */
 export async function signatureIsValid(input: SignatureVerifyInput): Promise<boolean> {
     try {
+        if (!isCanonicalAttestation(input.msg)) return false;
         const code = await verifySignature(input);
         return code === 'sig_ok_bip322' || code === 'sig_ok_legacy';
     } catch {

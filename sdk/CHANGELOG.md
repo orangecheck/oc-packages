@@ -31,13 +31,16 @@ this file tracks the package's TS / Node / runtime API surface.
   the stored message. Re-check it with `signatureIsValid()` or
   `verifyBondSignature()`, or over the message and over the message without
   its final LF.
+- `signatureIsValid()` is `false` for a message that is not an attestation in
+  canonical form (SPEC §7.1 step 1), whatever it signs, as `verify()` already
+  reads one. Pass it the attestation's canonical text.
 
 ### Added
 
 - `signsText(address, text, signature)`: whether a base64 signature signs
-  `text`, or `text` without its final LF, for `address`. It is the check the
-  functions above make, synchronous, for a caller that verifies a signature
-  itself.
+  `text` for `address`, or, when `text` ends in exactly one LF, `text`
+  without it. It is the check the functions above make, synchronous, for a
+  caller that verifies a signature itself. Pass it the canonical text.
 
 ## [1.27.0] — 2026-11-22
 
