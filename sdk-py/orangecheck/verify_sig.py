@@ -329,3 +329,14 @@ def verify_bip322_signature(address: str, message: str, signature: str) -> bool:
             raise
         return False
     return True
+
+
+def signs_text(address: str, text: str, signature: str) -> bool:
+    """
+    ``True`` when ``signature`` signs ``text`` for ``address``, or signs
+    ``text`` without its final LF, which is what a wallet that trims the text
+    before signing it signs (OC Attest SPEC §4.1). No other text is tried.
+    """
+    if verify_bip322_signature(address, text, signature):
+        return True
+    return text.endswith("\n") and verify_bip322_signature(address, text[:-1], signature)

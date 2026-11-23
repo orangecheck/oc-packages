@@ -4,6 +4,18 @@ All notable changes to the **`orangecheck`** Python package. Follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **`verify_bond_signature` also accepts a signature over the bond without
+  its final LF**, which is what a wallet that trims the text before signing
+  it signs. No other text is tried: a signature over the bond with a second
+  LF or CRLF is still `sig_invalid`. The message passed in still needs its
+  LF (`bond_malformed` without it), and the bond id is still its hash. OC
+  Attest 2.2.0, BOND.md §3 step 4, vector `tv37`; the same rule as
+  `@orangecheck/sdk`'s `verifyBondSignature()`.
+
 ## [3.20.0] — 2026-11-23
 
 ### Added
