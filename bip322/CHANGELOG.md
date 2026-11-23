@@ -8,6 +8,8 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-11-23
+
 ### Changed
 
 - `verifySignature` holds a BIP-322 simple signature to a transaction's
