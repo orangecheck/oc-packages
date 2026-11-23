@@ -26,6 +26,11 @@ const ORIGIN = 'https://ochk.io';
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_TIMEOUT_MS = 30_000;
 
+/**
+ * What every Connect call takes. Each call goes to https://ochk.io and nowhere
+ * else: no option moves it, and `setOrigin` does not either. So a staging site
+ * on orangecheck's test stack leaves Connect off.
+ */
 export interface ConnectOptions {
     /** Your Connect API key (ochk.app → your project → Sign-in → Your own login). Server only. */
     apiKey: string;

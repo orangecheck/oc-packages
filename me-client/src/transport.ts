@@ -15,10 +15,27 @@
 let origin = 'https://me.ochk.io';
 let bearerToken: string | null = null;
 
+/**
+ * Where the calls to me.ochk.io's API go: `oc.event.fire` and `fireBatch`,
+ * `oc.payment.authorize`, `oc.scope.granted`, `oc.session.create`, `refresh`
+ * and `invalidate`, and `oc.federations.list`, `live`, `get` and
+ * `defaultLive`. Default https://me.ochk.io.
+ *
+ * No other call reads it. `revokeToken`, `checkOcToken`, `checkSignInRule`,
+ * the server adapters, `exchangeNativeCode`, `webhook.verify` and the identity
+ * checks take `issuer` or `meOrigin`; the popup takes `popupOrigin`;
+ * `scope.request` and `family.scopes` take `origin`. Connect always calls
+ * https://ochk.io. Each call's host: ochk.io/docs/me/sdk#where-each-call-goes.
+ *
+ * It is one value for the whole process, read by every call after it, so call
+ * it once, at startup, before any event. One trailing slash is dropped, and
+ * anything else is taken as given.
+ */
 export function setOrigin(url: string): void {
     origin = url.replace(/\/$/, '');
 }
 
+/** The origin {@link setOrigin} set, else https://me.ochk.io. */
 export function getOrigin(): string {
     return origin;
 }
