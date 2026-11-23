@@ -17,6 +17,8 @@ const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
  * fragment, a user name, the scheme's own port, space or any character
  * outside printable ASCII is refused rather than repaired, so every caller in
  * every language sends requests to the same place.
+ *
+ * Since `@orangecheck/auth-core` 2.34.0.
  */
 export function parseIssuerOrigin(value: unknown): string | null {
   if (typeof value !== "string" || !/^[!-~]+$/.test(value)) return null;
@@ -29,5 +31,8 @@ export function parseIssuerOrigin(value: unknown): string | null {
   return origin;
 }
 
-/** The sentence every refusal of {@link parseIssuerOrigin} carries. */
+/**
+ * The sentence every refusal of {@link parseIssuerOrigin} carries. Since
+ * `@orangecheck/auth-core` 2.34.0.
+ */
 export const ISSUER_ORIGIN_RULE = "one origin with no path: https, or http on localhost, 127.0.0.1 or [::1]";
