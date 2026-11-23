@@ -1,6 +1,8 @@
 /**
  * The passkey sign-in ceremony against ochk.io's `/api/auth/passkey/*`.
- * `signin` needs no session: the passkey is discoverable and names its account.
+ *
+ *   - `signin` needs no session: the passkey is discoverable and names its account.
+ *   - `layer` adds a passkey to the wallet sign-in this browser just made.
  *
  * Only a passkey its account's Bitcoin address has signed for can sign in;
  * ochk.io answers `passkey_not_recognised` for any other.
@@ -16,9 +18,9 @@ import {
 import type { OcAccount } from './types';
 
 /** Which passkey a site asks for. `off` asks for none. */
-export type PasskeyPath = 'off' | 'with' | 'only';
+export type PasskeyPath = 'off' | 'with' | 'layered' | 'only';
 
-export type PasskeyKind = 'signin';
+export type PasskeyKind = 'signin' | 'layer';
 
 export type PasskeyCeremonyResult =
     | { ok: true; account: OcAccount; token?: string }

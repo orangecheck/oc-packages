@@ -22,6 +22,12 @@ this file tracks the package's TS / Node / runtime API surface.
   sign-in reads as a sentence, and the browser is told it is unknown where it
   has `PublicKeyCredential.signalUnknownCredential`. Until ochk.io serves
   those routes, leave `passkey` off.
+- `passkey="layered"` signs in with the wallet alone (no email, no provider),
+  then asks for the passkey behind a tap ("Confirm with your passkey",
+  `{kind: "layer"}`), and calls `onSuccess` only after both, with the session
+  that names both. Left at the passkey step, the sign-in hands the site
+  nothing. A first-party site has no family session to add to, so its props
+  type leaves `layered` out, and the form says so in place if it is passed.
 
 ## [2.51.0] — 2026-11-20
 
