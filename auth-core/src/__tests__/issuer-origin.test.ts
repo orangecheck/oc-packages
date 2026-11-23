@@ -21,8 +21,16 @@ const V = JSON.parse(readFileSync(new URL("../../test-vectors/issuer-origin.json
   refused: string[];
   refused_values: unknown[];
 };
-// An environment variable cannot hold NUL: Node cuts the value there.
-const REFUSED_ENV = V.refused.filter((input) => !input.includes(String.fromCharCode(0)));
+// An environment variable cannot hold NUL: Node cuts the value there. One with space at
+// an end is trimmed first (PADDED), so only a value that is refused once trimmed is here.
+const REFUSED_ENV = V.refused.filter((input) => !input.includes(String.fromCharCode(0)) && input === input.trim());
+// A pasted value often ends in a line break or carries a tab: each accepted origin with one at either end.
+const PADDED = V.accepted.flatMap(({ input, origin }) =>
+  ["\n", "\r\n", "\t", " "].flatMap((pad) => [
+    { input: input + pad, origin },
+    { input: pad + input, origin },
+  ]),
+);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -157,6 +165,13 @@ describe("integratorRevocationCheck takes meOrigin and OC_ME_ORIGIN by that rule
     vi.stubEnv("OC_ME_ORIGIN", input);
     expect(() => integratorRevocationCheck(KEYED)).toThrow(/OC_ME_ORIGIN must be one origin/);
   });
+
+  it.each(PADDED)("trims OC_ME_ORIGIN %j and reads the list at its origin", async ({ input, origin }) => {
+    vi.stubEnv("OC_ME_ORIGIN", input);
+    const r = recorder();
+    await integratorRevocationCheck({ ...KEYED, fetch: r.fetch })!.status(SESSION);
+    expect(r.urls).toEqual([`${origin}${LIST}`]);
+  });
 });
 
 describe("the ochk.io feed takes OC_AUTH_ISSUER by that rule", () => {
@@ -170,6 +185,13 @@ describe("the ochk.io feed takes OC_AUTH_ISSUER by that rule", () => {
   it.each(REFUSED_ENV)("throws for %j when it is made", (input) => {
     vi.stubEnv("OC_AUTH_ISSUER", input);
     expect(() => createRevocationCheck({ token: "feed-token" })).toThrow(/OC_AUTH_ISSUER must be one origin/);
+  });
+
+  it.each(PADDED)("trims %j and reads the feed at its origin", async ({ input, origin }) => {
+    vi.stubEnv("OC_AUTH_ISSUER", input);
+    const r = recorder();
+    await createRevocationCheck({ token: "feed-token", fetch: r.fetch }).status(SESSION);
+    expect(r.urls).toEqual([`${origin}/api/auth/revocations`]);
   });
 
   it("does not read it when the feed's URL is given", () => {

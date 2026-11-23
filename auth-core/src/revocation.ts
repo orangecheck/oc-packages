@@ -44,7 +44,7 @@ export interface RevocationCheck {
 }
 
 export interface RevocationCheckOptions {
-  /** Default `${OC_AUTH_ISSUER ?? "https://ochk.io"}/api/auth/revocations`, the issuer one origin with no path. */
+  /** Default `${OC_AUTH_ISSUER ?? "https://ochk.io"}/api/auth/revocations`, the issuer trimmed and one origin with no path. */
   url?: string;
   /** This site's feed token. Default `OC_REVOCATION_FEED_TOKEN`. */
   token?: string;
@@ -122,6 +122,11 @@ function originOf(value: string, named: string): string {
     throw new Error(`[@orangecheck/auth-core] ${named} must be ${ISSUER_ORIGIN_RULE}; got ${JSON.stringify(value)}`);
   }
   return origin;
+}
+
+/** An origin named in the environment, trimmed at both ends as the feed token is: a pasted value often ends in a line break. */
+function envOrigin(name: string, fallback: string): string {
+  return originOf(env(name)?.trim() ?? fallback, name);
 }
 
 /**
@@ -227,7 +232,7 @@ function buildRevocationCheck(opts: RevocationCheckOptions, needHandles: boolean
   const url =
     opts.url ??
     env("OC_REVOCATION_FEED_URL") ??
-    `${originOf(env("OC_AUTH_ISSUER") ?? "https://ochk.io", "OC_AUTH_ISSUER")}/api/auth/revocations`;
+    `${envOrigin("OC_AUTH_ISSUER", "https://ochk.io")}/api/auth/revocations`;
   const token = opts.token ?? env("OC_REVOCATION_FEED_TOKEN")?.trim();
   const signer = opts.headers;
   const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
@@ -363,7 +368,7 @@ export interface IntegratorRevocationOptions
   /** Default `OC_SIGNING_SECRET`. */
   signingSecret?: string;
   /**
-   * Default `OC_ME_ORIGIN`, else `https://me.ochk.io`. One origin with no path
+   * Default `OC_ME_ORIGIN` trimmed, else `https://me.ochk.io`. One origin with no path
    * ({@link parseIssuerOrigin}); anything else throws when the check is made.
    */
   meOrigin?: string;
@@ -408,7 +413,7 @@ export function integratorRevocationCheck(
   const origin =
     meOrigin !== undefined
       ? originOf(meOrigin, "meOrigin")
-      : originOf(env("OC_ME_ORIGIN") ?? "https://me.ochk.io", "OC_ME_ORIGIN");
+      : envOrigin("OC_ME_ORIGIN", "https://me.ochk.io");
   const now = rest.now ?? Date.now;
   const lists = new Map<string, RevocationCheck>();
   const listFor = (aud: string): RevocationCheck => {

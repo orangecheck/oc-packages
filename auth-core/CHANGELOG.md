@@ -7,6 +7,27 @@ and [Semantic Versioning](https://semver.org/). Wire-format / canonical-message
 changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
+## [Unreleased]
+
+### Changed
+
+- **`OC_ME_ORIGIN` and `OC_AUTH_ISSUER` are trimmed before they are read**, as
+  `OC_REVOCATION_FEED_TOKEN` already is. A value pasted with a line break, a
+  tab or a space at either end names its origin, as it did through 2.33.1;
+  2.34.0 threw on it when the check was made. A tab or line break inside the
+  value is still refused, and `meOrigin`, given in code, is taken as given.
+
+### Now refused
+
+2.34.0 already refused these, and its list left them out:
+
+- an IPv6 address other than `[::1]`: `https://[2001:db8::1]`
+- a label over 63 characters
+- an empty label: `https://ochk..io`, `https://.ochk.io`
+
+`test-vectors/issuer-origin.json` gains those rows, and a 63-character label
+as accepted.
+
 ## [2.34.0] — 2026-11-23
 
 ### Added
