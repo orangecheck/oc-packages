@@ -158,9 +158,11 @@ interface OcSignInBaseProps {
     /**
      * Offer a passkey. `off`, the default, offers none. `with` adds a "Sign in
      * with a passkey" button, and the passkey in the email field's autofill.
-     * `only` offers the passkey alone. Only a passkey its account's Bitcoin
-     * address has signed for can sign in. The page follows it; the site's
-     * server still checks the session (auth-core `satisfiesSignInRule`).
+     * `only` offers the passkey alone. `layered` signs in with the wallet,
+     * then asks for the passkey, and calls `onSuccess` only after both: left
+     * there, the sign-in hands the site nothing. Only a passkey its account's
+     * Bitcoin address has signed for can sign in. The page follows it; the
+     * site's server still checks the session (auth-core `satisfiesSignInRule`).
      */
     passkey?: PasskeyPath;
     /**
@@ -222,6 +224,8 @@ export type OcSignInProps = OcSignInBaseProps &
               onSuccess: (account: OcAccount, token?: string) => void;
               /** The site's own start URL for a provider (`google`, `github`). */
               providerHref?: (providerId: string) => string;
+              /** `layered` adds to a family session, which a first-party site does not have. */
+              passkey?: Exclude<PasskeyPath, 'layered'>;
           }
     );
 
@@ -396,12 +400,16 @@ export function OcSignIn({
     passkey = 'off',
 }: OcSignInProps): React.ReactElement {
     const passkeyOnly = passkey === 'only';
+    // Layered starts with the wallet: an email code is a bridge, not a second factor.
+    const layered = passkey === 'layered';
     const walletEnabled = !passkeyOnly && (paths?.wallet ?? true);
-    const emailEnabled = !passkeyOnly && (paths?.email ?? true);
+    const emailEnabled = !passkeyOnly && !layered && (paths?.email ?? true);
     const firstParty = mode === 'first-party';
     // First-party: the family cookie must be neither sent nor set.
     const credentials: RequestCredentials = firstParty ? 'omit' : 'include';
-    const linkPrompt = linkPromptProp && !firstParty && !passkeyOnly;
+    const linkPrompt = linkPromptProp && !firstParty && !passkeyOnly && !layered;
+    // Layered: the wallet signed in, and the sign-in waits on the passkey.
+    const [layering, setLayering] = React.useState(false);
     const providerSession = useOptionalOcSession();
     const recheck = onSeveralSessions ?? providerSession?.refresh;
 
@@ -595,22 +603,33 @@ export function OcSignIn({
         );
     }
 
+    if (layered && firstParty) {
+        return (
+            <ConfigNote className={className}>
+                <code>passkey=&quot;layered&quot;</code> adds to a family session; a first-party
+                site uses <code>&quot;with&quot;</code> or <code>&quot;only&quot;</code>
+            </ConfigNote>
+        );
+    }
+
+    if (layering) {
+        return (
+            <div className={className} data-oc-signin="">
+                <PasskeyLayerStep
+                    authOrigin={authOrigin}
+                    credentials={credentials}
+                    onSuccess={onPasskey}
+                />
+            </div>
+        );
+    }
+
     if (!walletEnabled && !emailEnabled) {
         return (
-            <div
-                className={className}
-                data-oc-signin=""
-                style={{
-                    padding: '1rem',
-                    border: '1px solid var(--border, #27272a)',
-                    color: 'var(--foreground, #fafafa)',
-                    fontFamily: SIGNIN_FONT,
-                    fontSize: signinSize(12),
-                }}
-            >
+            <ConfigNote className={className}>
                 no signin paths enabled — set <code>paths.wallet</code> or{' '}
                 <code>paths.email</code> to <code>true</code>
-            </div>
+            </ConfigNote>
         );
     }
 
@@ -717,7 +736,7 @@ export function OcSignIn({
             {/* Providers-first (ochk.io homepage): the familiar Google /
                 GitHub on-ramp leads, with the wallet/email panel below the
                 divider. Everywhere else this block stays at the bottom. */}
-            {providersFirst && (
+            {providersFirst && !layered && (
                 <ProviderSignIn
                     authOrigin={authOrigin}
                     returnTo={resolvedReturn}
@@ -777,7 +796,11 @@ export function OcSignIn({
                         add={addMode}
                         credentials={credentials}
                         onSeveralSessions={recheck}
-                        onSuccess={(a, t) => void handleSuccess(a, t, 'wallet')}
+                        onSuccess={
+                            layered
+                                ? () => setLayering(true)
+                                : (a, t) => void handleSuccess(a, t, 'wallet')
+                        }
                     />
                 )}
                 {showEmail && (
@@ -793,7 +816,7 @@ export function OcSignIn({
                 )}
             </div>
 
-            {!providersFirst && (
+            {!providersFirst && !layered && (
                 <ProviderSignIn
                     authOrigin={authOrigin}
                     returnTo={resolvedReturn}
@@ -814,6 +837,31 @@ export function OcSignIn({
                     </span>
                 </label>
             )}
+        </div>
+    );
+}
+
+/** A note to the site's developer in place of a form that cannot work as configured. */
+function ConfigNote({
+    className,
+    children,
+}: {
+    className?: string;
+    children: React.ReactNode;
+}): React.ReactElement {
+    return (
+        <div
+            className={className}
+            data-oc-signin=""
+            style={{
+                padding: '1rem',
+                border: '1px solid var(--border, #27272a)',
+                color: 'var(--foreground, #fafafa)',
+                fontFamily: SIGNIN_FONT,
+                fontSize: signinSize(12),
+            }}
+        >
+            {children}
         </div>
     );
 }
@@ -1151,6 +1199,55 @@ function PasskeyButton({
                 }
             >
                 {busy ? 'Waiting for your passkey…' : quiet ? 'Sign in with a passkey' : <Submit>Sign in with a passkey</Submit>}
+            </button>
+            {error && <ErrorLine id={`${uid}-error`}>{error}</ErrorLine>}
+            <Busy>{busy ? 'Waiting for your passkey…' : null}</Busy>
+        </div>
+    );
+}
+
+/** Layered: the wallet has signed in, and the passkey finishes the sign-in. A tap
+ *  starts it, because a browser wants a fresh gesture for the passkey prompt. */
+function PasskeyLayerStep({
+    authOrigin,
+    credentials,
+    onSuccess,
+}: Pick<FlowProps, 'authOrigin' | 'credentials' | 'onSuccess'>): React.ReactElement {
+    const uid = React.useId();
+    const [busy, setBusy] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
+
+    async function run() {
+        if (busy) return;
+        setError(null);
+        setBusy(true);
+        try {
+            const r = await passkeyCeremony({ authOrigin, kind: 'layer', credentials });
+            if (r.ok) {
+                onSuccess(r.account, r.token);
+                return;
+            }
+            setError(humanSigninError(r.reason, 'passkey'));
+        } catch (err) {
+            setError(failureMessage(err, 'passkey', 'submit', authOrigin));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <div data-oc-signin-passkey-layer="">
+            <FlowHeader>
+                Your wallet signed you in. This site also asks for your passkey.
+            </FlowHeader>
+            <button
+                type="button"
+                onClick={() => void run()}
+                aria-disabled={busy || undefined}
+                aria-describedby={describedBy(error && `${uid}-error`)}
+                style={submitStyle(busy)}
+            >
+                {busy ? 'Waiting for your passkey…' : <Submit>Confirm with your passkey</Submit>}
             </button>
             {error && <ErrorLine id={`${uid}-error`}>{error}</ErrorLine>}
             <Busy>{busy ? 'Waiting for your passkey…' : null}</Busy>
