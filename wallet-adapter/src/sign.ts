@@ -69,8 +69,9 @@ const TAKES_TRIMMED = [
  * Throw `WrongAccountError` unless `signature` is a valid BIP-322 (or legacy)
  * signature of `message` by `address`. Every signer runs this before returning.
  * A wallet that trims (Sparrow, Electrum's GUI) signs a message without its
- * final LF: that passes for the messages `TAKES_TRIMMED` names, whose verifiers
- * take it, and throws `TrimmedSignatureError` for any other message.
+ * final LF: that passes for the messages `TAKES_TRIMMED` names that end in
+ * exactly one LF, whose verifiers take it, and throws `TrimmedSignatureError`
+ * for any other message.
  */
 export async function assertSignedBy(args: {
   address: string;
@@ -82,7 +83,9 @@ export async function assertSignedBy(args: {
   if (!message.endsWith("\n")) throw new WrongAccountError(args.address);
   const bare = message.slice(0, -1);
   if (await verifyBip322({ ...args, message: bare })) {
-    if (TAKES_TRIMMED.some((header) => message.startsWith(header))) return;
+    // Their verifiers try the text without its final LF only when it ends in exactly one.
+    const oneLf = !bare.endsWith("\n");
+    if (oneLf && TAKES_TRIMMED.some((header) => message.startsWith(header))) return;
     throw new TrimmedSignatureError();
   }
   const trimmed = message.trim();
