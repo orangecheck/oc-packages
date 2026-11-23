@@ -9,6 +9,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `assertSignedBy`, and with it `OcWalletButton`'s paste panel and every
+  signer, passes a signature over an attestation (`orangecheck`), a bond
+  (`orangecheck-bond`), or an OC Lock device bind or revocation
+  (`oc-lock:device-bind:v2`, `v3`, `oc-lock:device-revoke:v2`) without its
+  final LF, as it does for an auth challenge. Their verifiers take that form:
+  `@orangecheck/sdk` 1.28.0 (OC Attest 2.2.0 SPEC §4.1) and
+  `@orangecheck/lock-device` 0.9.0 (OC Lock 2.6.0 SPEC §3.3). Any other
+  message signed that way still throws `TrimmedSignatureError`. A site that
+  publishes what a wallet signs should take this version only once everyone
+  who reads what it publishes runs those verifiers.
+
 ## [0.8.1] — 2026-11-23
 
 ### Added
