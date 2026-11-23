@@ -305,19 +305,27 @@ _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]"})
 _ORIGIN_RULE = "one origin with no path: https, or http on localhost, 127.0.0.1 or [::1]"
 
 
-def _issuer_origin(issuer: object, name: str = "issuer") -> str:
-    """An issuer, or where me.ochk.io is, as one origin, ``scheme://host[:port]`` in lower case:
-    https, or http on localhost, 127.0.0.1 or [::1] only. One trailing slash is dropped; a path,
-    a query, a fragment, a user name, the scheme's own port, space or any character outside
-    printable ASCII is refused. auth-core's ``parseIssuerOrigin`` takes the same set
+def _parse_origin(value: object) -> Optional[str]:
+    """An issuer, or where me.ochk.io is, as one origin, ``scheme://host[:port]`` in lower case,
+    or None: https, or http on localhost, 127.0.0.1 or [::1] only. One trailing slash is dropped;
+    a path, a query, a fragment, a user name, the scheme's own port, space or any character
+    outside printable ASCII is refused. auth-core's ``parseIssuerOrigin`` takes the same set
     (``auth-core/test-vectors/issuer-origin.json``)."""
     origin = ""
-    if isinstance(issuer, str) and all("!" <= c <= "~" for c in issuer):
-        origin = issuer[:-1].lower() if issuer.endswith("/") else issuer.lower()
+    if isinstance(value, str) and all("!" <= c <= "~" for c in value):
+        origin = value[:-1].lower() if value.endswith("/") else value.lower()
     m = _ORIGIN.fullmatch(origin)
     if m is None or (m[1] == "http" and m[2] not in _LOCAL_HOSTS) or (
         m[3] is not None and (int(m[3]) > 65535 or m[3] == ("443" if m[1] == "https" else "80"))
     ):
+        return None
+    return origin
+
+
+def _issuer_origin(issuer: object, name: str = "issuer") -> str:
+    """``issuer`` as one origin (:func:`_parse_origin`), or ValueError naming ``name``."""
+    origin = _parse_origin(issuer)
+    if origin is None:
         raise ValueError(f"{name} must be {_ORIGIN_RULE}; got {issuer!r}")
     return origin
 
@@ -944,8 +952,9 @@ def verify_session(
     except InvalidSignature as err:
         raise InvalidSession("signature") from err
 
-    # A trailing slash on the issuer asked for names the same issuer.
-    if payload.get("iss") not in (issuer, issuer.rstrip("/")):
+    # The claim names the issuer as given, without its trailing slash, or as its origin.
+    iss = payload.get("iss")
+    if not isinstance(iss, str) or iss not in (issuer, issuer.rstrip("/"), _parse_origin(issuer)):
         raise InvalidSession("issuer")
     now = time.time()
     exp = payload.get("exp")

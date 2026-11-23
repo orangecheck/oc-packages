@@ -65,6 +65,13 @@ is not one origin, all of the above included, plus a path, a query, a
 fragment, a user name, and plain http to any host but `localhost`,
 `127.0.0.1` and `[::1]`.
 
+### Now accepted
+
+- As a token's `iss` in `verify_session`, the issuer's lower-case origin: an
+  issuer of `HTTPS://OCHK.IO` takes ochk.io's tokens, whose `iss` is
+  `https://ochk.io`. The issuer as given, with or without its trailing slash,
+  is still taken, and with `jwks=` a stand-in issuer need not be an origin.
+
 ## [3.20.0] — 2026-11-23
 
 ### Added

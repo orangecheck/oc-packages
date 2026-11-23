@@ -8,14 +8,20 @@ the same issuers and me.ochk.io origins, and name the same origin for each.
 
 from __future__ import annotations
 
+import base64
 import json
+import time
 from pathlib import Path
+from typing import Any, Optional
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 import orangecheck.native as native_module
 import orangecheck.tokens as tokens_module
 from orangecheck import (
+    InvalidSession,
     RevocationList,
     SignInPolicy,
     exchange_native_code,
@@ -115,3 +121,65 @@ def test_the_native_trade_refuses_me_origin_before_sending(value, posts):
     with pytest.raises(ValueError, match="me_origin must be one origin"):
         exchange_native_code(*NATIVE, project_key="pk_test_origin", me_origin=value)
     assert posts == []
+
+
+KEY = Ed25519PrivateKey.generate()
+AUD = "https://site.example"
+
+
+def _b64(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+
+JWKS = {
+    "keys": [
+        {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": _b64(KEY.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)),
+            "kid": "k-origin",
+            "alg": "EdDSA",
+        }
+    ]
+}
+
+
+def _token(iss: Optional[str]) -> str:
+    now = int(time.time())
+    header = {"alg": "EdDSA", "typ": "JWT", "kid": "k-origin"}
+    payload: dict[str, Any] = {
+        "aud": AUD,
+        "sub": "acct-1",
+        "did_oc": "did:oc:abc",
+        "jti": "j1",
+        "rh": "h1",
+    }
+    payload.update(iat=now, exp=now + 300)
+    if iss is not None:
+        payload["iss"] = iss
+    signing = f"{_b64(json.dumps(header).encode())}.{_b64(json.dumps(payload).encode())}"
+    return f"{signing}.{_b64(KEY.sign(signing.encode('ascii')))}"
+
+
+@pytest.mark.parametrize("value, origin", ACCEPTED)
+def test_a_token_whose_iss_is_the_issuers_origin_verifies(value, origin):
+    assert verify_session(_token(origin), AUD, jwks=JWKS, issuer=value).sub == "acct-1"
+
+
+@pytest.mark.parametrize("value, origin", ACCEPTED)
+def test_a_token_whose_iss_is_the_issuer_as_given_verifies(value, origin):
+    assert verify_session(_token(value), AUD, jwks=JWKS, issuer=value).sub == "acct-1"
+
+
+@pytest.mark.parametrize(
+    "iss, issuer",
+    [("https://other.example", "https://OCHK.io"), (None, "https://ochk.io"), (None, "stand-in")],
+)
+def test_a_token_whose_iss_names_another_issuer_is_refused(iss, issuer):
+    with pytest.raises(InvalidSession) as err:
+        verify_session(_token(iss), AUD, jwks=JWKS, issuer=issuer)
+    assert err.value.reason == "issuer"
+
+
+def test_with_jwks_a_stand_in_issuer_need_not_be_an_origin():
+    assert verify_session(_token("stand-in"), AUD, jwks=JWKS, issuer="stand-in").sub == "acct-1"
