@@ -81,6 +81,21 @@ def test_a_key_after_the_committed_key_is_refused_whatever_the_bridge_says(
     assert not vs.verify_bip322_signature(case["address"], case["message"], encode([sig, key, OTHER_KEY]))
 
 
+@pytest.mark.parametrize("case", [GOOD_P2SH, GOOD_P2WPKH], ids=["p2sh", "p2wpkh"])
+@pytest.mark.parametrize(
+    "hash_type",
+    [b"", b"\x00", b"\x02", b"\x03", b"\x81"],
+    ids=["none", "0x00", "0x02", "0x03", "0x81"],
+)
+def test_an_ecdsa_hash_type_but_sighash_all_is_refused_whatever_the_bridge_says(
+    case: dict, hash_type: bytes, bridge_says_yes: None
+) -> None:
+    # A simple signature's hash type is SIGHASH_ALL (OC Attest SPEC §4), whatever bip322 checks.
+    sig, key = stack(case)
+    assert sig[-1:] == b"\x01"
+    assert not vs.verify_bip322_signature(case["address"], case["message"], encode([sig[:-1] + hash_type, key]))
+
+
 def test_an_empty_taproot_witness_is_refused(bridge_says_yes: None) -> None:
     taproot = next(c for c in CORPUS if c["address"].startswith("bc1p"))
     assert not vs.verify_bip322_signature(taproot["address"], taproot["message"], encode([]))
