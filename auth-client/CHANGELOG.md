@@ -9,6 +9,20 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `OcSignIn` takes `passkey`: `off` (the default, as before), `with` or
+  `only`. `with` adds a "Sign in with a passkey" button above the other ways
+  in, and offers the passkey in the email field's autofill
+  (`autocomplete="username webauthn"`, a conditional request that stops when
+  the field goes). `only` shows the passkey button alone. Both call ochk.io's
+  `POST /api/auth/passkey/options` with `{kind: "signin"}` and
+  `POST /api/auth/passkey/verify`, and hand the account and token to
+  `onSuccess` as the other ways do. A passkey ochk.io does not recognise for
+  sign-in reads as a sentence, and the browser is told it is unknown where it
+  has `PublicKeyCredential.signalUnknownCredential`. Until ochk.io serves
+  those routes, leave `passkey` off.
+
 ## [2.51.0] — 2026-11-20
 
 ### Added
