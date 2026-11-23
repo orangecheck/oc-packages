@@ -19,6 +19,15 @@ export function verifyNostrEvent(event: NostrEvent): boolean {
     }
 }
 
+/**
+ * The texts a device record's `binding_sig` may cover (OC Lock SPEC §3.3): its
+ * statement, and the statement without its final LF, which is what a wallet that
+ * trims the text before signing it signs. A reader tries these and no other.
+ */
+export function bindingSigTexts(statement: string): string[] {
+    return statement.endsWith('\n') ? [statement, statement.slice(0, -1)] : [statement];
+}
+
 export interface VerifyDeviceRecordsOptions {
     /** A BIP-322 verifier, such as @orangecheck/bip322's. */
     verifyBip322: (args: { address: string; message: string; signature: string }) => boolean | Promise<boolean>;
@@ -27,8 +36,9 @@ export interface VerifyDeviceRecordsOptions {
 /**
  * The device records among `events` that count for `address`: binds and
  * revocations alike, each with a valid Nostr event, a statement that names
- * `address` itself, and a BIP-322 signature by `address` over that statement.
- * A record filed under the address's slot that names another address is dropped.
+ * `address` itself, and a BIP-322 signature by `address` over that statement or
+ * over it without its final LF (bindingSigTexts). A record filed under the
+ * address's slot that names another address is dropped.
  */
 export async function verifyDeviceRecords(
     events: readonly NostrEvent[],
@@ -50,10 +60,13 @@ export async function verifyDeviceRecords(
         }
         if (p.address !== address) continue;
         let ok = false;
-        try {
-            ok = (await opts.verifyBip322({ address: p.address, message: p.bindingStatement, signature: p.bindingSigBase64 })) === true;
-        } catch {
-            ok = false;
+        for (const message of bindingSigTexts(p.bindingStatement)) {
+            try {
+                ok = (await opts.verifyBip322({ address: p.address, message, signature: p.bindingSigBase64 })) === true;
+            } catch {
+                ok = false;
+            }
+            if (ok) break;
         }
         if (ok) verified.push(p);
     }

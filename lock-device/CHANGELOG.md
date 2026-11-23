@@ -8,6 +8,23 @@ changes are coordinated via the relevant `oc-*-protocol` spec repo's CHANGELOG;
 this file tracks the package's TS / Node / runtime API surface.
 
 
+## [Unreleased]
+
+### Changed — a binding signature may cover the statement without its final LF
+
+- `verifyDeviceRecords` keeps a record whose `binding_sig` verifies over its
+  statement or over the statement without its final LF, and over no other
+  text (OC Lock 2.6.0 SPEC §3.3). Some wallets trim the text before they sign
+  it, which drops that LF. Every field is still read from `event.content`.
+  `boundNostrKeys`, and every reader built on these records, follow.
+
+### Added
+
+- `bindingSigTexts(statement)`: those two texts, for a caller that checks a
+  binding signature itself.
+- Test vector `s01-signed-without-final-lf.json`, vendored from
+  oc-lock-protocol 2.6.0.
+
 ## [0.8.0] — 2026-10-26
 
 ### Added — which keys an address binds, from relay events
