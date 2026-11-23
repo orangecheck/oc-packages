@@ -42,7 +42,7 @@ const r01 = read('r01-revoke-k2');
  * One vector's records, Nostr-signed, and a verifier as the vector states it: each
  * accepted record's binding_sig verifies over its signed text, b01's and r01's over
  * their statements, and each rejected record's over its signed text only when
- * `rejectedSign` (s02's do; s03's are by another key or malformed). Nothing else verifies.
+ * `rejectedSign` (s02's do; s03's do not verify under OC Attest SPEC §4). Nothing else verifies.
  */
 function load(name: string, rejectedSign: boolean) {
     const v = read(name) as Vector;
