@@ -1,0 +1,31 @@
+{
+    "description": "Whether a token's sign-in meets a requirement: every ceremony in amr among the token's amr, and the token's auth_time at most maxAge seconds before now and at most 60 seconds after it. A fact the token does not state clearly (absent, empty, repeated, a method outside bip322, passkey, email, google, github, or an auth_time that is not a whole number of seconds) meets nothing; an empty requirement is met by every token. Read by auth-core (src/__tests__/sign-in-rule.test.ts); sdk-py is held to the same file. Every requirement in refused_requirements is refused by the checker as a mistake in the call, never read as no requirement.",
+    "now": 1800000000,
+    "cases": [
+        {"name": "no requirement, a token that states nothing", "token": {}, "requirement": {}, "meets": true},
+        {"name": "no requirement, a passkey sign-in", "token": {"amr": ["passkey"], "auth_time": 1800000000}, "requirement": {}, "meets": true},
+        {"name": "an empty amr requirement requires nothing", "token": {}, "requirement": {"amr": []}, "meets": true},
+        {"name": "the one ceremony required", "token": {"amr": ["bip322"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": true},
+        {"name": "one of two ceremonies required is missing", "token": {"amr": ["bip322"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322", "passkey"]}, "meets": false},
+        {"name": "both ceremonies, in either order", "token": {"amr": ["passkey", "bip322"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322", "passkey"]}, "meets": true},
+        {"name": "a token that states no amr", "token": {"auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "an amr naming a method outside the list", "token": {"amr": ["bip322", "hwk"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "an empty amr", "token": {"amr": [], "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "an amr that is a string", "token": {"amr": "bip322", "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "a repeated method", "token": {"amr": ["bip322", "bip322"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "a passkey alone, where a wallet is required", "token": {"amr": ["passkey"], "auth_time": 1800000000}, "requirement": {"amr": ["bip322"]}, "meets": false},
+        {"name": "signed in exactly maxAge ago", "token": {"amr": ["bip322"], "auth_time": 1799999700}, "requirement": {"maxAge": 300}, "meets": true},
+        {"name": "signed in a second past maxAge", "token": {"amr": ["bip322"], "auth_time": 1799999699}, "requirement": {"maxAge": 300}, "meets": false},
+        {"name": "no auth_time, with a maxAge", "token": {"amr": ["bip322"]}, "requirement": {"maxAge": 300}, "meets": false},
+        {"name": "maxAge 0, signed in now", "token": {"amr": ["bip322"], "auth_time": 1800000000}, "requirement": {"maxAge": 0}, "meets": true},
+        {"name": "maxAge 0, signed in a second ago", "token": {"amr": ["bip322"], "auth_time": 1799999999}, "requirement": {"maxAge": 0}, "meets": false},
+        {"name": "an auth_time 60 seconds ahead, within the skew", "token": {"amr": ["bip322"], "auth_time": 1800000060}, "requirement": {"maxAge": 300}, "meets": true},
+        {"name": "an auth_time 61 seconds ahead", "token": {"amr": ["bip322"], "auth_time": 1800000061}, "requirement": {"maxAge": 300}, "meets": false},
+        {"name": "an auth_time that is a fraction", "token": {"amr": ["bip322"], "auth_time": 1799999998.5}, "requirement": {"maxAge": 300}, "meets": false},
+        {"name": "an auth_time that is a string", "token": {"amr": ["bip322"], "auth_time": "1800000000"}, "requirement": {"maxAge": 300}, "meets": false},
+        {"name": "both ceremonies, recently", "token": {"amr": ["bip322", "passkey"], "auth_time": 1799999990}, "requirement": {"amr": ["bip322", "passkey"], "maxAge": 300}, "meets": true},
+        {"name": "both ceremonies, too long ago", "token": {"amr": ["bip322", "passkey"], "auth_time": 1799999600}, "requirement": {"amr": ["bip322", "passkey"], "maxAge": 300}, "meets": false},
+        {"name": "recently, with one ceremony missing", "token": {"amr": ["bip322"], "auth_time": 1799999990}, "requirement": {"amr": ["bip322", "passkey"], "maxAge": 300}, "meets": false}
+    ],
+    "refused_requirements": [{"amr": ["hwk"]}, {"amr": "bip322"}, {"amr": [1]}, {"maxAge": -1}, {"maxAge": 1.5}, {"maxAge": "300"}, {"maxage": 300}, {"amr": ["bip322"], "max_age": 300}, null, "bip322", ["bip322"]]
+}
