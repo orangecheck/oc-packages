@@ -78,3 +78,14 @@ def test_p2tr_takes_exactly_one_key_path_signature() -> None:
     assert not _verifies(P2TR, _stack(sig + b"\x00"))
     assert not _verifies(P2TR, _stack(sig, b"\x50"))
     assert not _verifies(P2TR, _stack(sig, b""))
+
+
+@pytest.mark.parametrize("vector", [P2WPKH, P2TR], ids=lambda v: v["type"])
+def test_the_witness_parser_itself_refuses_a_size_that_is_not_minimal(vector: dict) -> None:
+    # bip322 refuses these too; this holds the check here to it whatever version is installed.
+    from orangecheck.verify_sig import _witness_stack
+
+    blob = _witness(vector)
+    assert _witness_stack(blob) is not None
+    assert _witness_stack(b"\xfd" + bytes([blob[0], 0]) + blob[1:]) is None
+    assert _witness_stack(blob[:1] + b"\xfd" + bytes([blob[1], 0]) + blob[2:]) is None
