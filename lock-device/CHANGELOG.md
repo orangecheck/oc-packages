@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-11-23
+
 ### Changed — a binding signature may cover the statement without its final LF
 
 - `verifyDeviceRecords` keeps a record whose `binding_sig` verifies over its
