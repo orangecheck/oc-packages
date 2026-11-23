@@ -34,6 +34,29 @@ export interface VerifyDeviceRecordsOptions {
 }
 
 /**
+ * The text `signature` covers for `address`: the one of bindingSigTexts(statement)
+ * it verifies over, or null for neither. A publisher writes this text as
+ * `event.content` (OC Lock SPEC §3.3). A verifier that throws counts as no.
+ */
+export async function signedBindingText(
+    statement: string,
+    address: string,
+    signature: string,
+    opts: VerifyDeviceRecordsOptions
+): Promise<string | null> {
+    for (const message of bindingSigTexts(statement)) {
+        let ok = false;
+        try {
+            ok = (await opts.verifyBip322({ address, message, signature })) === true;
+        } catch {
+            ok = false;
+        }
+        if (ok) return message;
+    }
+    return null;
+}
+
+/**
  * The device records among `events` that count for `address`: binds and
  * revocations alike, each with a valid Nostr event, a statement that names
  * `address` itself, and a BIP-322 signature by `address` over that statement or
@@ -59,16 +82,9 @@ export async function verifyDeviceRecords(
             continue;
         }
         if (p.address !== address) continue;
-        let ok = false;
-        for (const message of bindingSigTexts(p.bindingStatement)) {
-            try {
-                ok = (await opts.verifyBip322({ address: p.address, message, signature: p.bindingSigBase64 })) === true;
-            } catch {
-                ok = false;
-            }
-            if (ok) break;
+        if ((await signedBindingText(p.bindingStatement, p.address, p.bindingSigBase64, opts)) !== null) {
+            verified.push(p);
         }
-        if (ok) verified.push(p);
     }
     return verified;
 }

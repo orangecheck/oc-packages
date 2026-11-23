@@ -15,15 +15,22 @@ this file tracks the package's TS / Node / runtime API surface.
 - `verifyDeviceRecords` keeps a record whose `binding_sig` verifies over its
   statement or over the statement without its final LF, and over no other
   text (OC Lock 2.6.0 SPEC §3.3). Some wallets trim the text before they sign
-  it, which drops that LF. Every field is still read from `event.content`.
+  it, which drops that LF. A record whose content lacks the final LF counts
+  when its `binding_sig` covers that content, which is how a publisher now
+  writes one. Every field is still read from `event.content`.
   `boundNostrKeys`, and every reader built on these records, follow.
 
 ### Added
 
 - `bindingSigTexts(statement)`: those two texts, for a caller that checks a
   binding signature itself.
-- Test vector `s01-signed-without-final-lf.json`, vendored from
-  oc-lock-protocol 2.6.0.
+- `signedBindingText(statement, address, signature, { verifyBip322 })`: the
+  one of those texts the signature covers, or `null`. A publisher writes it
+  as `event.content` (OC Lock 2.6.0 SPEC §3.3). `verifyDeviceRecords` keeps a
+  record exactly when it is not `null`.
+- Test vectors `s01-signed-without-final-lf.json`,
+  `s02-content-without-final-lf.json` and `s03-bip137-binding-sig.json`,
+  vendored from oc-lock-protocol 2.6.0.
 
 ## [0.8.0] — 2026-10-26
 
