@@ -18,7 +18,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
   it makes, tries the text without its final LF only when the text ends in
   exactly one LF, as `@orangecheck/sdk`'s `signsText()` does.
 - **`verify_bip322_signature` holds the rest of a BIP-322 simple witness
-  to the shape BIP-322 requires** before it checks the signature: for P2TR
+  to the shape BIP-322 requires** before it checks the signature: for
+  P2WPKH and P2SH-P2WPKH a signature ending in SIGHASH_ALL, for P2TR
   exactly one item, 64 bytes or 65 ending in SIGHASH_ALL, and for every
   address each size a minimal CompactSize. A simple signature on any
   address but P2WPKH, P2SH-P2WPKH and P2TR is `False`. The same answers as

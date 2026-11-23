@@ -252,6 +252,9 @@ def _witness_fits(addr: DecodedAddress, sig: bytes) -> bool:
     # A signature and the key the address commits to; P2SH means P2SH-P2WPKH.
     if len(stack) != 2 or len(stack[1]) != 33 or stack[1][0] not in (2, 3):
         return False
+    # The signature's last byte is its hash type: SIGHASH_ALL, which not every bip322 reads.
+    if stack[0][-1:] != b"\x01":
+        return False
     pkh = _hash160(stack[1])
     return (pkh if addr.type == "p2wpkh" else _hash160(b"\x00\x14" + pkh)) == addr.program
 
