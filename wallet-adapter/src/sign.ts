@@ -49,15 +49,28 @@ export async function verifyBip322({
   return HEX_RE.test(sig) && sig.length % 2 === 0 && check(hexToBase64(sig));
 }
 
-/** The header of an `@orangecheck/sdk` auth challenge. */
-const AUTH_CHALLENGE = "orangecheck-auth\n";
+/**
+ * The headers of the messages whose verifiers take a signature over the
+ * message without its final LF: an auth challenge (`@orangecheck/sdk` 1.27.0),
+ * an attestation and a bond (OC Attest 2.2.0 SPEC §4.1, sdk 1.28.0), and an
+ * OC Lock device bind or revocation (OC Lock 2.6.0 SPEC §3.3,
+ * `@orangecheck/lock-device` 0.9.0).
+ */
+const TAKES_TRIMMED = [
+  "orangecheck-auth\n",
+  "orangecheck\n",
+  "orangecheck-bond\n",
+  "oc-lock:device-bind:v2\n",
+  "oc-lock:device-bind:v3\n",
+  "oc-lock:device-revoke:v2\n",
+];
 
 /**
  * Throw `WrongAccountError` unless `signature` is a valid BIP-322 (or legacy)
  * signature of `message` by `address`. Every signer runs this before returning.
  * A wallet that trims (Sparrow, Electrum's GUI) signs a message without its
- * final LF: that passes for an auth challenge, which `@orangecheck/sdk` 1.27.0
- * verifies, and throws `TrimmedSignatureError` for any other message.
+ * final LF: that passes for the messages `TAKES_TRIMMED` names, whose verifiers
+ * take it, and throws `TrimmedSignatureError` for any other message.
  */
 export async function assertSignedBy(args: {
   address: string;
@@ -69,7 +82,7 @@ export async function assertSignedBy(args: {
   if (!message.endsWith("\n")) throw new WrongAccountError(args.address);
   const bare = message.slice(0, -1);
   if (await verifyBip322({ ...args, message: bare })) {
-    if (message.startsWith(AUTH_CHALLENGE)) return;
+    if (TAKES_TRIMMED.some((header) => message.startsWith(header))) return;
     throw new TrimmedSignatureError();
   }
   const trimmed = message.trim();
