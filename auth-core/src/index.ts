@@ -188,6 +188,16 @@ export interface SessionPayload extends JWTPayload {
    */
   sudo_at?: number;
   /**
+   * The ceremonies of the sign-in this session comes from (RFC 8176 `amr`),
+   * from {@link AUTH_METHODS}: `["bip322"]`, `["passkey"]`,
+   * `["bip322","passkey"]`… Absent on a session minted before the auth host
+   * wrote it. Read it with {@link readSignInFacts}, which refuses a value
+   * outside the list.
+   */
+  amr?: string[];
+  /** Unix seconds of that sign-in (OIDC `auth_time`); a re-mint keeps it. */
+  auth_time?: number;
+  /**
    * Optional best-effort owner flag · set by the auth host at signin
    * time when the new did_oc matches OWNER_OC_ADDRESSES. Surfaced
    * through to clients via `useOcSession().account.isOwner` so the
@@ -1144,3 +1154,4 @@ export * from "./identifiers";
 export * from "./retired-key";
 export * from "./owner-list";
 export * from "./issuer-origin";
+export * from "./sign-in";
