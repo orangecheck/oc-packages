@@ -60,8 +60,8 @@ to any host but `localhost`, `127.0.0.1` and `[::1]`.
 - On success `webhook.verify` answers the delivery's signed `id`,
   `project_key` and `issued_at`. Deduplicate on that `id`, for billable events
   and project notices alike.
-- `maxAgeSeconds`: the oldest delivery accepted, in seconds since it was first
-  sent. Defaults to a day.
+- `maxAgeSeconds`: the oldest delivery accepted, in seconds since it was
+  signed. Defaults to a day.
 - `WebhookPayload` carries `project_key` and `issued_at`; `SystemWebhookPayload`
   carries `id` and `issued_at`.
 
@@ -69,10 +69,11 @@ to any host but `localhost`, `127.0.0.1` and `[::1]`.
 
 - `webhook.verify` refuses a delivery whose signed body has no `id`,
   `project_key` or `issued_at` (an ISO time in UTC, as `toISOString` writes
-  it), one first sent more than a day ago, and one more than five minutes
-  ahead of this clock. me.ochk.io signs all three into every delivery, and has
-  for at least a day before this release: its retries end about twenty hours
-  after the first send, and a dead letter sent again is signed again.
+  it), one signed more than a day ago, and one more than five minutes ahead
+  of this clock. me.ochk.io signs all three into every delivery, and has for
+  at least a day before this release. It signs each send as it sends it, a
+  retry or a dead letter sent again included, so a retry is as fresh as its
+  send and keeps the delivery's `id`.
 
 ## [0.63.0] — 2026-11-20
 

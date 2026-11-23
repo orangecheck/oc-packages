@@ -303,7 +303,7 @@
                 }
             },
             {
-                "name": "a retry a day old, less a minute",
+                "name": "a delivery a day old, less a minute",
                 "headers": {
                     "OC-Signature": "eb696c1fe330de1d388d6794247b8ebb71a91e6a6728a6b44ff1cd32c4faaf86281b367cbc0b6cc6629dd3c23b4ebcc59c83bffe552daf793551d0a185d68b09",
                     "OC-Key-Id": "tv-webhook-1",
@@ -316,6 +316,22 @@
                     "id": "oc-me-tv-1",
                     "project_key": "pk_test_tv",
                     "issued_at": "2027-01-14T08:01:00.000Z"
+                }
+            },
+            {
+                "name": "a retry 25 hours after the first send, signed again as it is sent",
+                "headers": {
+                    "OC-Signature": "5ce9cc7a9ced72741aea79fdf68151f9aa4e867a8dcfe31d2f148413f8b5be565e31b40ac66c91ed566c5288dcfdbe4f51c6bb0d89e6804c6b4df9f6480f2801",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T08:00:00.000Z\"}",
+                "project": "pk_test_tv",
+                "signed": {
+                    "id": "oc-me-tv-1",
+                    "project_key": "pk_test_tv",
+                    "issued_at": "2027-01-15T08:00:00.000Z"
                 }
             }
         ],
@@ -398,6 +414,18 @@
                     "OC-Class": "A"
                 },
                 "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-14T07:59:00.000Z\"}",
+                "project": "pk_test_tv",
+                "reason": "stale"
+            },
+            {
+                "name": "that retry as first signed, 25 hours before",
+                "headers": {
+                    "OC-Signature": "7281f3a74ce53986cf9589f4941f809c4066dba6d50a8c07649ae2e42e69472b5c8917f3aa1252b8c7ec4eed176bbe77370e46bfe6ba3d231f7218f6b110cd0a",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-14T07:00:00.000Z\"}",
                 "project": "pk_test_tv",
                 "reason": "stale"
             },

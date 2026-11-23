@@ -166,7 +166,8 @@ const eventVectors = [
     return { name: v.name, secret: SECRET, timestamp, fields: v.fields, body, header: `t=${timestamp},v1=${mac}` };
 });
 
-// Every delivery signs its id, its project and when it was first sent.
+// Every delivery signs its id, its project and when it was signed. A retry is
+// signed again as it is sent, with the same id.
 const iso = (t) => new Date(t * 1000).toISOString();
 const delivery = (fields) =>
     JSON.stringify({
@@ -224,11 +225,19 @@ const webhookVectors = {
             signed: { id: 'sys_connect_claimed_tv', project_key: 'pk_test_tv', issued_at: iso(NOW - 3600) },
         },
         {
-            name: 'a retry a day old, less a minute',
+            name: 'a delivery a day old, less a minute',
             headers: headers(signHook(delivery({ issued_at: iso(NOW - 86400 + 60) }))),
             body: delivery({ issued_at: iso(NOW - 86400 + 60) }),
             project: 'pk_test_tv',
             signed: { id: 'oc-me-tv-1', project_key: 'pk_test_tv', issued_at: iso(NOW - 86400 + 60) },
+        },
+        {
+            // me.ochk.io's retry cron sends these bytes at NOW for a delivery first signed 25 hours before.
+            name: 'a retry 25 hours after the first send, signed again as it is sent',
+            headers: headers(signHook(delivery({ issued_at: iso(NOW) }))),
+            body: delivery({ issued_at: iso(NOW) }),
+            project: 'pk_test_tv',
+            signed: { id: 'oc-me-tv-1', project_key: 'pk_test_tv', issued_at: iso(NOW) },
         },
     ],
     invalid: [
@@ -239,6 +248,7 @@ const webhookVectors = {
         signedBut('signed for another project', hookBody, 'project', 'pk_test_other'),
         signedBut('a project notice for another project', noticeBody, 'project', 'pk_test_other'),
         signedBut('more than a day old', delivery({ issued_at: iso(NOW - 86400 - 60) }), 'stale'),
+        signedBut('that retry as first signed, 25 hours before', delivery({ issued_at: iso(NOW - 25 * 3600) }), 'stale'),
         signedBut('ten minutes ahead of the clock', delivery({ issued_at: iso(NOW + 600) }), 'stale'),
         signedBut('no issued_at', drop2(hookBody, 'issued_at'), 'incomplete'),
         signedBut('issued_at not in the ISO form', delivery({ issued_at: String(NOW - 60) }), 'incomplete'),

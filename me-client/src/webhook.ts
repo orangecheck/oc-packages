@@ -25,8 +25,8 @@
  * verifies too. It is optional until the next major version, and a verify
  * without it warns once per process. A delivery is also refused when its
  * signed `issued_at` is more than a day old (`maxAgeSeconds`) or more than five
- * minutes ahead of this clock: retries end about twenty hours after the first
- * send, and a dead letter sent again is signed again.
+ * minutes ahead of this clock. me.ochk.io signs each send as it sends it, so a
+ * retry carries its own `issued_at` and the delivery's `id`.
  *
  * The verifier auto-fetches and caches the webhook-signing JWKS at
  * `https://me.ochk.io/api/dev-jwks` for 1h. Pass `{ jwk }` to skip the
@@ -54,7 +54,7 @@ const DEFAULT_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_MAX_STALE_MS = 6 * 60 * 60 * 1000;
 /** An unknown kid refetches the key list at most this often per issuer. */
 const FORCED_REFRESH_MIN_INTERVAL_MS = 60_000;
-/** The oldest delivery accepted: me.ochk.io's last retry comes about 20 h after the first send. */
+/** The oldest delivery accepted. me.ochk.io signs each send, retries included, as it sends it. */
 const DEFAULT_MAX_AGE_SECONDS = 24 * 60 * 60;
 /** How far ahead of this clock a delivery's `issued_at` may be. */
 const FUTURE_SKEW_MS = 5 * 60 * 1000;
@@ -68,7 +68,7 @@ export interface VerifyResult {
     id?: string;
     /** When ok: the project the delivery was signed for. */
     project_key?: string;
-    /** When ok: when it was first sent, an ISO time. */
+    /** When ok: when this send was signed, an ISO time. */
     issued_at?: string;
 }
 
@@ -98,7 +98,7 @@ export interface VerifyOptions {
     /** Your project key. A delivery signed for another project is refused.
      *  Optional until the next major version; without it, verify warns once. */
     project?: string;
-    /** The oldest delivery accepted, in seconds since it was first sent.
+    /** The oldest delivery accepted, in seconds since it was signed.
      *  Defaults to 24 hours. */
     maxAgeSeconds?: number;
 }
@@ -126,7 +126,7 @@ function isIsoTime(v: string): boolean {
     return Number.isFinite(t) && new Date(t).toISOString().slice(0, 19) === v.slice(0, 19);
 }
 
-/** The fields every delivery signs: its id, its project and when it was first sent. */
+/** The fields every delivery signs: its id, its project and when it was signed. */
 function signedFields(msg: Uint8Array, options: VerifyOptions): VerifyResult {
     let parsed: unknown;
     try {
