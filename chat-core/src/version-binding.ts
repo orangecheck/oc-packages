@@ -7,6 +7,7 @@ import {
     authorizedDevices,
     liveDevices,
     parseDeviceEvent,
+    verifyDeviceRecords,
     type NostrEvent,
     type ParsedDeviceEvent,
 } from '@orangecheck/lock-device';
@@ -102,12 +103,9 @@ export async function recordBinding(
         // Only a v3 statement signs the key that carries it (OC Lock SPEC §3.4).
         if (p.revoked || p.bindingVersion !== 'v3') return null;
         if (!authorizedDevices([p]).some((d) => d.nostrPubkey === pubkey)) return null;
-        const ok = await v.verifyBip322({
-            address: p.address,
-            message: p.bindingStatement,
-            signature: p.bindingSigBase64,
-        });
-        return ok === true ? { kind: 'btc', principal: p.address, pubkey, record: p } : null;
+        // OC Lock's reader checks the signature, over the texts its SPEC §3.3 allows.
+        const verified = await verifyDeviceRecords([rec], p.address, { verifyBip322: v.verifyBip322 });
+        return verified.length === 1 ? { kind: 'btc', principal: p.address, pubkey, record: p } : null;
     } catch (e) {
         // A read with no answer (the host's keys) proves nothing: the caller hears it.
         if (e instanceof UnansweredReadError) throw e;

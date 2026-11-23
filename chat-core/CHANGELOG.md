@@ -8,6 +8,13 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
 
 ## [Unreleased]
 
+### Changed
+
+- `recordBinding` and `readVersionBinding` check an address record's
+  `binding_sig` through `@orangecheck/lock-device`'s `verifyDeviceRecords`, so
+  they take it over the texts OC Lock SPEC §3.3 allows, as every other
+  binding read in this package does.
+
 ## [0.2.7] — 2026-11-08
 
 ### Dependencies

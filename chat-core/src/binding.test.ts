@@ -209,6 +209,14 @@ describe('recordBinding: an address record binds a version key only by a v3 stat
         expect(await recordBinding(rec(true), nostrPk, v(false))).toBeNull();
         expect(await recordBinding(rec(true), 'ff'.repeat(32), v(true))).toBeNull();
     });
+
+    it('takes a signature over the statement, and not over another text (OC Lock §3.3)', async () => {
+        const r = rec(true);
+        const only = (text: string) => ({ hostKeys, verifyBip322: (a: { message: string }) => a.message === text });
+        expect(await recordBinding(r, nostrPk, only(r.content))).toMatchObject({ kind: 'btc', principal: ADDR });
+        expect(await recordBinding(r, nostrPk, only(`${r.content}\n`))).toBeNull();
+        expect(await recordBinding(r, nostrPk, only(r.content.slice(0, -2)))).toBeNull();
+    });
 });
 
 describe('stepUpAddress (§8.6)', () => {
