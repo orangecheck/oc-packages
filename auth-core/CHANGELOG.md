@@ -33,6 +33,12 @@ this file tracks the package's TS / Node / runtime API surface.
   so one synced passkey never both signs in and opens such a gate. A session
   with no `amr` (minted before the auth host wrote it) counts its step-up as
   before; an `amr` that does not read counts it not at all.
+- **`requireSignIn` on `checkOcToken`, `verifyOcToken` and `getOcSession`.** A
+  genuine token for this audience whose sign-in falls short of it answers
+  `{ status: "invalid", reason: "insufficient_authentication" }` (`null` from
+  the other two). A requirement it cannot read throws before any key is
+  fetched. The name is not `require`: me-client's own `required` passes
+  through these options unread, so a near-miss of it would require nothing.
 
 ### Changed
 

@@ -26,7 +26,7 @@ import { ISSUER_ORIGIN_RULE, parseIssuerOrigin } from "./issuer-origin";
 import { refuseUnknownOptions } from "./options";
 import { retiredKeyVouches } from "./retired-key";
 import { SAFE_METHODS } from "./revocation";
-import { readSignInFacts } from "./sign-in";
+import { parseSignInRequirement, readSignInFacts, satisfiesSignInRule, type SignInRequirement } from "./sign-in";
 
 export const JWT_ALG = "EdDSA" as const;
 export const SESSION_COOKIE = "oc_session" as const;
@@ -954,6 +954,10 @@ export interface VerifyOcOptions {
    *  the sign-in popup sets this to its own origin, e.g.
    *  `"https://example.com"`, so a token issued to another site is refused. */
   audience?: AudienceRule;
+  /** Refuse a token whose sign-in does not meet this ({@link satisfiesSignInRule}): every
+   *  ceremony in `amr`, an `auth_time` at most `maxAge` seconds ago. `checkOcToken` answers
+   *  it `invalid` with `reason: "insufficient_authentication"`. Throws on one it cannot read. */
+  requireSignIn?: SignInRequirement;
 }
 
 /** The options {@link verifyOcToken} and {@link getOcSession} read. */
@@ -962,6 +966,7 @@ const VERIFY_OC_OPTIONS: ReadonlySet<string> = new Set<keyof VerifyOcOptions>([
   "jwksCacheTtlMs",
   "jwksMaxStaleMs",
   "audience",
+  "requireSignIn",
 ]);
 /**
  * Read by @orangecheck/me-client, which up to 0.38.2 passes its own options
@@ -985,11 +990,13 @@ const ME_CLIENT_OPTIONS: ReadonlySet<string> = new Set([
  * `invalid` carries `reason: "audience"` for a genuine token (signature,
  * issuer and expiry all good) whose `aud` the `audience` option does not
  * accept: one made for another site, or, with no `audience`, one made for a
- * site at all. Any other failure carries no reason.
+ * site at all. It carries `reason: "insufficient_authentication"` for a genuine
+ * token for this audience whose sign-in does not meet `requireSignIn`. Any other
+ * failure carries no reason.
  */
 export type OcTokenCheck =
   | { status: "valid"; session: SessionPayload }
-  | { status: "invalid"; reason?: "audience" }
+  | { status: "invalid"; reason?: "audience" | "insufficient_authentication" }
   | { status: "unavailable" };
 
 const INVALID: OcTokenCheck = { status: "invalid" };
@@ -1003,6 +1010,7 @@ export async function checkOcToken(
   options: VerifyOcOptions = {},
 ): Promise<OcTokenCheck> {
   refuseUnknownOptions("checkOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
+  const requirement = options.requireSignIn === undefined ? undefined : parseSignInRequirement(options.requireSignIn);
   const issuer = options.issuer ?? DEFAULT_ISSUER;
   const ttl = options.jwksCacheTtlMs ?? DEFAULT_JWKS_TTL_MS;
   const maxStale = options.jwksMaxStaleMs ?? DEFAULT_JWKS_MAX_STALE_MS;
@@ -1059,6 +1067,7 @@ export async function checkOcToken(
     if (retiredAt !== undefined && !retiredKeyVouches(p, retiredAt)) return INVALID;
     if (!audienceSatisfied(p.aud, options.audience)) return { status: "invalid", reason: "audience" };
     if (!handleBoundToOneAudience(p)) return INVALID;
+    if (requirement && !satisfiesSignInRule(p, requirement)) return { status: "invalid", reason: "insufficient_authentication" };
     return { status: "valid", session: p };
   } catch {
     return INVALID;
@@ -1088,6 +1097,8 @@ export async function verifyOcToken(
   options: VerifyOcOptions = {},
 ): Promise<SessionPayload | null> {
   refuseUnknownOptions("verifyOcToken", options, VERIFY_OC_OPTIONS, ME_CLIENT_OPTIONS);
+  // A requirement it cannot read throws here, not as a refused token below.
+  if (options.requireSignIn !== undefined) parseSignInRequirement(options.requireSignIn);
   let checked: OcTokenCheck;
   try {
     checked = await checkOcToken(token, options);
