@@ -17,8 +17,6 @@ import type {
     VerifyOutcome,
 } from './types';
 
-import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
-
 import {
     generateAttestationId,
     isCanonicalAttestation,
@@ -32,7 +30,7 @@ import {
 import { checkVerifyOptions } from './options';
 import { computeAllScores, computeScore } from './scoring';
 import { createLogger } from './utils/logger';
-import { signatureScheme, toBase64Maybe } from './utils/signature';
+import { signatureScheme, signsText, toBase64Maybe } from './utils/signature';
 import { ISSUED_AHEAD_MS, rfc3339Ms } from './utils/time';
 
 const log = createLogger('ocp/verify');
@@ -71,14 +69,15 @@ interface SignatureVerifyInput {
  * Verify a signature and name the scheme that verified it. The scheme comes
  * from the signature's bytes (see `signatureScheme`), never from the address
  * or a caller's hint, so a valid BIP-137 signature verifies on every address
- * it can stand for, whatever its recovery id.
+ * it can stand for, whatever its recovery id. It may cover `msg` without its
+ * final LF (SPEC §4.1).
  */
 async function verifySignature({ addr, msg, sig }: SignatureVerifyInput): Promise<StatusCode> {
     const sigBase64 = toBase64Maybe(sig);
     const scheme = signatureScheme(sigBase64);
     if (!scheme) return 'sig_unsupported_script';
 
-    const ok = verifyBitcoinSignature(addr, msg, sigBase64);
+    const ok = signsText(addr, msg, sigBase64);
     log.info({ addr, ok, scheme, msgLength: msg.length }, 'Signature verification result');
     if (!ok) return 'sig_invalid';
     return scheme === 'legacy' ? 'sig_ok_legacy' : 'sig_ok_bip322';

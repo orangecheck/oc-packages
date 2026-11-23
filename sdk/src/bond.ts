@@ -7,7 +7,9 @@
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
-import { decodeAddress, verifySignature } from '@orangecheck/bip322';
+import { decodeAddress } from '@orangecheck/bip322';
+
+import { signsText } from './utils/signature';
 
 const HEADER = 'orangecheck-bond';
 const ACK = 'I back this subject with this coin. It stays in my wallet.';
@@ -210,7 +212,7 @@ export function verifyBondSignature(opts: {
     const skew = (opts.skewSeconds ?? 60) * 1000;
     if (Date.parse(fields.issued_at) - skew > now) return { ok: false, reason: 'bond_not_yet_valid' };
     if (Date.parse(fields.expires_at) + skew < now) return { ok: false, reason: 'bond_expired' };
-    if (!verifySignature(fields.address, opts.message, opts.signature)) {
+    if (!signsText(fields.address, opts.message, opts.signature)) {
         return { ok: false, reason: 'sig_invalid' };
     }
     return { ok: true, fields, bond_id: bondId(opts.message) };

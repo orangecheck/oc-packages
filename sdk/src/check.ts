@@ -290,12 +290,13 @@ function signedBy(e: AttestationEnvelope): Promise<boolean> {
  * At most this many signature checks that reach curve math a check() makes.
  * Anyone can publish under an address's or a handle's tag beside a signature
  * that does not hold; one shaped like a real signature costs a few
- * milliseconds to turn away, and relays return up to a thousand copies. Junk
- * bytes are turned away before any curve math (see reachesCurve) and are
- * checked free, so a flood of junk never hides a real attestation. The cost
- * that stays: about this many well-formed forgeries newer than a real
- * attestation make its check read attestation_unread (ask again), never
- * not_found and never the forged copy.
+ * milliseconds to turn away, twice over, since it is checked over the message
+ * and over the message without its final LF (SPEC §4.1), and relays return up
+ * to a thousand copies. Junk bytes are turned away before any curve math (see
+ * reachesCurve) and are checked free, so a flood of junk never hides a real
+ * attestation. The cost that stays: about this many well-formed forgeries
+ * newer than a real attestation make its check read attestation_unread (ask
+ * again), never not_found and never the forged copy.
  */
 export const VERIFY_BUDGET = 64;
 

@@ -1,6 +1,6 @@
 import type { Scheme } from '../types';
 
-import { decodeAddress } from '@orangecheck/bip322';
+import { decodeAddress, verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
 import { Buffer } from 'buffer';
 
 /** A signature as base64: hex input is converted, anything else passes through. */
@@ -9,6 +9,16 @@ export function toBase64Maybe(sig: string): string {
         return Buffer.from(sig, 'hex').toString('base64');
     }
     return sig;
+}
+
+/**
+ * Whether `sigBase64` signs `text` for `address`, or signs `text` without its
+ * final LF, which is what a wallet that trims the text before signing it signs
+ * (OC Attest SPEC §4.1). No other text is tried.
+ */
+export function signsText(address: string, text: string, sigBase64: string): boolean {
+    if (verifyBitcoinSignature(address, text, sigBase64)) return true;
+    return text.endsWith('\n') && verifyBitcoinSignature(address, text.slice(0, -1), sigBase64);
 }
 
 /**
