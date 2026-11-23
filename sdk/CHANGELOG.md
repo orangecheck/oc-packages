@@ -9,6 +9,29 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `verify()`, `signatureIsValid()` and `verifyBondSignature()` also accept a
+  signature over the attestation or bond without its final LF, which is what a
+  wallet that trims the text before signing it signs. So do `check()`,
+  `readAttestations()`, `verifyAttestationById()` and
+  `collectSignedEnvelopes()`, which check signatures through
+  `signatureIsValid()`. Those two texts are the only ones tried: a signature
+  over the message with an extra LF, CRLF or a leading space, or over a trim
+  that also dropped whitespace ending the last value, is still `sig_invalid`.
+  The message passed in is read as before, so one without its final LF is
+  still `decode_error` (`bond_malformed` for a bond), and `attestation_id` and
+  `bond_id` are still the hash of the message with its LF. OC Attest 2.2.0,
+  SPEC §4.1, BOND.md §3 step 4, vectors `tv36` and `tv37`.
+- A signature shaped like a real one that does not hold now costs two curve
+  checks to turn away, one per text. `check()`'s `VERIFY_BUDGET` still counts
+  it as one check.
+- If you store an attestation or bond and its signature, a pair that
+  `verify()` accepted may now fail a plain byte-for-byte BIP-322 re-verify of
+  the stored message. Re-check it with `signatureIsValid()` or
+  `verifyBondSignature()`, or over the message and over the message without
+  its final LF.
+
 ## [1.27.0] — 2026-11-22
 
 ### Changed

@@ -26,12 +26,10 @@
 
 import type { Scheme } from './types';
 
-import { verifySignature as verifyBitcoinSignature } from '@orangecheck/bip322';
-
 import { EXTENSION_KEY } from './canonical';
 import { isOneLineValue } from './one-line';
 import { checkChallengeOptions } from './options';
-import { signatureScheme, toBase64Maybe } from './utils/signature';
+import { signatureScheme, signsText, toBase64Maybe } from './utils/signature';
 
 const AUTH_HEADER = 'orangecheck-auth';
 const AUTH_ACK = 'I authorize this session under the OrangeCheck auth challenge.';
@@ -342,12 +340,7 @@ export async function verifyChallenge(
     const scheme = signatureScheme(sigBase64);
     if (!scheme) return { ok: false, reason: 'sig_unsupported_scheme' };
     // Sparrow, Electrum's GUI, Nunchuk Android and Keeper trim before signing: the final LF goes.
-    if (
-        !verifyBitcoinSignature(address, text, sigBase64) &&
-        !verifyBitcoinSignature(address, text.slice(0, -1), sigBase64)
-    ) {
-        return { ok: false, reason: 'sig_invalid' };
-    }
+    if (!signsText(address, text, sigBase64)) return { ok: false, reason: 'sig_invalid' };
 
     return {
         ok: true,
