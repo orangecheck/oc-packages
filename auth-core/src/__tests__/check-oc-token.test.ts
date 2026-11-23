@@ -4,6 +4,7 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   _resetJwksCachesForTests,
   checkOcToken,
+  getOcSession,
   JWT_ALG,
   readOcSessionToken,
   verifyOcToken,
@@ -228,4 +229,75 @@ describe("readOcSessionToken · where getOcSession finds the token", () => {
     expect(readOcSessionToken({ cookie: null, authorization: null })).toBeNull();
     expect(readOcSessionToken({ authorization: "Basic abc" })).toBeNull();
   });
+});
+
+describe("checkOcToken · requireSignIn refuses a sign-in that falls short", () => {
+  const nowSecs = () => Math.floor(Date.now() / 1000);
+  const LAYERED = { amr: ["bip322", "passkey"] as const };
+
+  it("answers insufficient_authentication for a wallet sign-in where a passkey is also required", async () => {
+    keySet();
+    const token = await mint({ amr: ["bip322"], auth_time: nowSecs() });
+    expect(await checkOcToken(token, { issuer: ISSUER, requireSignIn: LAYERED })).toEqual({
+      status: "invalid",
+      reason: "insufficient_authentication",
+    });
+    expect(await verifyOcToken(token, { issuer: ISSUER, requireSignIn: LAYERED })).toBeNull();
+  });
+
+  it("answers insufficient_authentication for a token minted before amr was written", async () => {
+    keySet();
+    const token = await mint();
+    expect(await checkOcToken(token, { issuer: ISSUER, requireSignIn: { amr: ["bip322"] } })).toEqual({
+      status: "invalid",
+      reason: "insufficient_authentication",
+    });
+  });
+
+  it("answers valid for a sign-in that meets it", async () => {
+    keySet();
+    const token = await mint({ amr: ["passkey", "bip322"], auth_time: nowSecs() - 5 });
+    const checked = await checkOcToken(token, { issuer: ISSUER, requireSignIn: { ...LAYERED, maxAge: 300 } });
+    expect(checked.status).toBe("valid");
+    expect((await verifyOcToken(token, { issuer: ISSUER, requireSignIn: LAYERED }))?.did_oc).toBe("did:oc:abc");
+  });
+
+  it("refuses a sign-in older than maxAge", async () => {
+    keySet();
+    const token = await mint({ amr: ["bip322"], auth_time: nowSecs() - 120 });
+    expect(await checkOcToken(token, { issuer: ISSUER, requireSignIn: { maxAge: 60 } })).toEqual({
+      status: "invalid",
+      reason: "insufficient_authentication",
+    });
+    expect((await checkOcToken(token, { issuer: ISSUER, requireSignIn: { maxAge: 300 } })).status).toBe("valid");
+  });
+
+  it("still refuses a token made for another site as audience, before the sign-in", async () => {
+    keySet();
+    const token = await mint({ aud: "https://other.example", amr: ["bip322"], auth_time: nowSecs() });
+    expect(
+      await checkOcToken(token, { issuer: ISSUER, audience: "https://site.example", requireSignIn: { amr: ["bip322"] } }),
+    ).toEqual({ status: "invalid", reason: "audience" });
+  });
+
+  it("getOcSession applies it to the request's token", async () => {
+    keySet();
+    const wallet = await mint({ amr: ["bip322"], auth_time: nowSecs() });
+    const layered = await mint({ amr: ["bip322", "passkey"], auth_time: nowSecs() });
+    const opts = { issuer: ISSUER, requireSignIn: LAYERED };
+    expect(await getOcSession({ authorization: `Bearer ${wallet}` }, opts)).toBeNull();
+    expect((await getOcSession({ authorization: `Bearer ${layered}` }, opts))?.did_oc).toBe("did:oc:abc");
+  });
+
+  it.each([{ amr: ["hwk"] }, { maxage: 60 }, { maxAge: -1 }, "bip322"])(
+    "throws on the requirement %j before it reads a key, rather than require nothing",
+    async (requireSignIn) => {
+      // An issuer whose keys cannot be read: a check that got that far would answer unavailable.
+      vi.stubGlobal("fetch", async () => new Response("{}", { status: 503 }));
+      const token = await mint({ amr: ["bip322"], auth_time: nowSecs() });
+      const opts = { issuer: "https://cold-issuer.test", requireSignIn } as unknown as Parameters<typeof checkOcToken>[1];
+      await expect(checkOcToken(token, opts)).rejects.toThrow(/a sign-in requirement/);
+      await expect(verifyOcToken(token, opts)).rejects.toThrow(/a sign-in requirement/);
+    },
+  );
 });
