@@ -1672,9 +1672,10 @@ function EmailFlow({
             try {
                 if (!(await browserSupportsWebAuthnAutofill()) || !live) return;
                 const r = await passkeyCeremony({ authOrigin, kind: 'signin', credentials, add, autofill: true });
-                if (!live) return;
+                // A verify that answered ok has signed the person in, so the host hears of it
+                // even when the field has gone; a refusal by then has no field to show in.
                 if (r.ok) onPasskeyRef.current?.(r.account, r.token);
-                else if (r.step === 'verify') setEmailError(humanSigninError(r.reason, 'passkey'));
+                else if (live && r.step === 'verify') setEmailError(humanSigninError(r.reason, 'passkey'));
             } catch {
                 // Autofill is an extra: the field works without it.
             }
