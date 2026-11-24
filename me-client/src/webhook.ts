@@ -100,7 +100,7 @@ export interface VerifyOptions {
     project?: string;
     /** The oldest delivery accepted, in seconds since it was signed.
      *  Defaults to 24 hours when left out. Set to anything but a finite number
-     *  of 0 or more, it refuses every delivery. */
+     *  above 0, it refuses every delivery. */
     maxAgeSeconds?: number;
 }
 
@@ -289,8 +289,8 @@ export async function verify(
     if (options.project === undefined) warnNoProjectOnce();
     // A NaN from an unset env var compares false with every age.
     const maxAgeSeconds = options.maxAgeSeconds === undefined ? DEFAULT_MAX_AGE_SECONDS : options.maxAgeSeconds;
-    if (!Number.isFinite(maxAgeSeconds) || maxAgeSeconds < 0) {
-        return { ok: false, reason: 'maxAgeSeconds must be a finite number of 0 or more' };
+    if (!Number.isFinite(maxAgeSeconds) || maxAgeSeconds <= 0) {
+        return { ok: false, reason: 'maxAgeSeconds must be a finite number above 0' };
     }
     if (!sigHex) return { ok: false, reason: 'missing signature' };
     if (!kid) return { ok: false, reason: 'missing kid' };
