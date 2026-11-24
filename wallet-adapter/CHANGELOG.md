@@ -19,15 +19,16 @@ this file tracks the package's TS / Node / runtime API surface.
   (`oc-lock:device-bind:v2`, `v3`, `oc-lock:device-revoke:v2`), or a passkey
   binding (`oc-passkey:bind:v1`) without its final LF, as it does for an auth
   challenge. Their verifiers take that form: `@orangecheck/sdk` 1.28.0 (OC
-  Attest 2.2.0 SPEC §4.1, and `signsText`, which ochk.io's passkey bind
-  checks with) and `@orangecheck/lock-device` 0.9.0 (OC Lock 2.6.0 SPEC
-  §3.3). It passes one only for a message that ends in exactly one LF, as
-  those verifiers try the shorter text only then. Any other message signed
-  that way still throws `TrimmedSignatureError`. A site that publishes a
-  device record writes the text the signature covers as its content
-  (`signedBindingText` in lock-device 0.9.0), which every lock-device reader
-  accepts, 0.8.0 included. An attestation or bond keeps its canonical text,
-  so one signed that way verifies for readers on `@orangecheck/sdk` 1.28.0.
+  Attest 2.2.0 SPEC §4.1) and `@orangecheck/lock-device` 0.9.0 (OC Lock 2.6.0
+  SPEC §3.3). ochk.io's passkey bind, not yet shipped, is to check a passkey
+  binding with the SDK's `signsText`. `assertSignedBy` passes one only for a
+  message that ends in exactly one LF, as those verifiers try the shorter text
+  only then. Any other message signed that way still throws
+  `TrimmedSignatureError`. A site that publishes a device record writes the text
+  the signature covers as its content (`signedBindingText` in lock-device
+  0.9.0), which every lock-device reader accepts, 0.8.0 included. An attestation
+  or bond keeps its canonical text, so one signed that way verifies for readers
+  on `@orangecheck/sdk` 1.28.0.
 
 ### Dependencies
 

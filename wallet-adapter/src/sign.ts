@@ -55,7 +55,7 @@ export async function verifyBip322({
  * an attestation and a bond (OC Attest 2.2.0 SPEC §4.1, sdk 1.28.0), an
  * OC Lock device bind or revocation (OC Lock 2.6.0 SPEC §3.3,
  * `@orangecheck/lock-device` 0.9.0), and a passkey binding (ochk.io's passkey
- * bind, checked with sdk 1.28.0's `signsText`).
+ * bind, not yet shipped, is to check it with sdk 1.28.0's `signsText`).
  */
 const TAKES_TRIMMED = [
   "orangecheck-auth\n",
