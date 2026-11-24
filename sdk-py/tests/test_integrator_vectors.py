@@ -231,6 +231,43 @@ def test_webhook_takes_a_shorter_window_from_max_age() -> None:
     assert err.value.reason == "stale"
 
 
+def test_webhook_takes_a_max_age_of_0_only_for_a_delivery_signed_this_moment(monkeypatch: pytest.MonkeyPatch) -> None:
+    v = next(x for x in V["webhook"]["valid"] if x["name"] == "a project notice as sent")
+    signed = integrator._iso_time(json.loads(v["body"])["issued_at"])
+    assert signed is not None
+    _move_to(monkeypatch, signed)
+    verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"], max_age=0)
+    _move_to(monkeypatch, signed + 1)
+    with pytest.raises(InvalidWebhook) as err:
+        verify_webhook(v["headers"], v["body"], jwks=V["webhook"]["jwks"], project=v["project"], max_age=0)
+    assert err.value.reason == "stale"
+
+
+@pytest.mark.parametrize(
+    "max_age",
+    [float("nan"), float("inf"), -1, -0.5, True, "3600", None, 10**400],
+    ids=["nan", "inf", "negative", "negative fraction", "bool", "string", "none", "past a double"],
+)
+@respx.mock
+def test_webhook_refuses_a_max_age_that_is_not_a_number_of_0_or_more_before_reading(
+    max_age: Any, fresh_key_sets: None
+) -> None:
+    route = respx.get("https://me.ochk.io/api/dev-jwks").mock(
+        return_value=httpx.Response(200, json=V["webhook"]["jwks"])
+    )
+    v = V["webhook"]["valid"][0]
+    with pytest.raises(TypeError, match="max_age must be a finite number of seconds, 0 or more"):
+        verify_webhook(v["headers"], v["body"], project=v["project"], max_age=max_age)
+    assert route.call_count == 0
+
+
+def test_webhook_reads_issued_at_digits_as_ascii_only() -> None:
+    # me-client's pattern takes only 0-9; an Arabic-Indic digit in the fraction is not one.
+    assert integrator._iso_time("2027-01-15T07:58:00.123Z") is not None
+    for odd in ("2027-01-15T07:58:00.12\u0663Z", "2027-01-15T07:58:0\u0661.123Z", "\uff12027-01-15T07:58:00Z"):
+        assert integrator._iso_time(odd) is None, odd
+
+
 def test_webhook_without_project_accepts_any_and_warns_once(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(integrator, "_warned_no_project", False)
     theirs = next(x for x in V["webhook"]["invalid"] if x["name"] == "signed for another project")

@@ -1263,7 +1263,7 @@ def _header(headers: Mapping[str, Any], name: str) -> Optional[str]:
 #: The oldest delivery accepted. me.ochk.io signs each send, retries included, as it sends it.
 WEBHOOK_MAX_AGE_SECONDS = 24 * 60 * 60
 _WEBHOOK_FUTURE_SKEW_SECONDS = 5 * 60
-_ISO_TIME = re.compile(r"\A(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,9})?Z\Z")
+_ISO_TIME = re.compile(r"\A(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,9})?Z\Z", re.ASCII)
 _warned_no_project = False
 
 
@@ -1322,8 +1322,11 @@ def verify_webhook(
     ``"incomplete"``. A delivery may arrive more than once, a retry signed
     again with a new ``issued_at``, so deduplicate on its ``id``.
 
-    Raises :class:`InvalidWebhook` on any failure.
+    Raises :class:`InvalidWebhook` on any failure, and ``TypeError``, before it
+    reads the delivery, unless ``max_age`` is a finite number of 0 or more.
     """
+    if not _finite(max_age) or max_age < 0:
+        raise TypeError(f"max_age must be a finite number of seconds, 0 or more, got {max_age!r}")
     if project is None:
         _warn_no_project_once()
     sig_hex = _header(headers, "OC-Signature")
