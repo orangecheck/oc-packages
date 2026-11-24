@@ -6,6 +6,17 @@ All notable changes to the **`orangecheck`** Python package. Follows
 
 ## [Unreleased]
 
+## [3.21.0] — 2026-11-24
+
+### Added
+
+- **`verify_webhook(..., project=...)`**: your project key. A delivery signed
+  for another project is refused as `InvalidWebhook("project")`. It is optional
+  until the next major version; a call without it warns once per process
+  (`UserWarning`).
+- **`max_age`**: the oldest delivery accepted, in seconds since it was signed
+  (`WEBHOOK_MAX_AGE_SECONDS`, a day, by default).
+
 ### Changed
 
 - **`verify_bond_signature` also accepts a signature over the bond without
@@ -40,6 +51,16 @@ All notable changes to the **`orangecheck`** Python package. Follows
 - **`verify_session` checks the issuer it would fetch keys from before it reads
   the token**, as auth-core's `checkOcToken` does, so a refused issuer raises
   ValueError rather than answering `malformed`.
+- **`verify_webhook` refuses a delivery whose signed body has no `id`,
+  `project_key` or `issued_at`** (`"incomplete"`; `issued_at` is a UTC time as
+  JavaScript's `toISOString` writes it), and one signed more than a day ago
+  or more than five minutes ahead of this clock (`"stale"`). me.ochk.io signs
+  all three into every delivery, billable events and project notices alike,
+  and has for at least a day before this release. It signs each send as it
+  sends it, retries included, so a retry keeps the delivery's `id` and carries
+  its own `issued_at`. Deduplicate on the
+  body's `id`. The same answers as `@orangecheck/me-client` 0.64.0's, read from
+  the shared vectors.
 
 ### Now refused
 
@@ -71,30 +92,6 @@ fragment, a user name, and plain http to any host but `localhost`,
   issuer of `HTTPS://OCHK.IO` takes ochk.io's tokens, whose `iss` is
   `https://ochk.io`. The issuer as given, with or without its trailing slash,
   is still taken, and with `jwks=` a stand-in issuer need not be an origin.
-
-## [3.21.0] — unreleased
-
-### Added
-
-- **`verify_webhook(..., project=...)`**: your project key. A delivery signed
-  for another project is refused as `InvalidWebhook("project")`. It is optional
-  until the next major version; a call without it warns once per process
-  (`UserWarning`).
-- **`max_age`**: the oldest delivery accepted, in seconds since it was signed
-  (`WEBHOOK_MAX_AGE_SECONDS`, a day, by default).
-
-### Changed
-
-- **`verify_webhook` refuses a delivery whose signed body has no `id`,
-  `project_key` or `issued_at`** (`"incomplete"`; `issued_at` is a UTC time as
-  JavaScript's `toISOString` writes it), and one signed more than a day ago
-  or more than five minutes ahead of this clock (`"stale"`). me.ochk.io signs
-  all three into every delivery, billable events and project notices alike,
-  and has for at least a day before this release. It signs each send as it
-  sends it, retries included, so a retry keeps the delivery's `id` and carries
-  its own `issued_at`. Deduplicate on the
-  body's `id`. The same answers as `@orangecheck/me-client` 0.64.0's, read from
-  the shared vectors.
 
 ## [3.20.0] — 2026-11-23
 
