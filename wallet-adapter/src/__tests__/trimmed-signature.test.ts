@@ -2,8 +2,9 @@
 /**
  * Sparrow, Electrum's GUI, Nunchuk on Android and Bitcoin Keeper trim the text before they sign
  * it, which drops a message's final LF. The verifiers of an auth challenge, an attestation, a
- * bond, an OC Lock device bind or revocation and a passkey binding take a signature made that
- * way, so a pasted one over those without their final LF passes here too. Any other message
+ * bond and an OC Lock device bind or revocation take a signature made that way, as ochk.io's
+ * passkey bind is to for a passkey binding, so a pasted one over those without their final LF
+ * passes here too. Any other message
  * signed that way is refused as trimmed, with words saying so, and every other edit of a
  * message is still a signature by no one asked.
  */
@@ -47,7 +48,13 @@ const NOT_TAKEN = [
   "hello\n",
   `oc-lock:device-bind:v4\n${DEVICE}`,
   `oc-passkey:bind:v2\n${PASSKEY_FIELDS}`,
+  // One character past each header: a header matched without its LF takes these.
   `orangecheck-authz\naddress: ${address}\n`,
+  `orangecheck-bonds\naddress: ${address}\nack: x\n`,
+  `oc-lock:device-bind:v20\n${DEVICE}`,
+  `oc-lock:device-bind:v30\n${DEVICE}`,
+  `oc-lock:device-revoke:v20\n${DEVICE}`,
+  `oc-passkey:bind:v10\n${PASSKEY_FIELDS}`,
   " " + CHALLENGE,
   "x" + ATTESTATION,
 ];
