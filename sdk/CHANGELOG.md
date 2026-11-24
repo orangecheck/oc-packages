@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [1.28.0] — 2026-11-24
+
 ### Changed
 
 - `verify()`, `signatureIsValid()` and `verifyBondSignature()` also accept a
