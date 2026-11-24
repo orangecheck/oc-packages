@@ -9,7 +9,7 @@ All notable changes to the **`orangecheck`** Python package. Follows
 ### Changed
 
 - **`verify_webhook`** raises `TypeError`, before it reads the delivery,
-  unless `max_age` is a finite number of 0 or more (NaN, infinity, a negative,
+  unless `max_age` is a finite number above 0 (NaN, infinity, 0, a negative,
   a bool, a string or `None`).
 - **`verify_webhook`** reads the digits of `issued_at` as 0 to 9 only, as
   `@orangecheck/me-client` does. `me-client/test-vectors/integrator.json` holds
