@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.52.0] — 2026-11-24
+
 ### Added
 
 - `OcSignIn` takes `passkey`: `off` (the default, as before), `with` or

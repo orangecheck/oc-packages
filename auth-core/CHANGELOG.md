@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.35.0] — 2026-11-24
+
 ### Added
 
 - **How and when a session signed in.** `SessionPayload` gains `amr` (the
