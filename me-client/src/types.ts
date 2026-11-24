@@ -20,7 +20,7 @@ import { EVENT_SUBTYPES } from './subtypes';
 // ── platform constants (fixed by OC) ──────────────────────────────────────
 
 export const PLATFORM_FEE_POLICY = {
-    /** Fraction of every gross_fee that OC retains. */
+    /** Fraction of every gross_fee withheld as the platform fee. */
     pct: 0.2,
     /** Absolute minimum platform fee, in sats. */
     min_floor_sats: 1,
