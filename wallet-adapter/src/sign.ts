@@ -52,9 +52,10 @@ export async function verifyBip322({
 /**
  * The headers of the messages whose verifiers take a signature over the
  * message without its final LF: an auth challenge (`@orangecheck/sdk` 1.27.0),
- * an attestation and a bond (OC Attest 2.2.0 SPEC §4.1, sdk 1.28.0), and an
+ * an attestation and a bond (OC Attest 2.2.0 SPEC §4.1, sdk 1.28.0), an
  * OC Lock device bind or revocation (OC Lock 2.6.0 SPEC §3.3,
- * `@orangecheck/lock-device` 0.9.0).
+ * `@orangecheck/lock-device` 0.9.0), and a passkey binding (ochk.io's passkey
+ * bind, checked with sdk 1.28.0's `signsText`).
  */
 const TAKES_TRIMMED = [
   "orangecheck-auth\n",
@@ -63,6 +64,7 @@ const TAKES_TRIMMED = [
   "oc-lock:device-bind:v2\n",
   "oc-lock:device-bind:v3\n",
   "oc-lock:device-revoke:v2\n",
+  "oc-passkey:bind:v1\n",
 ];
 
 /**
