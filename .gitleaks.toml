@@ -20,3 +20,10 @@ condition = "AND"
 paths = ['''^mcp/src/__tests__/replay\.ts$''']
 regexTarget = "line"
 regexes = ['''export const (?:EXAMPLES_TOKEN|OCHK_TXT_TOKEN) = '[0-9a-f]{48}';$''']
+
+[[allowlists]]
+description = "auth-client's passkey binding fixture: credential_key is the SHA-256 of the empty string, a statement line, not a key"
+condition = "AND"
+paths = ['''^auth-client/src/__tests__/webauthn-passkey\.test\.tsx$''']
+regexTarget = "line"
+regexes = ['''^\s*'credential_key: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\\n' \+$''']
