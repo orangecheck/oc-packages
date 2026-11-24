@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import recording from '../fixtures/email-account.json' with { type: 'json' };
 
 /**
  * The recorded email account (fixtures/email-account.json, from oc-www's own-keys contract
@@ -20,9 +20,7 @@ export interface Recording {
     identities: { ok: true; linked: Array<Record<string, unknown>> } & Record<string, unknown>;
 }
 
-export const recorded: Recording = JSON.parse(
-    readFileSync(new URL('../fixtures/email-account.json', import.meta.url), 'utf8')
-);
+export const recorded = recording as unknown as Recording;
 
 /** The address and Nostr key of keys-v1 vector kr01, a custodial binding. */
 export const IDENTITY_KEY = {
@@ -60,6 +58,20 @@ export const FORBIDDEN: Record<string, (a: Account) => void> = {
     signing_method_new: (a) => tokens(a, (c) => void (c.signing_method = 'custodial')),
     display_identity_btc: (a) =>
         tokens(a, (c) => void (c.display_identity = { kind: 'btc', value: IDENTITY_KEY.address })),
+    me_primary_btc: (a) => void (a.me.account.primary_btc = IDENTITY_KEY.address),
+    me_signing_method_bip322: (a) => void (a.me.account.signing_method = 'bip322'),
+    me_display_identity_btc: (a) =>
+        void (a.me.account.display_identity = { kind: 'btc', value: IDENTITY_KEY.address }),
+    btc_row: (a) =>
+        void a.identities.linked.push({
+            id: '00000000-0000-4000-8000-00000000b7c0',
+            kind: 'btc',
+            value: IDENTITY_KEY.address,
+            verified_at: a.identities.created_at,
+            verification_method: 'bip322',
+            is_primary: true,
+            providers: [],
+        }),
 };
 
 export const placement = process.env.COMPAT_PLACEMENT?.trim() || 'identity_key';
