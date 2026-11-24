@@ -140,6 +140,14 @@ export function walletFromMnemonic(mnemonic: string, network: WalletNetwork = 'm
     };
 }
 
+/** A mainnet receive address of W (chain 0) and its private key: what signs a wallet link (README §6). */
+export function walletKey(walletSecret: Uint8Array, index = 0): { address: string; addressKey: Uint8Array } {
+    if (!Number.isInteger(index) || index < 0 || index >= 2 ** 31) throw new RangeError('index is a non-hardened child number');
+    const root = HDKey.fromMasterSeed(seedOf(secret32(walletSecret, 'wallet secret')), BIP32_VERSIONS.mainnet);
+    const addressKey = childPrivateKey(root, `${WALLET_ACCOUNT_PATH.mainnet}/0/${index}`);
+    return { address: addressFromPrivateKey(addressKey, 'p2wpkh', 'mainnet'), addressKey };
+}
+
 // Fedimint's client root (fedimint v0.13.0): Bip39RootSecretStrategy::to_root_secret
 // is DerivableSecret::new_root(seed, b"Fedimint Client Salt"), an HKDF-SHA512
 // extract whose 64-byte PRK is the secret. Child keys are HKDF-expand blocks.

@@ -129,7 +129,7 @@ nostr: <64 hex, x-only>         nostr: …                        binding: <bind
 key_holder: orangecheck | user  binding: <binding id>           issuer: bc1q…
 issuer: bc1q…                   key_holder: user                since_height: <n>
 since_height: <n>               issuer: bc1q…                   since_block: <64 hex>
-since_block: <64 hex>           since_height: <n>               reason: wallet_linked | merged
+since_block: <64 hex>           since_height: <n>               reason: own_wallet | merged
 trust: <CUSTODIAL_TRUST>        since_block: <64 hex>                   | deleted | withdrawn
   (key_holder orangecheck only) trust: <TAKEOVER_TRUST>
 
@@ -153,6 +153,8 @@ The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
   never read as the user's from the start. It is the first thing the key ever
   signs.
 - **retire**: ends a custodial binding that was never taken over.
+  `own_wallet`: the account's own wallet address became its identity, and
+  the key orangecheck made is shredded. (Not a wallet link, §6.)
 - **issuer**: hands the issuer role from one address to another, signed by
   both.
 - **since** is a block the record was made after (its height and hash, RPC
@@ -166,7 +168,8 @@ binding and a retire carry the issuer's signature only. A user binding and a
 takeover also carry `address_sig` (BIP-322 simple, by the identity address)
 and `nostr_sig` (BIP-340, 128 hex, by the Nostr key over the 32-byte id). An
 issuer record carries `old_sig` and `new_sig`, by each address. Any envelope
-may carry `ots`, an OpenTimestamps proof of the id.
+may carry `ots`, an OpenTimestamps proof of the id. Wallet links (§6) carry no
+issuer signature.
 
 ```json
 { "record": "<text>", "issuer_sig": "…", "address_sig": "…", "nostr_sig": "…", "ots": "…" }
@@ -176,7 +179,9 @@ may carry `ots`, an OpenTimestamps proof of the id.
 anchors, never from a date anyone signed. Every record is stamped with
 OpenTimestamps; the verifier checks the proof against its own header chain
 and passes the height it attests (`anchoredAt`). An anchor at or below the
-record's own since block cannot be (`bad_anchor`).
+record's own since block cannot be (`bad_anchor`). Copies of one record may
+carry different proofs: the earliest anchor among the copies that verify is
+the record's, in any order (`kh15`, `ki01`, `kb11`, `kb15`).
 
 **Issuer terms.** The verifier starts from the issuer address the spec names
 and follows every issuer record signed by both sides, back and forward
@@ -238,7 +243,9 @@ so no record replaces another even under one publishing key, plus a `t` tag
 for the address so oc-attest SPEC §6.2's address query returns them, and a
 `t` tag `oc-attest-key` (`oc-attest-key-issuer`). The binding, retire and
 issuer records go out under orangecheck's service Nostr key, the takeover
-under the user's own (oc-chat §8.6). `publicationTags` builds the tags.
+under the user's own (oc-chat §8.6). Wallet links and unlinks (§6) also go
+out under the user's own; their d tag names the wallet, and they carry a `t`
+tag for the wallet and one for the identity. `publicationTags` builds the tags.
 
 ## §5 Signatures by a bound address
 
@@ -271,12 +278,95 @@ The same holds for a signature with no anchor at all. Every verb applies this
 rule to every signature by a bound address: Attest, Lock and Chat device
 binds, Stamp, Agent delegations, Vote ballots, Pledge, and ochk.io sign-in.
 
-## §6 Vectors
+## §6 Wallet links
 
-`test-vectors/keys-v1.json`: 53 vectors (derivation `kd`, lock and open `kl`,
-record `kr`, issuer `ki`, key holder `kh`, signature `ks`, publication `kn`),
-positive and negative, each with `id`, `category`, `description`, `input` and
-`expected` (or `cases`).
+No money sits at the identity address, so its weight starts at zero. A
+wallet link lets the coins at one of the user's wallet addresses count for
+the identity, checked offline with no issuer: both addresses sign it.
+
+```
+oc-attest-key:wallet-link:v1          oc-attest-key:wallet-unlink:v1
+did_oc: did:oc:<32 hex>               did_oc: …
+address: bc1q…  (the identity)        address: bc1q…
+wallet: bc1q…   (another address)     wallet: bc1q…
+binding: <the identity's binding id>  link: <the wallet link's id>
+since_height: <n>                     since_height: <n>
+since_block: <64 hex>                 since_block: <64 hex>
+ack: <WALLET_LINK_ACK>
+```
+
+```json
+{ "record": "<text>", "address_sig": "…", "wallet_sig": "…", "ots": "…" }
+```
+
+- It is made in the browser, where both keys are: at takeover with W's first
+  receive address (`walletKey`), or later with any address the user can sign
+  for (`walletLinkSign`). Only a user who holds the identity key can make
+  one; a did:oc alone links nothing.
+- A link carries both signatures, BIP-322 simple. An unlink carries either
+  (`walletUnlinkSign`): ending a link only ever refuses more, so either key
+  may end it.
+- Both addresses are mainnet P2WPKH in v1, and the wallet is never the
+  identity address. The ack line is fixed text a wallet shows before it
+  signs.
+- `verifyWalletRecord` checks one copy: its shape, canonical text,
+  signatures, anchor and since block, as in §4. Its result says whose
+  signatures verify.
+- A link is public: anyone can see which wallet backs which identity. A user
+  who wants coins to back an account without publishing them uses
+  oc-attest-protocol BOND.md's bond instead.
+
+**Which identity a wallet backs** (`resolveWalletLink`), from every copy read
+under the wallet's `t` tag:
+- the read must be complete (the floor in §4), whatever it found: a missed
+  link or unlink could only make another link count wrongly (`unavailable`);
+- copies the record's own keys did not sign are ignored. A link both keys
+  signed, or an unlink signed by the wallet or by that link's identity, of
+  which no copy verifies refuses the wallet (`record_unverified`,
+  `bad_anchor`). Copies of one unlink signed by different keys make one
+  unlink signed by each (`kb13`);
+- a link counts from its anchor. One not yet anchored does not count yet;
+- one identity at a time, in anchor order. A link anchored while another is
+  in force never counts, even after that one ends. Two anchored in one block
+  with none in force never count;
+- an unlink ends its link at the unlink's anchor. Asked about now, any unlink
+  ends it, anchored or not;
+- an unlink the wallet signed, of a link the read does not hold, refuses the
+  wallet (`unlink_without_link`). One signed only by an identity is ignored:
+  anyone can sign for their own address;
+- `at` asks about the block at that height instead of now: only links and
+  unlinks anchored at or below it count.
+
+**Whether it counts for an identity** (`judgeWalletLink`), given the
+identity's and the wallet's key holders (§4) and the wallet's link:
+
+| case | verdict |
+|---|---|
+| any of the three refused | refuse `unresolved` |
+| the wallet backs no identity | refuse `not_linked` |
+| it backs another identity | refuse `linked_elsewhere` |
+| the identity's complete read holds no binding, though the link names one | refuse `unresolved` |
+| another did:oc or binding than the identity's | refuse `link_mismatch` |
+| a since block below the takeover's | refuse `before_takeover` |
+| the identity's signature fails §5 at the link's anchor, its since block as `madeAfter` | refuse with §5's reason |
+| the wallet's signature fails §5 (the wallet is itself a bound address) | refuse `wallet_key_refused` |
+| otherwise | accept `linked` |
+
+So a custodial account never links: the key orangecheck holds signs nothing.
+A linked wallet's coins weigh for the identity as they weigh for the wallet
+address, through an attestation by the wallet address re-resolved against
+the chain; Stamp §8.1 step 7, Agent §4.4 and §8.4, and Pledge §8 say where.
+The wallet can still sign as itself, so its coins weigh for both addresses:
+a verifier that counts people rather than addresses treats a linked pair as
+one.
+
+## §7 Vectors
+
+`test-vectors/keys-v1.json`: 81 vectors (derivation `kd`, lock and open `kl`,
+record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
+`kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
+negative, each with `id`, `category`, `description`, `input` and `expected`
+(or `cases`).
 
 - Every secret and private key in it is a **disclosed burn key**, derived from
   a published label in `test/vectors.build.ts`. None guards anything. Never
@@ -296,8 +386,10 @@ Two cross-checks outside the TypeScript:
   BIP-39 encoding of I and W (against `test/bip39-english.txt`, pinned to the
   hash of the BIP's own list); both KEKs, every additional data, ciphertext
   and open; the record texts and ids; the issuer terms; the publication tags;
-  and the key-holder and signature rules over the records the vectors call
-  good (it does no curve math, so it takes their signatures as given).
+  the key-holder and signature rules over the records the vectors call good;
+  and the wallet-link rule over every `wallet_link` vector. It does no curve
+  math, so it takes signatures as given, and `wallet_link_copies` (copies
+  with bad signatures) is for a checker that can verify BIP-322.
 - `test/fedimint-xcheck/`: Fedimint's own HKDF crate and rust-bip39 print
   the root and client secrets `test/derive.test.ts` pins.
 

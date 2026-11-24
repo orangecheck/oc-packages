@@ -1,5 +1,5 @@
 // @orangecheck/keys: an account's two secrets, the lock, and the key-holder
-// records. The reference implementation of README.md; unreleased.
+// records with the wallet link. The reference implementation of README.md; unreleased.
 export { fromB64url, fromHex, randomSecret, toB64url, toHex } from './bytes';
 export {
     IDENTITY_PATH,
@@ -13,6 +13,7 @@ export {
     mnemonicToSecret,
     p2wpkhAddress,
     secretToMnemonic,
+    walletKey,
 } from './derive';
 export type { Identity, IdentityKeys, Wallet, WalletNetwork } from './derive';
 export {
@@ -31,6 +32,7 @@ export {
     D_TAG_PREFIX,
     RETIRE_REASONS,
     TAKEOVER_TRUST,
+    WALLET_LINK_ACK,
     bindingRecord,
     identitySign,
     identitySigns,
@@ -39,6 +41,7 @@ export {
     issuerRecord,
     issuerSign,
     judgeSignature,
+    judgeWalletLink,
     namedIssuer,
     parseRecord,
     publicationTags,
@@ -46,12 +49,19 @@ export {
     recordText,
     resolveIssuers,
     resolveKeyHolder,
+    resolveWalletLink,
     retireRecord,
     rotationSign,
     takeoverRecord,
     verifyRecord,
+    verifyWalletRecord,
+    walletLinkRecord,
+    walletLinkSign,
+    walletUnlinkRecord,
+    walletUnlinkSign,
 } from './records';
 export type {
+    AddressKey,
     AddressRecord,
     Anchored,
     BindingFields,
@@ -73,9 +83,19 @@ export type {
     SignatureVerdict,
     SignedIssuerRecord,
     SignedRecord,
+    SignedWalletRecord,
     Since,
     Step,
     TakeoverFields,
     VerifiedRecord,
+    VerifiedWalletRecord,
     VerifyContext,
+    WalletLinkFailure,
+    WalletLinkFields,
+    WalletLinkState,
+    WalletLinkVerdict,
+    WalletRecord,
+    WalletRecordFailure,
+    WalletSigners,
+    WalletUnlinkFields,
 } from './records';
