@@ -101,6 +101,21 @@ describe('the fields every delivery signs', () => {
         expect(r).toEqual({ ok: false, reason: 'older than the accepted age (issued_at)' });
     });
 
+    it('keeps the window it checked when the caller changes maxAgeSeconds during the key fetch', async () => {
+        const body = notice({ issued_at: new Date(NOW - 2 * 3600_000).toISOString() });
+        const jwk = { ...s.jwk, kid: 'wh-reread' };
+        const options = { project: 'pk_live_mine', maxAgeSeconds: 3600 };
+        vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+            // A shared options object reloaded from an unset env var while this call waits.
+            options.maxAgeSeconds = Number.NaN;
+            return new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
+        });
+        expect(await verify(body, await s.sign(body), 'wh-reread', options)).toEqual({
+            ok: false,
+            reason: 'older than the accepted age (issued_at)',
+        });
+    });
+
     it('takes five minutes ahead of this clock, and refuses more', async () => {
         expect((await check(notice({ issued_at: new Date(NOW + 300_000).toISOString() }))).ok).toBe(true);
         const r = await check(notice({ issued_at: new Date(NOW + 301_000).toISOString() }));
