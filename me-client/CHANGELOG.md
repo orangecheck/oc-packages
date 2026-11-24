@@ -10,6 +10,21 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.64.0] — 2026-11-24
+
+### Added
+
+- `webhook.verify` takes `project`, your project key, and refuses a delivery
+  signed for another project. It is optional until the next major version; a
+  verify without it warns once per process.
+- On success `webhook.verify` answers the delivery's signed `id`,
+  `project_key` and `issued_at`. Deduplicate on that `id`, for billable events
+  and project notices alike.
+- `maxAgeSeconds`: the oldest delivery accepted, in seconds since it was
+  signed. Defaults to a day.
+- `WebhookPayload` carries `project_key` and `issued_at`; `SystemWebhookPayload`
+  carries `id` and `issued_at`.
+
 ### Changed
 
 - **Every issuer and `meOrigin` is taken by auth-core's one rule**
@@ -25,6 +40,13 @@ this file tracks the package's TS / Node / runtime API surface.
   `exchangeNativeCode` before it sends anything. `webhook.verify` and
   `verifyActivityAttestation`, which never throw, answer `ok: false` with the
   rule as the reason and fetch nothing.
+- `webhook.verify` refuses a delivery whose signed body has no `id`,
+  `project_key` or `issued_at` (an ISO time in UTC, as `toISOString` writes
+  it), one signed more than a day ago, and one more than five minutes ahead
+  of this clock. me.ochk.io signs all three into every delivery, and has for
+  at least a day before this release. It signs each send as it sends it, a
+  retry or a dead letter sent again included, so a retry is as fresh as its
+  send and keeps the delivery's `id`.
 
 ### Now refused
 
@@ -49,31 +71,6 @@ As `meOrigin` anywhere, and as the issuer `webhook` and `identity` read keys
 from, which were taken as given: anything that is not one origin, all of the
 above included, plus a path, a query, a fragment, a user name, and plain http
 to any host but `localhost`, `127.0.0.1` and `[::1]`.
-
-## [0.64.0] — unreleased
-
-### Added
-
-- `webhook.verify` takes `project`, your project key, and refuses a delivery
-  signed for another project. It is optional until the next major version; a
-  verify without it warns once per process.
-- On success `webhook.verify` answers the delivery's signed `id`,
-  `project_key` and `issued_at`. Deduplicate on that `id`, for billable events
-  and project notices alike.
-- `maxAgeSeconds`: the oldest delivery accepted, in seconds since it was
-  signed. Defaults to a day.
-- `WebhookPayload` carries `project_key` and `issued_at`; `SystemWebhookPayload`
-  carries `id` and `issued_at`.
-
-### Changed
-
-- `webhook.verify` refuses a delivery whose signed body has no `id`,
-  `project_key` or `issued_at` (an ISO time in UTC, as `toISOString` writes
-  it), one signed more than a day ago, and one more than five minutes ahead
-  of this clock. me.ochk.io signs all three into every delivery, and has for
-  at least a day before this release. It signs each send as it sends it, a
-  retry or a dead letter sent again included, so a retry is as fresh as its
-  send and keeps the delivery's `id`.
 
 ## [0.63.0] — 2026-11-20
 
