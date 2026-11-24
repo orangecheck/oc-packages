@@ -1,0 +1,11 @@
+[package]
+name = "fedi-xcheck"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+fedimint-hkdf = "=0.9.1"
+bip39 = "=2.2.2"
+bitcoin_hashes = "=0.14.0"
+hex = "0.4"
