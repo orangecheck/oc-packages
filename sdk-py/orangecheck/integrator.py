@@ -1323,10 +1323,10 @@ def verify_webhook(
     again with a new ``issued_at``, so deduplicate on its ``id``.
 
     Raises :class:`InvalidWebhook` on any failure, and ``TypeError``, before it
-    reads the delivery, unless ``max_age`` is a finite number of 0 or more.
+    reads the delivery, unless ``max_age`` is a finite number above 0.
     """
-    if not _finite(max_age) or max_age < 0:
-        raise TypeError(f"max_age must be a finite number of seconds, 0 or more, got {max_age!r}")
+    if not _finite(max_age) or max_age <= 0:
+        raise TypeError(f"max_age must be a finite number of seconds above 0, got {max_age!r}")
     if project is None:
         _warn_no_project_once()
     sig_hex = _header(headers, "OC-Signature")
