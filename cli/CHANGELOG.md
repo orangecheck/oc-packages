@@ -9,6 +9,19 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.5.7] — 2026-11-24
+
+### Dependencies
+
+- `@orangecheck/sdk` ^1.28.0: `oc verify`, `oc check` and `oc challenge`
+  take a signature over the text without its final LF, which a wallet that
+  trims the text signs (OC Attest 2.2.0 SPEC §4.1).
+- `@orangecheck/chat-core` ^0.2.8, whose device reads take a record that
+  carries the bytes its binding signature covers (OC Lock 2.6.0 SPEC §3.3).
+- `@orangecheck/bip322` ^1.2.0, which holds a BIP-322 simple signature to a
+  transaction's low S and minimal CompactSizes (OC Attest 2.2.0 SPEC §4).
+- `@orangecheck/lock-device` ^0.9.0 for the tests.
+
 ## [0.5.6] — 2026-11-08
 
 ### Dependencies
