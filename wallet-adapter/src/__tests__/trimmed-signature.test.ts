@@ -2,10 +2,10 @@
 /**
  * Sparrow, Electrum's GUI, Nunchuk on Android and Bitcoin Keeper trim the text before they sign
  * it, which drops a message's final LF. The verifiers of an auth challenge, an attestation, a
- * bond and an OC Lock device bind or revocation take a signature made that way, so a pasted one
- * over those without their final LF passes here too. Any other message signed that way is
- * refused as trimmed, with words saying so, and every other edit of a message is still a
- * signature by no one asked.
+ * bond, an OC Lock device bind or revocation and a passkey binding take a signature made that
+ * way, so a pasted one over those without their final LF passes here too. Any other message
+ * signed that way is refused as trimmed, with words saying so, and every other edit of a
+ * message is still a signature by no one asked.
  */
 
 import { describe, expect, it } from "vitest";
@@ -33,6 +33,7 @@ const CHALLENGE =
 const ATTESTATION = `orangecheck\nidentities: github:alice\naddress: ${address}\n`;
 const BOND = `orangecheck-bond\naddress: ${address}\nack: x\n`;
 const DEVICE = `address: ${address}\ndevice_id: ${"f".repeat(32)}\n`;
+const PASSKEY_FIELDS = `address: ${address}\naccount: did:oc:${"e".repeat(32)}\nrp_id: ochk.io\n`;
 const TAKEN = [
   ["an auth challenge", CHALLENGE],
   ["an attestation", ATTESTATION],
@@ -40,10 +41,12 @@ const TAKEN = [
   ["a v2 device bind", `oc-lock:device-bind:v2\n${DEVICE}`],
   ["a v3 device bind", `oc-lock:device-bind:v3\n${DEVICE}`],
   ["a device revocation", `oc-lock:device-revoke:v2\n${DEVICE}`],
+  ["a passkey binding", `oc-passkey:bind:v1\n${PASSKEY_FIELDS}`],
 ] as const;
 const NOT_TAKEN = [
   "hello\n",
   `oc-lock:device-bind:v4\n${DEVICE}`,
+  `oc-passkey:bind:v2\n${PASSKEY_FIELDS}`,
   `orangecheck-authz\naddress: ${address}\n`,
   " " + CHALLENGE,
   "x" + ATTESTATION,
