@@ -45,7 +45,10 @@ this file tracks the package's TS / Node / runtime API surface.
   about the key this device just made. The result says how it went in
   `binding` (`{ ok: true }`, or `{ ok: false, reason }`); the key is
   registered for step-up either way, and a result with no statement offered
-  is as before.
+  is as before. A wallet that does not sign answers its own reason, read as
+  wallet-adapter reads it: `cancelled` (declined), `wrong_account`,
+  `wallet_not_found`, `timed_out`, `signature_trimmed` (signed without the
+  final line break, as wallet-adapter 0.8.1 reads it) or `sign_failed`.
 
 ## [2.51.0] — 2026-11-20
 
