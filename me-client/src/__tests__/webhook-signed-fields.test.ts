@@ -75,6 +75,31 @@ describe('the fields every delivery signs', () => {
         expect((await check(body, { project: 'pk_live_mine', maxAgeSeconds: 3600 })).ok).toBe(false);
     });
 
+    it.each([
+        ['NaN', Number.NaN],
+        ['Infinity', Number.POSITIVE_INFINITY],
+        ['a negative', -1],
+        ['a string', '3600'],
+        ['null', null],
+    ])('refuses every delivery, before any key is fetched, for a maxAgeSeconds of %s', async (_, maxAgeSeconds) => {
+        const fetch = vi.spyOn(globalThis, 'fetch');
+        const fresh = notice({ issued_at: new Date(NOW).toISOString() });
+        const reason = 'maxAgeSeconds must be a finite number of 0 or more';
+        expect(await check(fresh, { project: 'pk_live_mine', maxAgeSeconds })).toEqual({ ok: false, reason });
+        // Without a jwk, verify would fetch the key list first.
+        const body = notice();
+        const options = { project: 'pk_live_mine', maxAgeSeconds } as Record<string, unknown>;
+        expect(await verify(body, await s.sign(body), 'wh-fields', options)).toEqual({ ok: false, reason });
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('takes a maxAgeSeconds of 0: a delivery signed this moment, not one a second old', async () => {
+        const zero = { project: 'pk_live_mine', maxAgeSeconds: 0 };
+        expect((await check(notice({ issued_at: new Date(NOW).toISOString() }), zero)).ok).toBe(true);
+        const r = await check(notice({ issued_at: new Date(NOW - 1000).toISOString() }), zero);
+        expect(r).toEqual({ ok: false, reason: 'older than the accepted age (issued_at)' });
+    });
+
     it('takes five minutes ahead of this clock, and refuses more', async () => {
         expect((await check(notice({ issued_at: new Date(NOW + 300_000).toISOString() }))).ok).toBe(true);
         const r = await check(notice({ issued_at: new Date(NOW + 301_000).toISOString() }));

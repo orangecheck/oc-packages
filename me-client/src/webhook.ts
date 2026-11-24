@@ -99,7 +99,8 @@ export interface VerifyOptions {
      *  Optional until the next major version; without it, verify warns once. */
     project?: string;
     /** The oldest delivery accepted, in seconds since it was signed.
-     *  Defaults to 24 hours. */
+     *  Defaults to 24 hours when left out. Set to anything but a finite number
+     *  of 0 or more, it refuses every delivery. */
     maxAgeSeconds?: number;
 }
 
@@ -127,7 +128,7 @@ function isIsoTime(v: string): boolean {
 }
 
 /** The fields every delivery signs: its id, its project and when it was signed. */
-function signedFields(msg: Uint8Array, options: VerifyOptions): VerifyResult {
+function signedFields(msg: Uint8Array, options: VerifyOptions, maxAgeSeconds: number): VerifyResult {
     let parsed: unknown;
     try {
         parsed = JSON.parse(new TextDecoder().decode(msg));
@@ -152,7 +153,7 @@ function signedFields(msg: Uint8Array, options: VerifyOptions): VerifyResult {
         return { ok: false, reason: `signed for another project (${project_key})` };
     }
     const age = Date.now() - Date.parse(issued_at);
-    if (age > (options.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS) * 1000) {
+    if (age > maxAgeSeconds * 1000) {
         return { ok: false, reason: 'older than the accepted age (issued_at)' };
     }
     if (-age > FUTURE_SKEW_MS) return { ok: false, reason: 'issued_at is in the future' };
@@ -286,6 +287,11 @@ export async function verify(
     options: VerifyOptions = {}
 ): Promise<VerifyResult> {
     if (options.project === undefined) warnNoProjectOnce();
+    // A NaN from an unset env var compares false with every age.
+    const maxAgeSeconds = options.maxAgeSeconds === undefined ? DEFAULT_MAX_AGE_SECONDS : options.maxAgeSeconds;
+    if (!Number.isFinite(maxAgeSeconds) || maxAgeSeconds < 0) {
+        return { ok: false, reason: 'maxAgeSeconds must be a finite number of 0 or more' };
+    }
     if (!sigHex) return { ok: false, reason: 'missing signature' };
     if (!kid) return { ok: false, reason: 'missing kid' };
     const sig = hexToBytes(sigHex);
@@ -323,7 +329,7 @@ export async function verify(
     }
 
     if (!(await verifyEd25519(key, sig, msg))) return { ok: false, reason: 'signature does not match' };
-    return signedFields(msg, options);
+    return signedFields(msg, options, maxAgeSeconds);
 }
 
 /** Force-refresh the JWKS cache. Useful after a key rotation event
