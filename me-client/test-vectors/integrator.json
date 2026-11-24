@@ -490,6 +490,18 @@
                 "reason": "incomplete"
             },
             {
+                "name": "issued_at with a digit that is not 0-9",
+                "headers": {
+                    "OC-Signature": "328e68e7f11234a46e74c6ee7c4afc0be67699574ff5dde3cd708960579b6f451bac5b7bbec6329f86e698edbfb795e21ce3479081a933441c3e3a3c04900e0d",
+                    "OC-Key-Id": "tv-webhook-1",
+                    "OC-Envelope-Id": "oc-me-tv-1",
+                    "OC-Class": "A"
+                },
+                "body": "{\"id\":\"oc-me-tv-1\",\"subtype\":\"account_created\",\"class\":\"A\",\"kind\":\"oc-billable-event\",\"sub\":\"ps_tv_0001\",\"project_key\":\"pk_test_tv\",\"issued_at\":\"2027-01-15T07:58:00.12٣Z\"}",
+                "project": "pk_test_tv",
+                "reason": "incomplete"
+            },
+            {
                 "name": "no id",
                 "headers": {
                     "OC-Signature": "e321ebda5d17c663f2c761d57cbc12d0c7071de92fa18c6ae193de6c6d6ff0d840462667ab6d2685edf1660d7a98bbcf00b22bf5efdcf9893ae6f120055dad09",
