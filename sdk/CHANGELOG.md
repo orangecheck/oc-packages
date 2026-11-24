@@ -42,6 +42,12 @@ this file tracks the package's TS / Node / runtime API surface.
   without it. It is the check the functions above make, synchronous, for a
   caller that verifies a signature itself. Pass it the canonical text.
 
+### Dependencies
+
+- `@orangecheck/bip322` ^1.2.0, so `verify()`, `signatureIsValid()`,
+  `signsText()` and `verifyBondSignature()` hold a BIP-322 simple signature
+  to the rules OC Attest 2.2.0 SPEC §4 names (vector `tv35`).
+
 ## [1.27.0] — 2026-11-22
 
 ### Changed
