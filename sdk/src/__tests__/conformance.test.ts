@@ -18,9 +18,8 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import { hexToBytes } from '@noble/hashes/utils.js';
 import { verifySignature } from '@orangecheck/bip322';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -384,31 +383,6 @@ describe('conformance: network_prefix (SPEC §7.1 step 3)', () => {
     }
 });
 
-/** tv35 cases @orangecheck/bip322 1.1.3 verifies, which 1.2.0 refuses (SPEC §4). */
-const BIP322_BELOW_1_2: Record<string, readonly string[]> = {
-    tv35: [
-        'BIP-322 simple on bc1q with a high S',
-        'BIP-322 simple on 3… (P2SH-P2WPKH) with a high S',
-        'BIP-322 simple on bc1q with its item count not a minimal CompactSize',
-        'BIP-322 simple on bc1p with its signature length not a minimal CompactSize',
-    ],
-};
-
-/** The installed @orangecheck/bip322's version, from its package.json. */
-const installedBip322 = ((): string => {
-    for (let dir = dirname(createRequire(__filename).resolve('@orangecheck/bip322')); ; dir = dirname(dir)) {
-        const file = join(dir, 'package.json');
-        const pkg = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
-        if (pkg?.name === '@orangecheck/bip322') return pkg.version as string;
-        if (dirname(dir) === dir) throw new Error('no package.json for @orangecheck/bip322');
-    }
-})();
-
-function atLeast(version: string, [major, minor]: [number, number]): boolean {
-    const [a = 0, b = 0] = version.split('.').map(Number);
-    return a > major || (a === major && b >= minor);
-}
-
 describe('conformance: signature_scheme (SPEC §4)', () => {
     // The signature's bytes decide each code, whichever scheme the caller names.
     // Each valid signature goes on to read the chain, stubbed here with no coins.
@@ -423,23 +397,15 @@ describe('conformance: signature_scheme (SPEC §4)', () => {
         vi.unstubAllGlobals();
     });
     const SIGNATURE_CODES: StatusCode[] = ['sig_ok_bip322', 'sig_ok_legacy', 'sig_invalid', 'sig_unsupported_script'];
-    const below = (version: string) => !atLeast(version.replace(/^[^\d]*/, ''), [1, 2]);
 
     for (const v of vectors.filter((x) => x.category === 'signature_scheme')) {
         const input = v.input as {
             now: string;
             cases: { name: string; address: string; message: string; signature: string; code: StatusCode }[];
         };
-        const pinned = below(installedBip322) ? (BIP322_BELOW_1_2[v.id] ?? []) : [];
         it.each(input.cases.map((c) => [c.name, c] as const))(`${v.id}: %s`, async (_, c) => {
             vi.useFakeTimers({ toFake: ['Date'] });
             vi.setSystemTime(new Date(input.now));
-            if (pinned.includes(c.name)) {
-                // Below 1.2.0, bip322 still takes it; the vector's code holds from ^1.2.0.
-                expect(c.code).toBe('sig_invalid');
-                expect(verifySignature(c.address, c.message, c.signature)).toBe(true);
-                return;
-            }
             expect(verifySignature(c.address, c.message, c.signature)).toBe(c.code.startsWith('sig_ok_'));
             for (const scheme of ['bip322', 'legacy'] as const) {
                 const r = await verify({ addr: c.address, msg: c.message, sig: c.signature, scheme });
@@ -447,23 +413,6 @@ describe('conformance: signature_scheme (SPEC §4)', () => {
             }
         });
     }
-});
-
-describe('the cases bip322 below 1.2.0 takes (SPEC §4)', () => {
-    it('are cases their vector has', () => {
-        for (const [id, names] of Object.entries(BIP322_BELOW_1_2)) {
-            const v = vectors.find((x) => x.id === id);
-            const cases = (v?.input as { cases: { name: string }[] } | undefined)?.cases ?? [];
-            expect(names.filter((n) => !cases.some((c) => c.name === n))).toEqual([]);
-        }
-    });
-
-    it('are gone once sdk takes bip322 ^1.2.0', () => {
-        const range = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf8')).dependencies[
-            '@orangecheck/bip322'
-        ] as string;
-        if (atLeast(range.replace(/^[^\d]*/, ''), [1, 2])) expect(BIP322_BELOW_1_2).toEqual({});
-    });
 });
 
 describe('conformance: signed_text (SPEC §4.1)', () => {
