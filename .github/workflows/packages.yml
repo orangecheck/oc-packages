@@ -189,6 +189,7 @@ jobs:
                     - design
                     - app-design
                     - site-kit
+                    - keys
         defaults:
             run:
                 working-directory: ${{ matrix.pkg }}

@@ -1,0 +1,1165 @@
+{
+  "version": "oc-keys/v1",
+  "note": "Every secret and private key here is a disclosed burn key, derived from a published label (keys/test/vectors.build.ts). None guards anything; never send funds to these addresses. Rebuild with `yarn vectors` in keys/.",
+  "constants": {
+    "prf_salt": "e4d03c3a1c9165d61a17d310c9bf82d2ba5191dbfa6f4dcd179bbde36fde9fc9",
+    "passkey_kek_info": "oc-keys/v1 passkey kek",
+    "phrase_kek_info": "oc-keys/v1 phrase kek",
+    "identity_path": "m/84'/0'/0'/0/0",
+    "nostr_path": "m/44'/1237'/0'/0/0",
+    "fedimint_client_salt": "Fedimint Client Salt"
+  },
+  "chain": {
+    "headers": {
+      "977000": "00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da",
+      "977100": "00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783",
+      "977200": "000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947"
+    }
+  },
+  "issuers": [
+    "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a"
+  ],
+  "burn_keys": {
+    "issuer": {
+      "private_key": "c763bcf1a8f8e00740f6c38b20992ace13ec53ee0d1a5fcbc212f003cc5c87c8",
+      "address": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a"
+    },
+    "stranger_issuer": {
+      "private_key": "c274257937385c0505e1a1d83fc9356a2a031c2404382f0e94788b311ad94742",
+      "address": "bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep"
+    },
+    "bip340_aux": "efd5697e1d9a05d5661c9e71569df845e9e49ac0f7babaa8373a36c08a32af50"
+  },
+  "vectors": [
+    {
+      "id": "kd01",
+      "category": "derivation",
+      "description": "account A: identity address, Nostr key, wallet and Fedimint root",
+      "input": {
+        "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+        "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1",
+        "federation_id": "2cf7297445c5372c19295aeb657bc91d6da44fc751b5567686bafbb2f6a91df8"
+      },
+      "expected": {
+        "identity": {
+          "mnemonic": "various pig need pool perfect prosper cram unaware smoke primary design seat bring elder ginger venue obscure evolve regret dial alarm man tissue garden",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nostr": "c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574",
+          "npub": "npub1c0cphnnspnzsqaen275lrxgh68vm67r2n86y7gpnczsdx3quj46qac75p2"
+        },
+        "wallet": {
+          "mnemonic": "room axis present energy super lion coach crunch piano space title news knee wood crumble polar grain enhance dizzy web double moment need color",
+          "fingerprint": "9dd677e8",
+          "mainnet": {
+            "account_path": "m/84'/0'/0'",
+            "account_xpub": "xpub6CpsQPQrfJrutsw7ZnApStjyxjnseL82nZWqRrLvB1FmLo2UnTNKd92Css5CFhKUJVrbM2g51idpPJKzWiSaXDR8TcFbsc8CiQQEcXftzgj",
+            "receive_0": "bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n",
+            "change_0": "bc1q5lf8dpvf7q35myyar0cgjq695reqn7tnw8jyqk"
+          },
+          "testnet": {
+            "account_path": "m/84'/1'/0'",
+            "account_xpub": "tpubDCM3j6mKTe6Ccm7VBp3mJMCTuVkoS4updMDDzNpi9tiWpD4HQNgAeAgqpWfbxCwL61PKdEHY8WN4QA1F2ZYrfBw89SBzTq47BH19NDf39Lr",
+            "receive_0": "tb1q9yvgsw0z6ykvk39xc26aput4scyn9kng4sj6he",
+            "change_0": "tb1qxsclx95058shk2j7mj75evvdl235zzfdwweh9n"
+          },
+          "fedimint_root_prk": "ebdba31d77fda181037d3c809982e1b8ed2daecb797c3c4ca57755cc04c86f99ec2061d361068acc9c1a47bc2d4fe624a44128d16a72153ba3da41ea35c4753a",
+          "fedimint_client_prk": "811853fb19c68ed486d7c65f51fd4ec43e6059f2abb4922157d6714b5f30e95f3ad4832e3a053520c9af6e84efa2567498e14d1f8786f0f57761dc01ac54ca09"
+        }
+      }
+    },
+    {
+      "id": "kd02",
+      "category": "derivation",
+      "description": "account B: the same derivations for another pair of secrets",
+      "input": {
+        "identity_secret": "d55871406937e1816359ff6ce5eff57d63e9e45a13ab6825fb18fdd8278c1477",
+        "wallet_secret": "ec4afe33af1be31aba8ff450b2d6e4308ff2901a46a022b9e7566d9fc003555a",
+        "federation_id": "2cf7297445c5372c19295aeb657bc91d6da44fc751b5567686bafbb2f6a91df8"
+      },
+      "expected": {
+        "identity": {
+          "mnemonic": "stem seminar exotic sponsor lawn scheme miracle divide hollow control wool width direct vendor hair install habit cool shiver wing list ship fade whip",
+          "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+          "nostr": "1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3",
+          "npub": "npub1ra4y9s6ktf3m95t6jgmj6s09k6ynn9nvdj3247nnf6tm4y5282esq8zsfc"
+        },
+        "wallet": {
+          "mnemonic": "unable fitness mind funny sail minute tuition write expose note ribbon genre you elite harbor staff cargo song stereo swamp winter accuse fever fire",
+          "fingerprint": "efd53e55",
+          "mainnet": {
+            "account_path": "m/84'/0'/0'",
+            "account_xpub": "xpub6CRATPAY1ySSMA5B3U58hZqAiP1bzSWbfSMQpmvH3Ct3u6pW4u1aLk2PUJd8mvLMwFUFgzmFdXUXVFt4ss1iMdCwxCNZAw5XTnwc863R6L9",
+            "receive_0": "bc1q40az7ffl7wzrd3rdmy7mmggxuwvm9y23lfhmqn",
+            "change_0": "bc1qq6ssuk64y302n5nzu2mcv5t2fgfujjmary8def"
+          },
+          "testnet": {
+            "account_path": "m/84'/1'/0'",
+            "account_xpub": "tpubDCTiS67G4n5L9j6dDenPcC3Ls5UudTtj2xsrX1qb8VA86ktmF134uWpURqyk4MhpnBxQXfnsM9exaSmsZ3PWq4cjKPJBs8PQUamQc9ZoJ3J",
+            "receive_0": "tb1q4svyn0s7je0wvkd7j52l6mtczknt3ysvy80a0z",
+            "change_0": "tb1qc6xetuy8xs6xjnepvmggv9npnd7n74d79zwf32"
+          },
+          "fedimint_root_prk": "50367df4790350a0ef211b520b6b42a9ab07ca8d359985bdad3ddfd570ae732e0a0e0c562b6c68421ea0579a1b5f0443188c0eaf7c39f3553953cf051765e611",
+          "fedimint_client_prk": "574dbb3fd8713393283d4ce13647dbb22dbef9f642f7817a9cc45953a8164b30699c8a91867afb162d4bdc27cd164adb2584c30f000fb712307fd6cab14aedca"
+        }
+      }
+    },
+    {
+      "id": "kl01",
+      "category": "lock",
+      "description": "passkey 1 locks {I, W}; its PRF output opens it",
+      "input": {
+        "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+        "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1",
+        "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+        "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+        "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894",
+        "nonce": "BWO01-Kr7DGDkBl1"
+      },
+      "expected": {
+        "kek": "fcbac61c2e7b793c2fe9dc80b058bfa57953bced2cdaf28a235cdcb29ce812fb",
+        "aad": "oc-keys:lock:v1\nmethod: passkey\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\ncredential_id: hUQZxs9EaalhNhYmMDg49A\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\n",
+        "copy": {
+          "v": 1,
+          "method": "passkey",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "BWO01-Kr7DGDkBl1",
+          "ciphertext": "H9CK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+        },
+        "opens": {
+          "ok": true,
+          "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+          "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1"
+        }
+      }
+    },
+    {
+      "id": "kl02",
+      "category": "lock",
+      "description": "a second passkey locks the same {I, W} and opens to the same secrets",
+      "input": {
+        "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+        "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1",
+        "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+        "credential_id": "wwqc33JT8jl3Si4y_RUjjg",
+        "prf_output": "5aea2a4d819165caedfb25ed66daeffa17c263ced537c3ca51b3e7151be57814",
+        "nonce": "NMNgsE8taabzqAiY"
+      },
+      "expected": {
+        "kek": "81be84c52cb09bc0e04a9601c248944bbf6694372c51910699c9cc7bc5dd58b1",
+        "aad": "oc-keys:lock:v1\nmethod: passkey\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\ncredential_id: wwqc33JT8jl3Si4y_RUjjg\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\n",
+        "copy": {
+          "v": 1,
+          "method": "passkey",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "credential_id": "wwqc33JT8jl3Si4y_RUjjg",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "NMNgsE8taabzqAiY",
+          "ciphertext": "S90rhxZmBEzd88ElpXKPv9VP0PrkOTtl7GhAfmYmeKiA9L4JQ0xjbhcKM-PW-ENUTTruH3472GE7vjxt654Xw4JjE53ni0buQ2G9PGFKLkY"
+        },
+        "opens": {
+          "ok": true,
+          "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+          "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1"
+        }
+      }
+    },
+    {
+      "id": "kl03",
+      "category": "lock_phrase",
+      "description": "the recovery phrase is W's 24 words; it opens the copy of I locked under W",
+      "input": {
+        "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+        "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1",
+        "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+        "nonce": "_jarpnnkTVSt2jAI"
+      },
+      "expected": {
+        "phrase": "room axis present energy super lion coach crunch piano space title news knee wood crumble polar grain enhance dizzy web double moment need color",
+        "kek": "1f44bca173342f03e75b240620bb54c14a033b4268fa457a96e252f933ccd12f",
+        "aad": "oc-keys:lock:v1\nmethod: phrase\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\n",
+        "copy": {
+          "v": 1,
+          "method": "phrase",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "_jarpnnkTVSt2jAI",
+          "ciphertext": "89p39Y1k1mfA2zrUUgtE871PxPrTtpC8JLUiiN3Opu3Qr5XD9HgXsmovzayCbqf1"
+        },
+        "opens": {
+          "ok": true,
+          "identity_secret": "f194924f540a31590c8f63ccd554ef6121c28e9887939849c6d29e805d0db8b2",
+          "wallet_secret": "bbe21ea8250d9b044b29a7a41a0b8bca97b9fa4d353b65895100fc641b1de4f1"
+        }
+      }
+    },
+    {
+      "id": "kl04",
+      "category": "open",
+      "description": "wrong credential: passkey 2's PRF output does not open passkey 1's copy",
+      "input": {
+        "copy": {
+          "v": 1,
+          "method": "passkey",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "BWO01-Kr7DGDkBl1",
+          "ciphertext": "H9CK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+        },
+        "prf_output": "5aea2a4d819165caedfb25ed66daeffa17c263ced537c3ca51b3e7151be57814"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "lock_open_failed"
+      }
+    },
+    {
+      "id": "kl05",
+      "category": "open",
+      "description": "tampered ciphertext: one bit flipped",
+      "input": {
+        "copy": {
+          "v": 1,
+          "method": "passkey",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "BWO01-Kr7DGDkBl1",
+          "ciphertext": "HtCK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+        },
+        "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "lock_open_failed"
+      }
+    },
+    {
+      "id": "kl06",
+      "category": "open",
+      "description": "wrong AAD: the copy is unchanged but a field it is bound to says something else",
+      "cases": [
+        {
+          "name": "another did:oc",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "passkey",
+              "did_oc": "did:oc:fedcba9876543210fedcba9876543210",
+              "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "BWO01-Kr7DGDkBl1",
+              "ciphertext": "H9CK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+            },
+            "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "lock_open_failed"
+          }
+        },
+        {
+          "name": "another identity address",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "passkey",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+              "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+              "nonce": "BWO01-Kr7DGDkBl1",
+              "ciphertext": "H9CK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+            },
+            "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "lock_open_failed"
+          }
+        },
+        {
+          "name": "passkey 2's credential id",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "passkey",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "credential_id": "wwqc33JT8jl3Si4y_RUjjg",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "BWO01-Kr7DGDkBl1",
+              "ciphertext": "H9CK6jD9tJ0bs39wFmRS167BKxC1ANlH71qpiJOY7gjiB5m4NttaqkIvB5eUjASmm1tDr5-cr54GnEikKRpwEqXpxb72j3PCetE-kSEM_kE"
+            },
+            "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "lock_open_failed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kl07",
+      "category": "open_phrase",
+      "description": "the phrase copy opens only with W",
+      "cases": [
+        {
+          "name": "B's valid phrase",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "phrase",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "_jarpnnkTVSt2jAI",
+              "ciphertext": "89p39Y1k1mfA2zrUUgtE871PxPrTtpC8JLUiiN3Opu3Qr5XD9HgXsmovzayCbqf1"
+            },
+            "phrase": "unable fitness mind funny sail minute tuition write expose note ribbon genre you elite harbor staff cargo song stereo swamp winter accuse fever fire"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "lock_open_failed"
+          }
+        },
+        {
+          "name": "a bad checksum",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "phrase",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "_jarpnnkTVSt2jAI",
+              "ciphertext": "89p39Y1k1mfA2zrUUgtE871PxPrTtpC8JLUiiN3Opu3Qr5XD9HgXsmovzayCbqf1"
+            },
+            "phrase": "color need moment double web dizzy enhance grain polar crumble wood knee news title space piano crunch coach lion super energy present axis room"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "phrase_invalid"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kl08",
+      "category": "open",
+      "description": "sealed correctly, but the identity secret inside is not the copy's address",
+      "input": {
+        "copy": {
+          "v": 1,
+          "method": "passkey",
+          "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+          "credential_id": "hUQZxs9EaalhNhYmMDg49A",
+          "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+          "nonce": "bopJ72wQZ7vn4zwB",
+          "ciphertext": "FRbqcKFrTOmw7EsJWR3ooucHFm4XKxOUUj3sWMPyI8jd5H3oSgjIWGcJymeWYyU0k054i2WFGfeWangaWER5MG8p19KnNVPfjDXqCuziJfI"
+        },
+        "prf_output": "edb47489c7d22733cf1407c5e94bafdf2a636875d212a2198c8708e5be554894"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "bundle_address_mismatch"
+      }
+    },
+    {
+      "id": "kl09",
+      "category": "open_phrase",
+      "description": "sealed correctly under A's phrase, but the identity secret inside is not the copy's address",
+      "cases": [
+        {
+          "name": "B's identity secret",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "phrase",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "6Gf_qGiwjq2rHmF_",
+              "ciphertext": "__uf8OddOAVzZoalg28oN7EZmTCXyQnsJ3SRmiu0p3RW64O6DONK9qaJ_yoJxNvS"
+            },
+            "phrase": "room axis present energy super lion coach crunch piano space title news knee wood crumble polar grain enhance dizzy web double moment need color"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "bundle_address_mismatch"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kr01",
+      "category": "record",
+      "description": "custodial binding: issuer-signed only, because a custodial key signs nothing",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+      },
+      "expected": {
+        "ok": true,
+        "id": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e",
+        "type": "binding"
+      }
+    },
+    {
+      "id": "kr02",
+      "category": "record",
+      "description": "self binding (passkey first): issuer, identity address and Nostr key",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+        "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+        "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+      },
+      "expected": {
+        "ok": true,
+        "id": "9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b",
+        "type": "binding"
+      }
+    },
+    {
+      "id": "kr03",
+      "category": "record",
+      "description": "takeover of A's custodial binding",
+      "input": {
+        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+        "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+        "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+      },
+      "expected": {
+        "ok": true,
+        "id": "1fbfe6f8caa4d7dbac5748573e5ded5a920b9001352ddf7dc15a10e64b97c39e",
+        "type": "takeover"
+      }
+    },
+    {
+      "id": "kr04",
+      "category": "record",
+      "description": "retire of C's custodial binding",
+      "input": {
+        "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+        "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+      },
+      "expected": {
+        "ok": true,
+        "id": "43ca5a7f3117a8f5959303d4a092364e754a2b25c8ed3a82c62fac4f28633a4b",
+        "type": "retire"
+      }
+    },
+    {
+      "id": "kr05",
+      "category": "record",
+      "description": "signature by the wrong address: the takeover's address_sig is B's",
+      "input": {
+        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+        "address_sig": "AkcwRAIgeaWM7bwX4i71eKx97lSmmT3skuPP6aKMBx6f+EiafTcCICjEzhQ3Py2oVYUKElXAm+VJ7aXVqz8jvmJhD8s7PTkyASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
+        "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "address_sig_invalid"
+      }
+    },
+    {
+      "id": "kr06",
+      "category": "record",
+      "description": "a custodial binding carrying a signature by its own (custodial) key",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+        "address_sig": "AkcwRAIgIfo+xAAq8JioJ3QbrV1j0MdK/L15kqX3F31voy++8zQCIBaodTA3GvRXoAfllIMwQkJ8FQQMlHurvIMl3kYRpIIkASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI="
+      },
+      "expected": {
+        "ok": false,
+        "reason": "custodial_key_signed"
+      }
+    },
+    {
+      "id": "kr07",
+      "category": "record",
+      "description": "issued and signed by an issuer the verifier does not trust",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkcwRAIgR1phT4ZHxoR1MP/YU3+t6zgjNTs20ioc8xk95ZcJSDQCIGxQw2wlwZsf5ukvDcg+vfH7f7NhLEZHGVF2O0zrgZD/ASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+      },
+      "expected": {
+        "ok": false,
+        "reason": "issuer_unknown"
+      }
+    },
+    {
+      "id": "kr08",
+      "category": "record",
+      "description": "names the trusted issuer, but the issuer signature is another key's",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkgwRQIhAM2EMvQHopdYwZJLQMnJ7NnlV7PivCaj/J1B2fIHAy+7AiBiHB83MXOuM/9zldTdfgyEPxo6kgyeSqVZMl+hYkenYgEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "issuer_sig_invalid"
+      }
+    },
+    {
+      "id": "kr09",
+      "category": "record",
+      "description": "not canonical text",
+      "cases": [
+        {
+          "name": "CRLF line ends",
+          "input": {
+            "record": "oc-keys:binding:v1\r\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\r\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\r\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\r\ncustody: orangecheck\r\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\r\nsince_height: 977000\r\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\r\n",
+            "issuer_sig": "AkcwRAIgJIYMSe8TS0NFe0Z19cMEYQ0WSXSZ/qwWtoxaFRfpZxgCIFLnhDHTpa9PES3ixhxJ5MrKQINY17LUKX40v/tpirs6ASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "no final LF",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da",
+            "issuer_sig": "AkgwRQIhAIT21QBJhP7auM/20sKLlX1goQwyJFOyTqn3/+jcEqKUAiAnb+zdln2qIKI7fXyZEFEmR9mDRzsN7T8zaf0g3ZYuMgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "two final LFs",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n\n",
+            "issuer_sig": "AkgwRQIhAKwwUyHeYPzCYagfLYF0l/J+fWcxr6MgwUyeCBVrUHX1AiA7b+y+a7PrBx/Q3wsfwBle9lorL98LfChaD/Va2tg0VgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "a padded value",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck \nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAJMb1KjmOBDKxA/0ZHcmXuG499DQplpAXBYf66OIIqdnAiAL7v0MFbulHDZiuDoCVPuFM8ZZ1JfKwF1mf080A+4K1QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "fields out of order",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgBbta+qC/2Eju5glYOoFYlXqrw1DB5Mpf58EfJP9vFfACIFMUIeU1TeTeNKRhIKk0hkGro6I96Fu7aHVDCE/cgYsJASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "capital custody",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: Orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAMzCAZD6sodsqcZawsyyb+bcTenlOGpok+Oc2PY3+ylCAiBpeHRiSHYfWb0Xf+SsYIuiIXp5RyhNyxU7fO99euNSZwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "height with a leading zero",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 0977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgZStksrG9aaT7JIQW0xDxf1VeqBouHYt7GxkaLNLZGi0CIBoCBl2jPRvFIgAoknDBosG+XL1vNeYImsO9w2wYitBkASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "an unknown field",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nnote: hi\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgNO0M8JCTmtNA7dq1JVeBoXTCd3Ppz7ISeeJDHYcgq+MCICNep1ZSM1Ev1eCW7TaCPPC6rW9q9jTxwyOz6QzNXznhASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "uppercase address",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: BC1Q2T7HHWRQWV8S2YQQLFSTRLJY3EG7J9SY6LKWDX\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhANPVZVpxx4tEkfvzBpY1DBotf9RZesopZGJUgue4cm+BAiAlkkCMoq5AV+CNJen/1pMt9ApYXWXiei5jyzZCkgr2RgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        },
+        {
+          "name": "changed trust line",
+          "input": {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That can be proven.\n",
+            "issuer_sig": "AkgwRQIhAIlmTblQUpEegPg5VitWBs6AcF9f7IyVQ1YVuChu2BvCAiBkfA1RGaNuKZtAJv2xKzRr2BDgDZCNly2BzSZlKMBLxgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kr10",
+      "category": "record",
+      "description": "since: the named block must be the verifier's block at that height",
+      "cases": [
+        {
+          "name": "977100's hash at height 977000",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+            "issuer_sig": "AkgwRQIhAMcRMFWLTDkhxNZjTvEaIHL9ds5wTt05DyA2+not092aAiBfe2RTFxtFlTX7ihftV7JvuBvnI3VcTUPsGRMWUAzjEwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "since_not_on_chain"
+          }
+        },
+        {
+          "name": "a height the verifier has no header for",
+          "input": {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
+            "issuer_sig": "AkgwRQIhAOZMVyWBcC3RqevJ+IZZU3UisWmhfDPVDYkpP7kArf2GAiAmw+BKRO9PRQYFf98GXBch2YfiRwN8+H2ncOyV1pqeQQEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "since_unverified"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kr11",
+      "category": "record",
+      "description": "the takeover's nostr_sig is by B's Nostr key",
+      "input": {
+        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+        "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+        "nostr_sig": "0d0fc31cb97132ff807b9f389d61a857798a2b9b0957861235e3ff6dfd3ab54f2fd4495351a7860938645d21660d967d2f04d952c4bdc0366f55bd7cd4af19ad"
+      },
+      "expected": {
+        "ok": false,
+        "reason": "nostr_sig_invalid"
+      }
+    },
+    {
+      "id": "kr12",
+      "category": "record",
+      "description": "a self binding with no identity signature",
+      "input": {
+        "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+        "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+      },
+      "expected": {
+        "ok": false,
+        "reason": "address_sig_missing"
+      }
+    },
+    {
+      "id": "kc01",
+      "category": "custody",
+      "description": "a custodial binding alone: custodial",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "custody": "orangecheck",
+        "born": "orangecheck",
+        "binding": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e"
+      }
+    },
+    {
+      "id": "kc02",
+      "category": "custody",
+      "description": "a custodial binding and its takeover: self, since the takeover block",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+          },
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "custody": "self",
+        "born": "orangecheck",
+        "binding": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e",
+        "takeover": "1fbfe6f8caa4d7dbac5748573e5ded5a920b9001352ddf7dc15a10e64b97c39e",
+        "takeover_since_height": 977100
+      }
+    },
+    {
+      "id": "kc03",
+      "category": "custody",
+      "description": "a self binding alone: self from birth",
+      "input": {
+        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "custody": "self",
+        "born": "self",
+        "binding": "9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b"
+      }
+    },
+    {
+      "id": "kc04",
+      "category": "custody",
+      "description": "a custodial binding and its retire: retired",
+      "input": {
+        "address": "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhANbjz0sbDIwaMiqiCrhphKZmeSGY+Gs7OtR0kscvwHMYAiB+wgLbur9DPALk4MOo79VWxxn6rmYzV2eCWGXVneAqRgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+            "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "custody": "retired",
+        "born": "orangecheck",
+        "binding": "1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40"
+      }
+    },
+    {
+      "id": "kc05",
+      "category": "custody",
+      "description": "custody flip with no takeover: a self binding beside the custodial one",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+            "issuer_sig": "AkcwRAIgRwRnC/nDFYhjcrWO6+ygiHhTvcGAtS1GPZyJV7x411MCIHOWP0fkK5+c5YwjwZOWlFSxXqusWnThn6Gkh/48mspdASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAN4gM83W+JekFdKnDtkwJApDTf0HPni+VhZbFm2/i23kAiA/0XvxgoBi8fgE/0b95eCkQhE3UnUEhYeoQnRQKTK90QEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "f3c955d4f37fb2bdcf4e34c5bfbb64f2e8e447ff6ea13d38025e5baad71fc7f22f10c668c5765df3af6f43f9455177036e745d9d3ea26b655c7f4e68522f4bcf"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "custody_flip_without_takeover"
+      }
+    },
+    {
+      "id": "kc06",
+      "category": "custody",
+      "description": "a takeover naming another binding's id",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkgwRQIhAN69MzWk4ZpfKcUZSUBo6OMKydxk9RU3JqDnXYrOlymFAiAkk58Ut3NVvFgugnsuQ8vlXzvbNCNhoq6dU9w6ooZLiwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+            "address_sig": "AkgwRQIhAK9dSXeQBhHVi/rywop+NTdGqClldvgRR/iPPi/BWrXYAiAcjDQuR2hcpb5yShoo2Lrlx4YAKWvFhLLZz5dvdR0aswEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "b7844190405dec23a39abc56748a4aa9f75b46509698cd1163edfbe73fd14f87ff01aab2417e1bafa8e52954d8bbe758ef03b6b6ace18ba05d78d1035317bcc4"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "takeover_wrong_binding"
+      }
+    },
+    {
+      "id": "kc07",
+      "category": "custody",
+      "description": "a takeover of a binding that was never custodial",
+      "input": {
+        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nbinding: 9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgdrNjJXZ7L3Usr5qFvJDzosS4FHR82E8ybhfv2ADEyTsCIAlAqYoalsXIV508/xli74qWNKhjNtgB6Y8OprNeUc8LASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkcwRAIgL8mn/qnrDfYRa6mybdnQ+pYcC5STY+gMeeySyHuLeDUCIHk4MJsPXPqVJJGOq2H8XRGzaB6yKo8PJhFCrcHOOJsjASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
+            "nostr_sig": "0d0fc31cb97132ff807b9f389d61a857798a2b9b0957861235e3ff6dfd3ab54f2fd4495351a7860938645d21660d967d2f04d952c4bdc0366f55bd7cd4af19ad"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "takeover_of_self_binding"
+      }
+    },
+    {
+      "id": "kc08",
+      "category": "custody",
+      "description": "a retire after a takeover: the key is the user’s, and orangecheck cannot retire it",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+          },
+          {
+            "record": "oc-keys:retire:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\nreason: withdrawn\n",
+            "issuer_sig": "AkcwRAIgfh3PFjRLSgK5Jr91qY/T0o3Xj70CK+gWYn1paoXAiJ0CIADjw9qK1YkAxdDUjlJgbgtUOa9th+v9i6SqdtLOUc3kASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "retire_after_takeover"
+      }
+    },
+    {
+      "id": "kc09",
+      "category": "custody",
+      "description": "a takeover whose since block is below its binding’s",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
+            "issuer_sig": "AkgwRQIhALUtaEjCqixjoN1tsNYHVXM71dTNoIHEf+/xdWTJ2YcHAiBezp7XcFZ6E0xtZGpp6WPnLQ6bw8potRloiwX9zTtGTgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 7c736fc2cb1af7e233d4a6859a99d9cb0798828803610b2a7fdc04cc4b571ab6\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgKlCQDZoQyCdT/Zu115uZVyCpCrhv8c5pv9D3byVGjFkCIChZQ2se8IrVihSlnSOqNeHrcW1AOmsvhoTYlky9rXIGASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkcwRAIgFriET1jzTz1+sbi+A+OWEkzhTcecvPqin1ZhvnXl1UICIFNdD/qdC5uQmRL7MI6jgpgo0uwVphjyxqzh47AYkdf1ASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+            "nostr_sig": "449b55cdc543dc0a40b1b1db0b41321ba5e474b02327084564311f3ba9f1c29b1ad247dd8936ac8bacef273415f42639434cd7976fa5dae9a49c014c5e3416f6"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "takeover_before_binding"
+      }
+    },
+    {
+      "id": "kc10",
+      "category": "custody",
+      "description": "a record for another address in the set",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "address_mismatch"
+      }
+    },
+    {
+      "id": "ks01",
+      "category": "signature",
+      "description": "custodial: every signature by the address is refused, anchored or not",
+      "input": {
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          }
+        ],
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+      },
+      "cases": [
+        {
+          "evidence": {},
+          "expected": {
+            "accept": false,
+            "reason": "custodial"
+          }
+        },
+        {
+          "evidence": {
+            "anchoredAt": 977200
+          },
+          "expected": {
+            "accept": false,
+            "reason": "custodial"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks02",
+      "category": "signature",
+      "description": "taken over at since 977100, the takeover anchored at 977110: before, after, or accepted on the takeover's trust",
+      "input": {
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+          }
+        ],
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+      },
+      "cases": [
+        {
+          "evidence": {
+            "anchoredAt": 977000
+          },
+          "expected": {
+            "accept": false,
+            "reason": "before_takeover"
+          }
+        },
+        {
+          "evidence": {
+            "anchoredAt": 977100
+          },
+          "expected": {
+            "accept": false,
+            "reason": "before_takeover"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977110,
+            "takeoverAnchoredAt": 977110
+          },
+          "expected": {
+            "accept": true,
+            "reason": "after_takeover"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977150,
+            "anchoredAt": 977160,
+            "takeoverAnchoredAt": 977110
+          },
+          "expected": {
+            "accept": true,
+            "reason": "after_takeover"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977109,
+            "takeoverAnchoredAt": 977110
+          },
+          "expected": {
+            "accept": true,
+            "reason": "on_trust"
+          }
+        },
+        {
+          "evidence": {
+            "anchoredAt": 977101
+          },
+          "expected": {
+            "accept": true,
+            "reason": "on_trust"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977200
+          },
+          "expected": {
+            "accept": true,
+            "reason": "on_trust"
+          }
+        },
+        {
+          "evidence": {},
+          "expected": {
+            "accept": true,
+            "reason": "on_trust"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks03",
+      "category": "signature",
+      "description": "self from birth: accepted",
+      "input": {
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+          }
+        ],
+        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g"
+      },
+      "cases": [
+        {
+          "evidence": {},
+          "expected": {
+            "accept": true,
+            "reason": "self_born"
+          }
+        },
+        {
+          "evidence": {
+            "anchoredAt": 977000
+          },
+          "expected": {
+            "accept": true,
+            "reason": "self_born"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks04",
+      "category": "signature",
+      "description": "retired: refused",
+      "input": {
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhANbjz0sbDIwaMiqiCrhphKZmeSGY+Gs7OtR0kscvwHMYAiB+wgLbur9DPALk4MOo79VWxxn6rmYzV2eCWGXVneAqRgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+            "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          }
+        ],
+        "address": "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
+      },
+      "cases": [
+        {
+          "evidence": {},
+          "expected": {
+            "accept": false,
+            "reason": "retired"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks05",
+      "category": "signature",
+      "description": "evidence that cannot be true is refused, not ignored",
+      "input": {
+        "records": [
+          {
+            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          {
+            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
+            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+          }
+        ],
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+      },
+      "cases": [
+        {
+          "evidence": {
+            "takeoverAnchoredAt": 977100
+          },
+          "expected": {
+            "accept": false,
+            "reason": "bad_evidence"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977150,
+            "anchoredAt": 977150
+          },
+          "expected": {
+            "accept": false,
+            "reason": "bad_evidence"
+          }
+        },
+        {
+          "evidence": {
+            "anchoredAt": -1
+          },
+          "expected": {
+            "accept": false,
+            "reason": "bad_evidence"
+          }
+        }
+      ]
+    }
+  ]
+}
