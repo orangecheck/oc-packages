@@ -11,18 +11,34 @@
   },
   "chain": {
     "headers": {
+      "976900": "00000000000000000000c00783f0f06030c8d46616a43715335b7b30e5b7d8b1",
       "977000": "00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da",
       "977100": "00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783",
       "977200": "000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947"
     }
   },
-  "issuers": [
-    "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a"
-  ],
+  "issuer": {
+    "note": "A placeholder for the issuer address the spec names. Every record and key-holder vector is checked against the terms this name and these records resolve to (ki01).",
+    "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+    "records": [
+      {
+        "envelope": {
+          "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+          "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+          "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        },
+        "anchoredAt": 977002
+      }
+    ]
+  },
   "burn_keys": {
     "issuer": {
       "private_key": "c763bcf1a8f8e00740f6c38b20992ace13ec53ee0d1a5fcbc212f003cc5c87c8",
       "address": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a"
+    },
+    "old_issuer": {
+      "private_key": "08a90786fd7c165fe71f55f7c9a0bbe5ae139dd4741e754e840f6c96a2f352e1",
+      "address": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08"
     },
     "stranger_issuer": {
       "private_key": "c274257937385c0505e1a1d83fc9356a2a031c2404382f0e94788b311ad94742",
@@ -392,30 +408,35 @@
     {
       "id": "kr01",
       "category": "record",
-      "description": "custodial binding: issuer-signed only, because a custodial key signs nothing",
+      "description": "custodial binding: issuer-signed only, because the key orangecheck holds signs nothing",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+        },
+        "anchoredAt": 977003
       },
       "expected": {
         "ok": true,
-        "id": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e",
+        "id": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294",
         "type": "binding"
       }
     },
     {
       "id": "kr02",
       "category": "record",
-      "description": "self binding (passkey first): issuer, identity address and Nostr key",
+      "description": "user binding (passkey first): issuer, identity address and Nostr key",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-        "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
-        "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+          "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+          "address_sig": "AkgwRQIhAIIznAnZs7rpShls/gWI+GCxL5IviDQioXp3TmeIEDy5AiBNm0sCU8RzjfhaPmGk/L9uAqcnoc/p7/TztrcWPWzxLAEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+          "nostr_sig": "69ab2a03f2133934bc8f33ad0b3f9a0939c21afc1cdd7748edcdfc4bd937de8583c4d6220303ad783298f0543e47f10f7a30d8e71016507a3e6c93f30926a479"
+        }
       },
       "expected": {
         "ok": true,
-        "id": "9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b",
+        "id": "b5200a62fea191ad6642474f05aa8bc96fcc2128f3533103e603b87d9e6e9eae",
         "type": "binding"
       }
     },
@@ -424,14 +445,17 @@
       "category": "record",
       "description": "takeover of A's custodial binding",
       "input": {
-        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-        "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-        "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+        "envelope": {
+          "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+          "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+          "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+          "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+        },
+        "anchoredAt": 977105
       },
       "expected": {
         "ok": true,
-        "id": "1fbfe6f8caa4d7dbac5748573e5ded5a920b9001352ddf7dc15a10e64b97c39e",
+        "id": "d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef",
         "type": "takeover"
       }
     },
@@ -440,12 +464,14 @@
       "category": "record",
       "description": "retire of C's custodial binding",
       "input": {
-        "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
-        "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        "envelope": {
+          "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+          "issuer_sig": "AkgwRQIhANxjg9ylAj7iKcUA9+PmpzXDAZwvugBW0nfhB9AJm6ISAiBEHLF428u0SZ2fzdlMFLSrhMjp7hYQh9hMjsz/mrpT1QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        }
       },
       "expected": {
         "ok": true,
-        "id": "43ca5a7f3117a8f5959303d4a092364e754a2b25c8ed3a82c62fac4f28633a4b",
+        "id": "effc32ecd767bc79630fc75fb14db922ca9602df0b0573f172bdb77f6993a37b",
         "type": "retire"
       }
     },
@@ -454,28 +480,34 @@
       "category": "record",
       "description": "signature by the wrong address: the takeover's address_sig is B's",
       "input": {
-        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-        "address_sig": "AkcwRAIgeaWM7bwX4i71eKx97lSmmT3skuPP6aKMBx6f+EiafTcCICjEzhQ3Py2oVYUKElXAm+VJ7aXVqz8jvmJhD8s7PTkyASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
-        "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+        "envelope": {
+          "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+          "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+          "address_sig": "AkcwRAIgadm6QMXhq6mQwTQci6Y+I6cukIDtSnvvznZhW+2mJscCIE2RN88AhWx/lC8CfY1RU8ZCGY6m4fINs6TuBWLe6TLkASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
+          "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "address_sig_invalid"
+        "reason": "address_sig_invalid",
+        "issuerSigned": true
       }
     },
     {
       "id": "kr06",
       "category": "record",
-      "description": "a custodial binding carrying a signature by its own (custodial) key",
+      "description": "a custodial binding carrying a signature by the key orangecheck holds",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
-        "address_sig": "AkcwRAIgIfo+xAAq8JioJ3QbrV1j0MdK/L15kqX3F31voy++8zQCIBaodTA3GvRXoAfllIMwQkJ8FQQMlHurvIMl3kYRpIIkASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI="
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+          "address_sig": "AkgwRQIhAPEABR7JBQ9+3MNkccFxYJsqqAaCrIaoLSl1ohlWc9/hAiBpr1ou7LxQoqpn5Y7PYlAfAckGiujUupclV9+vVyAAMQEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y"
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "custodial_key_signed"
+        "reason": "custodial_key_signed",
+        "issuerSigned": true
       }
     },
     {
@@ -483,12 +515,15 @@
       "category": "record",
       "description": "issued and signed by an issuer the verifier does not trust",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkcwRAIgR1phT4ZHxoR1MP/YU3+t6zgjNTs20ioc8xk95ZcJSDQCIGxQw2wlwZsf5ukvDcg+vfH7f7NhLEZHGVF2O0zrgZD/ASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "issuer_sig": "AkcwRAIgANOXri9O1ig8nUTn6paathMP3G/dFLir1UE+OyRbONkCIFEWo3hFX5ZZ0NRNk/8EtZzFREJdrqp7TsfajC9HcUFsASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "issuer_unknown"
+        "reason": "issuer_unknown",
+        "issuerSigned": false
       }
     },
     {
@@ -496,12 +531,15 @@
       "category": "record",
       "description": "names the trusted issuer, but the issuer signature is another key's",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkgwRQIhAM2EMvQHopdYwZJLQMnJ7NnlV7PivCaj/J1B2fIHAy+7AiBiHB83MXOuM/9zldTdfgyEPxo6kgyeSqVZMl+hYkenYgEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d"
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "issuer_sig": "AkcwRAIgC/mY+gl4xTEwr82nORMGbhuN6tGCvD11oSCT1NkRxSgCIE8ZzRQtjUYdqp1hu52hGGzXFXOeUuZGfDAecMeTCfoHASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "issuer_sig_invalid"
+        "reason": "issuer_sig_invalid",
+        "issuerSigned": false
       }
     },
     {
@@ -512,111 +550,197 @@
         {
           "name": "CRLF line ends",
           "input": {
-            "record": "oc-keys:binding:v1\r\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\r\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\r\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\r\ncustody: orangecheck\r\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\r\nsince_height: 977000\r\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\r\n",
-            "issuer_sig": "AkcwRAIgJIYMSe8TS0NFe0Z19cMEYQ0WSXSZ/qwWtoxaFRfpZxgCIFLnhDHTpa9PES3ixhxJ5MrKQINY17LUKX40v/tpirs6ASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\r\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\r\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\r\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\r\nkey_holder: orangecheck\r\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\r\nsince_height: 977000\r\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\r\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\r\n",
+              "issuer_sig": "AkgwRQIhAMXVCnC1HwesXaDBxmH4rqlhp696kC4uGbWzjPyiZTogAiAO4oOvM3Wy74Utj+e5mkdyjatBmnRd2BtjWJrrETBsBwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "no final LF",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da",
-            "issuer_sig": "AkgwRQIhAIT21QBJhP7auM/20sKLlX1goQwyJFOyTqn3/+jcEqKUAiAnb+zdln2qIKI7fXyZEFEmR9mDRzsN7T8zaf0g3ZYuMgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.",
+              "issuer_sig": "AkcwRAIgM+LAKDWLaNlGIElk5VZHjGb6cMrE/4O9CPIoYLvgKFoCIAZ4BL3INilt0r9yemaX9cK9PGvPpA8VWMzaZ1eXC3NQASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "two final LFs",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n\n",
-            "issuer_sig": "AkgwRQIhAKwwUyHeYPzCYagfLYF0l/J+fWcxr6MgwUyeCBVrUHX1AiA7b+y+a7PrBx/Q3wsfwBle9lorL98LfChaD/Va2tg0VgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n\n",
+              "issuer_sig": "AkcwRAIgdc1mNClVhS9wdRcwQcw6QMWVkUzgGm/mUNNhYGpHLEwCIFBypSIIFwOtlnIaU7oN0fWkvpDY0TDk8xtIfF5tFltgASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "a padded value",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck \nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAJMb1KjmOBDKxA/0ZHcmXuG499DQplpAXBYf66OIIqdnAiAL7v0MFbulHDZiuDoCVPuFM8ZZ1JfKwF1mf080A+4K1QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck \nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkgwRQIhAJQBQX2AcCnyGkWPZps1cgK8SUM/AemKYdhP0xaVBTCCAiBViA28bX2GFc/KN+PMfq07pdJIhGA8vR1kNRKL60p7/QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "fields out of order",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgBbta+qC/2Eju5glYOoFYlXqrw1DB5Mpf58EfJP9vFfACIFMUIeU1TeTeNKRhIKk0hkGro6I96Fu7aHVDCE/cgYsJASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkgwRQIhANa0oNoeaImVeox0N35wMjKTOqbRsw2LMZYaiybnykIGAiAxfNpJAu/weDEOjllpn5dng6O7DcIfV1PIWUMV571KLgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
-          "name": "capital custody",
+          "name": "capital key holder",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: Orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAMzCAZD6sodsqcZawsyyb+bcTenlOGpok+Oc2PY3+ylCAiBpeHRiSHYfWb0Xf+SsYIuiIXp5RyhNyxU7fO99euNSZwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: Orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkgwRQIhANYCZ4gVRYReDwkar3xRlekI0U8K3TXrfpk8Yw/csG+nAiAqW0qMh77zBZzw/hlsotYyLfZR8NenpZOrJNI+XA73nwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "the funds word in place of the key holder",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgLkskMcaaTPyCEtzItcw5m47NpsKK3m6th7axSP8YPJECIARD4ul5isYymTQIl2458sv0CTkr5zVu2fZtPAlt7GNlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "height with a leading zero",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 0977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgZStksrG9aaT7JIQW0xDxf1VeqBouHYt7GxkaLNLZGi0CIBoCBl2jPRvFIgAoknDBosG+XL1vNeYImsO9w2wYitBkASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 0977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgOwqtK1tUf2DOoCHVfWM97pF/JeBQZ02z0WWmwVRdbD4CIHPeaQUCO7xbCEdX5agbM5SRxEKixarqIegLDO7ZsfCeASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "an unknown field",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nnote: hi\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgNO0M8JCTmtNA7dq1JVeBoXTCd3Ppz7ISeeJDHYcgq+MCICNep1ZSM1Ev1eCW7TaCPPC6rW9q9jTxwyOz6QzNXznhASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nnote: hi\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgD2kVC+MwtWqUi39br9W3mDBVspd3pA8SSxHwkMn2cDICICXcDx0+O8+qeM02SumlzqmuihMN3zcFt+oU8QWKG28gASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
           "name": "uppercase address",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: BC1Q2T7HHWRQWV8S2YQQLFSTRLJY3EG7J9SY6LKWDX\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhANPVZVpxx4tEkfvzBpY1DBotf9RZesopZGJUgue4cm+BAiAlkkCMoq5AV+CNJen/1pMt9ApYXWXiei5jyzZCkgr2RgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: BC1Q2T7HHWRQWV8S2YQQLFSTRLJY3EG7J9SY6LKWDX\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkgwRQIhAJv25AzpP10W6kE55Z9aEUiG8s0mCA0Jl8j14+DOLqrVAiBkqjJ8gmB+psxWBk25TgOD2UqWwLaiIBEp9DPECWatBgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         },
         {
-          "name": "changed trust line",
+          "name": "a custodial binding without its trust line",
           "input": {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That can be proven.\n",
-            "issuer_sig": "AkgwRQIhAIlmTblQUpEegPg5VitWBs6AcF9f7IyVQ1YVuChu2BvCAiBkfA1RGaNuKZtAJv2xKzRr2BDgDZCNly2BzSZlKMBLxgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "issuer_sig": "AkgwRQIhAKvJDPKUmHTkLNqESlOrswxsN1w/XSQzaTobaTiuOnJUAiAzf7ggITWdKr7WL5abIWdZCd0Lr19oIRDOA3Os6kyqNgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "not_canonical"
+            "reason": "not_canonical",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "a user binding with the custodial trust line",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgL6afjPFHVyyM9XxXz4qF8pG4clSkE8KiJsUvqjSxp2wCIEdcsE4T1qW4GeCTkUKmO8ip8Wa45C+bSBRiL9Qoa1mKASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "changed takeover trust line",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That can be proven.\n",
+              "issuer_sig": "AkcwRAIgDyIwkWgX+TG0TIdijcnrPc9X8ZawRMg6cfreDhesWwsCIF1L6uK/jMvL3wHneoUY04yyIXQzIuZA3Wqg9AH1ryjeASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "an issuer record as an address record",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "issuer_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "not_canonical",
+            "issuerSigned": false
           }
         }
       ]
@@ -629,23 +753,29 @@
         {
           "name": "977100's hash at height 977000",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-            "issuer_sig": "AkgwRQIhAMcRMFWLTDkhxNZjTvEaIHL9ds5wTt05DyA2+not092aAiBfe2RTFxtFlTX7ihftV7JvuBvnI3VcTUPsGRMWUAzjEwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkgwRQIhAIz+mQ7wlEX/vvu0/loCgkwB4KnmCwl6eY1E2jFsc3RbAiA04o3wvbJJR1N6MVXGT7hHSb5eEMu5RroxIVi5J/Hh/wEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "since_not_on_chain"
+            "reason": "since_not_on_chain",
+            "issuerSigned": true
           }
         },
         {
           "name": "a height the verifier has no header for",
           "input": {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
-            "issuer_sig": "AkgwRQIhAOZMVyWBcC3RqevJ+IZZU3UisWmhfDPVDYkpP7kArf2GAiAmw+BKRO9PRQYFf98GXBch2YfiRwN8+H2ncOyV1pqeQQEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgIoh/DUQxMNEaDnBgJsMRndmgpcubzVv9XktJ1IJjWugCIBvwjHm6Cpu5n+QPftHCZECHykjjKQAXTaWUXNOPd6sCASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
           },
           "expected": {
             "ok": false,
-            "reason": "since_unverified"
+            "reason": "since_unverified",
+            "issuerSigned": true
           }
         }
       ]
@@ -655,292 +785,1081 @@
       "category": "record",
       "description": "the takeover's nostr_sig is by B's Nostr key",
       "input": {
-        "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-        "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-        "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-        "nostr_sig": "0d0fc31cb97132ff807b9f389d61a857798a2b9b0957861235e3ff6dfd3ab54f2fd4495351a7860938645d21660d967d2f04d952c4bdc0366f55bd7cd4af19ad"
+        "envelope": {
+          "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+          "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+          "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+          "nostr_sig": "3a5ec499f7ad4e6aa415b25078a745202def73400b87983db7123e232b30bba5867efb640540e6d7630b79d32dd3bfab5a4e0a8572d6718cbb4b1091f8a356a9"
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "nostr_sig_invalid"
+        "reason": "nostr_sig_invalid",
+        "issuerSigned": true
       }
     },
     {
       "id": "kr12",
       "category": "record",
-      "description": "a self binding with no identity signature",
+      "description": "a user binding with no identity signature",
       "input": {
-        "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-        "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+          "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        }
       },
       "expected": {
         "ok": false,
-        "reason": "address_sig_missing"
+        "reason": "address_sig_missing",
+        "issuerSigned": true
       }
     },
     {
-      "id": "kc01",
-      "category": "custody",
-      "description": "a custodial binding alone: custodial",
+      "id": "kr13",
+      "category": "record",
+      "description": "issuer terms: the old issuer's record counts only where its anchor is at or below the hand-over's (977002); the current issuer's only from the hand-over's since block",
+      "cases": [
+        {
+          "name": "old issuer, anchored before the hand-over was",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+            },
+            "anchoredAt": 977001
+          },
+          "expected": {
+            "ok": true,
+            "id": "c58e612dfe6b473fb710989d859134becd31f184affaa7d119076a8c00cf05c9",
+            "type": "binding"
+          }
+        },
+        {
+          "name": "old issuer, anchored at the same block",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+            },
+            "anchoredAt": 977002
+          },
+          "expected": {
+            "ok": true,
+            "id": "c58e612dfe6b473fb710989d859134becd31f184affaa7d119076a8c00cf05c9",
+            "type": "binding"
+          }
+        },
+        {
+          "name": "old issuer, anchored after",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+            },
+            "anchoredAt": 977010
+          },
+          "expected": {
+            "ok": false,
+            "reason": "issuer_retired",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "old issuer, no anchor",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "issuer_retired",
+            "issuerSigned": false
+          }
+        },
+        {
+          "name": "current issuer, a since block before its term",
+          "input": {
+            "envelope": {
+              "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 976900\nsince_block: 00000000000000000000c00783f0f06030c8d46616a43715335b7b30e5b7d8b1\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+              "issuer_sig": "AkcwRAIgCJVLgOu74TZjhWJhu5rOi+JHSz+/ewch1F5hGETr8cYCIFweO/cr0b/MEHvjpIc4K6cwGk9pkpl1zQeuZ9ApWXk0ASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "issuer_not_yet",
+            "issuerSigned": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "kr14",
+      "category": "record",
+      "description": "an anchor at or below the since block cannot be",
       "input": {
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "envelope": {
+          "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+        },
+        "anchoredAt": 977000
+      },
+      "expected": {
+        "ok": false,
+        "reason": "bad_anchor",
+        "issuerSigned": true
+      }
+    },
+    {
+      "id": "ki01",
+      "category": "issuers",
+      "description": "the named issuer and its hand-over record: the old issuer before it, until the hand-over",
+      "input": {
+        "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
         "records": [
           {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            },
+            "anchoredAt": 977002
           }
         ]
       },
       "expected": {
         "ok": true,
-        "custody": "orangecheck",
-        "born": "orangecheck",
-        "binding": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e"
-      }
-    },
-    {
-      "id": "kc02",
-      "category": "custody",
-      "description": "a custodial binding and its takeover: self, since the takeover block",
-      "input": {
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
+        "terms": [
           {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
+            "address": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
+            "from": 0,
+            "until": {
+              "since": 977000,
+              "anchoredAt": 977002
+            }
           },
           {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "address": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+            "from": 977000
           }
         ]
-      },
-      "expected": {
-        "ok": true,
-        "custody": "self",
-        "born": "orangecheck",
-        "binding": "8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e",
-        "takeover": "1fbfe6f8caa4d7dbac5748573e5ded5a920b9001352ddf7dc15a10e64b97c39e",
-        "takeover_since_height": 977100
       }
     },
     {
-      "id": "kc03",
-      "category": "custody",
-      "description": "a self binding alone: self from birth",
+      "id": "ki02",
+      "category": "issuers",
+      "description": "a verifier that still names the old issuer follows the hand-over to the current one",
       "input": {
-        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+        "named": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
         "records": [
           {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
-            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            },
+            "anchoredAt": 977002
           }
         ]
       },
       "expected": {
         "ok": true,
-        "custody": "self",
-        "born": "self",
-        "binding": "9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b"
+        "terms": [
+          {
+            "address": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
+            "from": 0,
+            "until": {
+              "since": 977000,
+              "anchoredAt": 977002
+            }
+          },
+          {
+            "address": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+            "from": 977000
+          }
+        ]
       }
     },
     {
-      "id": "kc04",
-      "category": "custody",
+      "id": "ki03",
+      "category": "issuers",
+      "description": "a record the new issuer did not sign is ignored",
+      "input": {
+        "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+        "records": [
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkgwRQIhAOZcyDR9cvNuqSB5m0YYpNiQK6Spa2Nwi4ZPMgDQu2IgAiAmvGQp6VpZMBo0kBZ2tgXAz65sxDc5OYBXlQFI+kJ8UQEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d"
+            },
+            "anchoredAt": 977002
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "terms": [
+          {
+            "address": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+            "from": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "ki04",
+      "category": "issuers",
+      "description": "two hand-overs to the same issuer: refused",
+      "input": {
+        "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+        "records": [
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            },
+            "anchoredAt": 977002
+          },
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkgwRQIhAIR0GrWQCq6WcO/JfOQabsx08C8vBY0RyAmSk0suQUUBAiAbv4crG/58pO56WXlzkNr4bxPlU6gMmoIPWh3uJIEKagEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d",
+              "new_sig": "AkcwRAIgfsf15HAGLEs1dTHmTwKvIvinqQ4YnNKLiQcwihxeg8QCICaMRFREkL7oFAjNhiKmirQZtCivBnHOTSHWL1C17NcVASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "conflicting_issuer_records"
+      }
+    },
+    {
+      "id": "ki05",
+      "category": "issuers",
+      "description": "a hand-over and one back: refused",
+      "input": {
+        "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+        "records": [
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            }
+          },
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nnew: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+              "old_sig": "AkcwRAIgNoUqHBed7oofTnUVsPoDFaM83xlmfvzj5VB5i94E5joCIGGPtzGsTP86yJOZzmM2cLCpTskpbtcNe5gChjRNa24jASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+              "new_sig": "AkcwRAIgBhM6LwepKo/ztq13IKSdwHYMWSKvBNbEkzgaSUmfb9ECIGhy16Sn+6VcOeNcX7r2SGTEMv2td4VhpN2TuSNSfu8oASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+            }
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "issuer_loop"
+      }
+    },
+    {
+      "id": "ki06",
+      "category": "issuers",
+      "description": "a hand-over signed by both whose since block is not on the chain: refused, not ignored",
+      "input": {
+        "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+        "records": [
+          {
+            "envelope": {
+              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+              "old_sig": "AkcwRAIgKwJ/sAlY/bI5ueEqCQ3K4O3kUYV25aRlx2U/qDEdLrYCIEGlHAlIjmfzEt4xJ/0E+8nRLoXhGyfVA2jCUFW9hvdsASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+              "new_sig": "AkcwRAIgYJz6wevQjPMsLLKTKDJSU+TfedRMSEhE5R1eME0scwwCIAgy4d0oUBKvmd85D6SB0xM2qWu9/jTjLtMW5AhGQR/BASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            }
+          }
+        ]
+      },
+      "expected": {
+        "ok": false,
+        "reason": "issuer_record_unverified"
+      }
+    },
+    {
+      "id": "kh01",
+      "category": "key_holder",
+      "description": "a custodial binding alone: orangecheck holds the key",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            }
+          ]
+        }
+      },
+      "expected": {
+        "status": "bound",
+        "born": "orangecheck",
+        "holder": "orangecheck",
+        "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+      }
+    },
+    {
+      "id": "kh02",
+      "category": "key_holder",
+      "description": "a custodial binding and its takeover: the user holds the key, and orangecheck held it until the takeover",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+              },
+              "anchoredAt": 977105
+            }
+          ]
+        }
+      },
+      "expected": {
+        "status": "bound",
+        "born": "orangecheck",
+        "holder": "user",
+        "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294",
+        "takeover": "d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef",
+        "takeover_since": 977100,
+        "takeover_anchored_at": 977105
+      }
+    },
+    {
+      "id": "kh03",
+      "category": "key_holder",
+      "description": "a user binding alone: the user from the start",
+      "input": {
+        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAIIznAnZs7rpShls/gWI+GCxL5IviDQioXp3TmeIEDy5AiBNm0sCU8RzjfhaPmGk/L9uAqcnoc/p7/TztrcWPWzxLAEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+                "nostr_sig": "69ab2a03f2133934bc8f33ad0b3f9a0939c21afc1cdd7748edcdfc4bd937de8583c4d6220303ad783298f0543e47f10f7a30d8e71016507a3e6c93f30926a479"
+              },
+              "anchoredAt": 977004
+            }
+          ]
+        }
+      },
+      "expected": {
+        "status": "bound",
+        "born": "user",
+        "holder": "user",
+        "binding": "b5200a62fea191ad6642474f05aa8bc96fcc2128f3533103e603b87d9e6e9eae"
+      }
+    },
+    {
+      "id": "kh04",
+      "category": "key_holder",
       "description": "a custodial binding and its retire: retired",
       "input": {
         "address": "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhANbjz0sbDIwaMiqiCrhphKZmeSGY+Gs7OtR0kscvwHMYAiB+wgLbur9DPALk4MOo79VWxxn6rmYzV2eCWGXVneAqRgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
-            "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgGdDj2wkv+OfYkQRnOIv1VCHLqtZw7D2M6XSqj8nsys4CIEVXRZQqKPLag4LVWtml7KM2I3Huzo8jc2yz4Q88ZZbsASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+                "issuer_sig": "AkgwRQIhANxjg9ylAj7iKcUA9+PmpzXDAZwvugBW0nfhB9AJm6ISAiBEHLF428u0SZ2fzdlMFLSrhMjp7hYQh9hMjsz/mrpT1QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977104
+            }
+          ]
+        }
       },
       "expected": {
-        "ok": true,
-        "custody": "retired",
+        "status": "bound",
         "born": "orangecheck",
-        "binding": "1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40"
+        "holder": "retired",
+        "binding": "e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e",
+        "retire": "effc32ecd767bc79630fc75fb14db922ca9602df0b0573f172bdb77f6993a37b",
+        "retire_reason": "wallet_linked"
       }
     },
     {
-      "id": "kc05",
-      "category": "custody",
-      "description": "custody flip with no takeover: a self binding beside the custodial one",
+      "id": "kh05",
+      "category": "key_holder",
+      "description": "no record, and the read reached the floor: plain Bitcoin",
       "input": {
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-            "issuer_sig": "AkcwRAIgRwRnC/nDFYhjcrWO6+ygiHhTvcGAtS1GPZyJV7x411MCIHOWP0fkK5+c5YwjwZOWlFSxXqusWnThn6Gkh/48mspdASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAN4gM83W+JekFdKnDtkwJApDTf0HPni+VhZbFm2/i23kAiA/0XvxgoBi8fgE/0b95eCkQhE3UnUEhYeoQnRQKTK90QEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "f3c955d4f37fb2bdcf4e34c5bfbb64f2e8e447ff6ea13d38025e5baad71fc7f22f10c668c5765df3af6f43f9455177036e745d9d3ea26b655c7f4e68522f4bcf"
-          }
-        ]
+        "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+        "lookup": {
+          "complete": true,
+          "records": []
+        }
       },
       "expected": {
-        "ok": false,
-        "reason": "custody_flip_without_takeover"
+        "status": "unbound"
       }
     },
     {
-      "id": "kc06",
-      "category": "custody",
-      "description": "a takeover naming another binding's id",
+      "id": "kh06",
+      "category": "key_holder",
+      "description": "a bound address whose record cannot be fetched: refused",
+      "cases": [
+        {
+          "name": "the read did not reach the floor",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": false,
+              "records": []
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "unavailable"
+          }
+        },
+        {
+          "name": "the account's did:oc names a binding no relay served",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": []
+            },
+            "namedBinding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "named_binding_missing"
+          }
+        },
+        {
+          "name": "the did:oc names a binding other than the one served",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  },
+                  "anchoredAt": 977003
+                }
+              ]
+            },
+            "namedBinding": "e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e"
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "named_binding_missing"
+          }
+        },
+        {
+          "name": "a read short of the floor that still found the binding",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": false,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  },
+                  "anchoredAt": 977003
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "orangecheck",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kh07",
+      "category": "key_holder",
+      "description": "a takeover with no binding before it: refused",
+      "cases": [
+        {
+          "name": "a takeover alone",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+                  },
+                  "anchoredAt": 977105
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "takeover_without_binding"
+          }
+        },
+        {
+          "name": "a takeover naming a binding that is not this address's",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAKLmT+R9vifjAy/3ngcJ0FDesfXFwn92SlUfaeN4bCYnAiBqE5MDBpJAR84srWVDg8w0E+YYRUHUwQtn0bQjXyg3RQEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPcVzS1csUPV7yzD5Ws+/BP4wDuhfN+0bB5Adxbi726WAiAGETG6j3gS6XOotPyfsiWSgasgeioMneI+bS+a6bOVxgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "b3fa995e33e3b5f59194796f68eab32903dc798e337910c93bf5a59c6d4b5c14f9ff46d181e217e7c0b925fb1454ffc7f6e1f0e3c229538aa48226df00556598"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "takeover_without_binding"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kh08",
+      "category": "key_holder",
+      "description": "a record the issuer signed but no copy of which verifies here: refused, not read as absent",
+      "cases": [
+        {
+          "name": "the only copy of the takeover lost its Nostr signature",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "record_unverified"
+          }
+        },
+        {
+          "name": "the same, beside a good copy: the good copy counts",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y"
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "user",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294",
+            "takeover": "d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef",
+            "takeover_since": 977100
+          }
+        },
+        {
+          "name": "a binding whose since block the verifier's chain does not have yet",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgIoh/DUQxMNEaDnBgJsMRndmgpcubzVv9XktJ1IJjWugCIBvwjHm6Cpu5n+QPftHCZECHykjjKQAXTaWUXNOPd6sCASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "record_unverified"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kh09",
+      "category": "key_holder",
+      "description": "records no trusted issuer signed are ignored: anyone can publish one",
+      "cases": [
+        {
+          "name": "a stranger's binding alone: plain Bitcoin",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgANOXri9O1ig8nUTn6paathMP3G/dFLir1UE+OyRbONkCIFEWo3hFX5ZZ0NRNk/8EtZzFREJdrqp7TsfajC9HcUFsASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgC/mY+gl4xTEwr82nORMGbhuN6tGCvD11oSCT1NkRxSgCIE8ZzRQtjUYdqp1hu52hGGzXFXOeUuZGfDAecMeTCfoHASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        },
+        {
+          "name": "a stranger's binding beside the real one",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgANOXri9O1ig8nUTn6paathMP3G/dFLir1UE+OyRbONkCIFEWo3hFX5ZZ0NRNk/8EtZzFREJdrqp7TsfajC9HcUFsASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "orangecheck",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+          }
+        },
+        {
+          "name": "a record for another address in the set",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAIIznAnZs7rpShls/gWI+GCxL5IviDQioXp3TmeIEDy5AiBNm0sCU8RzjfhaPmGk/L9uAqcnoc/p7/TztrcWPWzxLAEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+                    "nostr_sig": "69ab2a03f2133934bc8f33ad0b3f9a0939c21afc1cdd7748edcdfc4bd937de8583c4d6220303ad783298f0543e47f10f7a30d8e71016507a3e6c93f30926a479"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "orangecheck",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kh10",
+      "category": "key_holder",
+      "description": "two bindings for one address, a user one beside the custodial one with no takeover: refused",
       "input": {
         "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkgwRQIhAN69MzWk4ZpfKcUZSUBo6OMKydxk9RU3JqDnXYrOlymFAiAkk58Ut3NVvFgugnsuQ8vlXzvbNCNhoq6dU9w6ooZLiwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
-            "address_sig": "AkgwRQIhAK9dSXeQBhHVi/rywop+NTdGqClldvgRR/iPPi/BWrXYAiAcjDQuR2hcpb5yShoo2Lrlx4YAKWvFhLLZz5dvdR0aswEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "b7844190405dec23a39abc56748a4aa9f75b46509698cd1163edfbe73fd14f87ff01aab2417e1bafa8e52954d8bbe758ef03b6b6ace18ba05d78d1035317bcc4"
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              }
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+                "issuer_sig": "AkgwRQIhAKfkO1L7rcaVUOHjAe6p/325EpFciHvlt8I4m3ATvZM+AiBb+kqEoT7RNCkvuR0UeE64eh5ri5WEfbzJSpqjCML9uAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAL7HRmh4QdcpnUfGtB+2jmUObHW3wyh6iMHT7ULsfeUxAiAws0f5bMgL3/kNHcLNl58BEZjtpnQp0iewJsYc4LRHVQEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                "nostr_sig": "ba3b180f413524a3616a224826a2b9d1495cdcedcf0c358ace81818a365518955aa8a5cb5a461b874a82ec98e62f02bfe0be44cf903b57879b19bbdd4e4d87fc"
+              }
+            }
+          ]
+        }
       },
       "expected": {
-        "ok": false,
-        "reason": "takeover_wrong_binding"
+        "status": "refused",
+        "reason": "conflicting_bindings"
       }
     },
     {
-      "id": "kc07",
-      "category": "custody",
-      "description": "a takeover of a binding that was never custodial",
+      "id": "kh11",
+      "category": "key_holder",
+      "description": "a takeover of a binding orangecheck never held",
       "input": {
         "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
-            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
-          },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nbinding: 9d3f0bd8359a4712f848ffdf58dfbdb0a965321167f347932b56d0fff3dfda7b\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgdrNjJXZ7L3Usr5qFvJDzosS4FHR82E8ybhfv2ADEyTsCIAlAqYoalsXIV508/xli74qWNKhjNtgB6Y8OprNeUc8LASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkcwRAIgL8mn/qnrDfYRa6mybdnQ+pYcC5STY+gMeeySyHuLeDUCIHk4MJsPXPqVJJGOq2H8XRGzaB6yKo8PJhFCrcHOOJsjASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
-            "nostr_sig": "0d0fc31cb97132ff807b9f389d61a857798a2b9b0957861235e3ff6dfd3ab54f2fd4495351a7860938645d21660d967d2f04d952c4bdc0366f55bd7cd4af19ad"
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAIIznAnZs7rpShls/gWI+GCxL5IviDQioXp3TmeIEDy5AiBNm0sCU8RzjfhaPmGk/L9uAqcnoc/p7/TztrcWPWzxLAEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+                "nostr_sig": "69ab2a03f2133934bc8f33ad0b3f9a0939c21afc1cdd7748edcdfc4bd937de8583c4d6220303ad783298f0543e47f10f7a30d8e71016507a3e6c93f30926a479"
+              }
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nbinding: b5200a62fea191ad6642474f05aa8bc96fcc2128f3533103e603b87d9e6e9eae\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                "issuer_sig": "AkgwRQIhALbkMU+DYA5MptGDHYUadwD6ZDPsB3rahwCUSZCu4QkvAiBP7KNgp1quJhrrfwHXlKq2Zlha6F46TcDuVWzk+o4aYQEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkcwRAIgARwBEC2bp64w2rKVkZaYmmeug6b27NFCSA4UngUy7CICIGjE3jw0YFpLi/+PD/kkI7aF9H42MDFy7wo+I0GfInyOASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
+                "nostr_sig": "3a5ec499f7ad4e6aa415b25078a745202def73400b87983db7123e232b30bba5867efb640540e6d7630b79d32dd3bfab5a4e0a8572d6718cbb4b1091f8a356a9"
+              }
+            }
+          ]
+        }
       },
       "expected": {
-        "ok": false,
-        "reason": "takeover_of_self_binding"
+        "status": "refused",
+        "reason": "takeover_of_user_binding"
       }
     },
     {
-      "id": "kc08",
-      "category": "custody",
-      "description": "a retire after a takeover: the key is the user’s, and orangecheck cannot retire it",
-      "input": {
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+      "id": "kh12",
+      "category": "key_holder",
+      "description": "a retire and a takeover of one binding, ordered by their anchors",
+      "cases": [
+        {
+          "name": "a retire made after the takeover has no effect: the key is the user’s",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  },
+                  "anchoredAt": 977003
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+                  },
+                  "anchoredAt": 977105
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\nreason: withdrawn\n",
+                    "issuer_sig": "AkcwRAIgCuZQhR/92vL/v1rmD/iyEbW3ZdrvdnAHkZIzzMEendQCIGX3E9eVB7rjDHgRWFD9nq/8l0BlV3bjq9fLExfbQcjMASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  },
+                  "anchoredAt": 977205
+                }
+              ]
+            }
           },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
-          },
-          {
-            "record": "oc-keys:retire:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\nreason: withdrawn\n",
-            "issuer_sig": "AkcwRAIgfh3PFjRLSgK5Jr91qY/T0o3Xj70CK+gWYn1paoXAiJ0CIADjw9qK1YkAxdDUjlJgbgtUOa9th+v9i6SqdtLOUc3kASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "user",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294",
+            "takeover": "d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef",
+            "takeover_since": 977100,
+            "takeover_anchored_at": 977105
           }
-        ]
-      },
-      "expected": {
-        "ok": false,
-        "reason": "retire_after_takeover"
-      }
+        },
+        {
+          "name": "a retire with no anchor cannot be shown to come first: the takeover stands",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+                  },
+                  "anchoredAt": 977105
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\nreason: withdrawn\n",
+                    "issuer_sig": "AkcwRAIgaFwh4Om3jcA31BWxcLh+4+X3Q/96v/PH36d7lLj0JMMCIGfmrTuDNskDObWNfaJNigJAtsbQ3GbKRnTZWeQWA4pyASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "user",
+            "binding": "9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294",
+            "takeover": "d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef",
+            "takeover_since": 977100,
+            "takeover_anchored_at": 977105
+          }
+        },
+        {
+          "name": "a retire anchored before the takeover was made: refused",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+                  },
+                  "anchoredAt": 977105
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\nreason: withdrawn\n",
+                    "issuer_sig": "AkcwRAIgaFwh4Om3jcA31BWxcLh+4+X3Q/96v/PH36d7lLj0JMMCIGfmrTuDNskDObWNfaJNigJAtsbQ3GbKRnTZWeQWA4pyASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  },
+                  "anchoredAt": 977050
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "takeover_after_retire"
+          }
+        }
+      ]
     },
     {
-      "id": "kc09",
-      "category": "custody",
+      "id": "kh13",
+      "category": "key_holder",
       "description": "a takeover whose since block is below its binding’s",
       "input": {
         "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
-            "issuer_sig": "AkgwRQIhALUtaEjCqixjoN1tsNYHVXM71dTNoIHEf+/xdWTJ2YcHAiBezp7XcFZ6E0xtZGpp6WPnLQ6bw8potRloiwX9zTtGTgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 7c736fc2cb1af7e233d4a6859a99d9cb0798828803610b2a7fdc04cc4b571ab6\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgKlCQDZoQyCdT/Zu115uZVyCpCrhv8c5pv9D3byVGjFkCIChZQ2se8IrVihSlnSOqNeHrcW1AOmsvhoTYlky9rXIGASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkcwRAIgFriET1jzTz1+sbi+A+OWEkzhTcecvPqin1ZhvnXl1UICIFNdD/qdC5uQmRL7MI6jgpgo0uwVphjyxqzh47AYkdf1ASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
-            "nostr_sig": "449b55cdc543dc0a40b1b1db0b41321ba5e474b02327084564311f3ba9f1c29b1ad247dd8936ac8bacef273415f42639434cd7976fa5dae9a49c014c5e3416f6"
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgWlW0tGBM8/5ZJJW8QAn5nfemHKSU92wC+RIIPHVRAqkCIEnO20NkmNnpmUddvjDKFr86F9U5wA1bvCPTdQQYmm/lASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              }
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: f21d2d0fb62ef50a79d82195c3409f455816c827867b6be8d15c7cbeb4ff35b5\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                "issuer_sig": "AkgwRQIhAOCkqADefRDX+n/fRA9milg1kAhSSZlRWDcJVkG3Db5uAiAgwacvVU/dYfgk0gvX8Vru1cgk2GOz1oib/4++FGHSLQEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAPRNx0jqbj3GymFfLkz3J8XL2v+nBKk0Sx8JzAyLWUdRAiAPAwSOj1zP79LPb78ocyywrXwBUsmWMK4Iktj1hVgJHQEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                "nostr_sig": "77f0cc2cd310beea044a7d51ed8955507848e6b08a9b114a7346f455a70231362694a37b4df34adb6f73f28545e29f93adf61039eb7e8e976f8b352178780bba"
+              }
+            }
+          ]
+        }
       },
       "expected": {
-        "ok": false,
+        "status": "refused",
         "reason": "takeover_before_binding"
       }
     },
     {
-      "id": "kc10",
-      "category": "custody",
-      "description": "a record for another address in the set",
-      "input": {
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+      "id": "kh14",
+      "category": "key_holder",
+      "description": "the old issuer's binding: counted when anchored before the hand-over, ignored when not",
+      "cases": [
+        {
+          "name": "anchored before",
+          "input": {
+            "address": "bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+                  },
+                  "anchoredAt": 977001
+                }
+              ]
+            }
           },
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
-            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "orangecheck",
+            "binding": "c58e612dfe6b473fb710989d859134becd31f184affaa7d119076a8c00cf05c9"
           }
-        ]
-      },
-      "expected": {
-        "ok": false,
-        "reason": "address_mismatch"
-      }
+        },
+        {
+          "name": "anchored after",
+          "input": {
+            "address": "bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0\naddress: bc1qcmkmzck3qk97ftgp4dw32dl2ja0f5eeckauw87\nnostr: 2cc290cfa749e242a5a333c3ee3a8cb9245ba682f8f6c5ba9362cf1ee3463bd5\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgMO3e8keqgwiIxIbdx0DBWqGfMO3mYzdhgHl/B/IoxdACIErOU4E0j8akVQZNUVhYMjD6x2cbXS41wUCb15zz91t4ASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+                  },
+                  "anchoredAt": 977010
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        }
+      ]
     },
     {
       "id": "ks01",
       "category": "signature",
-      "description": "custodial: every signature by the address is refused, anchored or not",
+      "description": "orangecheck holds the key: every signature is refused, a live sign-in included",
       "input": {
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          }
-        ],
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            }
+          ]
+        }
       },
       "cases": [
         {
           "evidence": {},
           "expected": {
             "accept": false,
-            "reason": "custodial"
+            "reason": "orangecheck_held"
           }
         },
         {
@@ -949,7 +1868,16 @@
           },
           "expected": {
             "accept": false,
-            "reason": "custodial"
+            "reason": "orangecheck_held"
+          }
+        },
+        {
+          "evidence": {
+            "live": true
+          },
+          "expected": {
+            "accept": false,
+            "reason": "orangecheck_held"
           }
         }
       ]
@@ -957,21 +1885,30 @@
     {
       "id": "ks02",
       "category": "signature",
-      "description": "taken over at since 977100, the takeover anchored at 977110: before, after, or accepted on the takeover's trust",
+      "description": "taken over at since 977100, the takeover anchored at 977105: before it, after it, or in the window between",
       "input": {
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
-          }
-        ],
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+              },
+              "anchoredAt": 977105
+            }
+          ]
+        }
       },
       "cases": [
         {
@@ -994,8 +1931,7 @@
         },
         {
           "evidence": {
-            "madeAfter": 977110,
-            "takeoverAnchoredAt": 977110
+            "madeAfter": 977105
           },
           "expected": {
             "accept": true,
@@ -1005,8 +1941,7 @@
         {
           "evidence": {
             "madeAfter": 977150,
-            "anchoredAt": 977160,
-            "takeoverAnchoredAt": 977110
+            "anchoredAt": 977160
           },
           "expected": {
             "accept": true,
@@ -1015,12 +1950,20 @@
         },
         {
           "evidence": {
-            "madeAfter": 977109,
-            "takeoverAnchoredAt": 977110
+            "live": true
           },
           "expected": {
             "accept": true,
-            "reason": "on_trust"
+            "reason": "after_takeover"
+          }
+        },
+        {
+          "evidence": {
+            "madeAfter": 977104
+          },
+          "expected": {
+            "accept": true,
+            "reason": "ambiguous_window"
           }
         },
         {
@@ -1029,23 +1972,23 @@
           },
           "expected": {
             "accept": true,
-            "reason": "on_trust"
+            "reason": "ambiguous_window"
           }
         },
         {
           "evidence": {
-            "madeAfter": 977200
+            "anchoredAt": 977105
           },
           "expected": {
             "accept": true,
-            "reason": "on_trust"
+            "reason": "ambiguous_window"
           }
         },
         {
           "evidence": {},
           "expected": {
             "accept": true,
-            "reason": "on_trust"
+            "reason": "ambiguous_window"
           }
         }
       ]
@@ -1053,33 +1996,38 @@
     {
       "id": "ks03",
       "category": "signature",
-      "description": "self from birth: accepted",
+      "description": "the user from the start: accepted",
       "input": {
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkcwRAIgYKr9n2F1I05FD5UkpJ90ClkAq1XVRPhlynbGcIpp0q4CIDUcK9zRTeASac7n5i46tIObuTNxnRDy5RCUKjo4X/viASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAMAoX8aCEp1QDj41iN9Jsi56hmD/zq7/WqKyTWW/TBOWAiBbN92bIYlaUAe+S7V6NnZgttmxPOOp6ZEA19kOkaSVpgEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
-            "nostr_sig": "e3a8d088cbeba4642401a37c48fe2abf2fbe54ba65e7f3a33586aebe836f628fc237a8c7502912928162603365bfcb3f4a78c22e6e5e9985964b8dda6cb49766"
-          }
-        ],
-        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g"
+        "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "issuer_sig": "AkgwRQIhAJDsfVAg6B0MFu0pcnFfPrvNJTfuEr1bncC2ybwVXNLDAiA2fgHr+/KYoWlegB0RtiMFWRvLzM8KAGvzp6C0EU2CMAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAIIznAnZs7rpShls/gWI+GCxL5IviDQioXp3TmeIEDy5AiBNm0sCU8RzjfhaPmGk/L9uAqcnoc/p7/TztrcWPWzxLAEhAqmgP4oylS5F+pyZGVT3bDCzKAXdbLBOrJWZx6q9ax1x",
+                "nostr_sig": "69ab2a03f2133934bc8f33ad0b3f9a0939c21afc1cdd7748edcdfc4bd937de8583c4d6220303ad783298f0543e47f10f7a30d8e71016507a3e6c93f30926a479"
+              }
+            }
+          ]
+        }
       },
       "cases": [
         {
           "evidence": {},
           "expected": {
             "accept": true,
-            "reason": "self_born"
+            "reason": "user_born"
           }
         },
         {
           "evidence": {
-            "anchoredAt": 977000
+            "anchoredAt": 976990
           },
           "expected": {
             "accept": true,
-            "reason": "self_born"
+            "reason": "user_born"
           }
         }
       ]
@@ -1089,21 +2037,37 @@
       "category": "signature",
       "description": "retired: refused",
       "input": {
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhANbjz0sbDIwaMiqiCrhphKZmeSGY+Gs7OtR0kscvwHMYAiB+wgLbur9DPALk4MOo79VWxxn6rmYzV2eCWGXVneAqRgEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: 1fdb64b074492869146c560f1fd31b59fa0d289ee8137e487327c6b81d99da40\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
-            "issuer_sig": "AkgwRQIhAIv9Gi/40esfZBgNyEzGJvdYlQ5Z5WRrdmx73JR3/kUFAiAXR07DuL27MqIK+Q7XqUcUWLBiDu+SMsRWBPhXsEKByAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          }
-        ],
-        "address": "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
+        "address": "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nnostr: d763755c8faf6e7a19703ad790dd05341e0caa9fbab05b5ed8653e56452cb7b7\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgGdDj2wkv+OfYkQRnOIv1VCHLqtZw7D2M6XSqj8nsys4CIEVXRZQqKPLag4LVWtml7KM2I3Huzo8jc2yz4Q88ZZbsASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              }
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+                "issuer_sig": "AkgwRQIhANxjg9ylAj7iKcUA9+PmpzXDAZwvugBW0nfhB9AJm6ISAiBEHLF428u0SZ2fzdlMFLSrhMjp7hYQh9hMjsz/mrpT1QEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              }
+            }
+          ]
+        }
       },
       "cases": [
         {
           "evidence": {},
+          "expected": {
+            "accept": false,
+            "reason": "retired"
+          }
+        },
+        {
+          "evidence": {
+            "live": true
+          },
           "expected": {
             "accept": false,
             "reason": "retired"
@@ -1116,30 +2080,30 @@
       "category": "signature",
       "description": "evidence that cannot be true is refused, not ignored",
       "input": {
-        "records": [
-          {
-            "record": "oc-keys:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\ncustody: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-            "issuer_sig": "AkgwRQIhAKdQ1cv2r3QWNBJWZLGuS19agZE+M6e7BifTSo4LpGg4AiBQ40lwQASH8Q6kt5KnU9W8r1SUx0FZa2VCLuKY1T5MtwEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-          },
-          {
-            "record": "oc-keys:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 8ec30c59843fa8b24ae4c380f9411f2df607eb10baea4b4586037d783278ea9e\ncustody: self\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record and says it deleted its copy. That cannot be proven.\n",
-            "issuer_sig": "AkcwRAIgAUuzkfgKGQmmRrLphgoYRBO8/COSSDQ/3j0wxkcLsD8CIHH77c1FQ/178OjzL7RTmX+MRcTDGcMcP7BC9e7RpjXlASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-            "address_sig": "AkgwRQIhAKUrWpZlYBTWrJHX2E7okZ/H6leQ2d05WtpZPpF58w65AiARuXtstbJmoeEJpyr49NCaD2Gd1xZIZPHQMmTcUUs+mAEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-            "nostr_sig": "6318739df304a87d311f9239361a8103202dc6b045dd1832d4f6df71f53da32240fe8c13eed4a8799445d27cdf4c53b9dede726c71a6dffeb7834677777c4b15"
-          }
-        ],
-        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+                "issuer_sig": "AkcwRAIgc+qrx4xxoszNwI0sdAWjJv+nE8RPOHWZql8EnGH3WugCIFu0IHToiP1YsGV/03MwhtE8/kNCkqtJMpw+1C1ceayOASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              },
+              "anchoredAt": 977003
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                "issuer_sig": "AkgwRQIhAN/hu7ZiYwjVoTUE7Tc5+PDqHPtjBgVcfJqmJY88xpVHAiB7MiEtNx6Kk7eWBAJ+rEnV5bOrpQejgrdNi/Q9CPhOcAEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                "address_sig": "AkgwRQIhAPMcgWmm/JPTD6D9XfvABMh/pEo2MhWyOJXet2BHacdKAiB90bvrjk0w1eQUqHGhozVY16kzNz//EwvCi9bEC11gSgEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                "nostr_sig": "ab2c087add3d27438e42d901951b79d619bc2f26e8419720736bcd6341335a40415de48a5629c4d08dcd716e50516027f8e642baf9ac3fd2c8a3ee459baf2744"
+              },
+              "anchoredAt": 977105
+            }
+          ]
+        }
       },
       "cases": [
-        {
-          "evidence": {
-            "takeoverAnchoredAt": 977100
-          },
-          "expected": {
-            "accept": false,
-            "reason": "bad_evidence"
-          }
-        },
         {
           "evidence": {
             "madeAfter": 977150,
@@ -1158,6 +2122,141 @@
             "accept": false,
             "reason": "bad_evidence"
           }
+        }
+      ]
+    },
+    {
+      "id": "ks06",
+      "category": "signature",
+      "description": "an address with no ochk.io record: plain Bitcoin, accepted as today",
+      "input": {
+        "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+        "lookup": {
+          "complete": true,
+          "records": []
+        }
+      },
+      "cases": [
+        {
+          "evidence": {},
+          "expected": {
+            "accept": true,
+            "reason": "unbound"
+          }
+        },
+        {
+          "evidence": {
+            "live": true
+          },
+          "expected": {
+            "accept": true,
+            "reason": "unbound"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ks07",
+      "category": "signature",
+      "description": "a bound address whose record cannot be fetched: refused",
+      "input": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "lookup": {
+          "complete": false,
+          "records": []
+        }
+      },
+      "cases": [
+        {
+          "evidence": {},
+          "expected": {
+            "accept": false,
+            "reason": "unresolved"
+          }
+        },
+        {
+          "evidence": {
+            "live": true
+          },
+          "expected": {
+            "accept": false,
+            "reason": "unresolved"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kn01",
+      "category": "publication",
+      "description": "kind 30078 tags: a d tag per record, so none replaces another whoever publishes it, and a t tag for attest’s address query",
+      "cases": [
+        {
+          "name": "binding",
+          "input": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.\n",
+          "expected": [
+            [
+              "d",
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx:9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294"
+            ],
+            [
+              "t",
+              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+            ],
+            [
+              "t",
+              "oc-attest-key"
+            ]
+          ]
+        },
+        {
+          "name": "takeover",
+          "input": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 9550d380b3dbc57e050b1788d9efed06c18f029c10ddd9eaa90524d245277294\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+          "expected": [
+            [
+              "d",
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx:d6529236d17425f6f69dc506adba40c1de7c187a62c0ba510a4689e3e85f7cef"
+            ],
+            [
+              "t",
+              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+            ],
+            [
+              "t",
+              "oc-attest-key"
+            ]
+          ]
+        },
+        {
+          "name": "retire",
+          "input": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: e1384e9effc9bf267895cfaee4b9b434028f78a8bab5d29ee9801247a79be88e\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: wallet_linked\n",
+          "expected": [
+            [
+              "d",
+              "oc-attest-key:bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt:effc32ecd767bc79630fc75fb14db922ca9602df0b0573f172bdb77f6993a37b"
+            ],
+            [
+              "t",
+              "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
+            ],
+            [
+              "t",
+              "oc-attest-key"
+            ]
+          ]
+        },
+        {
+          "name": "issuer record",
+          "input": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+          "expected": [
+            [
+              "d",
+              "oc-attest-key:issuer:ec5a8ab056cd28dc0a563a5d1c49ae674b9524206d183af27c3fb30a7d9aa004"
+            ],
+            [
+              "t",
+              "oc-attest-key-issuer"
+            ]
+          ]
         }
       ]
     }

@@ -9,7 +9,16 @@ import { describe, expect, it } from 'vitest';
 import { fromB64url, fromHex, toHex } from '../src/bytes';
 import { deriveIdentity, deriveWallet, fedimintClientSecret, fedimintRootSecret, secretToMnemonic } from '../src/derive';
 import { lockAad, lockWithPasskey, lockWithPhrase, openWithPasskey, openWithPhrase, passkeyKek, phraseKek, PRF_SALT } from '../src/lock';
-import { judgeSignature, resolveCustody, verifyRecord, type VerifyContext } from '../src/records';
+import {
+    judgeSignature,
+    publicationTags,
+    recordId,
+    resolveIssuers,
+    resolveKeyHolder,
+    verifyRecord,
+    type KeyHolderState,
+    type VerifyContext,
+} from '../src/records';
 import { buildVectors } from './vectors.build';
 
 const FILE = join(__dirname, '..', 'test-vectors', 'keys-v1.json');
@@ -20,10 +29,10 @@ if (process.env.OC_KEYS_WRITE_VECTORS === '1') writeFileSync(FILE, built);
 type Any = any;
 type Case = Record<string, Any>;
 const file: Any = JSON.parse(readFileSync(FILE, 'utf8'));
-const ctx: VerifyContext = {
-    issuers: file.issuers,
-    blockHash: (h) => file.chain.headers[String(h)],
-};
+const blockHash = (h: number): string | undefined => file.chain.headers[String(h)];
+const issuers = resolveIssuers(file.issuer.named, file.issuer.records, blockHash);
+if (!issuers.ok) throw new Error(`the file's issuer records do not resolve: ${issuers.reason}`);
+const ctx: VerifyContext = { issuers: issuers.terms, blockHash };
 const hex = (s: string) => fromHex(s)!;
 const byId = (id: string): Any => file.vectors.find((v: Any) => v.id === id);
 const opened = (r: ReturnType<typeof openWithPasskey>) =>
@@ -110,37 +119,72 @@ describe('lock vectors', () => {
     });
 });
 
+const flat = (category: string) =>
+    file.vectors
+        .filter((v: Any) => v.category === category)
+        .flatMap((v: Any) =>
+            (v.cases ?? [v]).map((c: Any) => ({
+                ...c,
+                input: c.input ?? v.input,
+                label: `${v.id} ${c.name ?? (c.evidence ? JSON.stringify(c.evidence) : v.description)}`,
+            }))
+        );
+
+/** A bound state as the vectors write it: ids and heights, not whole records. */
+const summary = (s: KeyHolderState) =>
+    s.status !== 'bound'
+        ? s
+        : {
+              status: s.status,
+              born: s.born,
+              holder: s.holder,
+              binding: s.binding.id,
+              ...(s.takeover
+                  ? {
+                        takeover: s.takeover.id,
+                        takeover_since: s.takeover.since.height,
+                        ...(s.takeover.anchoredAt !== undefined ? { takeover_anchored_at: s.takeover.anchoredAt } : {}),
+                    }
+                  : {}),
+              ...(s.retire ? { retire: s.retire.id, retire_reason: s.retire.reason } : {}),
+          };
+
+const resolve = (input: Any) =>
+    resolveKeyHolder(input.address, input.lookup, input.namedBinding ? { ...ctx, namedBinding: input.namedBinding } : ctx);
+
 describe('record vectors', () => {
-    const cases = file.vectors
-        .filter((v: Any) => v.category === 'record')
-        .flatMap((v: Any) => (v.cases ?? [v]).map((c: Any) => ({ ...c, label: `${v.id} ${c.name ?? v.description}` })));
-    it.each<Case>(cases)('$label', (c: Any) => {
-        const r = verifyRecord(c.input, ctx);
+    it.each<Case>(flat('record'))('$label', (c: Any) => {
+        const r = verifyRecord(c.input.envelope, ctx, c.input.anchoredAt);
         expect(r.ok ? { ok: true, id: r.id, type: r.record.type } : r).toEqual(c.expected);
     });
 });
 
-describe('custody vectors', () => {
-    it.each<Case>(file.vectors.filter((v: Any) => v.category === 'custody'))('$id $description', (v: Any) => {
-        const r = resolveCustody(v.input.address, v.input.records, ctx);
-        if (!r.ok) return expect(r).toEqual(v.expected);
-        expect({
-            ok: true,
-            custody: r.custody,
-            born: r.born,
-            binding: r.binding.id,
-            ...(r.takeover ? { takeover: r.takeover.id, takeover_since_height: r.takeover.since.height } : {}),
-        }).toEqual(v.expected);
+describe('issuer vectors', () => {
+    it.each<Case>(flat('issuers'))('$label', (c: Any) => {
+        expect(resolveIssuers(c.input.named, c.input.records, blockHash)).toEqual(c.expected);
+    });
+
+    it("the file's own issuer records resolve to ki01's terms", () => {
+        expect(issuers).toEqual(byId('ki01').expected);
+    });
+});
+
+describe('key-holder vectors', () => {
+    it.each<Case>(flat('key_holder'))('$label', (c: Any) => {
+        expect(summary(resolve(c.input))).toEqual(c.expected);
     });
 });
 
 describe('signature vectors', () => {
-    const cases = file.vectors
-        .filter((v: Any) => v.category === 'signature')
-        .flatMap((v: Any) => v.cases.map((c: Any) => ({ ...c, input: v.input, label: `${v.id} ${JSON.stringify(c.evidence)}` })));
-    it.each<Case>(cases)('$label', (c: Any) => {
-        const state = resolveCustody(c.input.address, c.input.records, ctx);
-        if (!state.ok) throw new Error(state.reason);
-        expect(judgeSignature(state, c.evidence)).toEqual(c.expected);
+    it.each<Case>(flat('signature'))('$label', (c: Any) => {
+        expect(judgeSignature(resolve(c.input), c.evidence)).toEqual(c.expected);
+    });
+});
+
+describe('publication vectors', () => {
+    it.each<Case>(flat('publication'))('$label', (c: Any) => {
+        expect(publicationTags(c.input)).toEqual(c.expected);
+        // The d tag names the record's own id, so no record replaces another under one key.
+        expect(c.expected[0][1].endsWith(`:${recordId(c.input)}`)).toBe(true);
     });
 });

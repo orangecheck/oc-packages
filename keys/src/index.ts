@@ -1,4 +1,4 @@
-// @orangecheck/keys: an account's two secrets, the lock, and the custody
+// @orangecheck/keys: an account's two secrets, the lock, and the key-holder
 // records. The reference implementation of README.md; unreleased.
 export { fromB64url, fromHex, randomSecret, toB64url, toHex } from './bytes';
 export {
@@ -27,6 +27,8 @@ export {
 } from './lock';
 export type { LockMethod, LockedCopy, OpenFailure } from './lock';
 export {
+    CUSTODIAL_TRUST,
+    D_TAG_PREFIX,
     RETIRE_REASONS,
     TAKEOVER_TRUST,
     bindingRecord,
@@ -34,30 +36,45 @@ export {
     identitySigns,
     isDidOc,
     isMainnetP2wpkh,
+    issuerRecord,
     issuerSign,
     judgeSignature,
+    namedIssuer,
     parseRecord,
+    publicationTags,
     recordId,
     recordText,
-    resolveCustody,
+    resolveIssuers,
+    resolveKeyHolder,
     retireRecord,
+    rotationSign,
     takeoverRecord,
     verifyRecord,
 } from './records';
 export type {
+    AddressRecord,
+    Anchored,
     BindingFields,
-    Custody,
-    CustodyFailure,
-    CustodyState,
+    BoundState,
+    IssuerFailure,
+    IssuerFields,
+    IssuerTerm,
+    KeyHolder,
+    KeyHolderState,
     ParsedRecord,
     RecordFailure,
+    RecordLookup,
     RecordType,
+    ResolveContext,
+    ResolveFailure,
     RetireFields,
     RetireReason,
     SignatureEvidence,
     SignatureVerdict,
+    SignedIssuerRecord,
     SignedRecord,
     Since,
+    Step,
     TakeoverFields,
     VerifiedRecord,
     VerifyContext,
