@@ -15,7 +15,8 @@ this file tracks the package's TS / Node / runtime API surface.
   `only`. `with` adds a "Sign in with a passkey" button above the other ways
   in, and offers the passkey in the email field's autofill
   (`autocomplete="username webauthn"`, a conditional request that stops when
-  the field goes). `only` shows the passkey button alone. Both call ochk.io's
+  the field goes; a passkey already picked there still signs in if the field
+  goes before ochk.io answers). `only` shows the passkey button alone. Both call ochk.io's
   `POST /api/auth/passkey/options` with `{kind: "signin"}` and
   `POST /api/auth/passkey/verify`, and hand the account and token to
   `onSuccess` as the other ways do. Each refusal reads as its own sentence.
