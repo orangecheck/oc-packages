@@ -10,6 +10,13 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Changed
+
+- `webhook.verify` refuses every delivery, before it fetches a key, when
+  `maxAgeSeconds` is set to anything but a finite number of 0 or more (NaN from
+  an unset env var, Infinity, a negative, a string or null). Left out, it is
+  still a day.
+
 ## [0.64.0] — 2026-11-24
 
 ### Added
