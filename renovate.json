@@ -8,6 +8,13 @@
   ],
   "description": "prConcurrentLimit was 5. Three PRs stuck since 2026-05-20 — all checks green, automerge on, unmergeable because a 3.5-month-old lockfile branch conflicts — held 3 of those 5 slots, so the family's own bumps stayed permanently rate-limited and 18 inter-package pins drifted. @orangecheck/agent-core reached 1.1.0 while six adapters still pinned ^0.1.0 or ^0.3.0, and a caret on a 0.x version locks the MINOR, so those ranges could never have reached it even unblocked.",
   "labels": ["renovate"],
+  "packageRules": [
+    {
+      "description": "compat/ installs the exact versions sites run today, on purpose. A bump there would test some other version, so Renovate leaves it alone.",
+      "matchFileNames": ["compat/**"],
+      "enabled": false
+    }
+  ],
   "prConcurrentLimit": 12,
   "prHourlyLimit": 10
 }

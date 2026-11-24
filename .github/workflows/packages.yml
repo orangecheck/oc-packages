@@ -402,6 +402,36 @@ jobs:
                   pip install -e '.[dev]' pytest
                   python -m pytest -q
 
+    compat:
+        # The readers sites already run, at the exact versions compat/ installs from
+        # npm and PyPI, read an account that carries an identity key orangecheck
+        # holds exactly as before (ME-OWN-KEYS-PLAN §2). The mutant run proves each
+        # test fails when the key shows up where an old reader looks.
+        name: Published readers ignore an identity key
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: compat
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: '24'
+                  cache: yarn
+                  cache-dependency-path: compat/yarn.lock
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+            - name: Install
+              run: |
+                  yarn install --frozen-lockfile
+                  python -m venv .venv
+                  .venv/bin/pip install --require-hashes -r py/requirements.txt
+            - name: Test
+              run: COMPAT_PYTHON=.venv/bin/python yarn test
+            - name: Every mutant is killed
+              run: COMPAT_PYTHON=.venv/bin/python yarn mutants
+
     conformance:
         name: Cross-impl conformance (live vectors)
         runs-on: ubuntu-latest
@@ -510,6 +540,7 @@ jobs:
                 id-coverage,
                 build,
                 python,
+                compat,
                 conformance,
                 dep-floors,
             ]
