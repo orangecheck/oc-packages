@@ -118,6 +118,25 @@ function bindingAddress(statement: string, credentialId: string): string | null 
     return address ?? null;
 }
 
+// Keyed by wallet-adapter's WalletFailure; `trimmed` is read from 0.8.1 on.
+const SIGNER_REFUSAL: Readonly<Record<string, string>> = {
+    rejected: 'cancelled',
+    'wrong-account': 'wrong_account',
+    'not-found': 'wallet_not_found',
+    'timed-out': 'timed_out',
+    trimmed: 'signature_trimmed',
+};
+
+/** Why the wallet did not sign, read the way wallet-adapter reads every signer's failure. */
+async function signerRefusal(err: unknown): Promise<string> {
+    try {
+        const { walletFailure } = await import('@orangecheck/wallet-adapter');
+        return SIGNER_REFUSAL[walletFailure(err)] ?? 'sign_failed';
+    } catch {
+        return isAbortError(err) ? 'cancelled' : 'sign_failed';
+    }
+}
+
 async function bindKey(
     authOrigin: string,
     statement: string,
@@ -129,8 +148,8 @@ async function bindKey(
     let signature: string;
     try {
         signature = await sign(statement, address);
-    } catch {
-        return { ok: false, reason: 'cancelled' };
+    } catch (e) {
+        return { ok: false, reason: await signerRefusal(e) };
     }
     try {
         const r = await fetch(`${authOrigin}/api/auth/webauthn/bind`, {

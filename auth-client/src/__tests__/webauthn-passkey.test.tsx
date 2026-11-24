@@ -146,6 +146,38 @@ describe('useWebAuthnRegister · bind', () => {
         expect(result).toEqual({ ok: true, credential: SAMPLE_CRED, binding: { ok: false, reason: 'cancelled' } });
     });
 
+    it.each([
+        ['a decline by code', Object.assign(new Error('request failed'), { code: 4001 }), 'cancelled'],
+        ['another address', Object.assign(new Error('signed by bc1qother'), { code: 'E_WRONG_ACCOUNT' }), 'wrong_account'],
+        ['no such wallet', Object.assign(new Error('Leather is not installed'), { name: 'WalletNotFoundError' }), 'wallet_not_found'],
+        ['no answer', new Error('Request timed out'), 'timed_out'],
+        ['anything else', new Error('boom'), 'sign_failed'],
+    ])('keeps the key and says why the wallet did not sign: %s', async (_why, err, reason) => {
+        const calls = setupFetch(registerRoutes({ binding_statement: STATEMENT }));
+        const result = await runRegister({ bind: async () => Promise.reject(err) });
+        expect(bindCalls(calls)).toEqual([]);
+        expect(result).toEqual({ ok: true, credential: SAMPLE_CRED, binding: { ok: false, reason } });
+    });
+
+    // The installed wallet-adapter may predate a failure kind, so these stand one in.
+    it.each([
+        ['a signature without its final line break', () => ({ walletFailure: () => 'trimmed' }), new Error('x'), 'signature_trimmed'],
+        ['a kind it does not know', () => ({ walletFailure: () => 'something-new' }), new Error('x'), 'sign_failed'],
+        ['a decline when wallet-adapter cannot load', () => { throw new Error('no module'); }, new Error('User cancelled'), 'cancelled'],
+        ['anything else when wallet-adapter cannot load', () => { throw new Error('no module'); }, new Error('boom'), 'sign_failed'],
+    ])('reads %s', async (_why, adapter, err, reason) => {
+        vi.resetModules();
+        vi.doMock('@orangecheck/wallet-adapter', adapter);
+        try {
+            setupFetch(registerRoutes({ binding_statement: STATEMENT }));
+            const result = await runRegister({ bind: async () => Promise.reject(err) });
+            expect(result).toEqual({ ok: true, credential: SAMPLE_CRED, binding: { ok: false, reason } });
+        } finally {
+            vi.doUnmock('@orangecheck/wallet-adapter');
+            vi.resetModules();
+        }
+    });
+
     it('says why ochk.io refused the binding', async () => {
         setupFetch(registerRoutes({ binding_statement: STATEMENT }, { status: 400, body: { ok: false, reason: 'nonce_spent' } }));
         const result = await runRegister({ bind: async () => 'SIG' });
