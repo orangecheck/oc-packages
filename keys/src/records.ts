@@ -13,6 +13,9 @@
 //   record keeps that orangecheck held it until the takeover was anchored.
 // - retire: the issuer alone, for a binding never taken over.
 // - issuer: a new issuer address, signed by the old one and the new one.
+// - wallet-link: a wallet address whose coins count for the identity, signed
+//   by both addresses (BIP-322) and no issuer. wallet-unlink ends it, signed
+//   by either.
 import { isDidOc } from '@orangecheck/auth-core/identifiers';
 import { decodeAddress, signMessage, verifySignature } from '@orangecheck/bip322';
 import { schnorr } from '@noble/curves/secp256k1';
@@ -25,9 +28,10 @@ export { isDidOc };
 
 /** Who holds an address's identity key. Not the funds' custody (FEDERATION-CUSTODY.md's `custody`). */
 export type KeyHolder = 'orangecheck' | 'user';
-export type RecordType = 'binding' | 'takeover' | 'retire' | 'issuer';
+export type RecordType = 'binding' | 'takeover' | 'retire' | 'issuer' | 'wallet-link' | 'wallet-unlink';
 
-export const RETIRE_REASONS = ['wallet_linked', 'merged', 'deleted', 'withdrawn'] as const;
+/** own_wallet: the account's own wallet address became its identity, so the key orangecheck made is shredded. */
+export const RETIRE_REASONS = ['own_wallet', 'merged', 'deleted', 'withdrawn'] as const;
 export type RetireReason = (typeof RETIRE_REASONS)[number];
 
 /** A custodial binding's fixed trust line (family rule 8). */
@@ -37,6 +41,9 @@ export const CUSTODIAL_TRUST =
 /** The takeover's fixed trust line: orangecheck's time as key holder stays on the record. */
 export const TAKEOVER_TRUST =
     'orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.';
+
+/** A wallet link's fixed line, which a wallet shows its holder before signing. */
+export const WALLET_LINK_ACK = "The coins at this wallet count for this identity until either key ends the link.";
 
 /** The Nostr d-tag prefix every record is published under (kind 30078). */
 export const D_TAG_PREFIX = 'oc-attest-key:';
@@ -83,19 +90,49 @@ export interface IssuerFields {
     since: Since;
 }
 
+export interface WalletLinkFields {
+    didOc: string;
+    /** The identity address. */
+    address: string;
+    /** The wallet address whose coins count for it. */
+    wallet: string;
+    /** The id of the identity address's binding. */
+    binding: string;
+    since: Since;
+}
+
+export interface WalletUnlinkFields {
+    didOc: string;
+    address: string;
+    wallet: string;
+    /** The id of the wallet link it ends. */
+    link: string;
+    since: Since;
+}
+
 export type ParsedRecord =
     | ({ type: 'binding' } & BindingFields)
     | ({ type: 'takeover' } & TakeoverFields)
     | ({ type: 'retire' } & RetireFields)
-    | ({ type: 'issuer' } & IssuerFields);
+    | ({ type: 'issuer' } & IssuerFields)
+    | ({ type: 'wallet-link' } & WalletLinkFields)
+    | ({ type: 'wallet-unlink' } & WalletUnlinkFields);
 
-export type AddressRecord = Exclude<ParsedRecord, { type: 'issuer' }>;
+/** The records an issuer signs about one identity address. */
+export type AddressRecord = Extract<ParsedRecord, { type: 'binding' | 'takeover' | 'retire' }>;
+/** The records the identity and a wallet sign between them. */
+export type WalletRecord = Extract<ParsedRecord, { type: 'wallet-link' | 'wallet-unlink' }>;
+
+const isAddressRecord = (r: ParsedRecord): r is AddressRecord =>
+    r.type === 'binding' || r.type === 'takeover' || r.type === 'retire';
 
 const HEADER: Record<RecordType, string> = {
     binding: 'oc-attest-key:binding:v1',
     takeover: 'oc-attest-key:takeover:v1',
     retire: 'oc-attest-key:retire:v1',
     issuer: 'oc-attest-key:issuer:v1',
+    'wallet-link': 'oc-attest-key:wallet-link:v1',
+    'wallet-unlink': 'oc-attest-key:wallet-unlink:v1',
 };
 
 function text(lines: string[]): string {
@@ -149,10 +186,35 @@ export function issuerRecord(f: IssuerFields): string {
     return text([HEADER.issuer, `old: ${f.old}`, `new: ${f.new}`, ...sinceLines(f.since)]);
 }
 
+export function walletLinkRecord(f: WalletLinkFields): string {
+    return text([
+        HEADER['wallet-link'],
+        `did_oc: ${f.didOc}`,
+        `address: ${f.address}`,
+        `wallet: ${f.wallet}`,
+        `binding: ${f.binding}`,
+        ...sinceLines(f.since),
+        `ack: ${WALLET_LINK_ACK}`,
+    ]);
+}
+
+export function walletUnlinkRecord(f: WalletUnlinkFields): string {
+    return text([
+        HEADER['wallet-unlink'],
+        `did_oc: ${f.didOc}`,
+        `address: ${f.address}`,
+        `wallet: ${f.wallet}`,
+        `link: ${f.link}`,
+        ...sinceLines(f.since),
+    ]);
+}
+
 export function recordText(r: ParsedRecord): string {
     if (r.type === 'binding') return bindingRecord(r);
     if (r.type === 'takeover') return takeoverRecord(r);
     if (r.type === 'retire') return retireRecord(r);
+    if (r.type === 'wallet-link') return walletLinkRecord(r);
+    if (r.type === 'wallet-unlink') return walletUnlinkRecord(r);
     return issuerRecord(r);
 }
 
@@ -200,6 +262,16 @@ export function parseRecord(record: unknown): ParsedRecord | null {
         const next = get('new');
         if (!isMainnetP2wpkh(old) || !isMainnetP2wpkh(next) || old === next) return null;
         parsed = { type, old, new: next, since };
+    } else if (type === 'wallet-link' || type === 'wallet-unlink') {
+        const didOc = get('did_oc');
+        const address = get('address');
+        const wallet = get('wallet');
+        if (!isDidOc(didOc) || !isMainnetP2wpkh(address) || !isMainnetP2wpkh(wallet) || wallet === address) return null;
+        parsed =
+            type === 'wallet-link'
+                ? { type, didOc, address, wallet, binding: get('binding'), since }
+                : { type, didOc, address, wallet, link: get('link'), since };
+        if (!HEX64.test(type === 'wallet-link' ? get('binding') : get('link'))) return null;
     } else {
         const didOc = get('did_oc');
         const address = get('address');
@@ -219,7 +291,7 @@ export function parseRecord(record: unknown): ParsedRecord | null {
         if ('nostr' in parsed && !HEX64.test(parsed.nostr)) return null;
         if ('binding' in parsed && !HEX64.test(parsed.binding)) return null;
     }
-    // The fixed literals (key_holder: user, each trust line) and the field order are checked here.
+    // The fixed literals (key_holder: user, each trust line, the ack) and the field order are checked here.
     return recordText(parsed) === record ? parsed : null;
 }
 
@@ -254,7 +326,7 @@ export function identitySigns(r: ParsedRecord): boolean {
 /** The issuer's signature over an address record (BIP-322 simple by its P2WPKH address). */
 export function issuerSign(record: string, issuerKey: Uint8Array): string {
     const r = parseRecord(record);
-    if (!r || r.type === 'issuer') throw new Error('not a canonical address record');
+    if (!r || !isAddressRecord(r)) throw new Error('not a canonical address record');
     return signMessage(r.issuer, record, issuerKey);
 }
 
@@ -276,9 +348,9 @@ export function identitySign(
     auxRand?: Uint8Array
 ): { address_sig: string; nostr_sig: string } {
     const r = parseRecord(record);
-    if (!r) throw new Error('not a canonical record');
+    if (!r || !isAddressRecord(r)) throw new Error('not a canonical address record');
     if (!identitySigns(r)) throw new Error('the key orangecheck holds signs nothing');
-    if (r.type === 'issuer' || r.address !== keys.address) throw new Error('these keys are not the record address');
+    if (r.address !== keys.address) throw new Error('these keys are not the record address');
     return {
         address_sig: signMessage(r.address, record, keys.addressKey),
         nostr_sig: toHex(schnorr.sign(sha256(utf8(record)), keys.nostrKey, auxRand)),
@@ -293,10 +365,18 @@ export function publicationTags(record: string): string[][] {
     if (r.type === 'issuer') {
         return [['d', `${D_TAG_PREFIX}issuer:${id}`], ['t', 'oc-attest-key-issuer']];
     }
+    if (r.type === 'wallet-link' || r.type === 'wallet-unlink') {
+        // Under the wallet, which a reader must read in full (README §6), and the identity.
+        return [['d', `${D_TAG_PREFIX}${r.wallet}:${id}`], ['t', r.wallet], ['t', r.address], ['t', 'oc-attest-key']];
+    }
     return [['d', `${D_TAG_PREFIX}${r.address}:${id}`], ['t', r.address], ['t', 'oc-attest-key']];
 }
 
 const isHeight = (h: unknown): h is number => typeof h === 'number' && Number.isInteger(h) && h >= 0;
+
+/** Two copies of one record may carry different proofs: the earlier anchor bounds it best. */
+const earliest = (a: number | undefined, b: number | undefined) =>
+    a === undefined ? b : b === undefined ? a : Math.min(a, b);
 
 function chainHas(blockHash: (height: number) => string | undefined, since: Since): 'yes' | 'no' | 'unknown' {
     let onChain: string | undefined;
@@ -358,7 +438,7 @@ export function resolveIssuers(
         }
         const id = recordId(e.record);
         const seen = valid.get(id);
-        valid.set(id, { r, anchoredAt: seen?.anchoredAt ?? anchoredAt });
+        valid.set(id, { r, anchoredAt: earliest(seen?.anchoredAt, anchoredAt) });
     }
     const all = [...valid.values()];
     const terms: IssuerTerm[] = [{ address: named, from: 0 }];
@@ -443,7 +523,7 @@ export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: numb
         if (k in e && typeof e[k] !== 'string') return fail('malformed');
     }
     const record = parseRecord(e.record);
-    if (!record || record.type === 'issuer') return fail('not_canonical');
+    if (!record || !isAddressRecord(record)) return fail('not_canonical');
     const text = e.record;
     const id = recordId(text);
     const term = ctx.issuers.find((t) => t.address === record.issuer);
@@ -555,7 +635,7 @@ export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: Res
         if (v.ok) {
             if (v.record.address !== address) continue;
             const seen = valid.get(v.id);
-            valid.set(v.id, { record: v.record, anchoredAt: seen?.anchoredAt ?? anchoredAt });
+            valid.set(v.id, { record: v.record, anchoredAt: earliest(seen?.anchoredAt, anchoredAt) });
             continue;
         }
         if (!v.issuerSigned) continue;
@@ -680,4 +760,271 @@ export function judgeSignature(state: KeyHolderState, evidence: SignatureEvidenc
         return { accept: true, reason: 'after_takeover' };
     }
     return { accept: true, reason: 'ambiguous_window' };
+}
+
+// ── wallet links (README §6) ──
+
+/** An address and its private key: the identity's (IdentityKeys) or a wallet's (walletKey). */
+export interface AddressKey {
+    address: string;
+    addressKey: Uint8Array;
+}
+
+/** A wallet record as it travels: its text and the signatures beside it, no issuer's. */
+export interface SignedWalletRecord {
+    record: string;
+    /** BIP-322 simple, base64, by the identity address. A link needs it; an unlink needs it or wallet_sig. */
+    address_sig?: string;
+    /** BIP-322 simple, base64, by the wallet address. */
+    wallet_sig?: string;
+    ots?: string;
+}
+
+const isWalletRecord = (r: ParsedRecord | null): r is WalletRecord =>
+    r !== null && (r.type === 'wallet-link' || r.type === 'wallet-unlink');
+
+/** Both signatures over a wallet link, made where both keys are: the browser, at takeover or later. */
+export function walletLinkSign(
+    record: string,
+    identity: AddressKey,
+    wallet: AddressKey
+): { address_sig: string; wallet_sig: string } {
+    const r = parseRecord(record);
+    if (!r || r.type !== 'wallet-link') throw new Error('not a canonical wallet link');
+    if (identity.address !== r.address || wallet.address !== r.wallet) throw new Error('these keys are not the link addresses');
+    return { address_sig: signMessage(r.address, record, identity.addressKey), wallet_sig: signMessage(r.wallet, record, wallet.addressKey) };
+}
+
+/** One signature over a wallet unlink, by either of the link's two addresses. */
+export function walletUnlinkSign(record: string, key: AddressKey): { address_sig: string } | { wallet_sig: string } {
+    const r = parseRecord(record);
+    if (!r || r.type !== 'wallet-unlink') throw new Error('not a canonical wallet unlink');
+    const sig = signMessage(key.address, record, key.addressKey);
+    if (key.address === r.address) return { address_sig: sig };
+    if (key.address === r.wallet) return { wallet_sig: sig };
+    throw new Error('this key is neither of the link addresses');
+}
+
+export type WalletRecordFailure =
+    | 'malformed'
+    | 'not_canonical' // not a wallet link or unlink in canonical form
+    | 'address_sig_missing'
+    | 'address_sig_invalid'
+    | 'wallet_sig_missing'
+    | 'wallet_sig_invalid'
+    | 'unsigned' // an unlink with neither signature
+    | 'since_unverified'
+    | 'since_not_on_chain'
+    | 'bad_anchor';
+
+/** Whose signatures on the copy verify, whatever else is wrong with it. */
+export type WalletSigners = { address: boolean; wallet: boolean };
+
+export type VerifiedWalletRecord =
+    | { ok: true; id: string; record: WalletRecord; signed: WalletSigners }
+    | { ok: false; reason: WalletRecordFailure; signed: WalletSigners };
+
+const WALLET_KEYS = new Set(['record', 'address_sig', 'wallet_sig', 'ots']);
+
+/**
+ * Check one copy of a wallet link or unlink. Pure, offline and never throws.
+ * `signed` says which of its addresses' signatures verify, so a reader can
+ * tell a broken copy of a real record from anyone's noise.
+ */
+export function verifyWalletRecord(
+    env: unknown,
+    blockHash: VerifyContext['blockHash'],
+    anchoredAt?: number
+): VerifiedWalletRecord {
+    const none: WalletSigners = { address: false, wallet: false };
+    if (!env || typeof env !== 'object' || Array.isArray(env)) return { ok: false, reason: 'malformed', signed: none };
+    const e = env as Record<string, unknown>;
+    for (const k of Object.keys(e)) if (!WALLET_KEYS.has(k)) return { ok: false, reason: 'malformed', signed: none };
+    if (typeof e.record !== 'string') return { ok: false, reason: 'malformed', signed: none };
+    for (const k of ['address_sig', 'wallet_sig', 'ots']) {
+        if (k in e && typeof e[k] !== 'string') return { ok: false, reason: 'malformed', signed: none };
+    }
+    const record = parseRecord(e.record);
+    if (!isWalletRecord(record)) return { ok: false, reason: 'not_canonical', signed: none };
+    const text = e.record;
+    const signed: WalletSigners = {
+        address: typeof e.address_sig === 'string' && verifySignature(record.address, text, e.address_sig),
+        wallet: typeof e.wallet_sig === 'string' && verifySignature(record.wallet, text, e.wallet_sig),
+    };
+    const fail = (reason: WalletRecordFailure): VerifiedWalletRecord => ({ ok: false, reason, signed });
+    if (record.type === 'wallet-link') {
+        if (!('address_sig' in e)) return fail('address_sig_missing');
+        if (!signed.address) return fail('address_sig_invalid');
+        if (!('wallet_sig' in e)) return fail('wallet_sig_missing');
+        if (!signed.wallet) return fail('wallet_sig_invalid');
+    } else {
+        if (!('address_sig' in e) && !('wallet_sig' in e)) return fail('unsigned');
+        if ('address_sig' in e && !signed.address) return fail('address_sig_invalid');
+        if ('wallet_sig' in e && !signed.wallet) return fail('wallet_sig_invalid');
+    }
+    if (anchoredAt !== undefined && (!isHeight(anchoredAt) || anchoredAt <= record.since.height)) return fail('bad_anchor');
+    const chain = chainHas(blockHash, record.since);
+    if (chain === 'unknown') return fail('since_unverified');
+    if (chain === 'no') return fail('since_not_on_chain');
+    return { ok: true, id: recordId(text), record, signed };
+}
+
+export type WalletLinkFailure =
+    | 'unavailable' // the read under the wallet was not complete
+    | 'record_unverified' // a link or unlink its own keys signed, of which no copy verifies here
+    | 'bad_anchor'
+    | 'unlink_without_link' // the wallet ended a link the read does not hold
+    | 'bad_height'; // `at` is not a block height
+
+export type WalletLinkState =
+    | { status: 'none' } // the wallet backs no identity
+    | {
+          status: 'linked';
+          didOc: string;
+          address: string;
+          wallet: string;
+          binding: string;
+          /** The link in force: its anchor is when it began to count. */
+          link: Step & { anchoredAt: number };
+      }
+    | { status: 'refused'; reason: WalletLinkFailure };
+
+type Link = { id: string; r: Extract<WalletRecord, { type: 'wallet-link' }>; anchoredAt?: number };
+type Unlink = { r: Extract<WalletRecord, { type: 'wallet-unlink' }>; anchoredAt?: number; signed: WalletSigners };
+
+/**
+ * Which identity a wallet's coins count for, from every record copy the
+ * verifier read under the wallet's `t` tag. Links count from their anchors,
+ * in anchor order, one identity at a time: a link anchored while another is
+ * in force never counts, nor do two anchored in one block. An unlink ends its
+ * link at the unlink's anchor; now, any unlink ends it. `at` asks about the
+ * block at that height instead of now. The read must be complete, since a
+ * missed link or unlink could only make a later link count wrongly.
+ */
+export function resolveWalletLink(
+    wallet: string,
+    lookup: RecordLookup,
+    ctx: Pick<VerifyContext, 'blockHash'>,
+    at?: number
+): WalletLinkState {
+    const refuse = (reason: WalletLinkFailure): WalletLinkState => ({ status: 'refused', reason });
+    if (at !== undefined && !isHeight(at)) return refuse('bad_height');
+    if (!lookup.complete) return refuse('unavailable');
+    const links = new Map<string, Link>();
+    const unlinks = new Map<string, Unlink>();
+    const broken: { id: string; r: WalletRecord; signed: WalletSigners; reason: WalletRecordFailure }[] = [];
+    for (const { envelope, anchoredAt } of lookup.records) {
+        const v = verifyWalletRecord(envelope, ctx.blockHash, anchoredAt);
+        if (!v.ok) {
+            if (!v.signed.address && !v.signed.wallet) continue;
+            const text = (envelope as SignedWalletRecord).record;
+            const r = parseRecord(text) as WalletRecord;
+            if (r.wallet === wallet) broken.push({ id: recordId(text), r, signed: v.signed, reason: v.reason });
+            continue;
+        }
+        if (v.record.wallet !== wallet) continue;
+        if (v.record.type === 'wallet-link') {
+            links.set(v.id, { id: v.id, r: v.record, anchoredAt: earliest(links.get(v.id)?.anchoredAt, anchoredAt) });
+        } else {
+            // Copies of one unlink may be signed by different keys: it is signed by every key that signed one.
+            const seen = unlinks.get(v.id);
+            const signed = { address: !!seen?.signed.address || v.signed.address, wallet: !!seen?.signed.wallet || v.signed.wallet };
+            unlinks.set(v.id, { r: v.record, anchoredAt: earliest(seen?.anchoredAt, anchoredAt), signed });
+        }
+    }
+    // An unlink speaks for a link only when it is the wallet's own or by that link's identity, with the link's fields.
+    const ends = (u: Unlink) => {
+        const l = links.get(u.r.link);
+        return l && l.r.didOc === u.r.didOc && l.r.address === u.r.address ? l : undefined;
+    };
+    const real = (r: WalletRecord, signed: WalletSigners) =>
+        r.type === 'wallet-link'
+            ? signed.address && signed.wallet
+            : signed.wallet || (signed.address && ends({ r, signed, anchoredAt: undefined }) !== undefined);
+    for (const b of broken) {
+        if (links.has(b.id) || unlinks.has(b.id) || !real(b.r, b.signed)) continue;
+        return refuse(b.reason === 'bad_anchor' ? 'bad_anchor' : 'record_unverified');
+    }
+    const endsOf = new Map<string, Unlink[]>();
+    for (const u of unlinks.values()) {
+        const l = ends(u);
+        if (!l) {
+            if (u.signed.wallet) return refuse('unlink_without_link');
+            continue;
+        }
+        endsOf.set(l.id, [...(endsOf.get(l.id) ?? []), u]);
+    }
+    const endedBy = (l: Link, h: number) => (endsOf.get(l.id) ?? []).some((u) => u.anchoredAt !== undefined && u.anchoredAt <= h);
+
+    const counted = [...links.values()]
+        .filter((l): l is Link & { anchoredAt: number } => l.anchoredAt !== undefined && (at === undefined || l.anchoredAt <= at))
+        .sort((x, y) => x.anchoredAt - y.anchoredAt);
+    let current: (Link & { anchoredAt: number }) | undefined;
+    for (let i = 0; i < counted.length; ) {
+        const h = counted[i]!.anchoredAt;
+        const block = counted.filter((l) => l.anchoredAt === h);
+        i += block.length;
+        if (current && endedBy(current, h)) current = undefined;
+        if (current) continue;
+        const starting = block.filter((l) => !endedBy(l, h));
+        if (starting.length === 1) current = starting[0];
+    }
+    if (!current) return { status: 'none' };
+    const over = at === undefined ? (endsOf.get(current.id) ?? []).length > 0 : endedBy(current, at);
+    if (over) return { status: 'none' };
+    const { r } = current;
+    return {
+        status: 'linked',
+        didOc: r.didOc,
+        address: r.address,
+        wallet: r.wallet,
+        binding: r.binding,
+        link: { id: current.id, since: r.since, anchoredAt: current.anchoredAt },
+    };
+}
+
+export type WalletLinkVerdict =
+    | { accept: true; reason: 'linked' }
+    | {
+          accept: false;
+          reason:
+              | 'unresolved' // a lookup that could not be read or checked
+              | 'not_linked'
+              | 'linked_elsewhere' // the wallet's coins count for another identity
+              | 'link_mismatch' // the link names another did:oc or binding than the identity's records
+              | 'before_takeover'
+              | 'orangecheck_held'
+              | 'retired'
+              | 'bad_evidence'
+              | 'wallet_key_refused'; // the wallet is an address whose key-holder records refuse its signature
+      };
+
+/**
+ * Whether a wallet's coins count for an identity address: the wallet's link
+ * is to that address, and both of the link's signatures pass the key-holder
+ * rule at the link's own anchor. A custodial identity never links, since the
+ * key orangecheck holds signs nothing; nor does a did:oc alone.
+ */
+export function judgeWalletLink(args: {
+    address: string;
+    identity: KeyHolderState;
+    link: WalletLinkState;
+    wallet: KeyHolderState;
+}): WalletLinkVerdict {
+    const { address, identity, link, wallet } = args;
+    const no = (reason: Exclude<WalletLinkVerdict['reason'], 'linked'>): WalletLinkVerdict => ({ accept: false, reason });
+    if (link.status === 'refused' || identity.status === 'refused' || wallet.status === 'refused') return no('unresolved');
+    if (link.status === 'none') return no('not_linked');
+    if (link.address !== address) return no('linked_elsewhere');
+    // The link names a binding for this address: a complete read that holds none is not plain Bitcoin.
+    if (identity.status === 'unbound') return no('unresolved');
+    if (identity.address !== address || identity.didOc !== link.didOc || identity.binding.id !== link.binding) {
+        return no('link_mismatch');
+    }
+    if (identity.takeover && link.link.since.height < identity.takeover.since.height) return no('before_takeover');
+    const evidence = { anchoredAt: link.link.anchoredAt, madeAfter: link.link.since.height };
+    const byIdentity = judgeSignature(identity, evidence);
+    if (!byIdentity.accept) return no(byIdentity.reason === 'unresolved' ? 'unresolved' : byIdentity.reason);
+    if (!judgeSignature(wallet, evidence).accept) return no('wallet_key_refused');
+    return { accept: true, reason: 'linked' };
 }

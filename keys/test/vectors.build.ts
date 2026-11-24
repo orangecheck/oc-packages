@@ -15,6 +15,7 @@ import {
     fedimintRootSecret,
     identityKeys,
     secretToMnemonic,
+    walletKey,
 } from '../src/derive';
 import { lockAad, lockWithPasskey, lockWithPhrase, passkeyKek, PRF_SALT, phraseKek } from '../src/lock';
 import {
@@ -27,8 +28,14 @@ import {
     retireRecord,
     rotationSign,
     takeoverRecord,
+    walletLinkRecord,
+    walletLinkSign,
+    walletUnlinkRecord,
+    walletUnlinkSign,
+    type AddressKey,
     type SignedIssuerRecord,
     type SignedRecord,
+    type SignedWalletRecord,
     type Since,
 } from '../src/records';
 
@@ -70,6 +77,10 @@ const I_D = label('identity D');
 const I_E = label('identity E');
 const KEYS_A = identityKeys(I_A);
 const KEYS_B = identityKeys(I_B);
+const KEYS_C = identityKeys(I_C);
+// The first receive address of each wallet secret, which a wallet link names.
+const WALLET_A = walletKey(W_A);
+const WALLET_B = walletKey(W_B);
 
 const PRF_1 = label('prf passkey 1');
 const PRF_2 = label('prf passkey 2');
@@ -117,7 +128,7 @@ export function buildVectors(): unknown {
         binding: recordId(bindingC),
         issuer: ISSUER,
         since: at(977100),
-        reason: 'wallet_linked',
+        reason: 'own_wallet',
     });
     // D was bound by the issuer before the current one, before that issuer handed over.
     const bindingD = bind(idD, DID_D, 'orangecheck', at(977000), OLD_ISSUER);
@@ -213,6 +224,82 @@ export function buildVectors(): unknown {
         [envBindingA, ANCHOR.bindingA],
         [envTakeoverA, ANCHOR.takeoverA],
     ]);
+    const B_SET = found([[envBindingB, ANCHOR.bindingB]]);
+    const A_HELD = found([[envBindingA, ANCHOR.bindingA]]);
+
+    // ── wallet links ──
+    const link = (id: { address: string }, didOc: string, wallet: string, binding: string, since: Since) =>
+        walletLinkRecord({ didOc, address: id.address, wallet, binding, since });
+    const linked = (record: string, identity: AddressKey, wallet: AddressKey): SignedWalletRecord => ({
+        record,
+        ...walletLinkSign(record, identity, wallet),
+    });
+    const unlinked = (record: string, key: AddressKey): SignedWalletRecord => ({ record, ...walletUnlinkSign(record, key) });
+
+    // A links its wallet after the takeover; B, passkey first, links its own.
+    const linkA = link(idA, DID_A, WALLET_A.address, recordId(bindingA), at(977200));
+    const envLinkA = linked(linkA, KEYS_A, WALLET_A);
+    const linkB = link(idB, DID_B, WALLET_B.address, recordId(bindingB), at(977000));
+    const envLinkB = linked(linkB, KEYS_B, WALLET_B);
+    // A's wallet linked to B too.
+    const linkAWalletToB = link(idB, DID_B, WALLET_A.address, recordId(bindingB), at(977200));
+    const envLinkAWalletToB = linked(linkAWalletToB, KEYS_B, WALLET_A);
+    // Ending A's link, by the wallet or by the identity.
+    const unlinkA = walletUnlinkRecord({
+        didOc: DID_A,
+        address: idA.address,
+        wallet: WALLET_A.address,
+        link: recordId(linkA),
+        since: at(977200),
+    });
+    const envUnlinkByWallet = unlinked(unlinkA, WALLET_A);
+    const envUnlinkByIdentity = unlinked(unlinkA, KEYS_A);
+    // B's own unlink naming A's link: not B's to end.
+    const strangerUnlink = walletUnlinkRecord({
+        didOc: DID_B,
+        address: idB.address,
+        wallet: WALLET_A.address,
+        link: recordId(linkA),
+        since: at(977200),
+    });
+    const envStrangerUnlink = unlinked(strangerUnlink, KEYS_B);
+    // A link whose since block is before the takeover's; one made in the window; one naming C's binding.
+    const linkEarlyA = link(idA, DID_A, WALLET_A.address, recordId(bindingA), at(977000));
+    const linkWindowA = link(idA, DID_A, WALLET_A.address, recordId(bindingA), at(977100));
+    const linkWrongBinding = link(idA, DID_A, WALLET_A.address, recordId(bindingC), at(977200));
+    // C's address as the wallet: a key orangecheck holds.
+    const linkToHeld = link(idA, DID_A, idC.address, recordId(bindingA), at(977200));
+    const envLinkToHeld = linked(linkToHeld, KEYS_A, KEYS_C);
+    const linkOffChain = link(idA, DID_A, WALLET_A.address, recordId(bindingA), {
+        height: 977200,
+        block: HEADERS['977100']!,
+    });
+    const LINK_ANCHOR = { linkA: 977203, unlinkA: 977204, linkAWalletToB: 977205, linkB: 977010 };
+    const walletCase = (
+        address: string,
+        addressRecords: ReturnType<typeof found>,
+        walletRecords: ReturnType<typeof found>,
+        expected: unknown,
+        extra: { name?: string; at?: number; wallet?: string } = {}
+    ) => ({
+        ...(extra.name ? { name: extra.name } : {}),
+        input: {
+            address,
+            wallet: extra.wallet ?? WALLET_A.address,
+            address_records: addressRecords,
+            wallet_records: walletRecords,
+            ...(extra.at !== undefined ? { at: extra.at } : {}),
+        },
+        expected,
+    });
+    const linkedTo = (id: { address: string }, record: string, anchoredAt: number) => ({
+        status: 'linked',
+        address: id.address,
+        link: recordId(record),
+        anchored_at: anchoredAt,
+    });
+    const accept = { accept: true, reason: 'linked' };
+    const refusedAs = (reason: string) => ({ accept: false, reason });
 
     // ── locks ──
     const lockA1 = lockWithPasskey({
@@ -527,6 +614,7 @@ export function buildVectors(): unknown {
                     ['a user binding with the custodial trust line', `${bindingB}trust: ${CUSTODIAL_TRUST}\n`],
                     ['changed takeover trust line', takeoverA.replace('cannot be proven', 'can be proven')],
                     ['an issuer record as an address record', rotation],
+                    ['a wallet link as an address record', linkA],
                 ].map(([name, record]) => ({
                     name,
                     input: { envelope: { record, issuer_sig: issuerSignAs(record!, ISSUER_KEY) } },
@@ -607,8 +695,15 @@ export function buildVectors(): unknown {
             {
                 id: 'ki01',
                 category: 'issuers',
-                description: 'the named issuer and its hand-over record: the old issuer before it, until the hand-over',
-                input: { named: ISSUER, records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }] },
+                description: 'the named issuer and three copies of its hand-over record with different proofs: the old issuer before it, until the earliest anchor',
+                input: {
+                    named: ISSUER,
+                    records: [
+                        { envelope: envRotation, anchoredAt: ROTATION_ANCHOR + 2 },
+                        { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
+                        { envelope: envRotation, anchoredAt: ROTATION_ANCHOR + 3 },
+                    ],
+                },
                 expected: {
                     ok: true,
                     terms: [
@@ -708,7 +803,7 @@ export function buildVectors(): unknown {
                     holder: 'retired',
                     binding: recordId(bindingC),
                     retire: recordId(retireC),
-                    retire_reason: 'wallet_linked',
+                    retire_reason: 'own_wallet',
                 },
             },
             {
@@ -922,6 +1017,30 @@ export function buildVectors(): unknown {
             },
 
             {
+                id: 'kh15',
+                category: 'key_holder',
+                description: 'three copies of the takeover with different proofs, the earliest between the others: the earliest anchor counts',
+                input: {
+                    address: idA.address,
+                    lookup: found([
+                        [envBindingA, ANCHOR.bindingA],
+                        [envTakeoverA, 977110],
+                        [envTakeoverA, ANCHOR.takeoverA],
+                        [envTakeoverA, 977120],
+                    ]),
+                },
+                expected: {
+                    status: 'bound',
+                    born: 'orangecheck',
+                    holder: 'user',
+                    binding: recordId(bindingA),
+                    takeover: recordId(takeoverA),
+                    takeover_since: 977100,
+                    takeover_anchored_at: ANCHOR.takeoverA,
+                },
+            },
+
+            {
                 id: 'ks01',
                 category: 'signature',
                 description: 'orangecheck holds the key: every signature is refused, a live sign-in included',
@@ -1007,6 +1126,462 @@ export function buildVectors(): unknown {
             },
 
             {
+                id: 'kw01',
+                category: 'wallet_record',
+                description: 'a wallet link: signed by the identity address and the wallet address, no issuer',
+                input: { envelope: envLinkA, anchoredAt: LINK_ANCHOR.linkA },
+                expected: { ok: true, id: recordId(linkA), type: 'wallet-link', signed: { address: true, wallet: true } },
+            },
+            {
+                id: 'kw02',
+                category: 'wallet_record',
+                description: 'a wallet unlink: either address alone signs it',
+                cases: [
+                    {
+                        name: 'by the wallet',
+                        input: { envelope: envUnlinkByWallet, anchoredAt: LINK_ANCHOR.unlinkA },
+                        expected: { ok: true, id: recordId(unlinkA), type: 'wallet-unlink', signed: { address: false, wallet: true } },
+                    },
+                    {
+                        name: 'by the identity',
+                        input: { envelope: envUnlinkByIdentity },
+                        expected: { ok: true, id: recordId(unlinkA), type: 'wallet-unlink', signed: { address: true, wallet: false } },
+                    },
+                ],
+            },
+            {
+                id: 'kw03',
+                category: 'wallet_record',
+                description: 'a link needs both signatures: the wallet alone (a did:oc with no identity key) links nothing',
+                cases: [
+                    {
+                        name: 'no identity signature',
+                        input: { envelope: { record: linkA, wallet_sig: envLinkA.wallet_sig } },
+                        expected: { ok: false, reason: 'address_sig_missing', signed: { address: false, wallet: true } },
+                    },
+                    {
+                        name: 'no wallet signature',
+                        input: { envelope: { record: linkA, address_sig: envLinkA.address_sig } },
+                        expected: { ok: false, reason: 'wallet_sig_missing', signed: { address: true, wallet: false } },
+                    },
+                    {
+                        name: "the wallet signature is B's wallet's",
+                        input: { envelope: { ...envLinkA, wallet_sig: signMessage(WALLET_B.address, linkA, WALLET_B.addressKey) } },
+                        expected: { ok: false, reason: 'wallet_sig_invalid', signed: { address: true, wallet: false } },
+                    },
+                    {
+                        name: 'an unlink with neither',
+                        input: { envelope: { record: unlinkA } },
+                        expected: { ok: false, reason: 'unsigned', signed: { address: false, wallet: false } },
+                    },
+                ],
+            },
+            {
+                id: 'kw04',
+                category: 'wallet_record',
+                description: 'not canonical text',
+                cases: [
+                    ['the wallet is the identity address', linkA.split(WALLET_A.address).join(idA.address)],
+                    ['no ack line', linkA.replace(/ack: .*\n/, '')],
+                    ['a changed ack line', linkA.replace('until either key', 'until the identity')],
+                    ['an issuer field', linkA.replace('binding:', `issuer: ${ISSUER}\nbinding:`)],
+                    ['a binding that is not an id', linkA.replace(recordId(bindingA), 'x'.repeat(64))],
+                    ['an address record as a wallet record', bindingA],
+                ].map(([name, record]) => ({
+                    name,
+                    input: { envelope: { record, address_sig: signMessage(idA.address, record!, KEYS_A.addressKey) } },
+                    expected: { ok: false, reason: 'not_canonical', signed: { address: false, wallet: false } },
+                })),
+            },
+            {
+                id: 'kw05',
+                category: 'wallet_record',
+                description: "the since block and the anchor, as for every record",
+                cases: [
+                    {
+                        name: "977100's hash at height 977200",
+                        input: { envelope: linked(linkOffChain, KEYS_A, WALLET_A) },
+                        expected: { ok: false, reason: 'since_not_on_chain', signed: { address: true, wallet: true } },
+                    },
+                    {
+                        name: 'anchored at its since block',
+                        input: { envelope: envLinkA, anchoredAt: 977200 },
+                        expected: { ok: false, reason: 'bad_anchor', signed: { address: true, wallet: true } },
+                    },
+                ],
+            },
+
+            {
+                id: 'kb01',
+                category: 'wallet_link',
+                description: "A links its wallet after the takeover: the wallet's coins count for A",
+                ...walletCase(idA.address, A_SET, found([[envLinkA, LINK_ANCHOR.linkA]]), {
+                    link: linkedTo(idA, linkA, LINK_ANCHOR.linkA),
+                    verdict: accept,
+                }),
+            },
+            {
+                id: 'kb02',
+                category: 'wallet_link',
+                description: 'B, passkey first, links its own wallet',
+                ...walletCase(
+                    idB.address,
+                    B_SET,
+                    found([[envLinkB, LINK_ANCHOR.linkB]]),
+                    { link: linkedTo(idB, linkB, LINK_ANCHOR.linkB), verdict: accept },
+                    { wallet: WALLET_B.address }
+                ),
+            },
+            {
+                id: 'kb03',
+                category: 'wallet_link',
+                description: 'a link signed while orangecheck holds the identity key: refused, since that key signs nothing',
+                ...walletCase(idA.address, A_HELD, found([[envLinkA, LINK_ANCHOR.linkA]]), {
+                    link: linkedTo(idA, linkA, LINK_ANCHOR.linkA),
+                    verdict: refusedAs('orangecheck_held'),
+                }),
+            },
+            {
+                id: 'kb04',
+                category: 'wallet_link',
+                description: 'a link from before the takeover: refused',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[linked(linkEarlyA, KEYS_A, WALLET_A), 977050]]),
+                        { link: linkedTo(idA, linkEarlyA, 977050), verdict: refusedAs('before_takeover') },
+                        { name: 'anchored before the takeover was made' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[linked(linkEarlyA, KEYS_A, WALLET_A), 977150]]),
+                        { link: linkedTo(idA, linkEarlyA, 977150), verdict: refusedAs('before_takeover') },
+                        { name: "anchored after, but naming a since block below the takeover's" }
+                    ),
+                ],
+            },
+            {
+                id: 'kb05',
+                category: 'wallet_link',
+                description: 'a link made in the window between the takeover and its anchor: accepted, since orangecheck never held the wallet key',
+                ...walletCase(idA.address, A_SET, found([[linked(linkWindowA, KEYS_A, WALLET_A), 977104]]), {
+                    link: linkedTo(idA, linkWindowA, 977104),
+                    verdict: accept,
+                }),
+            },
+            {
+                id: 'kb06',
+                category: 'wallet_link',
+                description: 'no link: the coins count only for the wallet address itself, as today',
+                ...walletCase(idA.address, A_SET, found([]), { link: { status: 'none' }, verdict: refusedAs('not_linked') }),
+            },
+            {
+                id: 'kb07',
+                category: 'wallet_link',
+                description: 'a read of the wallet that did not reach the floor: refused, since a missed link or unlink could only make another count wrongly',
+                ...walletCase(idA.address, A_SET, found([[envLinkA, LINK_ANCHOR.linkA]], false), {
+                    link: { status: 'refused', reason: 'unavailable' },
+                    verdict: refusedAs('unresolved'),
+                }),
+            },
+            {
+                id: 'kb08',
+                category: 'wallet_link',
+                description: 'the identity whose records cannot be read: refused',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        found([], false),
+                        found([[envLinkA, LINK_ANCHOR.linkA]]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: refusedAs('unresolved') },
+                        { name: 'not read' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        found([]),
+                        found([[envLinkA, LINK_ANCHOR.linkA]]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: refusedAs('unresolved') },
+                        { name: 'read in full with no binding, though the link names one: not plain Bitcoin' }
+                    ),
+                ],
+            },
+            {
+                id: 'kb09',
+                category: 'wallet_link',
+                description: 'one wallet, two identities: the first link anchored counts, the later one never does',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([
+                            [envLinkA, LINK_ANCHOR.linkA],
+                            [envLinkAWalletToB, LINK_ANCHOR.linkAWalletToB],
+                        ]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept },
+                        { name: 'for A' }
+                    ),
+                    walletCase(
+                        idB.address,
+                        B_SET,
+                        found([
+                            [envLinkA, LINK_ANCHOR.linkA],
+                            [envLinkAWalletToB, LINK_ANCHOR.linkAWalletToB],
+                        ]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: refusedAs('linked_elsewhere') },
+                        { name: 'for B' }
+                    ),
+                ],
+            },
+            {
+                id: 'kb10',
+                category: 'wallet_link',
+                description: `unlinked at ${LINK_ANCHOR.unlinkA}, then linked to B at ${LINK_ANCHOR.linkAWalletToB}: each identity in its own span, asked now or at a height`,
+                cases: [
+                    ['now, for B', idB.address, B_SET, undefined, linkedTo(idB, linkAWalletToB, LINK_ANCHOR.linkAWalletToB), accept],
+                    [
+                        'now, for A',
+                        idA.address,
+                        A_SET,
+                        undefined,
+                        linkedTo(idB, linkAWalletToB, LINK_ANCHOR.linkAWalletToB),
+                        refusedAs('linked_elsewhere'),
+                    ],
+                    ['at 977203, for A', idA.address, A_SET, 977203, linkedTo(idA, linkA, LINK_ANCHOR.linkA), accept],
+                    ['at 977204, for A: the unlink is anchored', idA.address, A_SET, 977204, { status: 'none' }, refusedAs('not_linked')],
+                ].map(([name, address, records, height, state, verdict]) =>
+                    walletCase(
+                        address as string,
+                        records as ReturnType<typeof found>,
+                        found([
+                            [envLinkA, LINK_ANCHOR.linkA],
+                            [envUnlinkByWallet, LINK_ANCHOR.unlinkA],
+                            [envLinkAWalletToB, LINK_ANCHOR.linkAWalletToB],
+                        ]),
+                        { link: state, verdict },
+                        { name: name as string, ...(height !== undefined ? { at: height as number } : {}) }
+                    )
+                ),
+            },
+            {
+                id: 'kb11',
+                category: 'wallet_link',
+                description: 'an unlink by the identity, not yet anchored: it ends the link now, but not at a height already past',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[envLinkA, LINK_ANCHOR.linkA], [envUnlinkByIdentity]]),
+                        { link: { status: 'none' }, verdict: refusedAs('not_linked') },
+                        { name: 'now' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[envLinkA, LINK_ANCHOR.linkA], [envUnlinkByIdentity]]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept },
+                        { name: 'at 977210', at: 977210 }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([
+                            [envLinkA, LINK_ANCHOR.linkA],
+                            [envUnlinkByIdentity, 977206],
+                            [envUnlinkByIdentity, 977204],
+                            [envUnlinkByIdentity, 977207],
+                        ]),
+                        { link: { status: 'none' }, verdict: refusedAs('not_linked') },
+                        { name: 'copies anchored at 977206, 977204 and 977207, asked at 977205: ended at the earliest', at: 977205 }
+                    ),
+                ],
+            },
+            {
+                id: 'kb12',
+                category: 'wallet_link',
+                description: 'two links anchored in one block: neither counts',
+                ...walletCase(
+                    idA.address,
+                    A_SET,
+                    found([
+                        [envLinkA, LINK_ANCHOR.linkA],
+                        [envLinkAWalletToB, LINK_ANCHOR.linkA],
+                    ]),
+                    { link: { status: 'none' }, verdict: refusedAs('not_linked') }
+                ),
+            },
+            {
+                id: 'kb13',
+                category: 'wallet_link',
+                description: 'unlinks of a link the read does not hold',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[envUnlinkByWallet, LINK_ANCHOR.unlinkA]]),
+                        { link: { status: 'refused', reason: 'unlink_without_link' }, verdict: refusedAs('unresolved') },
+                        { name: 'by the wallet: a link exists that the read missed, so refused' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[envUnlinkByIdentity, LINK_ANCHOR.unlinkA]]),
+                        { link: { status: 'none' }, verdict: refusedAs('not_linked') },
+                        { name: 'by an identity alone: ignored, since anyone can sign for their own address' }
+                    ),
+                    ...[
+                        ["two copies, the wallet's first: the wallet signed it, so refused", envUnlinkByWallet, envUnlinkByIdentity],
+                        ["two copies, the identity's first: the same", envUnlinkByIdentity, envUnlinkByWallet],
+                    ].map(([name, first, second]) =>
+                        walletCase(
+                            idA.address,
+                            A_SET,
+                            found([
+                                [first as SignedWalletRecord, LINK_ANCHOR.unlinkA],
+                                [second as SignedWalletRecord, LINK_ANCHOR.unlinkA],
+                            ]),
+                            { link: { status: 'refused', reason: 'unlink_without_link' }, verdict: refusedAs('unresolved') },
+                            { name: name as string }
+                        )
+                    ),
+                ],
+            },
+            {
+                id: 'kb14',
+                category: 'wallet_link',
+                description: 'the wallet is an address orangecheck holds: refused',
+                ...walletCase(
+                    idA.address,
+                    A_SET,
+                    found([
+                        [envBindingC, ANCHOR.bindingC],
+                        [envLinkToHeld, LINK_ANCHOR.linkA],
+                    ]),
+                    { link: linkedTo(idA, linkToHeld, LINK_ANCHOR.linkA), verdict: refusedAs('wallet_key_refused') },
+                    { wallet: idC.address }
+                ),
+            },
+            {
+                id: 'kb15',
+                category: 'wallet_link',
+                description: 'a link counts from its earliest anchor, and not before it is anchored',
+                cases: [
+                    walletCase(idA.address, A_SET, found([[envLinkA]]), { link: { status: 'none' }, verdict: refusedAs('not_linked') }, { name: 'not yet anchored' }),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([
+                            [envLinkA, 977206],
+                            [envLinkA, LINK_ANCHOR.linkA],
+                            [envLinkA, 977207],
+                        ]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept },
+                        { name: `copies anchored at 977206, ${LINK_ANCHOR.linkA} and 977207, asked at 977204: linked since ${LINK_ANCHOR.linkA}`, at: 977204 }
+                    ),
+                ],
+            },
+            {
+                id: 'kb16',
+                category: 'wallet_link',
+                description: "a link naming another binding than the identity's: refused",
+                ...walletCase(idA.address, A_SET, found([[linked(linkWrongBinding, KEYS_A, WALLET_A), LINK_ANCHOR.linkA]]), {
+                    link: linkedTo(idA, linkWrongBinding, LINK_ANCHOR.linkA),
+                    verdict: refusedAs('link_mismatch'),
+                }),
+            },
+
+            {
+                id: 'kc01',
+                category: 'wallet_link_copies',
+                description: "a link copy whose wallet signature is another key's: noise, ignored",
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[{ ...envLinkA, wallet_sig: signMessage(WALLET_B.address, linkA, WALLET_B.addressKey) }, LINK_ANCHOR.linkA]]),
+                        { link: { status: 'none' }, verdict: refusedAs('not_linked') },
+                        { name: 'alone' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([
+                            [{ ...envLinkA, wallet_sig: signMessage(WALLET_B.address, linkA, WALLET_B.addressKey) }, LINK_ANCHOR.linkA],
+                            [envLinkA, LINK_ANCHOR.linkA],
+                        ]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept },
+                        { name: 'beside a good copy' }
+                    ),
+                ],
+            },
+            {
+                id: 'kc02',
+                category: 'wallet_link_copies',
+                description: 'the wallet signature alone: no link',
+                ...walletCase(idA.address, A_SET, found([[{ record: linkA, wallet_sig: envLinkA.wallet_sig }, LINK_ANCHOR.linkA]]), {
+                    link: { status: 'none' },
+                    verdict: refusedAs('not_linked'),
+                }),
+            },
+            {
+                id: 'kc03',
+                category: 'wallet_link_copies',
+                description: 'a link both keys signed whose since block is not on the chain: refused, not ignored',
+                ...walletCase(idA.address, A_SET, found([[linked(linkOffChain, KEYS_A, WALLET_A), LINK_ANCHOR.linkA]]), {
+                    link: { status: 'refused', reason: 'record_unverified' },
+                    verdict: refusedAs('unresolved'),
+                }),
+            },
+            {
+                id: 'kc04',
+                category: 'wallet_link_copies',
+                description: 'a copy with an anchor at its since block',
+                cases: [
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([[envLinkA, 977200]]),
+                        { link: { status: 'refused', reason: 'bad_anchor' }, verdict: refusedAs('unresolved') },
+                        { name: 'alone' }
+                    ),
+                    walletCase(
+                        idA.address,
+                        A_SET,
+                        found([
+                            [envLinkA, 977200],
+                            [envLinkA, LINK_ANCHOR.linkA],
+                        ]),
+                        { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept },
+                        { name: 'beside a good copy' }
+                    ),
+                ],
+            },
+            {
+                id: 'kc05',
+                category: 'wallet_link_copies',
+                description: "B's unlink naming A's link, signed by B: not B's to end, ignored",
+                ...walletCase(
+                    idA.address,
+                    A_SET,
+                    found([
+                        [envLinkA, LINK_ANCHOR.linkA],
+                        [envStrangerUnlink, LINK_ANCHOR.unlinkA],
+                    ]),
+                    { link: linkedTo(idA, linkA, LINK_ANCHOR.linkA), verdict: accept }
+                ),
+            },
+            {
+                id: 'kc06',
+                category: 'wallet_link_copies',
+                description: "another wallet's link served under this wallet's tag: ignored",
+                ...walletCase(idB.address, B_SET, found([[envLinkB, LINK_ANCHOR.linkB]]), {
+                    link: { status: 'none' },
+                    verdict: refusedAs('not_linked'),
+                }),
+            },
+
+            {
                 id: 'kn01',
                 category: 'publication',
                 description:
@@ -1016,6 +1591,8 @@ export function buildVectors(): unknown {
                     { name: 'takeover', input: takeoverA, expected: publicationTags(takeoverA) },
                     { name: 'retire', input: retireC, expected: publicationTags(retireC) },
                     { name: 'issuer record', input: rotation, expected: publicationTags(rotation) },
+                    { name: 'wallet link', input: linkA, expected: publicationTags(linkA) },
+                    { name: 'wallet unlink', input: unlinkA, expected: publicationTags(unlinkA) },
                 ],
             },
         ],

@@ -82,6 +82,10 @@ def rid(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def earliest(a, b):
+    return a if b is None else b if a is None else min(a, b)
+
+
 def holder(address, lookup, named_binding=None):
     """The key-holder state from records whose signatures are taken as given (README section 5)."""
     recs = {}
@@ -91,7 +95,7 @@ def holder(address, lookup, named_binding=None):
             continue
         i = rid(r["envelope"]["record"])
         prev = recs.get(i)
-        recs[i] = (head, f, r.get("anchoredAt", prev[2] if prev else None))
+        recs[i] = (head, f, earliest(prev[2] if prev else None, r.get("anchoredAt")))
     bindings = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:binding:v1"]
     takeovers = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:takeover:v1"]
     retires = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:retire:v1"]
@@ -139,6 +143,73 @@ def judge(state, ev):
     if m is not None and "takeover_anchored_at" in state and m >= state["takeover_anchored_at"]:
         return {"accept": True, "reason": "after_takeover"}
     return {"accept": True, "reason": "ambiguous_window"}
+
+
+def wallet_link(wallet, lookup, at=None):
+    """Which identity a wallet's coins count for (README section 6), signatures taken as given."""
+    if not lookup["complete"]:
+        return {"status": "refused", "reason": "unavailable"}
+    links, unlinks = {}, {}
+    for r in lookup["records"]:
+        env = r["envelope"]
+        head, f = fields(env["record"])
+        kind = {"oc-attest-key:wallet-link:v1": links, "oc-attest-key:wallet-unlink:v1": unlinks}.get(head)
+        if kind is None or f["wallet"] != wallet:
+            continue
+        i = rid(env["record"])
+        prev = kind.get(i)
+        kind[i] = (f, earliest(prev[1] if prev else None, r.get("anchoredAt")), (prev[2] if prev else False) or "wallet_sig" in env)
+    ends = {}
+    for f, a, by_wallet in unlinks.values():
+        l = links.get(f["link"])
+        if l and (l[0]["did_oc"], l[0]["address"]) == (f["did_oc"], f["address"]):
+            ends.setdefault(f["link"], []).append(a)
+        elif by_wallet:
+            return {"status": "refused", "reason": "unlink_without_link"}
+
+    def ended(i, h):
+        return any(u is not None and u <= h for u in ends.get(i, []))
+
+    counted = sorted((a, i) for i, (f, a, _) in links.items() if a is not None and (at is None or a <= at))
+    cur = None
+    for h in sorted({a for a, _ in counted}):
+        if cur and ended(cur, h):
+            cur = None
+        if cur:
+            continue
+        starting = [i for a, i in counted if a == h and not ended(i, h)]
+        if len(starting) == 1:
+            cur = starting[0]
+    if cur is None or (ends.get(cur) if at is None else ended(cur, at)):
+        return {"status": "none"}
+    f, a, _ = links[cur]
+    return {"status": "linked", "address": f["address"], "link": cur, "anchored_at": a, "_f": f}
+
+
+def judge_link(address, identity, identity_lookup, link, wallet):
+    """Whether the wallet's coins count for the address (README section 6), from the three states."""
+    no = lambda reason: {"accept": False, "reason": reason}
+    if "refused" in (link["status"], identity["status"], wallet["status"]):
+        return no("unresolved")
+    if link["status"] == "none":
+        return no("not_linked")
+    f = link["_f"]
+    if f["address"] != address:
+        return no("linked_elsewhere")
+    if identity["status"] == "unbound":
+        return no("unresolved")
+    binding = next(fields(r["envelope"]["record"])[1] for r in identity_lookup["records"] if rid(r["envelope"]["record"]) == identity["binding"])
+    if (binding["did_oc"], identity["binding"]) != (f["did_oc"], f["binding"]):
+        return no("link_mismatch")
+    if "takeover_since" in identity and int(f["since_height"]) < identity["takeover_since"]:
+        return no("before_takeover")
+    ev = {"anchoredAt": link["anchored_at"], "madeAfter": int(f["since_height"])}
+    j = judge(identity, ev)
+    if not j["accept"]:
+        return no(j["reason"])
+    if not judge(wallet, ev)["accept"]:
+        return no("wallet_key_refused")
+    return {"accept": True, "reason": "linked"}
 
 
 def main(path):
@@ -204,14 +275,37 @@ def main(path):
                     assert rid(text) == c["expected"]["id"], v["id"]
                     assert fields(text)[0] == f"oc-attest-key:{c['expected']['type']}:v1", v["id"]
                     checked += 1
+        elif cat == "wallet_record":
+            for c in v.get("cases", [v]):
+                if c["expected"].get("ok"):
+                    text = c["input"]["envelope"]["record"]
+                    head, f = fields(text)
+                    assert canonical_text(text) and rid(text) == c["expected"]["id"], v["id"]
+                    assert head == f"oc-attest-key:{c['expected']['type']}:v1" and f["wallet"] != f["address"], v["id"]
+                    # Which signatures travel; whether they verify is BIP-322's, which this checker takes as given.
+                    assert {k: f"{k}_sig" in c["input"]["envelope"] for k in ("address", "wallet")} == c["expected"]["signed"], v["id"]
+                    checked += 1
+        elif cat == "wallet_link":
+            # Every record here carries good signatures and a good since block; wallet_link_copies needs a BIP-322 verifier.
+            for c in v.get("cases", [v]):
+                i = c["input"]
+                link = wallet_link(i["wallet"], i["wallet_records"], i.get("at"))
+                ident = holder(i["address"], i["address_records"])
+                verdict = judge_link(i["address"], ident, i["address_records"], link, holder(i["wallet"], i["wallet_records"]))
+                summary = {k: x for k, x in link.items() if k != "_f"}
+                assert {"link": summary, "verdict": verdict} == c["expected"], (v["id"], c.get("name"))
+                checked += 1
         elif cat == "issuers":
             exp = v["expected"]
             if exp.get("ok") and len(exp["terms"]) > 1:
-                (r,) = v["input"]["records"]
-                head, f = fields(r["envelope"]["record"])
+                recs = v["input"]["records"]
+                assert len({rid(r["envelope"]["record"]) for r in recs}) == 1, v["id"]
+                head, f = fields(recs[0]["envelope"]["record"])
                 old, new = exp["terms"]
                 assert head == "oc-attest-key:issuer:v1" and (f["old"], f["new"]) == (old["address"], new["address"])
-                assert old["until"] == {"since": int(f["since_height"]), "anchoredAt": r["anchoredAt"]}
+                # Copies of one record: the earliest anchor counts.
+                first = min(r["anchoredAt"] for r in recs if "anchoredAt" in r)
+                assert old["until"] == {"since": int(f["since_height"]), "anchoredAt": first}
                 assert new["from"] == int(f["since_height"]), v["id"]
                 checked += 1
         elif cat == "key_holder":
@@ -232,6 +326,8 @@ def main(path):
                 head, f = fields(c["input"])
                 if head == "oc-attest-key:issuer:v1":
                     want = [["d", f"oc-attest-key:issuer:{rid(c['input'])}"], ["t", "oc-attest-key-issuer"]]
+                elif head.startswith("oc-attest-key:wallet-"):
+                    want = [["d", f"oc-attest-key:{f['wallet']}:{rid(c['input'])}"], ["t", f["wallet"]], ["t", f["address"]], ["t", "oc-attest-key"]]
                 else:
                     want = [["d", f"oc-attest-key:{f['address']}:{rid(c['input'])}"], ["t", f["address"]], ["t", "oc-attest-key"]]
                 assert c["expected"] == want, (v["id"], c["name"])

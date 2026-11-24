@@ -11,13 +11,17 @@ import { deriveIdentity, deriveWallet, fedimintClientSecret, fedimintRootSecret,
 import { lockAad, lockWithPasskey, lockWithPhrase, openWithPasskey, openWithPhrase, passkeyKek, phraseKek, PRF_SALT } from '../src/lock';
 import {
     judgeSignature,
+    judgeWalletLink,
     publicationTags,
     recordId,
     resolveIssuers,
     resolveKeyHolder,
+    resolveWalletLink,
     verifyRecord,
+    verifyWalletRecord,
     type KeyHolderState,
     type VerifyContext,
+    type WalletLinkState,
 } from '../src/records';
 import { buildVectors } from './vectors.build';
 
@@ -178,6 +182,31 @@ describe('key-holder vectors', () => {
 describe('signature vectors', () => {
     it.each<Case>(flat('signature'))('$label', (c: Any) => {
         expect(judgeSignature(resolve(c.input), c.evidence)).toEqual(c.expected);
+    });
+});
+
+describe('wallet record vectors', () => {
+    it.each<Case>(flat('wallet_record'))('$label', (c: Any) => {
+        const r = verifyWalletRecord(c.input.envelope, blockHash, c.input.anchoredAt);
+        expect(r.ok ? { ok: true, id: r.id, type: r.record.type, signed: r.signed } : r).toEqual(c.expected);
+    });
+});
+
+/** A wallet's link as the vectors write it. */
+const linkSummary = (s: WalletLinkState) =>
+    s.status !== 'linked' ? s : { status: s.status, address: s.address, link: s.link.id, anchored_at: s.link.anchoredAt };
+
+describe('wallet link vectors', () => {
+    it.each<Case>([...flat('wallet_link'), ...flat('wallet_link_copies')])('$label', (c: Any) => {
+        const { address, wallet, address_records, wallet_records, at } = c.input;
+        const link = resolveWalletLink(wallet, wallet_records, { blockHash }, at);
+        const verdict = judgeWalletLink({
+            address,
+            identity: resolveKeyHolder(address, address_records, ctx),
+            link,
+            wallet: resolveKeyHolder(wallet, wallet_records, ctx),
+        });
+        expect({ link: linkSummary(link), verdict }).toEqual(c.expected);
     });
 });
 

@@ -1,7 +1,7 @@
 import { addressFromPrivateKey } from '@orangecheck/bip322';
 import { describe, expect, it } from 'vitest';
 
-import { identityKeys } from '../src/derive';
+import { deriveWallet, identityKeys, walletKey } from '../src/derive';
 import {
     bindingRecord,
     CUSTODIAL_TRUST,
@@ -9,16 +9,24 @@ import {
     issuerRecord,
     issuerSign,
     judgeSignature,
+    judgeWalletLink,
     namedIssuer,
     parseRecord,
     publicationTags,
     recordId,
     resolveIssuers,
     resolveKeyHolder,
+    resolveWalletLink,
     retireRecord,
     rotationSign,
     takeoverRecord,
     verifyRecord,
+    verifyWalletRecord,
+    WALLET_LINK_ACK,
+    walletLinkRecord,
+    walletLinkSign,
+    walletUnlinkRecord,
+    walletUnlinkSign,
     type BoundState,
     type VerifyContext,
 } from '../src/records';
@@ -287,5 +295,138 @@ describe('publicationTags', () => {
         expect(b).toContainEqual(['t', KEYS.address]);
         expect(r).toContainEqual(['t', KEYS.address]);
         expect(b[0]![1]).toBe(`oc-attest-key:${KEYS.address}:${recordId(binding)}`);
+    });
+});
+
+describe('wallet links', () => {
+    const W = new Uint8Array(32).fill(3);
+    const WALLET = walletKey(W);
+    const OTHER = identityKeys(new Uint8Array(32).fill(5));
+    const link = walletLinkRecord({
+        didOc: DID,
+        address: KEYS.address,
+        wallet: WALLET.address,
+        binding: recordId(binding),
+        since: { height: 200, block: H },
+    });
+    const unlink = walletUnlinkRecord({
+        didOc: DID,
+        address: KEYS.address,
+        wallet: WALLET.address,
+        link: recordId(link),
+        since: { height: 200, block: H },
+    });
+    const envL = { record: link, ...walletLinkSign(link, KEYS, WALLET) };
+    const at = (envelope: unknown, anchoredAt?: number) => (anchoredAt === undefined ? { envelope } : { envelope, anchoredAt });
+    const read = (...records: { envelope: unknown; anchoredAt?: number }[]) => ({ complete: true, records });
+    const taken = resolveKeyHolder(KEYS.address, { complete: true, records: [at(envB, 110), at(envT, 210)] }, ctx);
+
+    it("signs with W's first receive address", () => {
+        expect(WALLET.address).toBe(deriveWallet(W).address(0, 0));
+        expect(walletKey(W, 1).address).toBe(deriveWallet(W).address(0, 1));
+        expect(() => walletKey(W, 2 ** 31)).toThrow(RangeError);
+        expect(link.endsWith(`ack: ${WALLET_LINK_ACK}\n`)).toBe(true);
+    });
+
+    it('is signed only by its own two keys, and an unlink by either', () => {
+        expect(() => walletLinkSign(link, OTHER, WALLET)).toThrow('not the link addresses');
+        expect(() => walletLinkSign(binding, KEYS, WALLET)).toThrow('not a canonical wallet link');
+        expect(() => walletUnlinkSign(unlink, OTHER)).toThrow('neither');
+        expect(Object.keys(walletUnlinkSign(unlink, KEYS))).toEqual(['address_sig']);
+        expect(Object.keys(walletUnlinkSign(unlink, WALLET))).toEqual(['wallet_sig']);
+        // Neither the issuer nor the identity's record signer takes one.
+        expect(() => issuerSign(link, ISSUER_KEY)).toThrow('not a canonical address record');
+        expect(() => identitySign(link, KEYS)).toThrow('not a canonical address record');
+    });
+
+    it('is no address record, and an address record is no wallet record', () => {
+        expect(verifyRecord({ record: link, issuer_sig: issuerSign(binding, ISSUER_KEY) }, ctx)).toMatchObject({
+            ok: false,
+            reason: 'not_canonical',
+        });
+        expect(verifyWalletRecord(envB, blockHash)).toMatchObject({ ok: false, reason: 'malformed' });
+        expect(resolveKeyHolder(KEYS.address, all(envB, envL), ctx)).toMatchObject({ status: 'bound', holder: 'orangecheck' });
+    });
+
+    it('never throws on junk', () => {
+        for (const junk of [null, 1, [], 'x', { record: 1 }, { record: link, address_sig: 1 }, { record: link, extra: '' }]) {
+            expect(verifyWalletRecord(junk, blockHash)).toMatchObject({ ok: false, reason: 'malformed' });
+        }
+        const throwing = () => {
+            throw new Error('down');
+        };
+        expect(verifyWalletRecord(envL, throwing, 210)).toMatchObject({ ok: false, reason: 'since_unverified' });
+        expect(resolveWalletLink(WALLET.address, read(at(null), at('x'), at(envL, 210)), { blockHash })).toMatchObject({
+            status: 'linked',
+        });
+    });
+
+    it('refuses a height that is not one', () => {
+        expect(resolveWalletLink(WALLET.address, read(at(envL, 210)), { blockHash }, -1)).toEqual({
+            status: 'refused',
+            reason: 'bad_height',
+        });
+    });
+
+    it("refuses a broken copy of an unlink by the link's own identity, and ignores another identity's", () => {
+        const byIdentity = { record: unlink, ...walletUnlinkSign(unlink, KEYS) };
+        // Its since block is unknown to this chain: a real unlink this verifier cannot check.
+        const late = walletUnlinkRecord({
+            didOc: DID,
+            address: KEYS.address,
+            wallet: WALLET.address,
+            link: recordId(link),
+            since: { height: 250, block: H },
+        });
+        expect(resolveWalletLink(WALLET.address, read(at(envL, 210), at(byIdentity, 220)), { blockHash })).toEqual({
+            status: 'none',
+        });
+        expect(
+            resolveWalletLink(WALLET.address, read(at(envL, 210), at({ record: late, ...walletUnlinkSign(late, KEYS) })), {
+                blockHash,
+            })
+        ).toEqual({ status: 'refused', reason: 'record_unverified' });
+        const stranger = walletUnlinkRecord({
+            didOc: DID,
+            address: OTHER.address,
+            wallet: WALLET.address,
+            link: recordId(link),
+            since: { height: 250, block: H },
+        });
+        expect(
+            resolveWalletLink(
+                WALLET.address,
+                read(at(envL, 210), at({ record: stranger, ...walletUnlinkSign(stranger, OTHER) })),
+                { blockHash }
+            )
+        ).toMatchObject({ status: 'linked' });
+    });
+
+    it('keeps the earlier of two anchors for one link', () => {
+        expect(resolveWalletLink(WALLET.address, read(at(envL, 230), at(envL, 210)), { blockHash })).toMatchObject({
+            link: { anchoredAt: 210 },
+        });
+    });
+
+    it('counts for the identity only after the takeover, and refuses a wallet orangecheck holds', () => {
+        const state = resolveWalletLink(WALLET.address, read(at(envL, 210)), { blockHash });
+        const unbound = { status: 'unbound' } as const;
+        expect(judgeWalletLink({ address: KEYS.address, identity: taken, link: state, wallet: unbound })).toEqual({
+            accept: true,
+            reason: 'linked',
+        });
+        const held = resolveKeyHolder(KEYS.address, { complete: true, records: [at(envB, 110)] }, ctx);
+        expect(judgeWalletLink({ address: KEYS.address, identity: held, link: state, wallet: unbound })).toEqual({
+            accept: false,
+            reason: 'orangecheck_held',
+        });
+        expect(judgeWalletLink({ address: KEYS.address, identity: taken, link: state, wallet: held })).toEqual({
+            accept: false,
+            reason: 'wallet_key_refused',
+        });
+        expect(judgeWalletLink({ address: OTHER.address, identity: taken, link: state, wallet: unbound })).toEqual({
+            accept: false,
+            reason: 'linked_elsewhere',
+        });
     });
 });
