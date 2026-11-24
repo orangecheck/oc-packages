@@ -2,7 +2,7 @@
   "name": "@orangecheck/keys",
   "version": "0.0.0",
   "private": true,
-  "description": "Reference implementation of orangecheck account keys: two secrets per account, the passkey PRF lock, and the binding, takeover and retire records with their custody rule. Unreleased.",
+  "description": "Reference implementation of orangecheck account keys: two secrets per account, the passkey PRF lock, and the binding, takeover, retire and issuer records with their key-holder rule. Unreleased.",
   "keywords": [
     "bitcoin",
     "bip322",

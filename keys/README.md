@@ -101,119 +101,189 @@ Opening checks, in order, and stops at the first failure:
 The phrase is read first: 24 valid words with a good checksum, or
 `phrase_invalid`.
 
+**Lock domain.** The PRF input and the additional data assume the lock runs
+on the key frame's own host (keys.ochk.app), not ochk.io. A passkey's PRF
+output is bound to the RP ID it was made under, so a passkey made for another
+host gives another output and opens nothing.
+
 ## §4 Records
 
-Public statements of who holds an identity key. Each is text, LF-separated,
-one final LF, no CR, fields in exactly this order, nothing padded. Its id is
-the lowercase hex SHA-256 of that text. The signatures travel beside the text,
-never inside it, so the id is the one an envelope with its signatures emptied
-would have (family rule 4). Publication: kind 30078 under a new d-tag prefix,
-to be allocated in `KINDS.md` with the spec.
+Public statements of who holds an address's identity key. The normative text
+is `KEY-HOLDER.md` in oc-attest-protocol, a companion to its SPEC.md; this
+section is the implementation's summary of it.
+
+**One word for one thing.** The *key holder* is whoever holds the identity
+key: `orangecheck` or `user`. These records never say "custody", the word
+oc-attest-protocol's FEDERATION-CUSTODY.md uses for who holds funds.
+
+Each record is text, LF-separated, one final LF, no CR, ASCII, fields in
+exactly this order, nothing padded. Its id is the lowercase hex SHA-256 of
+that text. The signatures travel beside the text, never inside it, so the id
+is the one an envelope with its signatures emptied would have (family rule 4).
 
 ```
-oc-keys:binding:v1            oc-keys:takeover:v1           oc-keys:retire:v1
-did_oc: did:oc:<32 hex>       did_oc: …                     did_oc: …
-address: bc1q…                address: bc1q…                address: bc1q…
-nostr: <64 hex, x-only>       nostr: …                      binding: <binding id>
-custody: orangecheck | self   binding: <binding id>         issuer: bc1q…
-issuer: bc1q…                 custody: self                 since_height: <n>
-since_height: <n>             issuer: bc1q…                 since_block: <64 hex>
-since_block: <64 hex>         since_height: <n>             reason: wallet_linked | merged
-                              since_block: <64 hex>                 | deleted | withdrawn
-                              trust: orangecheck held this key until this
-                                record and says it deleted its copy. That
-                                cannot be proven.
+oc-attest-key:binding:v1        oc-attest-key:takeover:v1       oc-attest-key:retire:v1
+did_oc: did:oc:<32 hex>         did_oc: …                       did_oc: …
+address: bc1q…                  address: bc1q…                  address: bc1q…
+nostr: <64 hex, x-only>         nostr: …                        binding: <binding id>
+key_holder: orangecheck | user  binding: <binding id>           issuer: bc1q…
+issuer: bc1q…                   key_holder: user                since_height: <n>
+since_height: <n>               issuer: bc1q…                   since_block: <64 hex>
+since_block: <64 hex>           since_height: <n>               reason: wallet_linked | merged
+trust: <CUSTODIAL_TRUST>        since_block: <64 hex>                   | deleted | withdrawn
+  (key_holder orangecheck only) trust: <TAKEOVER_TRUST>
+
+oc-attest-key:issuer:v1
+old: bc1q…
+new: bc1q…
+since_height: <n>
+since_block: <64 hex>
 ```
 
-- **binding**: an address and Nostr key belong to a did:oc. `custody` says who
-  made the key: `orangecheck` (no passkey at sign-up) or `self` (a passkey
-  first).
-- **takeover**: flips a custodial binding to `self`. Same address, same
-  history; orangecheck then deletes its copy. The trust line is fixed text:
-  the trust the record rests on, named in the record (family rule 8).
+The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
+`src/records.ts`), the trust each record rests on, named in the record
+(family rule 8).
+
+- **binding**: an address and Nostr key belong to a did:oc, and who made the
+  key: `orangecheck` (an account that starts without a passkey) or `user` (a
+  passkey first). Before a takeover, a custodial address is a reserved
+  identity: the key exists, and signs nothing.
+- **takeover**: the user holds the key now; orangecheck held it until this
+  record's anchor. The binding stays, so the address keeps its history and is
+  never read as the user's from the start. It is the first thing the key ever
+  signs.
 - **retire**: ends a custodial binding that was never taken over.
+- **issuer**: hands the issuer role from one address to another, signed by
+  both.
 - **since** is a block the record was made after (its height and hash, RPC
-  byte order): the tip when it was made. It is a lower bound, and the hash
-  makes it one nobody can backdate past.
+  byte order): the tip when it was made. A lower bound nobody can backdate.
 - **issuer** is orangecheck's issuer address, a mainnet P2WPKH address the
-  spec names. A verifier needs only a node and a BIP-322 verifier.
+  spec names. The vectors use a placeholder burn key.
 
-**Who signs.** The issuer signs every record: `issuer_sig`, BIP-322 simple,
-base64. A custodial key signs nothing. So a custodial binding and a retire
-carry the issuer's signature only. A self binding and a takeover also carry
-`address_sig` (BIP-322 simple, by the identity address) and `nostr_sig`
-(BIP-340, 128 hex, by the Nostr key over the 32-byte id).
+**Who signs.** The issuer signs every address record (`issuer_sig`, BIP-322
+simple, base64). The key orangecheck holds signs nothing, so a custodial
+binding and a retire carry the issuer's signature only. A user binding and a
+takeover also carry `address_sig` (BIP-322 simple, by the identity address)
+and `nostr_sig` (BIP-340, 128 hex, by the Nostr key over the 32-byte id). An
+issuer record carries `old_sig` and `new_sig`, by each address. Any envelope
+may carry `ots`, an OpenTimestamps proof of the id.
 
 ```json
-{ "record": "<text>", "issuer_sig": "…", "address_sig": "…", "nostr_sig": "…" }
+{ "record": "<text>", "issuer_sig": "…", "address_sig": "…", "nostr_sig": "…", "ots": "…" }
 ```
 
-**What a verifier checks** for one record, offline, stopping at the first
-failure:
-1. an object with only those keys, string values (`malformed`);
-2. the text parses and is canonical: the header names the type, each field
-   appears once in its place, a did:oc, lowercase mainnet P2WPKH address and
-   issuer, 64-hex Nostr key and binding id, a height with no leading zero, the
-   fixed literals exact (`not_canonical`);
-3. the issuer is one it trusts (`issuer_unknown`);
-4. `issuer_sig` verifies for the issuer (`issuer_sig_invalid`);
-5. a self binding or a takeover: `address_sig` is present
-   (`address_sig_missing`) and verifies for the address
-   (`address_sig_invalid`), and `nostr_sig` verifies for the Nostr key
-   (`nostr_sig_invalid`). Any other record that carries either is refused
-   (`custodial_key_signed`);
-6. its own header chain has a block at `since_height` (`since_unverified`)
-   and its hash is `since_block` (`since_not_on_chain`).
+**Anchors order everything.** Who held a key when is read from Bitcoin
+anchors, never from a date anyone signed. Every record is stamped with
+OpenTimestamps; the verifier checks the proof against its own header chain
+and passes the height it attests (`anchoredAt`). An anchor at or below the
+record's own since block cannot be (`bad_anchor`).
 
-**Custody of an address** comes from every record the verifier holds for it.
-One bad or conflicting record refuses the whole set:
-- exactly one binding. Two refuse: `custody_flip_without_takeover` when one is
-  custodial and one self, else `conflicting_bindings`;
-- at most one takeover. It names the binding's id, the binding is custodial,
-  its did:oc and Nostr key match, and its since height is not below the
-  binding's;
-- at most one retire, with the same checks, and never after a takeover: a
-  taken-over key is the user's;
-- the result is `orangecheck`, `self` or `retired`, and `born` says who made
-  the key. Holding no takeover is not proof there is none, so `orangecheck`
-  means "custodial as far as these records show".
+**Issuer terms.** The verifier starts from the issuer address the spec names
+and follows every issuer record signed by both sides, back and forward
+(`resolveIssuers`). Anything else under the issuer tag is ignored. Two records
+out of one address or into one, a loop, or a since block not on the
+verifier's chain refuse the whole set. An issuer's term starts at its
+record's since block; a term that ended counts only for records anchored at
+or below the anchor of the record that ended it (the since block where that
+record has no anchor). orangecheck hands over only once every record the old
+issuer made is anchored.
+
+**What a verifier checks** for one record, offline, stopping at the first
+failure (`verifyRecord`):
+1. an object with only those keys, string values (`malformed`);
+2. the text parses and is canonical (`not_canonical`);
+3. the issuer is in a term it holds (`issuer_unknown`) and `issuer_sig`
+   verifies (`issuer_sig_invalid`);
+4. the anchor, if given, is above the since block (`bad_anchor`);
+5. the since block is inside the issuer's term (`issuer_not_yet`,
+   `issuer_retired`);
+6. a user binding or a takeover: `address_sig` is present and verifies, and
+   `nostr_sig` verifies (`address_sig_missing`, `address_sig_invalid`,
+   `nostr_sig_invalid`). Any other record that carries either is refused
+   (`custodial_key_signed`);
+7. its own header chain has `since_block` at `since_height`
+   (`since_unverified`, `since_not_on_chain`).
+
+The result says whether a trusted issuer signed the text, so a reader can
+tell a broken copy of a real record from noise anyone can publish.
+
+**Who holds an address's key** (`resolveKeyHolder`) comes from every copy the
+verifier read for the address:
+- copies no trusted issuer signed are ignored: anyone can publish under the
+  address's tag;
+- a record the issuer signed counts once any copy of it verifies. If none
+  does, the address is refused (`record_unverified`), never read as unbound;
+- no binding: plain Bitcoin (`unbound`), but only when the read was complete,
+  else `unavailable`. A read is complete when at least the read floor of the
+  relays asked answered in full, each paged to its end, and none was cut off.
+  The floor is the number asked, less the write quorum of 2, plus one, and
+  never fewer than one: four of five (OC Pledge SPEC §11 item 15). ochk.io
+  publishes every record to at least two of the relays verifiers ask. A
+  binding the account itself names (its did:oc's record) exists whether found
+  or not: `named_binding_missing`;
+- exactly one binding, at most one takeover and at most one retire, each
+  naming the binding, matching its did:oc (and Nostr key), and not below its
+  since block. Only a custodial binding is taken over or retired;
+- a retire counts against a takeover only when its anchor is at or below the
+  takeover's since block (`takeover_after_retire`); otherwise the takeover
+  stands;
+- the result keeps `born` (who made the key, forever) beside `holder` (now:
+  `orangecheck`, `user` or `retired`). Holding no takeover is not proof
+  there is none, so `holder: orangecheck` means "as far as these records
+  show", which only ever refuses more.
+
+**Publication.** Kind 30078, no new kind. Each record has its own d tag,
+`oc-attest-key:<address>:<id>` (an issuer record `oc-attest-key:issuer:<id>`),
+so no record replaces another even under one publishing key, plus a `t` tag
+for the address so oc-attest SPEC §6.2's address query returns them, and a
+`t` tag `oc-attest-key` (`oc-attest-key-issuer`). The binding, retire and
+issuer records go out under orangecheck's service Nostr key, the takeover
+under the user's own (oc-chat §8.6). `publicationTags` builds the tags.
 
 ## §5 Signatures by a bound address
 
-For a signature that already verifies for the address, given the custody
+For a signature that already verifies for the address, given the key holder
 above and what the verifier knows of when the signed artifact was made, each
-height already checked against its own header chain:
+height already checked against its own header chain (`judgeSignature`):
 - `anchoredAt`: the artifact's anchor (OpenTimestamps or a transaction); it
-  existed before this block.
+  existed by this block.
 - `madeAfter`: a block whose hash the artifact commits to; it was made after.
-- `takeoverAnchoredAt`: the takeover record's own anchor.
+- `live`: the verifier issued what was signed (a sign-in challenge) after it
+  resolved the records.
 
-| custody | evidence | verdict |
+| key holder | evidence | verdict |
 |---|---|---|
+| refused | any | refuse `unresolved` |
+| no record | any | accept `unbound`: plain Bitcoin |
+| any bound | impossible evidence (not a height; `madeAfter ≥ anchoredAt`) | refuse `bad_evidence` |
 | retired | any | refuse `retired` |
-| orangecheck | any | refuse `custodial`: orangecheck made it |
-| self from birth | any | accept `self_born` |
-| taken over | impossible evidence (not a height; the takeover anchored at or below its since block; `madeAfter ≥ anchoredAt`) | refuse `bad_evidence` |
-| taken over | `anchoredAt ≤ since_height` | refuse `before_takeover`: it existed before the takeover could be made |
-| taken over | `madeAfter ≥ takeoverAnchoredAt` | accept `after_takeover`: made after the takeover existed |
-| taken over | anything else | accept `on_trust` |
+| orangecheck | any, a live sign-in included | refuse `orangecheck_held` |
+| user from the start | any | accept `user_born` |
+| taken over | `anchoredAt ≤` the takeover's since height | refuse `before_takeover` |
+| taken over | `live`, or `madeAfter ≥` the takeover's anchor | accept `after_takeover` |
+| taken over | anything else | accept `ambiguous_window` |
 
-`on_trust` is accepted on the takeover's trust line: orangecheck deleted its
-copy and no copy leaked. A strict verifier refuses it. This is how a verifier
-tells that a signature made while orangecheck held the key was made by
-orangecheck: the records say who held it, and the chain says when.
+A signature anchored above the takeover's since block but at or below the
+takeover's own anchor is in an ambiguous window and is accepted, which adds
+nothing beyond the named residual: orangecheck says it deleted its copy, and
+that cannot be proven, so a copy it kept could sign after the takeover anyway.
+The same holds for a signature with no anchor at all. Every verb applies this
+rule to every signature by a bound address: Attest, Lock and Chat device
+binds, Stamp, Agent delegations, Vote ballots, Pledge, and ochk.io sign-in.
 
 ## §6 Vectors
 
-`test-vectors/keys-v1.json`: 38 vectors (derivation `kd`, lock and open `kl`,
-record `kr`, custody `kc`, signature `ks`), positive and negative, each with
-`id`, `category`, `description`, `input` and `expected` (or `cases`).
+`test-vectors/keys-v1.json`: 53 vectors (derivation `kd`, lock and open `kl`,
+record `kr`, issuer `ki`, key holder `kh`, signature `ks`, publication `kn`),
+positive and negative, each with `id`, `category`, `description`, `input` and
+`expected` (or `cases`).
 
 - Every secret and private key in it is a **disclosed burn key**, derived from
   a published label in `test/vectors.build.ts`. None guards anything. Never
   send funds to these addresses.
-- `chain.headers` holds the three mainnet blocks the records name; `issuers`
-  holds the issuer address the vectors trust.
+- `chain.headers` holds the four mainnet blocks the records name. `issuer`
+  holds the placeholder issuer address and the issuer record every record and
+  key-holder vector is checked under (`ki01` gives the terms).
 - `yarn vectors` rebuilds the file. `yarn test` fails unless the committed
   file is byte-identical to a rebuild and every vector holds when read back
   from the JSON alone.
@@ -221,9 +291,13 @@ record `kr`, custody `kc`, signature `ks`), positive and negative, each with
   (both), BIP-84 (account, first receive and change addresses).
 
 Two cross-checks outside the TypeScript:
-- `python3 -I test/check_vectors.py test-vectors/keys-v1.json`: the PRF input,
-  both KEKs, every additional data, ciphertext and open, the record ids and
-  the Fedimint root, in Python's standard library and `cryptography`.
+- `python3 -I test/check_vectors.py test-vectors/keys-v1.json`, in Python's
+  standard library and `cryptography`: the PRF input; both phrases as the
+  BIP-39 encoding of I and W (against `test/bip39-english.txt`, pinned to the
+  hash of the BIP's own list); both KEKs, every additional data, ciphertext
+  and open; the record texts and ids; the issuer terms; the publication tags;
+  and the key-holder and signature rules over the records the vectors call
+  good (it does no curve math, so it takes their signatures as given).
 - `test/fedimint-xcheck/`: Fedimint's own HKDF crate and rust-bip39 print
   the root and client secrets `test/derive.test.ts` pins.
 
