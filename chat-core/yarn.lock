@@ -217,10 +217,10 @@
     "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
 
-"@orangecheck/bip322@^1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.1.3.tgz#5aee5255f2856041d2a49021f148d95b4f114a26"
-  integrity sha512-F8ANhIcBUHCZcue+me3ytwqndXB1RCJDnoPXCCrqZiXwTgTXoj4oAvSl7gfqicOnIoaaiCkpVcT7akvctMI0qA==
+"@orangecheck/bip322@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/bip322/-/bip322-1.2.0.tgz#6a87f04b2d3d2cf4ac9540b9c8f4b00970105e76"
+  integrity sha512-GvBzBNzBiLOAOwiuAymMNLRQ53Ov6KFDLDCkLSR1dMoBJObAbVo6fNPQPAoIiq16Kd9Id/HcHAzLQ+BCHivTAg==
   dependencies:
     "@noble/curves" "^1.9.7"
     "@noble/hashes" "^1.8.0"
@@ -243,10 +243,10 @@
     "@noble/curves" "^1.6.0"
     "@noble/hashes" "^1.5.0"
 
-"@orangecheck/lock-device@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/lock-device/-/lock-device-0.8.0.tgz#bf3a3f64a5dea5fc777af50043a77df2239e94ca"
-  integrity sha512-dTGfQz2CueZJbBKg95ZhghEdEsR3RNdGrV0PUA2+MsRjxsMIl8FscL4xitQs3mizPGSiSWslh0Xbo0THKMUYIg==
+"@orangecheck/lock-device@^0.9.0":
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/lock-device/-/lock-device-0.9.0.tgz#624d6a6e5739231bb34e9a0e2cfeab21dada6146"
+  integrity sha512-dbLFmX5ouaym5mrQTS4ey1nAR2TWHbgCKIkpJJYfg0QW7Ay+wejgPEEEXiQFzEszm/KreZpWSYJ4mQq/AfeLbA==
   dependencies:
     "@noble/curves" "^1.6.0"
     "@orangecheck/lock-crypto" "^0.1.0"

@@ -8,12 +8,21 @@ and [Semantic Versioning](https://semver.org/). Wire rules live in the
 
 ## [Unreleased]
 
+## [0.2.8] — 2026-11-24
+
 ### Changed
 
 - `recordBinding` and `readVersionBinding` check an address record's
   `binding_sig` through `@orangecheck/lock-device`'s `verifyDeviceRecords`, so
   they take it over the texts OC Lock SPEC §3.3 allows, as every other
   binding read in this package does.
+
+### Dependencies
+
+- `@orangecheck/lock-device` ^0.9.0, whose reader takes a binding signature
+  over the statement without its final LF (OC Lock 2.6.0 SPEC §3.3).
+- `@orangecheck/bip322` ^1.2.0, which holds a BIP-322 simple signature to a
+  transaction's low S and minimal CompactSizes (OC Attest 2.2.0 SPEC §4).
 
 ## [0.2.7] — 2026-11-08
 

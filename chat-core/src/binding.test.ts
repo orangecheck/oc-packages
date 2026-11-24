@@ -216,6 +216,7 @@ describe('recordBinding: an address record binds a version key only by a v3 stat
         expect(await recordBinding(r, nostrPk, only(r.content))).toMatchObject({ kind: 'btc', principal: ADDR });
         expect(await recordBinding(r, nostrPk, only(`${r.content}\n`))).toBeNull();
         expect(await recordBinding(r, nostrPk, only(r.content.slice(0, -2)))).toBeNull();
+        expect(await recordBinding(r, nostrPk, only(r.content.slice(0, -1)))).toMatchObject({ kind: 'btc', principal: ADDR });
     });
 });
 
