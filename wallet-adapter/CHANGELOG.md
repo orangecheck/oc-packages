@@ -28,6 +28,11 @@ this file tracks the package's TS / Node / runtime API surface.
   included. An attestation or bond keeps its canonical text, so one signed
   that way verifies for readers on `@orangecheck/sdk` 1.28.0.
 
+### Dependencies
+
+- `@orangecheck/bip322` ^1.2.0, so `assertSignedBy` refuses a signature
+  every reader on it refuses (OC Attest 2.2.0 SPEC §4).
+
 ## [0.8.1] — 2026-11-23
 
 ### Added
