@@ -6,6 +6,8 @@ All notable changes to the **`orangecheck`** Python package. Follows
 
 ## [Unreleased]
 
+## [3.22.0] — 2026-11-25
+
 ### Changed
 
 - **`verify_webhook`** raises `TypeError`, before it reads the delivery,

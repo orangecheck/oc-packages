@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.65.0] — 2026-11-25
+
 ### Changed
 
 - `webhook.verify` refuses every delivery, before it fetches a key, when
