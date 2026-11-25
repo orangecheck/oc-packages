@@ -7,6 +7,7 @@ import {
     identitySign,
     issuerSign,
     parseRecord,
+    possessionSign,
     publicationTags,
     recordId,
     resolveKeyHolder,
@@ -54,18 +55,27 @@ function canonical<T extends AddressRecord['type']>(text: string, type: T): Extr
     return r as Extract<AddressRecord, { type: T }>;
 }
 
-
-/** A custodial binding: orangecheck made the key and holds it, so the issuer alone signs. */
+/**
+ * A custodial binding, at mint, before the key is sealed: the issuer's
+ * signature and the key's own two (possessionSign), the one thing it ever
+ * signs before a takeover. The address and Nostr key are the keys' own.
+ */
 export function issueCustodialBinding(a: {
     didOc: string;
-    address: string;
-    nostr: string;
+    keys: Pick<IdentityKeys, 'address' | 'nostr' | 'addressKey' | 'nostrKey'>;
     issuer: AddressKey;
     since: Since;
 }): Issued {
-    const record = bindingRecord({ ...a, keyHolder: 'orangecheck', issuer: a.issuer.address });
+    const record = bindingRecord({
+        didOc: a.didOc,
+        address: a.keys.address,
+        nostr: a.keys.nostr,
+        keyHolder: 'orangecheck',
+        issuer: a.issuer.address,
+        since: a.since,
+    });
     canonical(record, 'binding');
-    return issued({ record, issuer_sig: issuerSign(record, a.issuer.addressKey) });
+    return issued({ record, issuer_sig: issuerSign(record, a.issuer.addressKey), ...possessionSign(record, a.keys) });
 }
 
 /** Ends a custodial binding that was never taken over; `withdrawn` undoes a published one. */

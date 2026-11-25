@@ -30,7 +30,7 @@ const blockHash = (h: number) => (h === 100 || h === 200 || h === 300 ? H : unde
 const ctx: VerifyContext = { issuers: namedIssuer(ISSUER.address), blockHash };
 const at = (height: number) => ({ height, block: H });
 
-const bound = issueCustodialBinding({ didOc: DID, address: KEYS.address, nostr: KEYS.nostr, issuer: ISSUER, since: at(100) });
+const bound = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100) });
 const request = () => signTakeover({ binding: bound.envelope, keys: KEYS, issuer: ISSUER.address, since: at(200) });
 const countersign = (req: unknown, over: Partial<Parameters<typeof countersignTakeover>[1]> = {}) =>
     countersignTakeover(req, { binding: bound.envelope, issuer: ISSUER, ctx, ...over });
@@ -41,11 +41,19 @@ const complete = (...envelopes: SignedRecord[]) => ({
 });
 
 describe('issueCustodialBinding', () => {
-    it('is a custodial binding only the issuer signed, and it verifies', () => {
+    it("is a custodial binding the issuer and the key's proof of possession sign, and it verifies", () => {
         const r = parseRecord(bound.envelope.record);
-        expect(r).toMatchObject({ type: 'binding', keyHolder: 'orangecheck', address: KEYS.address, issuer: ISSUER.address });
-        expect(Object.keys(bound.envelope).sort()).toEqual(['issuer_sig', 'record']);
-        expect(verifyRecord(bound.envelope, ctx)).toMatchObject({ ok: true, id: bound.id });
+        expect(r).toMatchObject({
+            type: 'binding',
+            keyHolder: 'orangecheck',
+            address: KEYS.address,
+            nostr: KEYS.nostr,
+            issuer: ISSUER.address,
+        });
+        expect(Object.keys(bound.envelope).sort()).toEqual(['address_sig', 'issuer_sig', 'nostr_sig', 'record']);
+        expect(verifyRecord(bound.envelope, ctx)).toMatchObject({ ok: true, id: bound.id, signed: { issuer: true, address: true } });
+        const { address_sig: _a, ...issuerOnly } = bound.envelope;
+        expect(resolveKeyHolder(KEYS.address, complete(issuerOnly), ctx)).toEqual({ status: 'unbound' });
     });
     it('carries its id and a kind-30078 event with the publication tags and the envelope', () => {
         expect(bound.id).toBe(recordId(bound.envelope.record));
@@ -54,21 +62,30 @@ describe('issueCustodialBinding', () => {
         expect(JSON.parse(bound.event.content)).toEqual(bound.envelope);
     });
     it('refuses fields that do not make a canonical record', () => {
-        const f = { didOc: DID, address: KEYS.address, nostr: KEYS.nostr, issuer: ISSUER, since: at(100) };
+        const f = { didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100) };
         expect(() => issueCustodialBinding({ ...f, didOc: 'did:oc:nothex' })).toThrow(RangeError);
         expect(() => issueCustodialBinding({ ...f, didOc: `${DID}\nkey_holder: user` })).toThrow(RangeError);
-        expect(() => issueCustodialBinding({ ...f, nostr: 'AB'.repeat(32) })).toThrow(RangeError);
+        expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, nostr: 'AB'.repeat(32) } })).toThrow(RangeError);
     });
     it('refuses a key that is not the issuer address', () => {
         expect(() =>
             issueCustodialBinding({
                 didOc: DID,
-                address: KEYS.address,
-                nostr: KEYS.nostr,
+                keys: KEYS,
                 issuer: { address: ISSUER.address, addressKey: OTHER_KEY },
                 since: at(100),
             })
         ).toThrow('not the key of this address');
+    });
+    it("binds no address or Nostr key whose private key it was not given", () => {
+        const f = { didOc: DID, issuer: ISSUER, since: at(100) };
+        expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, addressKey: STRANGER.addressKey } })).toThrow(
+            'not the key of this address'
+        );
+        expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, nostrKey: STRANGER.nostrKey } })).toThrow('Nostr key');
+        expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, address: STRANGER.address } })).toThrow(
+            'not the key of this address'
+        );
     });
 });
 
@@ -154,8 +171,8 @@ describe('signTakeover and countersignTakeover', () => {
         ['text off by one character', () => ({ ...request(), record: request().record.replace('trust:', 'trust: ') }), 'not_a_takeover'],
         ['another binding id', () => forged({ binding: 'cd'.repeat(32) }), 'binding_mismatch'],
         ['another did:oc', () => forged({ didOc: 'did:oc:ffffffffffffffffffffffffffffffff' }), 'binding_mismatch'],
-        ['another address', () => forged({ address: STRANGER.address }, STRANGER), 'binding_mismatch'],
-        ['another Nostr key', () => forged({ nostr: STRANGER.nostr }), 'binding_mismatch'],
+        ['another address', () => forged({ address: STRANGER.address }, { ...STRANGER, nostrKey: KEYS.nostrKey }), 'binding_mismatch'],
+        ['another Nostr key', () => forged({ nostr: STRANGER.nostr }, { ...KEYS, nostrKey: STRANGER.nostrKey }), 'binding_mismatch'],
         ['another issuer', () => forged({ issuer: OTHER.address }), 'issuer_mismatch'],
         ['a since block below the binding', () => forged({ since: at(99) }), 'since_before_binding'],
         ['an address signature by another key', () => ({ ...request(), address_sig: signMessage(STRANGER.address, request().record, STRANGER.addressKey) }), 'address_sig_invalid'],
@@ -212,12 +229,12 @@ describe('readBack', () => {
         expect(r).toMatchObject({ ok: false, reason: 'unavailable' });
     });
     it('says another binding holds the address', () => {
-        const second = issueCustodialBinding({ didOc: DID, address: KEYS.address, nostr: KEYS.nostr, issuer: ISSUER, since: at(300) });
+        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300) });
         const r = readBack({ address: KEYS.address, expect: { binding: second.id, holder: 'orangecheck' }, lookup: complete(bound.envelope), ctx });
         expect(r).toMatchObject({ ok: false, reason: 'other_binding', state: { binding: { id: bound.id } } });
     });
     it('passes on the reason the records refuse the address', () => {
-        const second = issueCustodialBinding({ didOc: DID, address: KEYS.address, nostr: KEYS.nostr, issuer: ISSUER, since: at(300) });
+        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300) });
         const r = readBack({
             address: KEYS.address,
             expect: { binding: bound.id, holder: 'orangecheck' },
