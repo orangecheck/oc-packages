@@ -1848,7 +1848,7 @@ export function buildVectors(): unknown {
                 id: 'kn01',
                 category: 'publication',
                 description:
-                    'kind 30078 tags: a d tag per record, so none replaces another whoever publishes it, and a t tag for attest’s address query',
+                    'kind 30078 tags: a d tag per record, so none replaces another whoever publishes it, and a t tag oc-attest-key:<address> to read them by',
                 cases: [
                     { name: 'binding', input: bindingA, expected: publicationTags(bindingA) },
                     { name: 'takeover', input: takeoverA, expected: publicationTags(takeoverA) },
@@ -1857,6 +1857,22 @@ export function buildVectors(): unknown {
                     { name: 'wallet link', input: linkA, expected: publicationTags(linkA) },
                     { name: 'wallet unlink', input: unlinkA, expected: publicationTags(unlinkA) },
                 ],
+            },
+            {
+                id: 'kn02',
+                category: 'publication_no_bare_address',
+                description:
+                    "no published t tag is a bare address, so attest's address query (SPEC §6.2) returns attestations and never these records",
+                cases: (
+                    [
+                        ['binding', bindingA],
+                        ['takeover', takeoverA],
+                        ['retire', retireC],
+                        ['issuer record', rotation],
+                        ['wallet link', linkA],
+                        ['wallet unlink', unlinkA],
+                    ] as const
+                ).map(([name, input]) => ({ name, input, expected: { bare_address_tags: [] } })),
             },
         ],
     };

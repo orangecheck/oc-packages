@@ -257,12 +257,13 @@ verifier read for the address:
 **Publication.** Kind 30078, no new kind. Each record has its own d tag,
 `oc-attest-key:<address>:<id>` (an issuer record `oc-attest-key:issuer:<id>`),
 so no record replaces another even under one publishing key, plus a `t` tag
-for the address so oc-attest SPEC §6.2's address query returns them, and a
-`t` tag `oc-attest-key` (`oc-attest-key-issuer`). The binding, retire and
+`oc-attest-key:<address>` to read them by, and a `t` tag `oc-attest-key`
+(`oc-attest-key-issuer`). No `t` tag is a bare address, so oc-attest SPEC
+§6.2's address query returns attestations and never these records (`kn02`). The binding, retire and
 issuer records go out under orangecheck's service Nostr key, the takeover
 under the user's own (oc-chat §8.6). Wallet links and unlinks (§6) also go
 out under the user's own; their d tag names the wallet, and they carry a `t`
-tag for the wallet and one for the identity. `publicationTags` builds the tags.
+tag `oc-attest-key:<wallet>` and one `oc-attest-key:<identity>`. `publicationTags` builds the tags.
 
 ## §5 Signatures by a bound address
 
@@ -379,7 +380,7 @@ one.
 
 ## §7 Vectors
 
-`test-vectors/keys-v1.json`: 85 vectors (derivation `kd`, lock and open `kl`,
+`test-vectors/keys-v1.json`: 86 vectors (derivation `kd`, lock and open `kl`,
 record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
 `kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
 negative, each with `id`, `category`, `description`, `input` and `expected`

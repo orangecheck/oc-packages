@@ -369,9 +369,15 @@ describe('publicationTags', () => {
     it('gives each record its own d tag, so a retire published under the issuer key replaces no binding', () => {
         const [b, r] = [publicationTags(binding), publicationTags(retire)];
         expect(b[0]![1]).not.toBe(r[0]![1]);
-        expect(b).toContainEqual(['t', KEYS.address]);
-        expect(r).toContainEqual(['t', KEYS.address]);
+        expect(b).toContainEqual(['t', `oc-attest-key:${KEYS.address}`]);
+        expect(r).toContainEqual(['t', `oc-attest-key:${KEYS.address}`]);
         expect(b[0]![1]).toBe(`oc-attest-key:${KEYS.address}:${recordId(binding)}`);
+    });
+
+    it('never tags a record with a bare address, which attest reads as an attestation query', () => {
+        for (const t of [publicationTags(binding), publicationTags(retire)]) {
+            expect(t.filter(([k]) => k === 't').map(([, v]) => v)).not.toContain(KEYS.address);
+        }
     });
 });
 
