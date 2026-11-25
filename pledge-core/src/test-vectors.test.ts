@@ -286,8 +286,9 @@ async function runBondVector(vec: AnyVector) {
         | null;
 
     // Synthesize a PledgeEnvelope skeleton — verifyBond only reads
-    // pledge.bond and pledge.swearer.address.
-    const swearerAddress = attest?.address ?? '';
+    // pledge.bond and pledge.swearer.address. A vector names its swearer, or
+    // the swearer is the attestation's address.
+    const swearerAddress = (i['swearer_address'] as string | undefined) ?? attest?.address ?? '';
     const pledge: PledgeEnvelope = {
         v: ENVELOPE_VERSION,
         kind: 'pledge',
