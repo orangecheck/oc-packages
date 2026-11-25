@@ -255,12 +255,23 @@ describe('resolveKeyHolder', () => {
     });
 
     it('is not moved by noise anyone can publish under the address', () => {
-        const noise = [null, 'x', { record: 'nope\n', issuer_sig: '' }, { ...envB, issuer_sig: envT.address_sig }];
+        const noise = [null, 'x', { record: 'nope\n', issuer_sig: '' }];
         expect(resolveKeyHolder(KEYS.address, all(...noise, envB), ctx)).toMatchObject({
             status: 'bound',
             holder: 'orangecheck',
         });
         expect(resolveKeyHolder(KEYS.address, all(...noise), ctx)).toEqual({ status: 'unbound' });
+    });
+
+    it("holds a custodial binding its own key signed, whatever is wrong with the issuer's signature", () => {
+        const badIssuerSig = { ...envB, issuer_sig: envT.address_sig };
+        expect(resolveKeyHolder(KEYS.address, all(badIssuerSig, envB), ctx)).toMatchObject({ status: 'bound', holder: 'orangecheck' });
+        expect(resolveKeyHolder(KEYS.address, all(badIssuerSig), ctx)).toEqual({ status: 'refused', reason: 'record_unverified' });
+        expect(resolveKeyHolder(KEYS.address, all(envB), { ...ctx, issuers: [] })).toEqual({ status: 'refused', reason: 'record_unverified' });
+        // A user binding or a retire under an issuer the verifier does not hold stays noise.
+        const user = binding.replace('key_holder: orangecheck', 'key_holder: user').replace(/trust: .*\n/, '');
+        const envU = { record: user, issuer_sig: issuerSign(user, ISSUER_KEY), ...identitySign(user, KEYS) };
+        expect(resolveKeyHolder(KEYS.address, all(envU, envR), { ...ctx, issuers: [] })).toEqual({ status: 'unbound' });
     });
 
     it('refuses where an issuer-signed copy is broken and none other verifies', () => {
