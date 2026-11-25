@@ -199,9 +199,11 @@ the record's, in any order (`kh15`, `ki01`, `kb11`, `kb15`).
 
 **Issuer terms.** The verifier starts from the issuer address the spec names
 and follows every issuer record signed by both sides, back and forward
-(`resolveIssuers`). Anything else under the issuer tag is ignored. Two records
-out of one address or into one, a loop, or a since block not on the
-verifier's chain refuse the whole set. An issuer's term starts at its
+(`resolveIssuers`). Anything else under the issuer tag is ignored, whatever is
+wrong with it, since anyone with two keys can sign one (`ki07`). Two records
+out of one address or into one, a loop, or a record the walk follows whose
+since block is not on the verifier's chain, or one copy of it anchored at or
+below that block, refuse the whole set (`ki06`, `ki08`). An issuer's term starts at its
 record's since block; a term that ended counts only for records anchored at
 or below the anchor of the record that ended it (the since block where that
 record has no anchor). orangecheck hands over only once every record the old
@@ -229,21 +231,27 @@ from noise anyone can publish.
 
 **Who holds an address's key** (`resolveKeyHolder`) comes from every copy the
 verifier read for the address:
-- a binding or takeover counts only where a trusted issuer and the address's
-  own key both signed it, and a retire where the issuer did. Anything else is
-  ignored: anyone can publish under the address's tag, and the issuer alone
-  cannot bind an address (`kh16`);
-- a record that counts is held once any copy of it verifies. If none does,
-  the address is refused (`record_unverified`, or `bad_anchor`), never read
-  as unbound;
-- no binding: plain Bitcoin (`unbound`), but only when the read was complete,
-  else `unavailable`. A read is complete when at least the read floor of the
+- the read must be complete, whatever it found, else `unavailable`: a record
+  it missed, such as a second binding, could refuse what the rest allow
+  (`kh06`). A read is complete when at least the read floor of the
   relays asked answered in full, each paged to its end, and none was cut off.
   The floor is the number asked, less the write quorum of 2, plus one, and
   never fewer than one: four of five (OC Pledge SPEC §11 item 15). ochk.io
-  publishes every record to at least two of the relays verifiers ask. A
-  binding the account itself names (its did:oc's record) exists whether found
-  or not: `named_binding_missing`;
+  publishes every record to at least two of the relays verifiers ask;
+- a binding or takeover counts only where a trusted issuer and the address's
+  own key both signed it, and a retire where the issuer did. Anything else is
+  ignored: anyone can publish under the address's tag, and the issuer alone
+  cannot bind an address (`kh16`). A custodial binding the address's own key
+  signed is the exception: only the key's holder makes one, so it counts
+  whatever fails at steps 3 to 5, and the address is
+  refused rather than read as plain Bitcoin (`kh14`, `kh18`). A verifier
+  without OpenTimestamps therefore refuses every address bound in an issuer
+  term that has ended;
+- a record that counts is held once any copy of it verifies. If none does,
+  the address is refused (`record_unverified`, or `bad_anchor`), never read
+  as unbound;
+- no binding: plain Bitcoin (`unbound`). A binding the account itself names
+  (its did:oc's record) exists whether found or not: `named_binding_missing`;
 - exactly one binding and at most one takeover, which names the binding,
   matches its did:oc and Nostr key, and is not below its since block. Only a
   custodial binding is taken over;
@@ -253,7 +261,9 @@ verifier read for the address:
   matching the binding's did:oc and not below its since block. After a
   takeover, a retire anchored at or below the takeover's since block refuses
   the address (`takeover_after_retire`), and any other has no effect,
-  whatever it says;
+  whatever it says. The issuer can make such a retire ahead of time and
+  publish it after the takeover: that refuses the address, and moves nothing
+  (KEY-HOLDER §10);
 - the result keeps `born` (who made the key, forever) beside `holder` (now:
   `orangecheck`, `user` or `retired`). Holding no takeover is not proof
   there is none, so `holder: orangecheck` means "as far as these records
@@ -385,7 +395,7 @@ one.
 
 ## §7 Vectors
 
-`test-vectors/keys-v1.json`: 86 vectors (derivation `kd`, lock and open `kl`,
+`test-vectors/keys-v1.json`: 90 vectors (derivation `kd`, lock and open `kl`,
 record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
 `kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
 negative, each with `id`, `category`, `description`, `input` and `expected`
@@ -409,9 +419,11 @@ Two cross-checks outside the TypeScript:
   BIP-39 encoding of I and W (against `test/bip39-english.txt`, pinned to the
   hash of the BIP's own list); both KEKs, every additional data, ciphertext
   and open; the record texts and ids, and which signatures each carries; the
-  issuer terms; the publication tags; the key-holder and signature rules over
-  the records the vectors call good, and over each `unbound` case whose
-  records are noise by their shape alone; and the wallet-link rule over every
+  issuer terms, and that a refused set has a record on the walk that refuses
+  it; the publication tags; that a read short of the floor resolves nothing;
+  the key-holder and signature rules over the records the vectors call good,
+  and over each `unbound` case whose records are noise by their shape alone;
+  and the wallet-link rule over every
   `wallet_link` vector. It does no curve
   math, so it takes signatures as given, and `wallet_link_copies` (copies
   with bad signatures) is for a checker that can verify BIP-322.

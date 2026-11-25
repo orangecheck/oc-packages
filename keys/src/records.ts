@@ -450,14 +450,15 @@ const ROTATION_KEYS = new Set(['record', 'old_sig', 'new_sig', 'ots']);
  * The issuer terms, from the address the spec names and every issuer record
  * the verifier holds. Records signed by both sides are followed back to the
  * issuers before it and on to any after it; any other record is ignored,
- * since anyone can publish one.
+ * since anyone can publish one. A record's since block off the chain, or an
+ * anchor at or below it, refuses the set only when the walk reaches that record.
  */
 export function resolveIssuers(
     named: string,
     records: readonly Anchored[],
     blockHash: (height: number) => string | undefined
 ): { ok: true; terms: IssuerTerm[] } | { ok: false; reason: IssuerFailure } {
-    const valid = new Map<string, { r: ParsedRecord & { type: 'issuer' }; anchoredAt?: number }>();
+    const valid = new Map<string, { r: ParsedRecord & { type: 'issuer' }; anchoredAt?: number; bad?: IssuerFailure }>();
     for (const { envelope, anchoredAt } of records) {
         if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) continue;
         const e = envelope as Record<string, unknown>;
@@ -466,13 +467,16 @@ export function resolveIssuers(
         const r = parseRecord(e.record);
         if (!r || r.type !== 'issuer') continue;
         if (!verifySignature(r.old, e.record, e.old_sig) || !verifySignature(r.new, e.record, e.new_sig)) continue;
-        if (chainHas(blockHash, r.since) !== 'yes') return { ok: false, reason: 'issuer_record_unverified' };
-        if (anchoredAt !== undefined && (!isHeight(anchoredAt) || anchoredAt <= r.since.height)) {
-            return { ok: false, reason: 'bad_anchor' };
-        }
+        const badAnchor = anchoredAt !== undefined && (!isHeight(anchoredAt) || anchoredAt <= r.since.height);
         const id = recordId(e.record);
         const seen = valid.get(id);
-        valid.set(id, { r, anchoredAt: earliest(seen?.anchoredAt, anchoredAt) });
+        const bad: IssuerFailure | undefined =
+            chainHas(blockHash, r.since) !== 'yes'
+                ? 'issuer_record_unverified'
+                : badAnchor || seen?.bad
+                  ? 'bad_anchor'
+                  : undefined;
+        valid.set(id, { r, anchoredAt: earliest(seen?.anchoredAt, anchoredAt), bad });
     }
     const all = [...valid.values()];
     const terms: IssuerTerm[] = [{ address: named, from: 0 }];
@@ -482,7 +486,8 @@ export function resolveIssuers(
         const into = all.filter((x) => x.r.new === first.address);
         if (into.length === 0) break;
         if (into.length > 1) return { ok: false, reason: 'conflicting_issuer_records' };
-        const { r, anchoredAt } = into[0]!;
+        const { r, anchoredAt, bad } = into[0]!;
+        if (bad) return { ok: false, reason: bad };
         if (seen.has(r.old)) return { ok: false, reason: 'issuer_loop' };
         seen.add(r.old);
         first.from = r.since.height;
@@ -493,7 +498,8 @@ export function resolveIssuers(
         const out = all.filter((x) => x.r.old === last.address);
         if (out.length === 0) break;
         if (out.length > 1) return { ok: false, reason: 'conflicting_issuer_records' };
-        const { r, anchoredAt } = out[0]!;
+        const { r, anchoredAt, bad } = out[0]!;
+        if (bad) return { ok: false, reason: bad };
         if (seen.has(r.new)) return { ok: false, reason: 'issuer_loop' };
         seen.add(r.new);
         last.until = { since: r.since.height, anchoredAt };
@@ -620,7 +626,7 @@ export interface ResolveContext extends VerifyContext {
 }
 
 export type ResolveFailure =
-    | 'unavailable' // no valid binding found, and the read was not complete
+    | 'unavailable' // the read was not complete
     | 'record_unverified' // a record the issuer signed, of which no copy verifies here
     | 'named_binding_missing'
     | 'conflicting_bindings'
@@ -665,7 +671,9 @@ export type KeyHolderState =
  * Who holds an address's identity key, from every record copy the verifier
  * read for it. A binding or takeover counts only where the issuer and the
  * address's own key both signed it, so an issuer alone can neither bind an
- * address nor refuse one. A retire, which only the issuer signs, counts only
+ * address nor refuse one; a custodial binding its own key signed counts
+ * whatever is wrong with the issuer's part, since only the key's holder makes
+ * one. Short of the read floor nothing resolves. A retire, which only the issuer signs, counts only
  * against the custodial binding it names, before any takeover. A record that
  * counts is held once any copy of it verifies; if none does, the address is
  * refused, not read as unbound. Holding no takeover is not proof there is
@@ -674,13 +682,19 @@ export type KeyHolderState =
  */
 export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: ResolveContext): KeyHolderState {
     const refuse = (reason: ResolveFailure | RecordFailure): KeyHolderState => ({ status: 'refused', reason });
+    // A record the read missed could refuse what the rest allow, so short of the floor nothing resolves.
+    if (!lookup.complete) return refuse('unavailable');
     type Held = { record: AddressRecord; anchoredAt?: number; reason?: RecordFailure };
     const valid = new Map<string, Held>();
     const broken = new Map<string, Held>();
     for (const { envelope, anchoredAt } of lookup.records) {
         const v = verifyRecord(envelope, ctx, anchoredAt);
-        const r = v.ok ? v.record : v.signed.issuer ? (parseRecord((envelope as SignedRecord).record) as AddressRecord) : null;
+        const signer = v.signed.issuer || v.signed.address;
+        const r = v.ok ? v.record : signer ? (parseRecord((envelope as SignedRecord).record) as AddressRecord) : null;
         if (!r || r.address !== address) continue;
+        // Only the key's holder signs a custodial binding: held, whatever the issuer's part says.
+        const custodial = r.type === 'binding' && r.keyHolder === 'orangecheck' && v.signed.address;
+        if (!v.ok && !v.signed.issuer && !custodial) continue;
         // Noise unless its own signers signed it: the issuer, and for a binding or takeover the address's key.
         if (r.type !== 'retire' && !v.signed.address) continue;
         const id = recordId((envelope as SignedRecord).record);
@@ -704,7 +718,7 @@ export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: Res
     if (bindings.length === 0) {
         if (takeovers.length) return refuse('takeover_without_binding');
         if (ctx.namedBinding !== undefined) return refuse('named_binding_missing');
-        return lookup.complete ? { status: 'unbound' } : refuse('unavailable');
+        return { status: 'unbound' };
     }
     const [bindingId, binding, bindingAnchor] = bindings[0]!;
     if (ctx.namedBinding !== undefined && ctx.namedBinding !== bindingId) return refuse('named_binding_missing');

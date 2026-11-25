@@ -101,6 +101,9 @@ RETIRE = "oc-attest-key:retire:v1"
 
 def holder(address, lookup, named_binding=None):
     """The key-holder state from records whose signatures are taken as given (README section 4)."""
+    # A record the read missed could refuse what the rest allow.
+    if not lookup["complete"]:
+        return {"status": "refused"}
     recs = {}
     for r in lookup["records"]:
         env = r["envelope"]
@@ -119,7 +122,7 @@ def holder(address, lookup, named_binding=None):
     if not bindings:
         if named_binding or takeovers:
             return {"status": "refused"}
-        return {"status": "unbound"} if lookup["complete"] else {"status": "refused"}
+        return {"status": "unbound"}
     assert len(bindings) == 1 and len(takeovers) <= 1
     bid, b, _ = bindings[0]
     state = {"status": "bound", "born": b["key_holder"], "holder": b["key_holder"], "binding": bid}
@@ -345,24 +348,40 @@ def main(path):
                 assert {"link": summary, "verdict": verdict} == c["expected"], (v["id"], c.get("name"))
                 checked += 1
         elif cat == "issuers":
-            exp = v["expected"]
-            if exp.get("ok") and len(exp["terms"]) > 1:
-                recs = v["input"]["records"]
-                assert len({rid(r["envelope"]["record"]) for r in recs}) == 1, v["id"]
-                head, f = fields(recs[0]["envelope"]["record"])
-                old, new = exp["terms"]
-                assert head == "oc-attest-key:issuer:v1" and (f["old"], f["new"]) == (old["address"], new["address"])
-                # Copies of one record: the earliest anchor counts.
-                first = min(r["anchoredAt"] for r in recs if "anchoredAt" in r)
-                assert old["until"] == {"since": int(f["since_height"]), "anchoredAt": first}
-                assert new["from"] == int(f["since_height"]), v["id"]
-                checked += 1
+            for c in v.get("cases", [v]):
+                exp, recs = c["expected"], c["input"]["records"]
+                if exp.get("ok") and len(exp["terms"]) > 1:
+                    old, new = exp["terms"]
+                    # Only records into or out of a term's address are on the walk; any other is ignored, whatever is wrong with it.
+                    on = [r for r in recs if {fields(r["envelope"]["record"])[1][k] for k in ("old", "new")} & {old["address"], new["address"]}]
+                    assert len({rid(r["envelope"]["record"]) for r in on}) == 1, (v["id"], c.get("name"))
+                    head, f = fields(on[0]["envelope"]["record"])
+                    assert head == "oc-attest-key:issuer:v1" and (f["old"], f["new"]) == (old["address"], new["address"])
+                    # Copies of one record: the earliest anchor counts.
+                    first = min(r["anchoredAt"] for r in on if "anchoredAt" in r)
+                    assert old["until"] == {"since": int(f["since_height"]), "anchoredAt": first}
+                    assert new["from"] == int(f["since_height"]), v["id"]
+                    checked += 1
+                elif exp == {"ok": False, "reason": "issuer_record_unverified"}:
+                    # A record into or out of the named issuer whose since block is not this chain's.
+                    named, headers = c["input"]["named"], d["chain"]["headers"]
+                    heads = [fields(r["envelope"]["record"])[1] for r in recs]
+                    assert any(named in (f["old"], f["new"]) and headers.get(f["since_height"]) != f["since_block"] for f in heads), v["id"]
+                    checked += 1
+                elif exp == {"ok": False, "reason": "bad_anchor"}:
+                    # One copy on the walk anchored at or below its since block refuses, whatever the other copies carry.
+                    assert any("anchoredAt" in r and r["anchoredAt"] <= int(fields(r["envelope"]["record"])[1]["since_height"]) for r in recs), (v["id"], c.get("name"))
+                    checked += 1
         elif cat == "key_holder":
             headers = d["chain"]["headers"]
             for c in v.get("cases", [v]):
                 exp = c["expected"]
                 records = c["input"]["lookup"]["records"]
-                if exp["status"] == "bound":
+                if not c["input"]["lookup"]["complete"]:
+                    # Short of the floor nothing resolves, whatever the read found.
+                    assert exp == {"status": "refused", "reason": "unavailable"}, (v["id"], c.get("name"))
+                    checked += 1
+                elif exp["status"] == "bound":
                     # The records the vectors call good, and every retire that looks good here: a retire it ignores must change nothing.
                     ids = {exp["binding"], exp.get("takeover"), exp.get("retire")}
                     good = {"complete": True, "records": [r for r in records if rid(r["envelope"]["record"]) in ids or looks_good(r["envelope"], headers)]}

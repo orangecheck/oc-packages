@@ -63,6 +63,11 @@ const OLD_ISSUER_KEY = label('old issuer');
 const OLD_ISSUER = addressFromPrivateKey(OLD_ISSUER_KEY, 'p2wpkh');
 const STRANGER_KEY = label('stranger issuer');
 const STRANGER = addressFromPrivateKey(STRANGER_KEY, 'p2wpkh');
+// Two keys of one stranger's own, which sign hand-overs between themselves.
+const JUNK_X_KEY = label('junk issuer x');
+const JUNK_X = addressFromPrivateKey(JUNK_X_KEY, 'p2wpkh');
+const JUNK_Y_KEY = label('junk issuer y');
+const JUNK_Y = addressFromPrivateKey(JUNK_Y_KEY, 'p2wpkh');
 
 // A: custodial first, then taken over. B: passkey first. C: custodial, then
 // retired. D: custodial, bound by the old issuer. E: no record at all.
@@ -273,6 +278,35 @@ export function buildVectors(): unknown {
     });
     const bindingLateA = bind(idA, DID_A, 'orangecheck', at(977200));
     const takeoverEarlyA = takeOver(idA, DID_A, recordId(bindingLateA), at(977100));
+    const retireEarlyLateA = retireRecord({
+        didOc: DID_A,
+        address: idA.address,
+        binding: recordId(bindingLateA),
+        issuer: ISSUER,
+        since: at(977100),
+        reason: 'withdrawn',
+    });
+    const takeoverAtBindingA = takeOver(idA, DID_A, recordId(bindingA), at(977000));
+    const takeoverOtherNostrA = takeoverRecord({
+        didOc: DID_A,
+        address: idA.address,
+        nostr: idB.nostr,
+        binding: recordId(bindingA),
+        issuer: ISSUER,
+        since: at(977100),
+    });
+    const takeoverOtherDidA = takeOver(idA, DID_B, recordId(bindingA), at(977100));
+    // Bindings the address's own key signed, under an issuer the verifier does not hold.
+    const envStrangerBindingOwnKey = signed(strangerBinding, STRANGER_KEY, KEYS_A);
+    const envStrangerUserBindingB = signed(bind(idB, DID_B, 'user', at(977000), STRANGER), STRANGER_KEY, KEYS_B);
+    const strangerTakeoverA = takeoverRecord({
+        didOc: DID_A,
+        address: idA.address,
+        nostr: idA.nostr,
+        binding: recordId(bindingA),
+        issuer: STRANGER,
+        since: at(977100),
+    });
     // Issuer records that must not be followed.
     const strangerRotation = issuerRecord({ old: STRANGER, new: ISSUER, since: at(977000) });
     const envStrangerRotation: SignedIssuerRecord = {
@@ -283,6 +317,10 @@ export function buildVectors(): unknown {
     const envBackRotation: SignedIssuerRecord = {
         record: backRotation,
         ...rotationSign(backRotation, ISSUER_KEY, OLD_ISSUER_KEY),
+    };
+    const junk = (since: Since) => {
+        const record = issuerRecord({ old: JUNK_X, new: JUNK_Y, since });
+        return { record, ...rotationSign(record, JUNK_X_KEY, JUNK_Y_KEY) };
     };
     const offChainRotation = issuerRecord({ old: OLD_ISSUER, new: ISSUER, since: { height: 977000, block: HEADERS['977100']! } });
     const envOffChainRotation: SignedIssuerRecord = {
@@ -893,8 +931,80 @@ export function buildVectors(): unknown {
                 id: 'ki06',
                 category: 'issuers',
                 description: 'a hand-over signed by both whose since block is not on the chain: refused, not ignored',
-                input: { named: ISSUER, records: [{ envelope: envOffChainRotation }] },
-                expected: { ok: false, reason: 'issuer_record_unverified' },
+                cases: [
+                    {
+                        name: 'a verifier that names the new issuer',
+                        input: { named: ISSUER, records: [{ envelope: envOffChainRotation }] },
+                        expected: { ok: false, reason: 'issuer_record_unverified' },
+                    },
+                    {
+                        name: 'a verifier that names the old issuer',
+                        input: { named: OLD_ISSUER, records: [{ envelope: envOffChainRotation }] },
+                        expected: { ok: false, reason: 'issuer_record_unverified' },
+                    },
+                ],
+            },
+            {
+                id: 'ki07',
+                category: 'issuers',
+                description: 'a hand-over between two keys off the walk from the named issuer is ignored, whatever is wrong with it: anyone with two keys can sign one',
+                cases: (
+                    [
+                        ['its since block is not on the chain', { envelope: junk({ height: 977000, block: HEADERS['977100']! }) }],
+                        ['its since height is past the tip', { envelope: junk({ height: 977300, block: HEADERS['977200']! }) }],
+                        ['anchored at its own since block', { envelope: junk(at(977000)), anchoredAt: 977000 }],
+                    ] as const
+                ).map(([name, record]) => ({
+                    name,
+                    input: { named: ISSUER, records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }, record] },
+                    expected: {
+                        ok: true,
+                        terms: [
+                            { address: OLD_ISSUER, from: 0, until: { since: 977000, anchoredAt: ROTATION_ANCHOR } },
+                            { address: ISSUER, from: 977000 },
+                        ],
+                    },
+                })),
+            },
+            {
+                id: 'ki08',
+                category: 'issuers',
+                description: 'a copy of the hand-over anchored at its since block, beside a good copy: refused, in any order',
+                cases: [
+                    {
+                        name: 'the bad copy first',
+                        input: {
+                            named: ISSUER,
+                            records: [
+                                { envelope: envRotation, anchoredAt: 977000 },
+                                { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
+                            ],
+                        },
+                        expected: { ok: false, reason: 'bad_anchor' },
+                    },
+                    {
+                        name: 'the bad copy last',
+                        input: {
+                            named: ISSUER,
+                            records: [
+                                { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
+                                { envelope: envRotation, anchoredAt: 977000 },
+                            ],
+                        },
+                        expected: { ok: false, reason: 'bad_anchor' },
+                    },
+                    {
+                        name: 'a verifier that names the old issuer',
+                        input: {
+                            named: OLD_ISSUER,
+                            records: [
+                                { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
+                                { envelope: envRotation, anchoredAt: 977000 },
+                            ],
+                        },
+                        expected: { ok: false, reason: 'bad_anchor' },
+                    },
+                ],
             },
 
             {
@@ -978,14 +1088,18 @@ export function buildVectors(): unknown {
                         expected: { status: 'refused', reason: 'named_binding_missing' },
                     },
                     {
-                        name: 'a read short of the floor that still found the binding',
-                        input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA]], false) },
-                        expected: {
-                            status: 'bound',
-                            born: 'orangecheck',
-                            holder: 'orangecheck',
-                            binding: recordId(bindingA),
+                        name: 'a read short of the floor that found the binding and its takeover: a record it missed could refuse them',
+                        input: {
+                            address: idA.address,
+                            lookup: found(
+                                [
+                                    [envBindingA, ANCHOR.bindingA],
+                                    [envTakeoverA, ANCHOR.takeoverA],
+                                ],
+                                false
+                            ),
                         },
+                        expected: { status: 'refused', reason: 'unavailable' },
                     },
                 ],
             },
@@ -1045,7 +1159,7 @@ export function buildVectors(): unknown {
                 cases: [
                     {
                         name: "a stranger's binding alone: plain Bitcoin",
-                        input: { address: idA.address, lookup: found([[envStrangerBinding], [forgedIssuerSig]]) },
+                        input: { address: idA.address, lookup: found([[envStrangerBinding]]) },
                         expected: { status: 'unbound' },
                     },
                     {
@@ -1126,22 +1240,63 @@ export function buildVectors(): unknown {
                         },
                         expected: { status: 'refused', reason: 'takeover_after_retire' },
                     },
+                    {
+                        name: "a retire anchored at the takeover's since block: refused",
+                        input: {
+                            address: idA.address,
+                            lookup: found([[envBindingA], [envTakeoverA, ANCHOR.takeoverA], [signed(retireEarlyA), 977100]]),
+                        },
+                        expected: { status: 'refused', reason: 'takeover_after_retire' },
+                    },
                 ],
             },
             {
                 id: 'kh13',
                 category: 'key_holder',
-                description: 'a takeover whose since block is below its binding’s',
-                input: {
-                    address: idA.address,
-                    lookup: found([[signed(bindingLateA, ISSUER_KEY, KEYS_A)], [signed(takeoverEarlyA, ISSUER_KEY, KEYS_A)]]),
-                },
-                expected: { status: 'refused', reason: 'takeover_before_binding' },
+                description: 'a takeover or a retire whose since block is below its binding’s: refused; one at it counts',
+                cases: [
+                    {
+                        name: 'a takeover below',
+                        input: {
+                            address: idA.address,
+                            lookup: found([[signed(bindingLateA, ISSUER_KEY, KEYS_A)], [signed(takeoverEarlyA, ISSUER_KEY, KEYS_A)]]),
+                        },
+                        expected: { status: 'refused', reason: 'takeover_before_binding' },
+                    },
+                    {
+                        name: 'a takeover at the same block',
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [signed(takeoverAtBindingA, ISSUER_KEY, KEYS_A), 977050],
+                            ]),
+                        },
+                        expected: {
+                            status: 'bound',
+                            born: 'orangecheck',
+                            holder: 'user',
+                            binding: recordId(bindingA),
+                            takeover: recordId(takeoverAtBindingA),
+                            takeover_since: 977000,
+                            takeover_anchored_at: 977050,
+                        },
+                    },
+                    {
+                        name: 'a retire below',
+                        input: {
+                            address: idA.address,
+                            lookup: found([[signed(bindingLateA, ISSUER_KEY, KEYS_A)], [signed(retireEarlyLateA)]]),
+                        },
+                        expected: { status: 'refused', reason: 'retire_before_binding' },
+                    },
+                ],
             },
             {
                 id: 'kh14',
                 category: 'key_holder',
-                description: "the old issuer's binding: counted when anchored before the hand-over, ignored when not",
+                description:
+                    "the old issuer's binding: counted when anchored before the hand-over; refused when not, never plain Bitcoin, since its own key signed it",
                 cases: [
                     {
                         name: 'anchored before',
@@ -1151,7 +1306,12 @@ export function buildVectors(): unknown {
                     {
                         name: 'anchored after',
                         input: { address: idD.address, lookup: found([[envBindingD, 977010]]) },
-                        expected: { status: 'unbound' },
+                        expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: 'no anchor: a verifier without OpenTimestamps',
+                        input: { address: idD.address, lookup: found([[envBindingD]]) },
+                        expected: { status: 'refused', reason: 'record_unverified' },
                     },
                 ],
             },
@@ -1287,6 +1447,74 @@ export function buildVectors(): unknown {
                         name: "a retire of A's custodial binding naming another did:oc, with no takeover: refused",
                         input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA], [signed(retireOtherDidA), 977205]]) },
                         expected: { status: 'refused', reason: 'retire_mismatch' },
+                    },
+                ],
+            },
+            {
+                id: 'kh18',
+                category: 'key_holder',
+                description:
+                    "a custodial binding the address's own key signed is held, whatever fails in the issuer's part, since only the key's holder signs one: refused, never plain Bitcoin",
+                cases: [
+                    {
+                        name: 'under an issuer the verifier does not hold',
+                        input: { address: idA.address, lookup: found([[envStrangerBindingOwnKey]]) },
+                        expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: "with an issuer signature by another key",
+                        input: { address: idA.address, lookup: found([[forgedIssuerSig]]) },
+                        expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: "naming a block before its issuer's term",
+                        input: { address: idA.address, lookup: found([[signed(tooEarly, ISSUER_KEY, KEYS_A)]]) },
+                        expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: 'a user binding under an issuer the verifier does not hold: ignored',
+                        input: { address: idB.address, lookup: found([[envStrangerUserBindingB]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "a takeover under an issuer the verifier does not hold, beside A's binding: ignored",
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [signed(strangerTakeoverA, STRANGER_KEY, KEYS_A), ANCHOR.takeoverA],
+                            ]),
+                        },
+                        expected: { status: 'bound', born: 'orangecheck', holder: 'orangecheck', binding: recordId(bindingA) },
+                    },
+                ],
+            },
+            {
+                id: 'kh19',
+                category: 'key_holder',
+                description: "a takeover naming another did:oc or Nostr key than its binding's: refused",
+                cases: [
+                    {
+                        name: 'another Nostr key',
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [signed(takeoverOtherNostrA, ISSUER_KEY, { ...KEYS_A, nostrKey: KEYS_B.nostrKey }), ANCHOR.takeoverA],
+                            ]),
+                        },
+                        expected: { status: 'refused', reason: 'takeover_mismatch' },
+                    },
+                    {
+                        name: 'another did:oc',
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [signed(takeoverOtherDidA, ISSUER_KEY, KEYS_A), ANCHOR.takeoverA],
+                            ]),
+                        },
+                        expected: { status: 'refused', reason: 'takeover_mismatch' },
                     },
                 ],
             },
