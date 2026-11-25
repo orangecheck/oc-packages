@@ -1,7 +1,7 @@
 {
   "recorded_from": {
     "repo": "oc-www",
-    "base": "71dc5fb5be48195799638a168a529978998f4f10",
+    "base": "5eea4cf84a61a5c0ba1513be06092a5137a782b9",
     "test": "src/lib/auth/own-keys-contract.test.ts"
   },
   "token_header": {
@@ -10,9 +10,9 @@
     "kid": "test-kid"
   },
   "token_claims": {
-    "sub": "8dca06ae-93c4-45a4-9b2a-a015e6baadbe",
-    "did_oc": "did:oc:b862ce677224335a5b06fd4f6c08e8cd",
-    "jti": "ff86b7e7ef842d3b21e879f597a3f14e",
+    "sub": "1a746227-618e-4a94-a453-493377f7bfcb",
+    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
+    "jti": "84d2f59984174cf81f09e800ada02b05",
     "signing_method": "fedimint_threshold",
     "display_identity": {
       "kind": "email",
@@ -21,10 +21,10 @@
     "amr": [
       "email"
     ],
-    "auth_time": 1795559443,
+    "auth_time": 1795572831,
     "iss": "https://ochk.io",
-    "iat": 1795559443,
-    "exp": 1798151443
+    "iat": 1795572831,
+    "exp": 1798164831
   },
   "audience_token_header": {
     "alg": "EdDSA",
@@ -32,30 +32,30 @@
     "kid": "test-kid"
   },
   "audience_token_claims": {
-    "sub": "8dca06ae-93c4-45a4-9b2a-a015e6baadbe",
-    "did_oc": "did:oc:b862ce677224335a5b06fd4f6c08e8cd",
-    "rh": "MNPJnzu9-e_Gx8TerpFFuA",
+    "sub": "1a746227-618e-4a94-a453-493377f7bfcb",
+    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
+    "rh": "6tsyA3oQ2MVWC5UakNGnvA",
     "amr": [
       "email"
     ],
-    "auth_time": 1795559443,
-    "jti": "2d2834172110a3278a067f23ff95d951",
+    "auth_time": 1795572831,
+    "jti": "dd52efcedc5cce1e6f13c1232e728841",
     "iss": "https://ochk.io",
     "aud": "https://shop.example",
-    "iat": 1795559443,
-    "exp": 1798151443
+    "iat": 1795572832,
+    "exp": 1798164831
   },
   "me": {
     "ok": true,
     "account": {
-      "id": "8dca06ae-93c4-45a4-9b2a-a015e6baadbe",
-      "did_oc": "did:oc:b862ce677224335a5b06fd4f6c08e8cd",
+      "id": "1a746227-618e-4a94-a453-493377f7bfcb",
+      "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
       "display_name": null,
       "nostr_npub": null,
       "home_federation_slug": null,
       "signing_method": "fedimint_threshold",
-      "created_at": "2026-11-24T22:30:43.2+00:00",
-      "last_signed_in_at": "2026-11-24T22:30:43.186+00:00",
+      "created_at": "2026-11-25T02:13:51.455+00:00",
+      "last_signed_in_at": "2026-11-25T02:13:51.424+00:00",
       "primary_btc": null,
       "has_email": true,
       "display_identity": {
@@ -69,21 +69,34 @@
   },
   "identities": {
     "ok": true,
-    "account_id": "8dca06ae-93c4-45a4-9b2a-a015e6baadbe",
-    "did_oc": "did:oc:b862ce677224335a5b06fd4f6c08e8cd",
-    "created_at": "2026-11-24T22:30:43.2+00:00",
-    "last_signed_in_at": "2026-11-24T22:30:43.186+00:00",
+    "account_id": "1a746227-618e-4a94-a453-493377f7bfcb",
+    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
+    "created_at": "2026-11-25T02:13:51.455+00:00",
+    "last_signed_in_at": "2026-11-25T02:13:51.424+00:00",
     "linked": [
       {
-        "id": "a89a843d-8d8c-4d16-af2d-b83febe77f1f",
+        "id": "51e7a681-11c6-4f93-9370-91db649b0c48",
         "kind": "email",
         "value": "person@example.com",
-        "verified_at": "2026-11-24T22:30:43.203+00:00",
+        "verified_at": "2026-11-25T02:13:51.46+00:00",
         "verification_method": "email-otp",
         "is_primary": true,
         "providers": []
       }
     ],
     "merged_from": []
+  },
+  "chat_vouch": {
+    "request": {
+      "device_pk": "2eb7139939c57ceae952d2662d624aa6ec5a085ca9f73e34d0f892325f548fd5",
+      "nostr_pk": "0ce9d47aa559486fb7ec877e5b81cc7b3aea912cdf239f5629a740b0d5166d50",
+      "device_id": "8fe08361fef654936cd5b734f836d5e5"
+    },
+    "header": {
+      "alg": "EdDSA",
+      "typ": "oc-chat-device-vouch",
+      "kid": "test-kid"
+    },
+    "statement": "oc-chat:device-vouch:v1\ndid_oc: did:oc:f9ccc19f4607e48d2d3e93b9494cb46e\ndevice_pk: 2eb7139939c57ceae952d2662d624aa6ec5a085ca9f73e34d0f892325f548fd5\nnostr_pk: 0ce9d47aa559486fb7ec877e5b81cc7b3aea912cdf239f5629a740b0d5166d50\ndevice_id: 8fe08361fef654936cd5b734f836d5e5\nissued_at: 1795572832\n"
   }
 }

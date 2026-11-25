@@ -14,8 +14,9 @@ as its own, never with a sign-in method it does not know.
 `fixtures/email-account.json` is an email account recorded from ochk.io's real sign-in, mint and
 read paths by oc-www's `src/lib/auth/own-keys-contract.test.ts`. The file names the commit it ran
 on. It holds the session token's claims, the claims of the token the sign-in popup mints for a
-site, and the `/api/auth/me` and `/api/auth/identities` answers. No token is committed:
-`src/mint.ts` signs the recorded claims at test time with a key made for the run.
+site, the `/api/auth/me` and `/api/auth/identities` answers, and the statement ochk.io signs to
+vouch for an OC Chat session device. No token or vouch is committed: `src/mint.ts` signs the
+recorded claims and statement at test time with a key made for the run.
 
 `src/account.ts` builds the same account with its identity key in the plan's new field,
 `identity_key`, and compares what each reader returns for both.

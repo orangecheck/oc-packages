@@ -18,6 +18,11 @@ export interface Recording {
     audience_token_claims: Record<string, unknown>;
     me: { ok: true; account: Record<string, unknown> } & Record<string, unknown>;
     identities: { ok: true; linked: Array<Record<string, unknown>> } & Record<string, unknown>;
+    chat_vouch: {
+        request: { device_pk: string; nostr_pk: string; device_id: string };
+        header: Record<string, unknown>;
+        statement: string;
+    };
 }
 
 export const recorded = recording as unknown as Recording;
@@ -32,11 +37,14 @@ export const IDENTITY_KEY = {
 export const EMAIL = (recorded.identities.linked[0] as { value: string }).value;
 export const AUDIENCE = recorded.audience_token_claims.aud as string;
 
-type Account = Pick<Recording, 'token_claims' | 'audience_token_claims' | 'me' | 'identities'>;
+type Account = Pick<Recording, 'token_claims' | 'audience_token_claims' | 'me' | 'identities' | 'chat_vouch'>;
 
 const copy = <T>(v: T): T => structuredClone(v);
 
-/** The plan's placement: a new optional field in each answer and token, nothing else. */
+/**
+ * The plan's placement: a new optional field in each answer and token, nothing else. The chat
+ * vouch is a byte-exact statement, so it gets nothing.
+ */
 function withIdentityKey(a: Account): Account {
     a.token_claims.identity_key = copy(IDENTITY_KEY);
     a.audience_token_claims.identity_key = copy(IDENTITY_KEY);
@@ -72,6 +80,11 @@ export const FORBIDDEN: Record<string, (a: Account) => void> = {
             is_primary: true,
             providers: [],
         }),
+    chat_vouch_line: (a) =>
+        void (a.chat_vouch.statement = a.chat_vouch.statement.replace(
+            /^issued_at: /m,
+            `identity_key: ${IDENTITY_KEY.address}\nissued_at: `
+        )),
 };
 
 export const placement = process.env.COMPAT_PLACEMENT?.trim() || 'identity_key';
@@ -85,6 +98,7 @@ function base(): Account {
         audience_token_claims: copy(recorded.audience_token_claims),
         me: copy(recorded.me),
         identities: copy(recorded.identities),
+        chat_vouch: copy(recorded.chat_vouch),
     };
 }
 

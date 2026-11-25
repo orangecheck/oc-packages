@@ -1,4 +1,4 @@
-import { exportJWK, generateKeyPair, SignJWT } from 'jose';
+import { CompactSign, exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 /**
  * Tokens are minted here at test time, from the recorded claims, with a key made for the run:
@@ -34,6 +34,13 @@ export async function mint(claims: Record<string, unknown>, extra: Record<string
         .setIssuer(ISSUER)
         .setIssuedAt(NOW)
         .setExpirationTime(NOW + (exp - iat))
+        .sign(keys.privateKey);
+}
+
+/** Sign a host statement as ochk.io does: a compact JWS over its text, never a claims set. */
+export async function signStatement(statement: string, typ: string) {
+    return new CompactSign(new TextEncoder().encode(statement))
+        .setProtectedHeader({ alg: 'EdDSA', typ, kid: KID })
         .sign(keys.privateKey);
 }
 
