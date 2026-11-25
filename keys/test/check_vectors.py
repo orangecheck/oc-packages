@@ -366,10 +366,19 @@ def main(path):
                 if head == "oc-attest-key:issuer:v1":
                     want = [["d", f"oc-attest-key:issuer:{rid(c['input'])}"], ["t", "oc-attest-key-issuer"]]
                 elif head.startswith("oc-attest-key:wallet-"):
-                    want = [["d", f"oc-attest-key:{f['wallet']}:{rid(c['input'])}"], ["t", f["wallet"]], ["t", f["address"]], ["t", "oc-attest-key"]]
+                    want = [["d", f"oc-attest-key:{f['wallet']}:{rid(c['input'])}"], ["t", f"oc-attest-key:{f['wallet']}"], ["t", f"oc-attest-key:{f['address']}"], ["t", "oc-attest-key"]]
                 else:
-                    want = [["d", f"oc-attest-key:{f['address']}:{rid(c['input'])}"], ["t", f["address"]], ["t", "oc-attest-key"]]
+                    want = [["d", f"oc-attest-key:{f['address']}:{rid(c['input'])}"], ["t", f"oc-attest-key:{f['address']}"], ["t", "oc-attest-key"]]
                 assert c["expected"] == want, (v["id"], c["name"])
+                checked += 1
+        elif cat == "publication_no_bare_address":
+            # Against kn01's tags for the same record: none is a bare address the record names.
+            tags = {rid(c["input"]): c["expected"] for c in next(x for x in d["vectors"] if x["id"] == "kn01")["cases"]}
+            for c in v["cases"]:
+                _, f = fields(c["input"])
+                names = {f[k] for k in ("address", "wallet", "old", "new") if k in f}
+                bare = [t for t in tags[rid(c["input"])] if t[0] == "t" and t[1] in names]
+                assert bare == [] and c["expected"] == {"bare_address_tags": []}, v["id"]
                 checked += 1
     print(f"keys-v1: {checked} checks passed in Python")
 

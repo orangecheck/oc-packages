@@ -5496,7 +5496,7 @@
     {
       "id": "kn01",
       "category": "publication",
-      "description": "kind 30078 tags: a d tag per record, so none replaces another whoever publishes it, and a t tag for attest’s address query",
+      "description": "kind 30078 tags: a d tag per record, so none replaces another whoever publishes it, and a t tag oc-attest-key:<address> to read them by",
       "cases": [
         {
           "name": "binding",
@@ -5508,7 +5508,7 @@
             ],
             [
               "t",
-              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
             ],
             [
               "t",
@@ -5526,7 +5526,7 @@
             ],
             [
               "t",
-              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
             ],
             [
               "t",
@@ -5544,7 +5544,7 @@
             ],
             [
               "t",
-              "bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
+              "oc-attest-key:bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
             ],
             [
               "t",
@@ -5576,11 +5576,11 @@
             ],
             [
               "t",
-              "bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
+              "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
             ],
             [
               "t",
-              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
             ],
             [
               "t",
@@ -5598,17 +5598,66 @@
             ],
             [
               "t",
-              "bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
+              "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
             ],
             [
               "t",
-              "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+              "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
             ],
             [
               "t",
               "oc-attest-key"
             ]
           ]
+        }
+      ]
+    },
+    {
+      "id": "kn02",
+      "category": "publication_no_bare_address",
+      "description": "no published t tag is a bare address, so attest's address query (SPEC §6.2) returns attestations and never these records",
+      "cases": [
+        {
+          "name": "binding",
+          "input": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+          "expected": {
+            "bare_address_tags": []
+          }
+        },
+        {
+          "name": "takeover",
+          "input": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+          "expected": {
+            "bare_address_tags": []
+          }
+        },
+        {
+          "name": "retire",
+          "input": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: c12f03ccc895c30b4988fbb98c28af7835adae3ab3f47977bf6a3d6d70af2fcd\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: own_wallet\n",
+          "expected": {
+            "bare_address_tags": []
+          }
+        },
+        {
+          "name": "issuer record",
+          "input": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+          "expected": {
+            "bare_address_tags": []
+          }
+        },
+        {
+          "name": "wallet link",
+          "input": "oc-attest-key:wallet-link:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nwallet: bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n\nbinding: 4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\nack: The coins at this wallet count for this identity until either key ends the link.\n",
+          "expected": {
+            "bare_address_tags": []
+          }
+        },
+        {
+          "name": "wallet unlink",
+          "input": "oc-attest-key:wallet-unlink:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nwallet: bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n\nlink: 141703546a15808b848f9ea18dc3762f333212d69721e189d8f7f9e65c43a8e2\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
+          "expected": {
+            "bare_address_tags": []
+          }
         }
       ]
     }

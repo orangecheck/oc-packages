@@ -386,7 +386,7 @@ export function possessionSign(
     return bothSigs(r, bindingText, keys, auxRand);
 }
 
-/** The Nostr tags a record is published with (kind 30078), so attest's address query finds it (SPEC §6.2). */
+/** The Nostr tags a record is published with (kind 30078). No t tag is a bare address, so attest's address query (SPEC §6.2) never returns one. */
 export function publicationTags(record: string): string[][] {
     const r = parseRecord(record);
     if (!r) throw new Error('not a canonical record');
@@ -396,9 +396,14 @@ export function publicationTags(record: string): string[][] {
     }
     if (r.type === 'wallet-link' || r.type === 'wallet-unlink') {
         // Under the wallet, which a reader must read in full (README §6), and the identity.
-        return [['d', `${D_TAG_PREFIX}${r.wallet}:${id}`], ['t', r.wallet], ['t', r.address], ['t', 'oc-attest-key']];
+        return [
+            ['d', `${D_TAG_PREFIX}${r.wallet}:${id}`],
+            ['t', `${D_TAG_PREFIX}${r.wallet}`],
+            ['t', `${D_TAG_PREFIX}${r.address}`],
+            ['t', 'oc-attest-key'],
+        ];
     }
-    return [['d', `${D_TAG_PREFIX}${r.address}:${id}`], ['t', r.address], ['t', 'oc-attest-key']];
+    return [['d', `${D_TAG_PREFIX}${r.address}:${id}`], ['t', `${D_TAG_PREFIX}${r.address}`], ['t', 'oc-attest-key']];
 }
 
 const isHeight = (h: unknown): h is number => typeof h === 'number' && Number.isInteger(h) && h >= 0;
@@ -601,7 +606,7 @@ export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: numb
 
 /**
  * What a verifier read for one address: every record copy relays served
- * under its `t` tag, and whether the read was complete, which a verifier may
+ * under its `oc-attest-key:<address>` tag, and whether the read was complete, which a verifier may
  * say only at the read floor (README §4).
  */
 export interface RecordLookup {

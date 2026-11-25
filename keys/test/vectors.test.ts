@@ -12,6 +12,7 @@ import { lockAad, lockWithPasskey, lockWithPhrase, openWithPasskey, openWithPhra
 import {
     judgeSignature,
     judgeWalletLink,
+    parseRecord,
     publicationTags,
     recordId,
     resolveIssuers,
@@ -215,5 +216,12 @@ describe('publication vectors', () => {
         expect(publicationTags(c.input)).toEqual(c.expected);
         // The d tag names the record's own id, so no record replaces another under one key.
         expect(c.expected[0][1].endsWith(`:${recordId(c.input)}`)).toBe(true);
+    });
+
+    it.each<Case>(flat('publication_no_bare_address'))('$label', (c: Any) => {
+        const r = parseRecord(c.input) as Any;
+        const addresses = [r.address, r.wallet, r.old, r.new].filter(Boolean);
+        const bare = publicationTags(c.input).filter(([k, v]) => k === 't' && addresses.includes(v));
+        expect({ bare_address_tags: bare }).toEqual(c.expected);
     });
 });
