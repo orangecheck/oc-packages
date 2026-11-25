@@ -17,11 +17,13 @@
         "@orangecheck/lock-device": "0.9.0",
         "@orangecheck/me-client": "0.64.0",
         "@orangecheck/sdk": "1.28.0",
+        "@orangecheck/site-kit": "0.18.0",
         "@orangecheck/stamp-core": "1.4.0",
         "@orangecheck/vault-core": "0.6.0",
         "@orangecheck/wallet-adapter": "0.8.1",
         "auth-client-2.51.0": "npm:@orangecheck/auth-client@2.51.0",
-        "auth-core-2.22.0": "npm:@orangecheck/auth-core@2.22.0"
+        "auth-core-2.22.0": "npm:@orangecheck/auth-core@2.22.0",
+        "site-kit-0.17.0": "npm:@orangecheck/site-kit@0.17.0"
     },
     "devDependencies": {
         "@testing-library/dom": "10.4.1",

@@ -263,6 +263,11 @@
     "@scure/base" "^1.1.9"
     buffer "^6.0.3"
 
+"@orangecheck/site-kit@0.18.0":
+  version "0.18.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/site-kit/-/site-kit-0.18.0.tgz#f0f26aa87c0fbe73afc34b8c4aa9fe38811f7212"
+  integrity sha512-fQ9wkLb6hLLKEWKMoQ+ncZnEe3OssPhk2nkZwv82PF8TpqOMDqlJkmQihbIUC+fwiOpfPu/WrfN6qEameETPyg==
+
 "@orangecheck/stamp-core@1.4.0", "@orangecheck/stamp-core@^1.0.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@orangecheck/stamp-core/-/stamp-core-1.4.0.tgz#7991ab7b2af1cd178b13e44cd30ba8534d1e58b3"
@@ -934,6 +939,11 @@ siginfo@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/siginfo/-/siginfo-2.0.0.tgz#32e76c70b79724e3bb567cb9d543eb858ccfaf30"
   integrity sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==
+
+"site-kit-0.17.0@npm:@orangecheck/site-kit@0.17.0":
+  version "0.17.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/site-kit/-/site-kit-0.17.0.tgz#16a9bc2c055104a9a4bd337fa3a3559ecef99252"
+  integrity sha512-7ELOCC7I7LSFnBXkeSkblnh6fapCf1JSkcyCoJPGSrcgBb9DVaIxCDobEhEv3x/QD+Jv3VKgacja1VFkJuS9Ng==
 
 source-map-js@^1.2.1, source-map-js@^1.2.2:
   version "1.2.4"

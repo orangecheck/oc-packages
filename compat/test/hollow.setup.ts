@@ -6,3 +6,6 @@ vi.mock('auth-core-2.22.0');
 vi.mock('@orangecheck/auth-client');
 vi.mock('auth-client-2.51.0');
 vi.mock('@orangecheck/chat-core');
+vi.mock('@orangecheck/site-kit/auth');
+vi.mock('site-kit-0.17.0/auth');
+vi.mock('@orangecheck/vault-core');

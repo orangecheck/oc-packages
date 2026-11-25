@@ -19,7 +19,9 @@ vouch for an OC Chat session device. No token or vouch is committed: `src/mint.t
 recorded claims and statement at test time with a key made for the run.
 
 `src/account.ts` builds the same account with its identity key in the plan's new field,
-`identity_key`, and compares what each reader returns for both.
+`identity_key`, and compares what each reader returns for both. The tool sites' own
+`/api/auth/me` is site-kit's `createMeHandler` over the session token, so site-kit is read
+that way, with vault-core's `fetchIdentity` over its answer.
 
 ## Run it
 
