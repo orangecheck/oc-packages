@@ -13,6 +13,7 @@ export {
     OcAccountChip,
     OcAddressInput,
     useOcAddressSuggestion,
+    accountAddress,
 } from './components';
 export type {
     OcSignInButtonProps,
