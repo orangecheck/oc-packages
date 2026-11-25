@@ -20,6 +20,11 @@ They are two separate draws, and the lock refuses `W = I`. orangecheck may
 have held I (every account that starts without a passkey), and its deletion
 cannot be proved, so no money ever sits under a key derived from I.
 
+**The identity address is never funded.** It is a mainnet address anyone can
+pay, and while orangecheck holds I it can spend whatever lands there. Nothing
+pays it, and no page shows it as a place to receive money: coins go under W,
+or to a wallet linked to the identity (§6).
+
 ## §2 Derivation
 
 Each secret is read as BIP-39 entropy: 24 English words, empty passphrase,

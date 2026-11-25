@@ -356,6 +356,24 @@
             "ok": false,
             "reason": "phrase_invalid"
           }
+        },
+        {
+          "name": "a valid 12-word phrase",
+          "input": {
+            "copy": {
+              "v": 1,
+              "method": "phrase",
+              "did_oc": "did:oc:0123456789abcdef0123456789abcdef",
+              "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+              "nonce": "_jarpnnkTVSt2jAI",
+              "ciphertext": "89p39Y1k1mfA2zrUUgtE871PxPrTtpC8JLUiiN3Opu3Qr5XD9HgXsmovzayCbqf1"
+            },
+            "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+          },
+          "expected": {
+            "ok": false,
+            "reason": "phrase_invalid"
+          }
         }
       ]
     },
