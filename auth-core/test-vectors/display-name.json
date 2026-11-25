@@ -123,5 +123,23 @@
         { "name": "e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301", "max": 32, "problem": "too_long" },
         { "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 32, "problem": null },
         { "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 32, "problem": "too_long" }
+    ],
+    "free_text": [
+        {"text": "orangecheck", "max": 120, "problem": "reserved"},
+        {"text": "OCHK", "max": 120, "problem": "reserved"},
+        {"text": "Orange Check", "max": 120, "problem": "reserved"},
+        {"text": "\uff4f\uff43\uff48\uff4b", "max": 120, "problem": "reserved"},
+        {"text": "och\ufe0fk", "max": 120, "problem": "reserved"},
+        {"text": "ochk\uff0eio", "max": 120, "problem": "reserved"},
+        {"text": "OCHK.app", "max": 120, "problem": "reserved"},
+        {"text": "Earn sats with OrangeCheck", "max": 120, "problem": null},
+        {"text": "Paid via ochk.io checkout", "max": 120, "problem": null},
+        {"text": "Orange Check Fans", "max": 120, "problem": null},
+        {"text": "orangecheck-mcp on my laptop", "max": 64, "problem": null},
+        {"text": "\u043e\u0441\u04bb\u043a", "max": 120, "problem": null},
+        {"text": "", "max": 80, "problem": "required"},
+        {"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 32, "problem": "too_long"},
+        {"text": "Earn\u200bsats", "max": 80, "problem": "hidden_characters"},
+        {"text": "orange\u00adcheck", "max": 80, "problem": "hidden_characters"}
     ]
 }

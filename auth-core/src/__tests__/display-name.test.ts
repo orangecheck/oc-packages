@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { CONFUSABLE_ALPHABET, CONFUSABLE_PROTOTYPES } from "../confusables";
-import { HIDDEN_TEXT_CHARS, isReservedName, nameProblem } from "../index";
+import { freeTextProblem, HIDDEN_TEXT_CHARS, isReservedName, nameProblem } from "../index";
 
 // Shared with sdk-py's tests/test_display_name.py, so a Python site and a Node site refuse the same names.
 const vectors = JSON.parse(readFileSync(new URL("../../test-vectors/display-name.json", import.meta.url), "utf8")) as {
@@ -13,6 +13,7 @@ const vectors = JSON.parse(readFileSync(new URL("../../test-vectors/display-name
   hidden: string[];
   lengths: Array<{ name: string; max: number; problem: string | null }>;
   allow_reserved: Array<{ name: string; max: number; problem: string | null }>;
+  free_text: Array<{ text: string; max: number; problem: string | null }>;
 };
 
 describe("the family name rule", () => {
@@ -153,6 +154,27 @@ describe("the family name rule", () => {
   it("counts a name's length in code points", () => {
     for (const { name, max, problem } of vectors.lengths) {
       expect(nameProblem(name, max), `${[...name].length} code points under ${max}`).toBe(problem);
+    }
+  });
+});
+
+// A name says who someone is. Free text (a label, a note, a tagline) may mention orangecheck, but may not be its name and nothing else.
+describe("free text", () => {
+  it("is refused only when all of it is one of orangecheck's own names", () => {
+    for (const { text, max, problem } of vectors.free_text) {
+      expect(freeTextProblem(text, max), JSON.stringify(text)).toBe(problem);
+    }
+  });
+
+  it("keeps every other check of the name rule", () => {
+    for (const name of [...vectors.contains, ...vectors.confusable]) {
+      expect(freeTextProblem(name, 80), JSON.stringify(name)).toBeNull();
+    }
+    for (const name of vectors.hidden) {
+      expect(freeTextProblem(name, 80), JSON.stringify(name)).toBe("hidden_characters");
+    }
+    for (const { name, max, problem } of vectors.lengths) {
+      expect(freeTextProblem(name, max), JSON.stringify(name)).toBe(problem);
     }
   });
 });
