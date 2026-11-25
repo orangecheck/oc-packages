@@ -9,6 +9,15 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `accountAddress(account)`: the account's Bitcoin address, `primaryBtc` when
+  the answer carries one, else a display identity of kind `btc`, as the
+  address suggestion reads it. A consumer site's `/api/auth/me` answers
+  `primary_btc: null`, so a wallet account's address reaches the page only as
+  its display identity. Null for an account that shows an email, a did or a
+  Nostr key and has no primary address.
+
 ## [2.52.0] — 2026-11-24
 
 ### Added

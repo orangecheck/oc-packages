@@ -563,11 +563,12 @@ export interface UseOcAddressSuggestionReturn {
  * ```
  */
 /**
- * The address to offer: the account's primary one, else the Bitcoin address it
+ * The account's Bitcoin address: its primary one, else the Bitcoin address it
  * shows. Consumer sites verify the session locally and have no primary address
- * (`primary_btc` is null), but a wallet sign-in shows its address.
+ * (`primary_btc` is null), but a wallet sign-in shows its address. Null for an
+ * account that shows an email, a did or a Nostr key and has no primary address.
  */
-function accountAddress(account: OcAccount | null | undefined): string | null {
+export function accountAddress(account: OcAccount | null | undefined): string | null {
     if (account?.primaryBtc) return account.primaryBtc;
     return account?.displayIdentity?.kind === 'btc' ? account.displayIdentity.value : null;
 }
