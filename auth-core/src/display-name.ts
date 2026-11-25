@@ -158,3 +158,19 @@ export function nameProblem(value: string, max: number, options?: NameRuleOption
   if (!allowReserved && isReservedName(value)) return "reserved";
   return null;
 }
+
+/**
+ * Why free text (already trimmed) cannot be kept, or null when it can: a
+ * label, a note or a tagline, which may mention orangecheck where a name may
+ * not. Every check of nameProblem applies but its word check. Instead the text
+ * is refused when all of it is one of our names, whatever its case, width,
+ * spacing or variation selectors: "OCHK" and "Orange Check" are refused,
+ * "Earn sats with OrangeCheck" is not. Unlike nameProblem, it does not read
+ * look-alike letters from other scripts.
+ */
+export function freeTextProblem(value: string, max: number): NameProblem | null {
+  const problem = nameProblem(value, max, { allowReserved: true });
+  if (problem) return problem;
+  const bare = [...value.normalize("NFKC").toLowerCase()].filter((ch) => !SPACING.test(ch)).join("");
+  return RESERVED_NAMES.has(bare) ? "reserved" : null;
+}

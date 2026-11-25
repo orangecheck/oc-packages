@@ -15,8 +15,9 @@ import { describe, expect, it } from "vitest";
 const ENTRIES = [
   {
     name: "display-name",
-    probe: 'const names = ["och\\ufe0fk", "Lumen\\u00adNotes", "Lumen Notes", "0chk"]; return names.map((n) => m.nameProblem(n, 80));',
-    answer: ["reserved", "hidden_characters", null, "reserved"],
+    probe:
+      'const names = ["och\\ufe0fk", "Lumen\\u00adNotes", "Lumen Notes", "0chk"]; return names.map((n) => m.nameProblem(n, 80)).concat(m.freeTextProblem("Orange Check", 80), m.freeTextProblem("Earn sats with OrangeCheck", 80));',
+    answer: ["reserved", "hidden_characters", null, "reserved", "reserved", null],
   },
   {
     name: "family-origins",

@@ -9,6 +9,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- **`freeTextProblem(value, max)`**, from the root and `./display-name`: the
+  rule for free text, such as a label, a note or a tagline, which may mention
+  orangecheck where a name may not. Every check of `nameProblem` applies but
+  its word check. The text is refused (`"reserved"`) only when all of it is one
+  of orangecheck's own names, whatever its case, width, spacing or variation
+  selectors: "Orange Check" is refused, "Earn sats with OrangeCheck" is not.
+  It does not read look-alike letters from other scripts. me.ochk.io and
+  ochk.io each kept a copy of this rule; the vectors are
+  `test-vectors/display-name.json` `free_text`, which sdk-py does not read yet.
+
 ## [2.35.0] — 2026-11-24
 
 ### Added
