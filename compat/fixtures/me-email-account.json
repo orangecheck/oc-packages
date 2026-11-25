@@ -1,0 +1,105 @@
+{
+    "recorded_from": {
+        "repo": "oc-me-web",
+        "base": "feb4088ff30c7d7cb6d3a4ab57d119e5e01fc3b2",
+        "test": "src/__tests__/api/own-keys-contract.test.ts",
+        "ochk_io": {
+            "repo": "oc-www",
+            "base": "f1db57195e3f095710974c82fd2153d012ccdf4f",
+            "test": "src/lib/auth/own-keys-contract.test.ts"
+        }
+    },
+    "project_key": "pk_live_6qP0LIPeU0iw40oJ",
+    "identity_key": {
+        "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+        "nostr": "c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574",
+        "key_holder": "orangecheck"
+    },
+    "sent": {
+        "me": {
+            "ok": true,
+            "account": {
+                "id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+                "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+                "display_name": null,
+                "nostr_npub": null,
+                "display_identity": {
+                    "kind": "email",
+                    "value": "person@example.com"
+                },
+                "home_federation_slug": null,
+                "signing_method": "fedimint_threshold",
+                "is_owner": false
+            }
+        },
+        "scopes_session": {
+            "ok": true,
+            "sub": "sub_GvfkhX-D6tg0MqTDhVdBZIWSqR_C",
+            "scopes_granted": [
+                "bitcoin_address",
+                "email"
+            ],
+            "scopes": {
+                "email": "person@example.com"
+            }
+        },
+        "scopes_backend": {
+            "ok": true,
+            "sub": "sub_GvfkhX-D6tg0MqTDhVdBZIWSqR_C",
+            "scopes_granted": [
+                "bitcoin_address",
+                "email"
+            ],
+            "scopes": {
+                "email": "person@example.com"
+            }
+        },
+        "webhook": {
+            "body": "{\"id\":\"oc-me-9lZNDKKd1xsPTLoC\",\"occurred_at\":\"2026-11-25T03:26:21.572Z\",\"class\":\"A\",\"subtype\":\"account_creation\",\"site\":{\"domain\":\"own-keys.example\",\"display_name\":\"Own keys\"},\"gross_fee_sats\":1000,\"platform_fee_sats\":200,\"user_earned_sats\":800,\"site_rebate_sats\":0,\"context\":{\"kind\":\"A\",\"subtype\":\"account_creation\"},\"verify_url\":\"https://me.ochk.io/verify/oc-me-9lZNDKKd1xsPTLoC\",\"kind\":\"oc-billable-event\",\"sub\":\"sub_GvfkhX-D6tg0MqTDhVdBZIWSqR_C\",\"scopes\":{\"email\":\"person@example.com\"},\"project_key\":\"pk_live_6qP0LIPeU0iw40oJ\",\"issued_at\":\"2026-11-25T03:26:21.573Z\"}",
+            "kid": "oc-dev-1"
+        },
+        "popup": {
+            "family": {
+                "id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+                "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+                "display_name": null,
+                "nostr_npub": null
+            },
+            "other": {
+                "id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+                "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+                "display_name": null,
+                "nostr_npub": null
+            }
+        },
+        "attestation": {
+            "ok": true,
+            "attestation": {
+                "id": "fa50b48ef320bbb558e1681eec47bef42240ba650d35f16b508de5cdec2f7046",
+                "v": 1,
+                "kind": "oc-me-activity",
+                "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+                "event_count": 0,
+                "human_event_count": 0,
+                "lifetime_sats": 0,
+                "distinct_integrator_count": 0,
+                "oldest_event_at": null,
+                "active_days": 0,
+                "computed_at": "2026-11-25T03:26:21.576Z",
+                "expires_at": "2026-11-26T03:26:21.576Z"
+            },
+            "kid": "oc-me-envelope-dev",
+            "canonical_b64": "eyJ2IjoxLCJraW5kIjoib2MtbWUtYWN0aXZpdHkiLCJkaWRfb2MiOiJkaWQ6b2M6MjIyZTAwMzhjMjEyMTg1NjEyM2UyMzhiNTNiYjJhYjEiLCJldmVudF9jb3VudCI6MCwiaHVtYW5fZXZlbnRfY291bnQiOjAsImxpZmV0aW1lX3NhdHMiOjAsImRpc3RpbmN0X2ludGVncmF0b3JfY291bnQiOjAsIm9sZGVzdF9ldmVudF9hdCI6bnVsbCwiYWN0aXZlX2RheXMiOjAsImNvbXB1dGVkX2F0IjoiMjAyNi0xMS0yNVQwMzoyNjoyMS41NzZaIiwiZXhwaXJlc19hdCI6IjIwMjYtMTEtMjZUMDM6MjY6MjEuNTc2WiJ9",
+            "verify_recipe": {
+                "jwks_url": "https://me.ochk.io/.well-known/oc-envelope-jwks.json",
+                "steps": [
+                    "base64-decode canonical_b64 → canonical_bytes",
+                    "sha256(canonical_bytes).hex === attestation.id",
+                    "fetch jwks_url, pick jwk where kid === kid",
+                    "ed25519.verify(hex-decode(sig), canonical_bytes, jwk.x)",
+                    "now < attestation.expires_at"
+                ]
+            }
+        }
+    }
+}

@@ -7,10 +7,11 @@ import { join } from 'node:path';
 
 const { FORBIDDEN } = await import('./src/account.ts');
 const { RECORD_FORBIDDEN } = await import('./src/records.ts');
+const { ME_FORBIDDEN } = await import('./src/me.ts');
 
 const runs = [
     ['control', {}],
-    ...[...Object.keys(FORBIDDEN), ...Object.keys(RECORD_FORBIDDEN)].map((p) => [p, { COMPAT_PLACEMENT: p }]),
+    ...[...Object.keys(FORBIDDEN), ...Object.keys(RECORD_FORBIDDEN), ...Object.keys(ME_FORBIDDEN)].map((p) => [p, { COMPAT_PLACEMENT: p }]),
     ['hollow (every import undefined)', { COMPAT_HOLLOW: '1' }],
 ];
 

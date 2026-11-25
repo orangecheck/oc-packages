@@ -1,7 +1,7 @@
 {
   "recorded_from": {
     "repo": "oc-www",
-    "base": "5eea4cf84a61a5c0ba1513be06092a5137a782b9",
+    "base": "f1db57195e3f095710974c82fd2153d012ccdf4f",
     "test": "src/lib/auth/own-keys-contract.test.ts"
   },
   "token_header": {
@@ -10,9 +10,9 @@
     "kid": "test-kid"
   },
   "token_claims": {
-    "sub": "1a746227-618e-4a94-a453-493377f7bfcb",
-    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
-    "jti": "84d2f59984174cf81f09e800ada02b05",
+    "sub": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+    "jti": "83e9761055b0808aa1da2fb6cec3993a",
     "signing_method": "fedimint_threshold",
     "display_identity": {
       "kind": "email",
@@ -21,10 +21,10 @@
     "amr": [
       "email"
     ],
-    "auth_time": 1795572831,
+    "auth_time": 1795575495,
     "iss": "https://ochk.io",
-    "iat": 1795572831,
-    "exp": 1798164831
+    "iat": 1795575495,
+    "exp": 1798167495
   },
   "audience_token_header": {
     "alg": "EdDSA",
@@ -32,30 +32,30 @@
     "kid": "test-kid"
   },
   "audience_token_claims": {
-    "sub": "1a746227-618e-4a94-a453-493377f7bfcb",
-    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
-    "rh": "6tsyA3oQ2MVWC5UakNGnvA",
+    "sub": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+    "rh": "5kFw3oRx0o_BEJjitnHGSw",
     "amr": [
       "email"
     ],
-    "auth_time": 1795572831,
-    "jti": "dd52efcedc5cce1e6f13c1232e728841",
+    "auth_time": 1795575495,
+    "jti": "6933e6731173967f7498ccb544a2f599",
     "iss": "https://ochk.io",
     "aud": "https://shop.example",
-    "iat": 1795572832,
-    "exp": 1798164831
+    "iat": 1795575496,
+    "exp": 1798167495
   },
   "me": {
     "ok": true,
     "account": {
-      "id": "1a746227-618e-4a94-a453-493377f7bfcb",
-      "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
+      "id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+      "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
       "display_name": null,
       "nostr_npub": null,
       "home_federation_slug": null,
       "signing_method": "fedimint_threshold",
-      "created_at": "2026-11-25T02:13:51.455+00:00",
-      "last_signed_in_at": "2026-11-25T02:13:51.424+00:00",
+      "created_at": "2026-11-25T02:58:15.264+00:00",
+      "last_signed_in_at": "2026-11-25T02:58:15.223+00:00",
       "primary_btc": null,
       "has_email": true,
       "display_identity": {
@@ -69,16 +69,16 @@
   },
   "identities": {
     "ok": true,
-    "account_id": "1a746227-618e-4a94-a453-493377f7bfcb",
-    "did_oc": "did:oc:f9ccc19f4607e48d2d3e93b9494cb46e",
-    "created_at": "2026-11-25T02:13:51.455+00:00",
-    "last_signed_in_at": "2026-11-25T02:13:51.424+00:00",
+    "account_id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+    "created_at": "2026-11-25T02:58:15.264+00:00",
+    "last_signed_in_at": "2026-11-25T02:58:15.223+00:00",
     "linked": [
       {
-        "id": "51e7a681-11c6-4f93-9370-91db649b0c48",
+        "id": "f7ac4ac6-3c30-407b-b1a7-d1489902c0d7",
         "kind": "email",
         "value": "person@example.com",
-        "verified_at": "2026-11-25T02:13:51.46+00:00",
+        "verified_at": "2026-11-25T02:58:15.281+00:00",
         "verification_method": "email-otp",
         "is_primary": true,
         "providers": []
@@ -86,17 +86,32 @@
     ],
     "merged_from": []
   },
+  "scope_grant_identities": {
+    "ok": true,
+    "plaintext": true,
+    "account_id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+    "linked": [
+      {
+        "id": "f7ac4ac6-3c30-407b-b1a7-d1489902c0d7",
+        "kind": "email",
+        "value": "person@example.com",
+        "verified_at": "2026-11-25T02:58:15.281+00:00",
+        "verification_method": "email-otp",
+        "is_primary": true
+      }
+    ]
+  },
   "chat_vouch": {
     "request": {
-      "device_pk": "2eb7139939c57ceae952d2662d624aa6ec5a085ca9f73e34d0f892325f548fd5",
-      "nostr_pk": "0ce9d47aa559486fb7ec877e5b81cc7b3aea912cdf239f5629a740b0d5166d50",
-      "device_id": "8fe08361fef654936cd5b734f836d5e5"
+      "device_pk": "8d865c6bec4e8a1644d681b496b1cef5183c528d71f41ceb1e3db9703fa9c7a2",
+      "nostr_pk": "97f2ab0edcb9ba031326fd85e1cb4d639d3f51bca9734f578b4d6671709f964c",
+      "device_id": "95a715a9c1b2cddf1307720b04392974"
     },
     "header": {
       "alg": "EdDSA",
       "typ": "oc-chat-device-vouch",
       "kid": "test-kid"
     },
-    "statement": "oc-chat:device-vouch:v1\ndid_oc: did:oc:f9ccc19f4607e48d2d3e93b9494cb46e\ndevice_pk: 2eb7139939c57ceae952d2662d624aa6ec5a085ca9f73e34d0f892325f548fd5\nnostr_pk: 0ce9d47aa559486fb7ec877e5b81cc7b3aea912cdf239f5629a740b0d5166d50\ndevice_id: 8fe08361fef654936cd5b734f836d5e5\nissued_at: 1795572832\n"
+    "statement": "oc-chat:device-vouch:v1\ndid_oc: did:oc:222e0038c2121856123e238b53bb2ab1\ndevice_pk: 8d865c6bec4e8a1644d681b496b1cef5183c528d71f41ceb1e3db9703fa9c7a2\nnostr_pk: 97f2ab0edcb9ba031326fd85e1cb4d639d3f51bca9734f578b4d6671709f964c\ndevice_id: 95a715a9c1b2cddf1307720b04392974\nissued_at: 1795575496\n"
   }
 }

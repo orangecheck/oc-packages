@@ -1,5 +1,6 @@
 import recording from '../fixtures/email-account.json' with { type: 'json' };
 
+import { ME_FORBIDDEN } from './me.ts';
 import { RECORD_FORBIDDEN } from './records.ts';
 
 /**
@@ -90,9 +91,9 @@ export const FORBIDDEN: Record<string, (a: Account) => void> = {
 };
 
 export const placement = process.env.COMPAT_PLACEMENT?.trim() || 'identity_key';
-if (placement !== 'identity_key' && !(placement in FORBIDDEN) && !(placement in RECORD_FORBIDDEN)) {
-    const known = [...Object.keys(FORBIDDEN), ...Object.keys(RECORD_FORBIDDEN)];
-    throw new Error(`COMPAT_PLACEMENT=${placement}: not identity_key or one of ${known}`);
+const PLACEMENTS = [...Object.keys(FORBIDDEN), ...Object.keys(RECORD_FORBIDDEN), ...Object.keys(ME_FORBIDDEN)];
+if (placement !== 'identity_key' && !PLACEMENTS.includes(placement)) {
+    throw new Error(`COMPAT_PLACEMENT=${placement}: not identity_key or one of ${PLACEMENTS}`);
 }
 
 function base(): Account {

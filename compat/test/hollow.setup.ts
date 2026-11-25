@@ -10,4 +10,6 @@ vi.mock('@orangecheck/site-kit/auth');
 vi.mock('site-kit-0.17.0/auth');
 vi.mock('@orangecheck/vault-core');
 vi.mock('@orangecheck/lock-device');
+vi.mock('@orangecheck/me-client');
+vi.mock('@orangecheck/me-client/popup');
 vi.mock('@orangecheck/sdk');
