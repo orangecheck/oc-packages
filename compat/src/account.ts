@@ -1,5 +1,7 @@
 import recording from '../fixtures/email-account.json' with { type: 'json' };
 
+import { RECORD_FORBIDDEN } from './records.ts';
+
 /**
  * The recorded email account (fixtures/email-account.json, from oc-www's own-keys contract
  * test), and the same account carrying an identity key that orangecheck holds.
@@ -88,8 +90,9 @@ export const FORBIDDEN: Record<string, (a: Account) => void> = {
 };
 
 export const placement = process.env.COMPAT_PLACEMENT?.trim() || 'identity_key';
-if (placement !== 'identity_key' && !(placement in FORBIDDEN)) {
-    throw new Error(`COMPAT_PLACEMENT=${placement}: not identity_key or one of ${Object.keys(FORBIDDEN)}`);
+if (placement !== 'identity_key' && !(placement in FORBIDDEN) && !(placement in RECORD_FORBIDDEN)) {
+    const known = [...Object.keys(FORBIDDEN), ...Object.keys(RECORD_FORBIDDEN)];
+    throw new Error(`COMPAT_PLACEMENT=${placement}: not identity_key or one of ${known}`);
 }
 
 function base(): Account {
@@ -108,7 +111,7 @@ export const plain: Account = base();
 /** The account with its identity key, placed as COMPAT_PLACEMENT says (the plan's, by default). */
 export const keyed: Account = (() => {
     const a = withIdentityKey(base());
-    if (placement !== 'identity_key') FORBIDDEN[placement]!(a);
+    FORBIDDEN[placement]?.(a);
     return a;
 })();
 

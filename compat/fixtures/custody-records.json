@@ -1,0 +1,146 @@
+{
+  "recorded_from": {
+    "repo": "oc-packages",
+    "commit": "f859bb8d1ff5f577f92dad5f58b7c0ed40e00417",
+    "file": "keys/test-vectors/keys-v1.json",
+    "vectors": [
+      "kn01",
+      "kr01",
+      "kr03",
+      "kr04"
+    ]
+  },
+  "records": [
+    {
+      "name": "binding",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx:4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        ],
+        [
+          "t",
+          "oc-attest-key"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+        "issuer_sig": "AkgwRQIhAKVn0flQ25cQlc5QCIm2hPEZgBLADJ8uUTH9ZEmFeXG3AiAKUXS7RQTGK3j4/+E8D9xVPMmrOHBHKqG7vnxrY4sh3gEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+        "address_sig": "AkcwRAIgHjBvGwoBJ2Y6yC1nBrg9ytPaZKpuawbmZX5PHoy74/0CIB5aC8eXv1r6tFZpHXOGNtZKbytrO8ZG1wx2FruSqbDaASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+        "nostr_sig": "5c75f2699282898961416141fb9e25dfd59db7c6b802ec336d51010a97b6190708e055ad3375e82b9d816b19a258fc3b5b2b1a306807b6d1e5a8fe7065597c26"
+      }
+    },
+    {
+      "name": "takeover",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx:30da9354c5eb7b764210df196b60f4b0332462a5767261b028d8d5620fe69c0b"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        ],
+        [
+          "t",
+          "oc-attest-key"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+        "issuer_sig": "AkcwRAIgbfZ7KeK71IgB9iPenMOi8vg2uNJOWwdODkANlNHI4T8CIB9OwXKqI3lb+PtjH2/1qnnErBIBBdSjGQz2zmLQxZamASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+        "address_sig": "AkcwRAIgAxufPERqLI1B2hOlfHU4Z3jjwTJM6sEcb6kLuT46gHICIA3jnsIVMa7YI6WtGpX6N2xoYzUjNyscs8A2aYt9ip3mASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+        "nostr_sig": "f86e3dc58b6a0cd36ad6142b953346cb0ba2b586988c514254ff70d5280a3e427e3711cffe69c44e942639e040896709d7180e2702ec29e74ae628d2bb419521"
+      }
+    },
+    {
+      "name": "retire",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt:5ebe4dbc74e33a223ef00e50a612059789f7f21824bdc6563433d3801c91835d"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt"
+        ],
+        [
+          "t",
+          "oc-attest-key"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:retire:v1\ndid_oc: did:oc:00112233445566778899aabbccddeeff\naddress: bc1quluy8gpgrznz5rx5e0txjmy5wgunnurklk2vkt\nbinding: c12f03ccc895c30b4988fbb98c28af7835adae3ab3f47977bf6a3d6d70af2fcd\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\nreason: own_wallet\n",
+        "issuer_sig": "AkgwRQIhAPhonk+3grdwNtvCJV5eNtgR17G/q2QTs4C/blHkl4J7AiBGAQ1JUD4y8KFu6u2+vQ2tXZUxRRn/A9qlAbmlGI458gEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+      }
+    },
+    {
+      "name": "issuer record",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:issuer:ec5a8ab056cd28dc0a563a5d1c49ae674b9524206d183af27c3fb30a7d9aa004"
+        ],
+        [
+          "t",
+          "oc-attest-key-issuer"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n"
+      }
+    },
+    {
+      "name": "wallet link",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n:141703546a15808b848f9ea18dc3762f333212d69721e189d8f7f9e65c43a8e2"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        ],
+        [
+          "t",
+          "oc-attest-key"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:wallet-link:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nwallet: bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n\nbinding: 4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\nack: The coins at this wallet count for this identity until either key ends the link.\n"
+      }
+    },
+    {
+      "name": "wallet unlink",
+      "tags": [
+        [
+          "d",
+          "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n:c02fa231a5772e66527a0ef93979739862e1beec70331dcf9081c2e2d5ebf302"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n"
+        ],
+        [
+          "t",
+          "oc-attest-key:bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx"
+        ],
+        [
+          "t",
+          "oc-attest-key"
+        ]
+      ],
+      "envelope": {
+        "record": "oc-attest-key:wallet-unlink:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nwallet: bc1qufd89344kv8ke2c847uyh33f96tl67phg06a0n\nlink: 141703546a15808b848f9ea18dc3762f333212d69721e189d8f7f9e65c43a8e2\nsince_height: 977200\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n"
+      }
+    }
+  ]
+}

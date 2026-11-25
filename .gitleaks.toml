@@ -31,3 +31,10 @@ regexes = ['''^\s*'credential_key: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b9
 [[allowlists]]
 description = "keys' vectors: identity, wallet and issuer secrets derived from published labels, burn keys that open only the test copies beside them"
 paths = ['''^keys/test-vectors/keys-v1\.json$''']
+
+[[allowlists]]
+description = "compat's custody-record fixture: a published t tag names a Bitcoin address after oc-attest-key:, which is public, not a key"
+condition = "AND"
+paths = ['''^compat/fixtures/custody-records\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"oc-attest-key:bc1[02-9ac-hj-np-z]{11,71}"$''']

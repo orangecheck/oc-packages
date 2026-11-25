@@ -23,6 +23,12 @@ recorded claims and statement at test time with a key made for the run.
 `/api/auth/me` is site-kit's `createMeHandler` over the session token, so site-kit is read
 that way, with vault-core's `fetchIdentity` over its answer.
 
+`fixtures/custody-records.json` holds the public custody records ochk.io will publish (kind 30078),
+copied from the keys package's vectors at the commit it names: each record's envelope and its
+published tags. `test/custody-records.test.ts` signs them as Nostr events at test time and serves
+them, beside a device binding and an attestation, from an in-memory relay: lock-device and the
+attest SDK must skip every record, never throw on one, and read their own events as before.
+
 ## Run it
 
 ```sh
@@ -33,9 +39,10 @@ COMPAT_PYTHON=.venv/bin/python yarn mutants
 ```
 
 `yarn mutants` runs the suite once as is, then once for each place §2 forbids the address
-(`FORBIDDEN` in `src/account.ts`, chosen with `COMPAT_PLACEMENT`), then once with every reader
-replaced by one that returns nothing (`COMPAT_HOLLOW=1`). The first run must pass and every
-other run must fail.
+(`FORBIDDEN` in `src/account.ts`) and each tag that would put a record where a published reader
+asks for its own events (`RECORD_FORBIDDEN` in `src/records.ts`), chosen with
+`COMPAT_PLACEMENT`, then once with every reader replaced by one that returns nothing
+(`COMPAT_HOLLOW=1`). The first run must pass and every other run must fail.
 
 To record the fixture again, from a clean oc-www checkout:
 
