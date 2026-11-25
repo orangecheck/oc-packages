@@ -1,5 +1,6 @@
-// @orangecheck/keys: an account's two secrets, the lock, and the key-holder
-// records with the wallet link. The reference implementation of README.md; unreleased.
+// @orangecheck/keys: an account's two secrets, the lock, the key-holder
+// records with the wallet link, and one call per step of a key's life.
+// The reference implementation of README.md; unreleased.
 export { fromB64url, fromHex, randomSecret, toB64url, toHex } from './bytes';
 export {
     IDENTITY_PATH,
@@ -16,6 +17,8 @@ export {
     walletKey,
 } from './derive';
 export type { Identity, IdentityKeys, Wallet, WalletNetwork } from './derive';
+export { countersignTakeover, issueCustodialBinding, issueRetire, readBack, signTakeover } from './issue';
+export type { Issued, NostrTemplate, ReadBackFailure, TakeoverRefusal, TakeoverRequest } from './issue';
 export {
     PRF_SALT,
     lockAad,
