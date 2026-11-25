@@ -594,6 +594,11 @@ export function buildVectors(): unknown {
                         },
                         expected: { ok: false, reason: 'phrase_invalid' },
                     },
+                    {
+                        name: 'a valid 12-word phrase',
+                        input: { copy: phraseA, phrase: `${'abandon '.repeat(11)}about` },
+                        expected: { ok: false, reason: 'phrase_invalid' },
+                    },
                 ],
             },
             {

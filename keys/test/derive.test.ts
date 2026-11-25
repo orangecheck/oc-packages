@@ -3,6 +3,8 @@ import { secp256k1 } from '@noble/curves/secp256k1';
 import { hmac } from '@noble/hashes/hmac';
 import { sha256, sha512 } from '@noble/hashes/sha2';
 import { createBase58check } from '@scure/base';
+import { validateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
 import { describe, expect, it } from 'vitest';
 
 import { concat, fromHex, toHex, utf8 } from '../src/bytes';
@@ -41,6 +43,10 @@ describe('a secret is 24 BIP-39 words', () => {
         const words = BIP39[0][1];
         expect(mnemonicToSecret(words.replace(/art$/, 'abandon'))).toBeNull(); // checksum
         expect(mnemonicToSecret(words.split(' ').slice(0, 12).join(' '))).toBeNull(); // 12 words
+        // A valid 12-word phrase: it passes BIP-39 and reaches the length check.
+        const twelve = `${'abandon '.repeat(11)}about`;
+        expect(validateMnemonic(twelve, wordlist)).toBe(true);
+        expect(mnemonicToSecret(twelve)).toBeNull();
         expect(mnemonicToSecret(` ${words}`)).toBeNull();
         expect(mnemonicToSecret(words.toUpperCase())).toBeNull();
         expect(() => secretToMnemonic(new Uint8Array(16))).toThrow(TypeError);

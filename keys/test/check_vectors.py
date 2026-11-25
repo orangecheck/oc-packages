@@ -57,6 +57,16 @@ def bip39_phrase(entropy, words):
     return " ".join(words[(n >> (11 * (count - 1 - i))) & 0x7FF] for i in range(count))
 
 
+def bip39_entropy(phrase, words, count=24):
+    """The entropy a phrase of `count` words encodes, or None: a bad word, count or checksum."""
+    ws = phrase.split(" ")
+    if len(ws) != count or any(w not in words for w in ws):
+        return None
+    cs = count * 11 // 33
+    e = (sum(words.index(w) << (11 * (count - 1 - i)) for i, w in enumerate(ws)) >> cs).to_bytes(count * 4 // 3, "big")
+    return e if bip39_phrase(e, words) == phrase else None
+
+
 def bip39_seed(mnemonic):
     m = unicodedata.normalize("NFKD", mnemonic).encode()
     return hashlib.pbkdf2_hmac("sha512", m, b"mnemonic", 2048)
@@ -289,6 +299,12 @@ def main(path):
                     wb = bytes.fromhex(by_id["kd02"]["input"]["wallet_secret"])
                     assert c["input"]["phrase"] == by_id["kd02"]["expected"]["wallet"]["mnemonic"]
                     assert open_copy(c["input"]["copy"], hkdf(wb, b"oc-keys/v1 phrase kek")) is None
+                elif c["expected"]["reason"] == "phrase_invalid":
+                    # Not the BIP-39 encoding of 32 bytes; a valid 12-word phrase is refused for its length.
+                    phrase = c["input"]["phrase"]
+                    assert bip39_entropy(phrase, words) is None, (v["id"], c.get("name"))
+                    if len(phrase.split(" ")) == 12:
+                        assert bip39_entropy(phrase, words, 12) is not None, (v["id"], "a valid 12-word phrase")
                 elif c["expected"]["reason"] == "bundle_address_mismatch":
                     wa = bytes.fromhex(by_id["kd01"]["input"]["wallet_secret"])
                     assert c["input"]["phrase"] == by_id["kd01"]["expected"]["wallet"]["mnemonic"]
