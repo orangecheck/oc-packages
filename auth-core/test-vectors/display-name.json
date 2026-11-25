@@ -138,6 +138,8 @@
         {"text": "orangecheck-mcp on my laptop", "max": 64, "problem": null},
         {"text": "\u043e\u0441\u04bb\u043a", "max": 120, "problem": null},
         {"text": "", "max": 80, "problem": "required"},
+        {"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 80, "problem": "too_long"},
+        {"text": "Earn sats", "max": 80, "problem": null},
         {"text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "max": 32, "problem": "too_long"},
         {"text": "Earn\u200bsats", "max": 80, "problem": "hidden_characters"},
         {"text": "orange\u00adcheck", "max": 80, "problem": "hidden_characters"}
