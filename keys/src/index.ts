@@ -47,6 +47,7 @@ export {
     judgeWalletLink,
     namedIssuer,
     parseRecord,
+    possessionSign,
     publicationTags,
     recordId,
     recordText,
@@ -66,6 +67,7 @@ export {
 export type {
     AddressKey,
     AddressRecord,
+    AddressSigners,
     Anchored,
     BindingFields,
     BoundState,

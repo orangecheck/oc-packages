@@ -5,6 +5,7 @@
 // AES-GCM under fixed nonces are deterministic, so a rebuild is byte-identical.
 import { addressFromPrivateKey, signMessage } from '@orangecheck/bip322';
 import { gcm } from '@noble/ciphers/aes';
+import { schnorr } from '@noble/curves/secp256k1';
 import { sha256 } from '@noble/hashes/sha2';
 
 import { concat, toB64url, toHex, utf8 } from '../src/bytes';
@@ -23,6 +24,7 @@ import {
     CUSTODIAL_TRUST,
     identitySign,
     issuerRecord,
+    possessionSign,
     publicationTags,
     recordId,
     retireRecord,
@@ -78,6 +80,7 @@ const I_E = label('identity E');
 const KEYS_A = identityKeys(I_A);
 const KEYS_B = identityKeys(I_B);
 const KEYS_C = identityKeys(I_C);
+const KEYS_D = identityKeys(I_D);
 // The first receive address of each wallet secret, which a wallet link names.
 const WALLET_A = walletKey(W_A);
 const WALLET_B = walletKey(W_B);
@@ -88,9 +91,13 @@ const CRED_1 = label('credential 1').slice(0, 16);
 const CRED_2 = label('credential 2').slice(0, 16);
 const nonce = (s: string) => label(`nonce ${s}`).slice(0, 12);
 
+/** The issuer's signature, and the identity's two where given: possessionSign at mint, identitySign in the browser. */
 function signed(record: string, issuerKey = ISSUER_KEY, identity?: typeof KEYS_A): SignedRecord {
     const env: SignedRecord = { record, issuer_sig: issuerSignAs(record, issuerKey) };
-    if (identity) Object.assign(env, identitySign(record, identity, AUX));
+    if (identity) {
+        const custodial = record.includes('\nkey_holder: orangecheck\n');
+        Object.assign(env, (custodial ? possessionSign : identitySign)(record, identity, AUX));
+    }
     return env;
 }
 
@@ -133,12 +140,13 @@ export function buildVectors(): unknown {
     // D was bound by the issuer before the current one, before that issuer handed over.
     const bindingD = bind(idD, DID_D, 'orangecheck', at(977000), OLD_ISSUER);
 
-    const envBindingA = signed(bindingA);
+    // Every binding carries its key's proof of possession; a retire, the issuer's signature alone.
+    const envBindingA = signed(bindingA, ISSUER_KEY, KEYS_A);
     const envTakeoverA = signed(takeoverA, ISSUER_KEY, KEYS_A);
     const envBindingB = signed(bindingB, ISSUER_KEY, KEYS_B);
-    const envBindingC = signed(bindingC);
+    const envBindingC = signed(bindingC, ISSUER_KEY, KEYS_C);
     const envRetireC = signed(retireC);
-    const envBindingD = signed(bindingD, OLD_ISSUER_KEY);
+    const envBindingD = signed(bindingD, OLD_ISSUER_KEY, KEYS_D);
 
     // The issuer record: the old issuer hands over to the current one.
     const rotation = issuerRecord({ old: OLD_ISSUER, new: ISSUER, since: at(977000) });
@@ -153,16 +161,86 @@ export function buildVectors(): unknown {
         ...envTakeoverA,
         address_sig: signMessage(idB.address, takeoverA, KEYS_B.addressKey),
     };
-    const custodialSigned: SignedRecord = {
-        ...envBindingA,
-        address_sig: signMessage(idA.address, bindingA, KEYS_A.addressKey),
+    // A's binding without its proof of possession, or with a signature by another key.
+    const { address_sig: _noAddress, ...bindingNoAddressSig } = envBindingA;
+    const { nostr_sig: _noNostr, ...bindingNoNostrSig } = envBindingA;
+    const bindingOtherAddressSig: SignedRecord = { ...envBindingA, address_sig: signMessage(idB.address, bindingA, KEYS_B.addressKey) };
+    const bindingOtherNostrSig: SignedRecord = { ...envBindingA, nostr_sig: envBindingB.nostr_sig! };
+    // A's mint-time signatures, presented beside records other than the binding they sign.
+    const mint = { address_sig: envBindingA.address_sig!, nostr_sig: envBindingA.nostr_sig! };
+    const bindA2 = bind(idA, DID_B, 'orangecheck', at(977000));
+    // Signatures by a key over a record its signers refuse to sign: what a custodial key must never make.
+    const identitySignAny = (record: string, keys: typeof KEYS_A) => ({
+        address_sig: signMessage(keys.address, record, keys.addressKey),
+        nostr_sig: toHex(schnorr.sign(sha256(utf8(record)), keys.nostrKey, AUX)),
+    });
+    // The issuer alone, binding addresses whose keys it does not hold: B's wallet, and E's.
+    const walletBBinding = bindingRecord({
+        didOc: DID_C,
+        address: WALLET_B.address,
+        nostr: idE.nostr,
+        keyHolder: 'orangecheck',
+        issuer: ISSUER,
+        since: at(977100),
+    });
+    const envWalletBBinding = signed(walletBBinding);
+    const envWalletBBindingIssuerKey: SignedRecord = {
+        ...envWalletBBinding,
+        address_sig: issuerSignAs(walletBBinding, ISSUER_KEY),
+        nostr_sig: identitySignAny(walletBBinding, KEYS_C).nostr_sig,
     };
+    // Records the issuer alone can make, aimed at addresses it does not hold.
+    const retireOfNothing = retireRecord({
+        didOc: DID_C,
+        address: idE.address,
+        binding: recordId(walletBBinding),
+        issuer: ISSUER,
+        since: at(977100),
+        reason: 'deleted',
+    });
+    const retireOfUserB = retireRecord({
+        didOc: DID_B,
+        address: idB.address,
+        binding: recordId(bindingB),
+        issuer: ISSUER,
+        since: at(977100),
+        reason: 'deleted',
+    });
+    const retireOtherDidA = retireRecord({
+        didOc: DID_B,
+        address: idA.address,
+        binding: recordId(bindingA),
+        issuer: ISSUER,
+        since: at(977200),
+        reason: 'merged',
+    });
+    const retireOtherBindingA = retireRecord({
+        didOc: DID_A,
+        address: idA.address,
+        binding: recordId(bindA2),
+        issuer: ISSUER,
+        since: at(977200),
+        reason: 'withdrawn',
+    });
+    const retireOffChainUserB = retireRecord({
+        didOc: DID_B,
+        address: idB.address,
+        binding: recordId(bindingB),
+        issuer: ISSUER,
+        since: { height: 977100, block: HEADERS['977200']! },
+        reason: 'deleted',
+    });
+    const retireOffChainA = retireRecord({
+        didOc: DID_A,
+        address: idA.address,
+        binding: recordId(bindingA),
+        issuer: ISSUER,
+        since: { height: 977100, block: HEADERS['977200']! },
+        reason: 'withdrawn',
+    });
     const strangerBinding = bind(idA, DID_A, 'orangecheck', at(977000), STRANGER);
     const envStrangerBinding = signed(strangerBinding, STRANGER_KEY);
-    const forgedIssuerSig: SignedRecord = {
-        record: bindingA,
-        issuer_sig: signMessage(STRANGER, bindingA, STRANGER_KEY),
-    };
+    const forgedIssuerSig: SignedRecord = { ...envBindingA, issuer_sig: signMessage(STRANGER, bindingA, STRANGER_KEY) };
     const nostrWrongKey: SignedRecord = {
         ...envTakeoverA,
         nostr_sig: identitySign(takeOver(idB, DID_B, recordId(bindingB), at(977100)), KEYS_B, AUX).nostr_sig,
@@ -542,58 +620,78 @@ export function buildVectors(): unknown {
             {
                 id: 'kr01',
                 category: 'record',
-                description: 'custodial binding: issuer-signed only, because the key orangecheck holds signs nothing',
+                description: 'custodial binding: the issuer, and the key orangecheck made, which signs only this binding, once, at mint',
                 input: { envelope: envBindingA, anchoredAt: ANCHOR.bindingA },
-                expected: { ok: true, id: recordId(bindingA), type: 'binding' },
+                expected: { ok: true, id: recordId(bindingA), type: 'binding', signed: { issuer: true, address: true } },
             },
             {
                 id: 'kr02',
                 category: 'record',
                 description: 'user binding (passkey first): issuer, identity address and Nostr key',
                 input: { envelope: envBindingB },
-                expected: { ok: true, id: recordId(bindingB), type: 'binding' },
+                expected: { ok: true, id: recordId(bindingB), type: 'binding', signed: { issuer: true, address: true } },
             },
             {
                 id: 'kr03',
                 category: 'record',
                 description: "takeover of A's custodial binding",
                 input: { envelope: envTakeoverA, anchoredAt: ANCHOR.takeoverA },
-                expected: { ok: true, id: recordId(takeoverA), type: 'takeover' },
+                expected: { ok: true, id: recordId(takeoverA), type: 'takeover', signed: { issuer: true, address: true } },
             },
             {
                 id: 'kr04',
                 category: 'record',
-                description: "retire of C's custodial binding",
+                description: "retire of C's custodial binding: the issuer's signature alone",
                 input: { envelope: envRetireC },
-                expected: { ok: true, id: recordId(retireC), type: 'retire' },
+                expected: { ok: true, id: recordId(retireC), type: 'retire', signed: { issuer: true, address: false } },
             },
             {
                 id: 'kr05',
                 category: 'record',
                 description: "signature by the wrong address: the takeover's address_sig is B's",
                 input: { envelope: takeoverWrongAddressSig },
-                expected: { ok: false, reason: 'address_sig_invalid', issuerSigned: true },
+                expected: { ok: false, reason: 'address_sig_invalid', signed: { issuer: true, address: false } },
             },
             {
                 id: 'kr06',
                 category: 'record',
-                description: 'a custodial binding carrying a signature by the key orangecheck holds',
-                input: { envelope: custodialSigned },
-                expected: { ok: false, reason: 'custodial_key_signed', issuerSigned: true },
+                description: "a custodial binding without its key's proof of possession: refused, so an issuer binds only a key it holds",
+                cases: [
+                    {
+                        name: 'no address_sig',
+                        input: { envelope: bindingNoAddressSig },
+                        expected: { ok: false, reason: 'address_sig_missing', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: 'no nostr_sig',
+                        input: { envelope: bindingNoNostrSig },
+                        expected: { ok: false, reason: 'nostr_sig_missing', signed: { issuer: true, address: true } },
+                    },
+                    {
+                        name: "address_sig by B's address",
+                        input: { envelope: bindingOtherAddressSig },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: "nostr_sig by B's Nostr key",
+                        input: { envelope: bindingOtherNostrSig },
+                        expected: { ok: false, reason: 'nostr_sig_invalid', signed: { issuer: true, address: true } },
+                    },
+                ],
             },
             {
                 id: 'kr07',
                 category: 'record',
                 description: 'issued and signed by an issuer the verifier does not trust',
                 input: { envelope: envStrangerBinding },
-                expected: { ok: false, reason: 'issuer_unknown', issuerSigned: false },
+                expected: { ok: false, reason: 'issuer_unknown', signed: { issuer: false, address: false } },
             },
             {
                 id: 'kr08',
                 category: 'record',
                 description: "names the trusted issuer, but the issuer signature is another key's",
                 input: { envelope: forgedIssuerSig },
-                expected: { ok: false, reason: 'issuer_sig_invalid', issuerSigned: false },
+                expected: { ok: false, reason: 'issuer_sig_invalid', signed: { issuer: false, address: true } },
             },
             {
                 id: 'kr09',
@@ -618,7 +716,7 @@ export function buildVectors(): unknown {
                 ].map(([name, record]) => ({
                     name,
                     input: { envelope: { record, issuer_sig: issuerSignAs(record!, ISSUER_KEY) } },
-                    expected: { ok: false, reason: 'not_canonical', issuerSigned: false },
+                    expected: { ok: false, reason: 'not_canonical', signed: { issuer: false, address: false } },
                 })),
             },
             {
@@ -628,13 +726,13 @@ export function buildVectors(): unknown {
                 cases: [
                     {
                         name: "977100's hash at height 977000",
-                        input: { envelope: signed(offChain) },
-                        expected: { ok: false, reason: 'since_not_on_chain', issuerSigned: true },
+                        input: { envelope: signed(offChain, ISSUER_KEY, KEYS_A) },
+                        expected: { ok: false, reason: 'since_not_on_chain', signed: { issuer: true, address: true } },
                     },
                     {
                         name: 'a height the verifier has no header for',
-                        input: { envelope: signed(unknownHeight) },
-                        expected: { ok: false, reason: 'since_unverified', issuerSigned: true },
+                        input: { envelope: signed(unknownHeight, ISSUER_KEY, KEYS_A) },
+                        expected: { ok: false, reason: 'since_unverified', signed: { issuer: true, address: true } },
                     },
                 ],
             },
@@ -643,14 +741,14 @@ export function buildVectors(): unknown {
                 category: 'record',
                 description: "the takeover's nostr_sig is by B's Nostr key",
                 input: { envelope: nostrWrongKey },
-                expected: { ok: false, reason: 'nostr_sig_invalid', issuerSigned: true },
+                expected: { ok: false, reason: 'nostr_sig_invalid', signed: { issuer: true, address: true } },
             },
             {
                 id: 'kr12',
                 category: 'record',
                 description: 'a user binding with no identity signature',
                 input: { envelope: userMissingAddressSig },
-                expected: { ok: false, reason: 'address_sig_missing', issuerSigned: true },
+                expected: { ok: false, reason: 'address_sig_missing', signed: { issuer: true, address: false } },
             },
             {
                 id: 'kr13',
@@ -660,27 +758,27 @@ export function buildVectors(): unknown {
                     {
                         name: 'old issuer, anchored before the hand-over was',
                         input: { envelope: envBindingD, anchoredAt: 977001 },
-                        expected: { ok: true, id: recordId(bindingD), type: 'binding' },
+                        expected: { ok: true, id: recordId(bindingD), type: 'binding', signed: { issuer: true, address: true } },
                     },
                     {
                         name: 'old issuer, anchored at the same block',
                         input: { envelope: envBindingD, anchoredAt: ROTATION_ANCHOR },
-                        expected: { ok: true, id: recordId(bindingD), type: 'binding' },
+                        expected: { ok: true, id: recordId(bindingD), type: 'binding', signed: { issuer: true, address: true } },
                     },
                     {
                         name: 'old issuer, anchored after',
                         input: { envelope: envBindingD, anchoredAt: 977010 },
-                        expected: { ok: false, reason: 'issuer_retired', issuerSigned: false },
+                        expected: { ok: false, reason: 'issuer_retired', signed: { issuer: false, address: true } },
                     },
                     {
                         name: 'old issuer, no anchor',
                         input: { envelope: envBindingD },
-                        expected: { ok: false, reason: 'issuer_retired', issuerSigned: false },
+                        expected: { ok: false, reason: 'issuer_retired', signed: { issuer: false, address: true } },
                     },
                     {
                         name: 'current issuer, a since block before its term',
-                        input: { envelope: signed(tooEarly) },
-                        expected: { ok: false, reason: 'issuer_not_yet', issuerSigned: false },
+                        input: { envelope: signed(tooEarly, ISSUER_KEY, KEYS_A) },
+                        expected: { ok: false, reason: 'issuer_not_yet', signed: { issuer: false, address: true } },
                     },
                 ],
             },
@@ -689,7 +787,44 @@ export function buildVectors(): unknown {
                 category: 'record',
                 description: 'an anchor at or below the since block cannot be',
                 input: { envelope: envBindingA, anchoredAt: 977000 },
-                expected: { ok: false, reason: 'bad_anchor', issuerSigned: true },
+                expected: { ok: false, reason: 'bad_anchor', signed: { issuer: true, address: true } },
+            },
+            {
+                id: 'kr15',
+                category: 'record',
+                description: "a custodial key's mint-time signatures, over its binding, prove nothing beside any other record",
+                cases: [
+                    {
+                        name: "A's binding signatures on A's takeover",
+                        input: { envelope: { ...envTakeoverA, ...mint } },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: "A's binding nostr_sig on A's takeover",
+                        input: { envelope: { ...envTakeoverA, nostr_sig: mint.nostr_sig } },
+                        expected: { ok: false, reason: 'nostr_sig_invalid', signed: { issuer: true, address: true } },
+                    },
+                    {
+                        name: "A's binding signatures on a binding of A's address to another did:oc",
+                        input: { envelope: { ...signed(bindA2), ...mint } },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: "A's binding signatures on a user binding of A's address",
+                        input: { envelope: { ...signed(flipA), ...mint } },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: "A's binding signatures on a retire of A's binding",
+                        input: { envelope: { ...signed(retireA), ...mint } },
+                        expected: { ok: false, reason: 'custodial_key_signed', signed: { issuer: true, address: false } },
+                    },
+                    {
+                        name: "a retire of C's binding signed by C's own key",
+                        input: { envelope: { ...envRetireC, ...identitySignAny(retireC, KEYS_C) } },
+                        expected: { ok: false, reason: 'custodial_key_signed', signed: { issuer: true, address: true } },
+                    },
+                ],
             },
 
             {
@@ -872,7 +1007,7 @@ export function buildVectors(): unknown {
             {
                 id: 'kh08',
                 category: 'key_holder',
-                description: 'a record the issuer signed but no copy of which verifies here: refused, not read as absent',
+                description: "a record the issuer and the address's key signed, no copy of which verifies here: refused, not read as absent",
                 cases: [
                     {
                         name: 'the only copy of the takeover lost its Nostr signature',
@@ -893,7 +1028,7 @@ export function buildVectors(): unknown {
                     },
                     {
                         name: "a binding whose since block the verifier's chain does not have yet",
-                        input: { address: idA.address, lookup: found([[signed(unknownHeight)]]) },
+                        input: { address: idA.address, lookup: found([[signed(unknownHeight, ISSUER_KEY, KEYS_A)]]) },
                         expected: { status: 'refused', reason: 'record_unverified' },
                     },
                 ],
@@ -994,7 +1129,7 @@ export function buildVectors(): unknown {
                 description: 'a takeover whose since block is below its binding’s',
                 input: {
                     address: idA.address,
-                    lookup: found([[signed(bindingLateA)], [signed(takeoverEarlyA, ISSUER_KEY, KEYS_A)]]),
+                    lookup: found([[signed(bindingLateA, ISSUER_KEY, KEYS_A)], [signed(takeoverEarlyA, ISSUER_KEY, KEYS_A)]]),
                 },
                 expected: { status: 'refused', reason: 'takeover_before_binding' },
             },
@@ -1038,6 +1173,117 @@ export function buildVectors(): unknown {
                     takeover_since: 977100,
                     takeover_anchored_at: ANCHOR.takeoverA,
                 },
+            },
+
+            {
+                id: 'kh16',
+                category: 'key_holder',
+                description: "the issuer alone binds nothing: a binding without the address's own signature is ignored, whoever signed it",
+                cases: [
+                    {
+                        name: "the issuer's binding of B's wallet, which it never held: plain Bitcoin",
+                        input: { address: WALLET_B.address, lookup: found([[envWalletBBinding, 977103]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: 'the same, carrying signatures by keys that are not the address\'s',
+                        input: { address: WALLET_B.address, lookup: found([[envWalletBBindingIssuerKey, 977103]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "A's binding stripped of its proof, alone: plain Bitcoin",
+                        input: { address: idA.address, lookup: found([[bindingNoAddressSig, ANCHOR.bindingA]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "an issuer-only binding of A's address to another did:oc, beside A's: ignored, not conflicting",
+                        input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA], [signed(bindA2)]]) },
+                        expected: { status: 'bound', born: 'orangecheck', holder: 'orangecheck', binding: recordId(bindingA) },
+                    },
+                    {
+                        name: "an issuer-only takeover of B's user binding: ignored",
+                        input: { address: idB.address, lookup: found([[envBindingB], [signed(takeoverOfUser)]]) },
+                        expected: { status: 'bound', born: 'user', holder: 'user', binding: recordId(bindingB) },
+                    },
+                ],
+            },
+            {
+                id: 'kh17',
+                category: 'key_holder',
+                description: 'a retire, which the issuer alone signs, counts only against the custodial binding it names, before any takeover',
+                cases: [
+                    {
+                        name: 'a retire of an address with no binding: plain Bitcoin',
+                        input: { address: idE.address, lookup: found([[signed(retireOfNothing), 977104]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "a retire of B's user binding: no effect",
+                        input: { address: idB.address, lookup: found([[envBindingB], [signed(retireOfUserB), 977104]]) },
+                        expected: { status: 'bound', born: 'user', holder: 'user', binding: recordId(bindingB) },
+                    },
+                    {
+                        name: "a retire of A's address naming another binding than A's: no effect",
+                        input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA], [signed(retireOtherBindingA), 977205]]) },
+                        expected: { status: 'bound', born: 'orangecheck', holder: 'orangecheck', binding: recordId(bindingA) },
+                    },
+                    {
+                        name: "a retire of B's user binding whose since block is not on the chain: no effect",
+                        input: { address: idB.address, lookup: found([[envBindingB], [signed(retireOffChainUserB)]]) },
+                        expected: { status: 'bound', born: 'user', holder: 'user', binding: recordId(bindingB) },
+                    },
+                    {
+                        name: "after A's takeover, a retire naming another did:oc: no effect",
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [envTakeoverA, ANCHOR.takeoverA],
+                                [signed(retireOtherDidA), 977205],
+                            ]),
+                        },
+                        expected: {
+                            status: 'bound',
+                            born: 'orangecheck',
+                            holder: 'user',
+                            binding: recordId(bindingA),
+                            takeover: recordId(takeoverA),
+                            takeover_since: 977100,
+                            takeover_anchored_at: ANCHOR.takeoverA,
+                        },
+                    },
+                    {
+                        name: "after A's takeover, two retires: no effect",
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [envTakeoverA, ANCHOR.takeoverA],
+                                [signed(retireA), 977205],
+                                [signed(retireOtherDidA), 977206],
+                            ]),
+                        },
+                        expected: {
+                            status: 'bound',
+                            born: 'orangecheck',
+                            holder: 'user',
+                            binding: recordId(bindingA),
+                            takeover: recordId(takeoverA),
+                            takeover_since: 977100,
+                            takeover_anchored_at: ANCHOR.takeoverA,
+                        },
+                    },
+                    {
+                        name: "a retire of A's custodial binding whose since block is not on the chain: refused, A's own record",
+                        input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA], [signed(retireOffChainA)]]) },
+                        expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: "a retire of A's custodial binding naming another did:oc, with no takeover: refused",
+                        input: { address: idA.address, lookup: found([[envBindingA, ANCHOR.bindingA], [signed(retireOtherDidA), 977205]]) },
+                        expected: { status: 'refused', reason: 'retire_mismatch' },
+                    },
+                ],
             },
 
             {
@@ -1207,6 +1453,23 @@ export function buildVectors(): unknown {
                         name: 'anchored at its since block',
                         input: { envelope: envLinkA, anchoredAt: 977200 },
                         expected: { ok: false, reason: 'bad_anchor', signed: { address: true, wallet: true } },
+                    },
+                ],
+            },
+            {
+                id: 'kw06',
+                category: 'wallet_record',
+                description: "A's mint-time address_sig, over its binding, as a wallet link's or unlink's: refused",
+                cases: [
+                    {
+                        name: 'on a link',
+                        input: { envelope: { ...envLinkA, address_sig: mint.address_sig } },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { address: false, wallet: true } },
+                    },
+                    {
+                        name: 'on an unlink',
+                        input: { envelope: { record: unlinkA, address_sig: mint.address_sig } },
+                        expected: { ok: false, reason: 'address_sig_invalid', signed: { address: false, wallet: false } },
                     },
                 ],
             },

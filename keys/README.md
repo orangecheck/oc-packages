@@ -147,11 +147,11 @@ The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
 - **binding**: an address and Nostr key belong to a did:oc, and who made the
   key: `orangecheck` (an account that starts without a passkey) or `user` (a
   passkey first). Before a takeover, a custodial address is a reserved
-  identity: the key exists, and signs nothing.
+  identity: the key exists, and has signed its binding and nothing else.
 - **takeover**: the user holds the key now; orangecheck held it until this
   record's anchor. The binding stays, so the address keeps its history and is
-  never read as the user's from the start. It is the first thing the key ever
-  signs.
+  never read as the user's from the start. It is the first thing the key
+  signs after its binding.
 - **retire**: ends a custodial binding that was never taken over.
   `own_wallet`: the account's own wallet address became its identity, and
   the key orangecheck made is shredded. (Not a wallet link, §6.)
@@ -163,13 +163,22 @@ The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
   spec names. The vectors use a placeholder burn key.
 
 **Who signs.** The issuer signs every address record (`issuer_sig`, BIP-322
-simple, base64). The key orangecheck holds signs nothing, so a custodial
-binding and a retire carry the issuer's signature only. A user binding and a
-takeover also carry `address_sig` (BIP-322 simple, by the identity address)
-and `nostr_sig` (BIP-340, 128 hex, by the Nostr key over the 32-byte id). An
-issuer record carries `old_sig` and `new_sig`, by each address. Any envelope
-may carry `ots`, an OpenTimestamps proof of the id. Wallet links (§6) carry no
-issuer signature.
+simple, base64). Every binding and every takeover also carries `address_sig`
+(BIP-322 simple, by the identity address) and `nostr_sig` (BIP-340, 128 hex,
+by the Nostr key over the 32-byte id). A retire carries the issuer's
+signature only. An issuer record carries `old_sig` and `new_sig`, by each
+address. Any envelope may carry `ots`, an OpenTimestamps proof of the id.
+Wallet links (§6) carry no issuer signature.
+
+**Proof of possession.** A binding without the address's own signatures is
+refused, so an issuer can bind only an address whose key it holds, and the
+issuer alone can neither reserve nor refuse anyone else's. A custodial key
+signs one thing before a takeover: its own binding, once, at mint, before
+the key is sealed (`possessionSign`). The binding's own header keeps that
+signature from passing for any other record, a wallet link, or any verb's
+message (`kr15`, `kw06`), and §5 refuses every signature by the address while
+orangecheck holds it. In the browser, `identitySign` signs a user binding or
+a takeover, never a custodial binding.
 
 ```json
 { "record": "<text>", "issuer_sig": "…", "address_sig": "…", "nostr_sig": "…", "ots": "…" }
@@ -202,22 +211,26 @@ failure (`verifyRecord`):
 4. the anchor, if given, is above the since block (`bad_anchor`);
 5. the since block is inside the issuer's term (`issuer_not_yet`,
    `issuer_retired`);
-6. a user binding or a takeover: `address_sig` is present and verifies, and
-   `nostr_sig` verifies (`address_sig_missing`, `address_sig_invalid`,
-   `nostr_sig_invalid`). Any other record that carries either is refused
-   (`custodial_key_signed`);
+6. a binding or a takeover: `address_sig` is present and verifies, and
+   `nostr_sig` is present and verifies (`address_sig_missing`,
+   `address_sig_invalid`, `nostr_sig_missing`, `nostr_sig_invalid`). A retire
+   that carries either is refused (`custodial_key_signed`);
 7. its own header chain has `since_block` at `since_height`
    (`since_unverified`, `since_not_on_chain`).
 
-The result says whether a trusted issuer signed the text, so a reader can
-tell a broken copy of a real record from noise anyone can publish.
+The result says which signatures verify (`signed: { issuer, address }`),
+whatever else failed, so a reader can tell a broken copy of a real record
+from noise anyone can publish.
 
 **Who holds an address's key** (`resolveKeyHolder`) comes from every copy the
 verifier read for the address:
-- copies no trusted issuer signed are ignored: anyone can publish under the
-  address's tag;
-- a record the issuer signed counts once any copy of it verifies. If none
-  does, the address is refused (`record_unverified`), never read as unbound;
+- a binding or takeover counts only where a trusted issuer and the address's
+  own key both signed it, and a retire where the issuer did. Anything else is
+  ignored: anyone can publish under the address's tag, and the issuer alone
+  cannot bind an address (`kh16`);
+- a record that counts is held once any copy of it verifies. If none does,
+  the address is refused (`record_unverified`, or `bad_anchor`), never read
+  as unbound;
 - no binding: plain Bitcoin (`unbound`), but only when the read was complete,
   else `unavailable`. A read is complete when at least the read floor of the
   relays asked answered in full, each paged to its end, and none was cut off.
@@ -226,12 +239,16 @@ verifier read for the address:
   publishes every record to at least two of the relays verifiers ask. A
   binding the account itself names (its did:oc's record) exists whether found
   or not: `named_binding_missing`;
-- exactly one binding, at most one takeover and at most one retire, each
-  naming the binding, matching its did:oc (and Nostr key), and not below its
-  since block. Only a custodial binding is taken over or retired;
-- a retire counts against a takeover only when its anchor is at or below the
-  takeover's since block (`takeover_after_retire`); otherwise the takeover
-  stands;
+- exactly one binding and at most one takeover, which names the binding,
+  matches its did:oc and Nostr key, and is not below its since block. Only a
+  custodial binding is taken over;
+- a retire counts only against the custodial binding it names. One naming
+  another binding, or a user's, has no effect, so the issuer alone cannot
+  refuse an address it never held (`kh17`). With no takeover: at most one,
+  matching the binding's did:oc and not below its since block. After a
+  takeover, a retire anchored at or below the takeover's since block refuses
+  the address (`takeover_after_retire`), and any other has no effect,
+  whatever it says;
 - the result keeps `born` (who made the key, forever) beside `holder` (now:
   `orangecheck`, `user` or `retired`). Holding no takeover is not proof
   there is none, so `holder: orangecheck` means "as far as these records
@@ -362,7 +379,7 @@ one.
 
 ## §7 Vectors
 
-`test-vectors/keys-v1.json`: 81 vectors (derivation `kd`, lock and open `kl`,
+`test-vectors/keys-v1.json`: 85 vectors (derivation `kd`, lock and open `kl`,
 record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
 `kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
 negative, each with `id`, `category`, `description`, `input` and `expected`
@@ -385,9 +402,11 @@ Two cross-checks outside the TypeScript:
   standard library and `cryptography`: the PRF input; both phrases as the
   BIP-39 encoding of I and W (against `test/bip39-english.txt`, pinned to the
   hash of the BIP's own list); both KEKs, every additional data, ciphertext
-  and open; the record texts and ids; the issuer terms; the publication tags;
-  the key-holder and signature rules over the records the vectors call good;
-  and the wallet-link rule over every `wallet_link` vector. It does no curve
+  and open; the record texts and ids, and which signatures each carries; the
+  issuer terms; the publication tags; the key-holder and signature rules over
+  the records the vectors call good, and over each `unbound` case whose
+  records are noise by their shape alone; and the wallet-link rule over every
+  `wallet_link` vector. It does no curve
   math, so it takes signatures as given, and `wallet_link_copies` (copies
   with bad signatures) is for a checker that can verify BIP-322.
 - `test/fedimint-xcheck/`: Fedimint's own HKDF crate and rust-bip39 print
@@ -415,9 +434,9 @@ import {
     countersignTakeover, identityKeys, issueCustodialBinding, issueRetire, randomSecret, readBack, signTakeover,
 } from '@orangecheck/keys';
 
-// ochk.io mints a key it holds, and binds it. The key signs nothing.
+// ochk.io mints a key it holds, and binds it. The key signs its own binding, then is sealed.
 const keys = identityKeys(randomSecret());
-const bound = issueCustodialBinding({ didOc, address: keys.address, nostr: keys.nostr, issuer, since: tip });
+const bound = issueCustodialBinding({ didOc, keys, issuer, since: tip });
 
 // After publishing a batch, and before counting it done:
 readBack({ address: keys.address, expect: { binding: bound.id, holder: 'orangecheck' }, lookup, ctx });
@@ -435,6 +454,8 @@ const done = countersignTakeover(request, { binding: bound.envelope, issuer, ctx
 
 `issuer` is `{ address, addressKey }`; an issue call refuses a key that is
 not that address, and fields that do not make a canonical record.
+`issueCustodialBinding` binds the address and Nostr key of the `keys` it is
+given, and refuses keys whose private halves are not theirs.
 `countersignTakeover` never throws on what the frame sends: it answers
 `{ ok: false, reason }`, from `malformed` to the finished envelope's own
 `verifyRecord` failure. It checks the request, not ochk.io's state: call it

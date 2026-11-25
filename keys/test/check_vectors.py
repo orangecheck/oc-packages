@@ -86,32 +86,43 @@ def earliest(a, b):
     return a if b is None else b if a is None else min(a, b)
 
 
+RETIRE = "oc-attest-key:retire:v1"
+
+
 def holder(address, lookup, named_binding=None):
-    """The key-holder state from records whose signatures are taken as given (README section 5)."""
+    """The key-holder state from records whose signatures are taken as given (README section 4)."""
     recs = {}
     for r in lookup["records"]:
-        head, f = fields(r["envelope"]["record"])
+        env = r["envelope"]
+        head, f = fields(env["record"])
         if f.get("address") != address:
             continue
-        i = rid(r["envelope"]["record"])
+        # A binding or takeover counts only with the address's own two signatures beside the issuer's.
+        if head != RETIRE and not {"address_sig", "nostr_sig"} <= set(env):
+            continue
+        i = rid(env["record"])
         prev = recs.get(i)
         recs[i] = (head, f, earliest(prev[2] if prev else None, r.get("anchoredAt")))
     bindings = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:binding:v1"]
     takeovers = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:takeover:v1"]
-    retires = [(i, f, a) for i, (h, f, a) in recs.items() if h == "oc-attest-key:retire:v1"]
+    retires = [(i, f, a) for i, (h, f, a) in recs.items() if h == RETIRE]
     if not bindings:
-        if named_binding:
+        if named_binding or takeovers:
             return {"status": "refused"}
         return {"status": "unbound"} if lookup["complete"] else {"status": "refused"}
-    assert len(bindings) == 1 and len(takeovers) <= 1 and len(retires) <= 1
+    assert len(bindings) == 1 and len(takeovers) <= 1
     bid, b, _ = bindings[0]
     state = {"status": "bound", "born": b["key_holder"], "holder": b["key_holder"], "binding": bid}
     t = takeovers[0] if takeovers else None
-    r = retires[0] if retires else None
-    for x in (t, r):
-        assert x is None or x[1]["binding"] == bid
-    if t and r and r[2] is not None and r[2] <= int(t[1]["since_height"]):
-        return {"status": "refused"}
+    assert t is None or t[1]["binding"] == bid
+    # A retire counts only against the custodial binding it names; after a takeover, only if anchored before it could be made.
+    rs = [x for x in retires if x[1]["binding"] == bid and b["key_holder"] == "orangecheck"]
+    if t:
+        if any(a is not None and a <= int(t[1]["since_height"]) for _, _, a in rs):
+            return {"status": "refused"}
+        rs = []
+    assert len(rs) <= 1
+    r = rs[0] if rs else None
     if t:
         state.update(holder="user", takeover=t[0], takeover_since=int(t[1]["since_height"]))
         if t[2] is not None:
@@ -119,6 +130,23 @@ def holder(address, lookup, named_binding=None):
     elif r:
         state.update(holder="retired", retire=r[0], retire_reason=r[1]["reason"])
     return state
+
+
+def looks_good(env, headers):
+    """A retire as far as this checker can see one: canonical, the issuer's signature only, its since block on the chain."""
+    head, f = fields(env["record"])
+    return (
+        head == RETIRE
+        and canonical_text(env["record"])
+        and set(env) - {"ots"} == {"record", "issuer_sig"}
+        and headers.get(f["since_height"]) == f["since_block"]
+    )
+
+
+def noise_by_shape(env):
+    """A binding or takeover without the address's own signatures: noise whoever signed it."""
+    head, _ = fields(env["record"])
+    return head != RETIRE and not {"address_sig", "nostr_sig"} <= set(env)
 
 
 def judge(state, ev):
@@ -270,10 +298,15 @@ def main(path):
         elif cat == "record":
             for c in v.get("cases", [v]):
                 if c["expected"].get("ok"):
-                    text = c["input"]["envelope"]["record"]
+                    env = c["input"]["envelope"]
+                    text = env["record"]
                     assert canonical_text(text), v["id"]
                     assert rid(text) == c["expected"]["id"], v["id"]
                     assert fields(text)[0] == f"oc-attest-key:{c['expected']['type']}:v1", v["id"]
+                    # Every binding and takeover carries the address's two signatures; a retire, the issuer's only.
+                    own = c["expected"]["type"] != "retire"
+                    assert set(env) - {"ots"} == {"record", "issuer_sig"} | ({"address_sig", "nostr_sig"} if own else set()), v["id"]
+                    assert c["expected"]["signed"] == {"issuer": True, "address": own}, v["id"]
                     checked += 1
         elif cat == "wallet_record":
             for c in v.get("cases", [v]):
@@ -309,12 +342,18 @@ def main(path):
                 assert new["from"] == int(f["since_height"]), v["id"]
                 checked += 1
         elif cat == "key_holder":
+            headers = d["chain"]["headers"]
             for c in v.get("cases", [v]):
                 exp = c["expected"]
+                records = c["input"]["lookup"]["records"]
                 if exp["status"] == "bound":
-                    # Only the records whose issuer, signatures and since block the vectors call good.
-                    good = {"complete": True, "records": [r for r in c["input"]["lookup"]["records"] if rid(r["envelope"]["record"]) in {exp["binding"], exp.get("takeover"), exp.get("retire")}]}
+                    # The records the vectors call good, and every retire that looks good here: a retire it ignores must change nothing.
+                    ids = {exp["binding"], exp.get("takeover"), exp.get("retire")}
+                    good = {"complete": True, "records": [r for r in records if rid(r["envelope"]["record"]) in ids or looks_good(r["envelope"], headers)]}
                     assert holder(c["input"]["address"], good) == exp, (v["id"], c.get("name"))
+                    checked += 1
+                elif exp["status"] == "unbound" and all(noise_by_shape(r["envelope"]) or looks_good(r["envelope"], headers) for r in records):
+                    assert holder(c["input"]["address"], c["input"]["lookup"]) == exp, (v["id"], c.get("name"))
                     checked += 1
         elif cat == "signature":
             state = holder(v["input"]["address"], v["input"]["lookup"])

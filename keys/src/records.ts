@@ -5,13 +5,13 @@
 // Its id is the SHA-256 of that text; the signatures travel beside the text,
 // so the id is the same one the envelope gets with its signatures emptied.
 //
-// - binding, key_holder orangecheck: signed by the issuer alone. The key
-//   orangecheck holds signs nothing, so an identity or Nostr signature on it is refused.
-// - binding, key_holder user (a passkey-first account): the issuer, the
-//   identity address (BIP-322) and the Nostr key (BIP-340 over the id).
+// - binding, of either key holder: the issuer, the identity address
+//   (BIP-322) and the Nostr key (BIP-340 over the id), so an issuer binds only
+//   a key it holds. A custodial key signs its own binding, once, at mint, and
+//   nothing else before a takeover.
 // - takeover: the same three. The user holds the key from then on, and the
 //   record keeps that orangecheck held it until the takeover was anchored.
-// - retire: the issuer alone, for a binding never taken over.
+// - retire: the issuer alone, for a custodial binding never taken over.
 // - issuer: a new issuer address, signed by the old one and the new one.
 // - wallet-link: a wallet address whose coins count for the identity, signed
 //   by both addresses (BIP-322) and no issuer. wallet-unlink ends it, signed
@@ -36,7 +36,7 @@ export type RetireReason = (typeof RETIRE_REASONS)[number];
 
 /** A custodial binding's fixed trust line (family rule 8). */
 export const CUSTODIAL_TRUST =
-    "orangecheck made this key and holds it. It signs nothing with it, so no signature by it before a takeover is the user's.";
+    "orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.";
 
 /** The takeover's fixed trust line: orangecheck's time as key holder stays on the record. */
 export const TAKEOVER_TRUST =
@@ -300,9 +300,9 @@ export interface SignedRecord {
     record: string;
     /** BIP-322 simple, base64, by the record's issuer address. */
     issuer_sig: string;
-    /** BIP-322 simple, base64, by the record's identity address. User bindings and takeovers only. */
+    /** BIP-322 simple, base64, by the record's identity address. Every binding and takeover; never a retire. */
     address_sig?: string;
-    /** BIP-340, 128 hex, by the record's Nostr key over the 32-byte id. User bindings and takeovers only. */
+    /** BIP-340, 128 hex, by the record's Nostr key over the 32-byte id. Every binding and takeover; never a retire. */
     nostr_sig?: string;
     /** An OpenTimestamps proof of the id, base64. The verifier checks it and passes the height it attests. */
     ots?: string;
@@ -318,9 +318,9 @@ export interface SignedIssuerRecord {
     ots?: string;
 }
 
-/** Whether the identity key signs this record. The key orangecheck holds signs nothing. */
+/** Whether the identity key signs this record: every binding (a custodial key once, at mint) and a takeover. */
 export function identitySigns(r: ParsedRecord): boolean {
-    return r.type === 'takeover' || (r.type === 'binding' && r.keyHolder === 'user');
+    return r.type === 'binding' || r.type === 'takeover';
 }
 
 /** The issuer's signature over an address record (BIP-322 simple by its P2WPKH address). */
@@ -341,20 +341,49 @@ export function rotationSign(
     return { old_sig: signMessage(r.old, record, oldKey), new_sig: signMessage(r.new, record, newKey) };
 }
 
-/** The identity's two signatures over a user binding or a takeover. `auxRand` only for vectors. */
-export function identitySign(
-    record: string,
-    keys: Pick<IdentityKeys, 'address' | 'addressKey' | 'nostrKey'>,
-    auxRand?: Uint8Array
-): { address_sig: string; nostr_sig: string } {
-    const r = parseRecord(record);
-    if (!r || !isAddressRecord(r)) throw new Error('not a canonical address record');
-    if (!identitySigns(r)) throw new Error('the key orangecheck holds signs nothing');
+type SigningKeys = Pick<IdentityKeys, 'address' | 'addressKey' | 'nostrKey'>;
+
+function bothSigs(r: AddressRecord, record: string, keys: SigningKeys, auxRand?: Uint8Array) {
     if (r.address !== keys.address) throw new Error('these keys are not the record address');
+    if (!('nostr' in r) || toHex(schnorr.getPublicKey(keys.nostrKey)) !== r.nostr) {
+        throw new Error('this Nostr key is not the record nostr');
+    }
     return {
         address_sig: signMessage(r.address, record, keys.addressKey),
         nostr_sig: toHex(schnorr.sign(sha256(utf8(record)), keys.nostrKey, auxRand)),
     };
+}
+
+/** In the browser: the identity's two signatures over a user binding or a takeover. `auxRand` only for vectors. */
+export function identitySign(
+    record: string,
+    keys: SigningKeys,
+    auxRand?: Uint8Array
+): { address_sig: string; nostr_sig: string } {
+    const r = parseRecord(record);
+    if (!r || !isAddressRecord(r)) throw new Error('not a canonical address record');
+    if (r.type === 'retire') throw new Error('a retire carries the issuer signature only');
+    if (r.type === 'binding' && r.keyHolder === 'orangecheck') {
+        throw new Error('a custodial binding is signed at mint, by possessionSign');
+    }
+    return bothSigs(r, record, keys, auxRand);
+}
+
+/**
+ * On the server, at mint: the one thing a custodial key ever signs, its own
+ * binding, before the key is sealed. The proof of possession: without it, no
+ * verifier counts the binding, so an issuer binds only a key it holds.
+ */
+export function possessionSign(
+    bindingText: string,
+    keys: SigningKeys,
+    auxRand?: Uint8Array
+): { address_sig: string; nostr_sig: string } {
+    const r = parseRecord(bindingText);
+    if (!r || r.type !== 'binding' || r.keyHolder !== 'orangecheck') {
+        throw new Error('possessionSign signs only a canonical custodial binding');
+    }
+    return bothSigs(r, bindingText, keys, auxRand);
 }
 
 /** The Nostr tags a record is published with (kind 30078), so attest's address query finds it (SPEC §6.2). */
@@ -493,39 +522,49 @@ export type RecordFailure =
     | 'issuer_not_yet' // its since block is below the start of the issuer's term
     | 'issuer_retired' // the issuer's term ended, and no anchor shows the record was there before the end
     // Signed by the issuer, but this copy does not verify.
-    | 'custodial_key_signed' // a custodial binding or a retire carries an identity or Nostr signature
-    | 'address_sig_missing'
+    | 'custodial_key_signed' // a retire carries an identity or Nostr signature
+    | 'address_sig_missing' // a binding or takeover without its proof of possession
     | 'address_sig_invalid' // not a signature by the record's identity address
+    | 'nostr_sig_missing'
     | 'nostr_sig_invalid'
     | 'since_unverified' // the verifier's chain has no block at that height
     | 'since_not_on_chain' // the block named is not the chain's block at that height
     | 'bad_anchor'; // an anchor that is not a height above the since block
 
+/** Whose signatures on the copy verify, whatever else is wrong with it: a trusted issuer's, the address's own. */
+export type AddressSigners = { issuer: boolean; address: boolean };
+
 export type VerifiedRecord =
-    | { ok: true; id: string; record: AddressRecord }
-    | { ok: false; reason: RecordFailure; issuerSigned: boolean };
+    | { ok: true; id: string; record: AddressRecord; signed: AddressSigners }
+    | { ok: false; reason: RecordFailure; signed: AddressSigners };
 
 const ENVELOPE_KEYS = new Set(['record', 'issuer_sig', 'address_sig', 'nostr_sig', 'ots']);
 
 /**
  * Check one copy of an address record. Pure, offline and never throws; the
  * caller supplies the chain, the issuer terms and the anchor it verified.
- * `issuerSigned` says whether a trusted issuer signed this text, so a reader
- * can tell a broken copy of a real record from anyone's noise.
+ * `signed` says whether a trusted issuer and the address's own key signed
+ * this text, so a reader can tell a broken copy of a real record from noise.
  */
 export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: number): VerifiedRecord {
-    const fail = (reason: RecordFailure, issuerSigned = false): VerifiedRecord => ({ ok: false, reason, issuerSigned });
-    if (!env || typeof env !== 'object' || Array.isArray(env)) return fail('malformed');
+    const none: AddressSigners = { issuer: false, address: false };
+    if (!env || typeof env !== 'object' || Array.isArray(env)) return { ok: false, reason: 'malformed', signed: none };
     const e = env as Record<string, unknown>;
-    for (const k of Object.keys(e)) if (!ENVELOPE_KEYS.has(k)) return fail('malformed');
-    if (typeof e.record !== 'string' || typeof e.issuer_sig !== 'string') return fail('malformed');
+    for (const k of Object.keys(e)) if (!ENVELOPE_KEYS.has(k)) return { ok: false, reason: 'malformed', signed: none };
+    if (typeof e.record !== 'string' || typeof e.issuer_sig !== 'string') return { ok: false, reason: 'malformed', signed: none };
     for (const k of ['address_sig', 'nostr_sig', 'ots']) {
-        if (k in e && typeof e[k] !== 'string') return fail('malformed');
+        if (k in e && typeof e[k] !== 'string') return { ok: false, reason: 'malformed', signed: none };
     }
     const record = parseRecord(e.record);
-    if (!record || !isAddressRecord(record)) return fail('not_canonical');
+    if (!record || !isAddressRecord(record)) return { ok: false, reason: 'not_canonical', signed: none };
     const text = e.record;
     const id = recordId(text);
+    const address = typeof e.address_sig === 'string' && verifySignature(record.address, text, e.address_sig);
+    const fail = (reason: RecordFailure, issuer = false): VerifiedRecord => ({
+        ok: false,
+        reason,
+        signed: { issuer, address },
+    });
     const term = ctx.issuers.find((t) => t.address === record.issuer);
     if (!term) return fail('issuer_unknown');
     if (!verifySignature(record.issuer, text, e.issuer_sig)) return fail('issuer_sig_invalid');
@@ -540,8 +579,9 @@ export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: numb
     }
     if (identitySigns(record)) {
         if (typeof e.address_sig !== 'string') return fail('address_sig_missing', true);
-        if (!verifySignature(record.address, text, e.address_sig)) return fail('address_sig_invalid', true);
-        const sig = typeof e.nostr_sig === 'string' && /^[0-9a-f]{128}$/.test(e.nostr_sig) ? fromHex(e.nostr_sig) : null;
+        if (!address) return fail('address_sig_invalid', true);
+        if (typeof e.nostr_sig !== 'string') return fail('nostr_sig_missing', true);
+        const sig = /^[0-9a-f]{128}$/.test(e.nostr_sig) ? fromHex(e.nostr_sig) : null;
         const nostr = 'nostr' in record ? fromHex(record.nostr) : null;
         let good = false;
         try {
@@ -556,7 +596,7 @@ export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: numb
     const chain = chainHas(ctx.blockHash, record.since);
     if (chain === 'unknown') return fail('since_unverified', true);
     if (chain === 'no') return fail('since_not_on_chain', true);
-    return { ok: true, id, record };
+    return { ok: true, id, record, signed: { issuer: true, address } };
 }
 
 /**
@@ -585,9 +625,7 @@ export type ResolveFailure =
     | 'takeover_mismatch' // its did:oc or Nostr key differ from the binding's
     | 'takeover_before_binding'
     | 'takeover_after_retire' // the retire is anchored before the takeover was made
-    | 'retire_without_binding'
     | 'conflicting_retires'
-    | 'retire_of_user_binding'
     | 'retire_mismatch'
     | 'retire_before_binding';
 
@@ -620,43 +658,46 @@ export type KeyHolderState =
 
 /**
  * Who holds an address's identity key, from every record copy the verifier
- * read for it. Copies that no trusted issuer signed are ignored, since anyone
- * can publish one. A record the issuer signed counts once any copy of it
- * verifies; if none does, the address is refused, not read as unbound.
- * Holding no takeover is not proof there is none, so `holder: 'orangecheck'`
- * means "as far as these records show", which only ever refuses more.
+ * read for it. A binding or takeover counts only where the issuer and the
+ * address's own key both signed it, so an issuer alone can neither bind an
+ * address nor refuse one. A retire, which only the issuer signs, counts only
+ * against the custodial binding it names, before any takeover. A record that
+ * counts is held once any copy of it verifies; if none does, the address is
+ * refused, not read as unbound. Holding no takeover is not proof there is
+ * none, so `holder: 'orangecheck'` means "as far as these records show",
+ * which only ever refuses more.
  */
 export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: ResolveContext): KeyHolderState {
     const refuse = (reason: ResolveFailure | RecordFailure): KeyHolderState => ({ status: 'refused', reason });
-    const valid = new Map<string, { record: AddressRecord; anchoredAt?: number }>();
-    const broken = new Map<string, RecordFailure>();
+    type Held = { record: AddressRecord; anchoredAt?: number; reason?: RecordFailure };
+    const valid = new Map<string, Held>();
+    const broken = new Map<string, Held>();
     for (const { envelope, anchoredAt } of lookup.records) {
         const v = verifyRecord(envelope, ctx, anchoredAt);
-        if (v.ok) {
-            if (v.record.address !== address) continue;
-            const seen = valid.get(v.id);
-            valid.set(v.id, { record: v.record, anchoredAt: earliest(seen?.anchoredAt, anchoredAt) });
-            continue;
-        }
-        if (!v.issuerSigned) continue;
-        const r = parseRecord((envelope as SignedRecord).record) as AddressRecord;
-        if (r.address !== address) continue;
-        broken.set(recordId((envelope as SignedRecord).record), v.reason);
+        const r = v.ok ? v.record : v.signed.issuer ? (parseRecord((envelope as SignedRecord).record) as AddressRecord) : null;
+        if (!r || r.address !== address) continue;
+        // Noise unless its own signers signed it: the issuer, and for a binding or takeover the address's key.
+        if (r.type !== 'retire' && !v.signed.address) continue;
+        const id = recordId((envelope as SignedRecord).record);
+        const into = v.ok ? valid : broken;
+        const seen = into.get(id);
+        const reason = v.ok ? undefined : seen?.reason === 'bad_anchor' ? 'bad_anchor' : v.reason;
+        into.set(id, { record: r, anchoredAt: earliest(seen?.anchoredAt, anchoredAt), reason });
     }
-    for (const [id, reason] of broken) {
-        if (!valid.has(id)) return refuse(reason === 'bad_anchor' ? reason : 'record_unverified');
-    }
+    for (const id of valid.keys()) broken.delete(id);
+    const unverified = (held: Held[]) =>
+        held.length ? refuse(held.some((h) => h.reason === 'bad_anchor') ? 'bad_anchor' : 'record_unverified') : null;
+    const holding = unverified([...broken.values()].filter((h) => h.record.type !== 'retire'));
+    if (holding) return holding;
 
     type Of<T extends AddressRecord['type']> = [string, Extract<AddressRecord, { type: T }>, number | undefined];
     const all = [...valid.entries()].map(([id, v]) => [id, v.record, v.anchoredAt] as const);
     const bindings = all.filter(([, r]) => r.type === 'binding') as Of<'binding'>[];
     const takeovers = all.filter(([, r]) => r.type === 'takeover') as Of<'takeover'>[];
-    const retires = all.filter(([, r]) => r.type === 'retire') as Of<'retire'>[];
 
     if (bindings.length > 1) return refuse('conflicting_bindings');
     if (bindings.length === 0) {
         if (takeovers.length) return refuse('takeover_without_binding');
-        if (retires.length) return refuse('retire_without_binding');
         if (ctx.namedBinding !== undefined) return refuse('named_binding_missing');
         return lookup.complete ? { status: 'unbound' } : refuse('unavailable');
     }
@@ -673,34 +714,39 @@ export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: Res
     };
 
     if (takeovers.some(([, t]) => t.binding !== bindingId)) return refuse('takeover_without_binding');
-    if (retires.some(([, r]) => r.binding !== bindingId)) return refuse('retire_without_binding');
     if (takeovers.length > 1) return refuse('conflicting_takeovers');
-    if (retires.length > 1) return refuse('conflicting_retires');
     const takeover = takeovers[0];
-    const retire = retires[0];
-
     if (takeover) {
-        const [, t] = takeover;
+        const [id, t, anchoredAt] = takeover;
         if (binding.keyHolder !== 'orangecheck') return refuse('takeover_of_user_binding');
         if (t.didOc !== binding.didOc || t.nostr !== binding.nostr) return refuse('takeover_mismatch');
         if (t.since.height < binding.since.height) return refuse('takeover_before_binding');
-    }
-    if (retire) {
-        const [, r] = retire;
-        if (binding.keyHolder !== 'orangecheck') return refuse('retire_of_user_binding');
-        if (r.didOc !== binding.didOc) return refuse('retire_mismatch');
-        if (r.since.height < binding.since.height) return refuse('retire_before_binding');
-    }
-    // A retire counts against a takeover only where its anchor shows it was there before the takeover was made.
-    if (takeover && retire && retire[2] !== undefined && retire[2] <= takeover[1].since.height) {
-        return refuse('takeover_after_retire');
-    }
-    if (takeover) {
-        const [id, t, anchoredAt] = takeover;
         state.holder = 'user';
         state.takeover = { id, since: t.since, anchoredAt };
-    } else if (retire) {
-        const [id, r, anchoredAt] = retire;
+    }
+
+    // A retire names a custodial binding; one naming another binding, or a user's, is no record of this key.
+    const retiring = (m: Map<string, Held>) =>
+        [...m.entries()].filter(
+            ([, h]) => h.record.type === 'retire' && h.record.binding === bindingId && binding.keyHolder === 'orangecheck'
+        ) as [string, Held & { record: Extract<AddressRecord, { type: 'retire' }> }][];
+    let retires = retiring(valid);
+    let brokenRetires = retiring(broken);
+    if (takeover) {
+        // After the takeover only a retire anchored before it could be made counts; that one refuses the address.
+        const before = ([, h]: [string, Held]) => h.anchoredAt !== undefined && h.anchoredAt <= takeover[1].since.height;
+        if (retires.some(before)) return refuse('takeover_after_retire');
+        brokenRetires = brokenRetires.filter(before);
+        retires = [];
+    }
+    const retireHeld = unverified(brokenRetires.map(([, h]) => h));
+    if (retireHeld) return retireHeld;
+    if (retires.length > 1) return refuse('conflicting_retires');
+    const retire = retires[0];
+    if (retire) {
+        const [id, { record: r, anchoredAt }] = retire;
+        if (r.didOc !== binding.didOc) return refuse('retire_mismatch');
+        if (r.since.height < binding.since.height) return refuse('retire_before_binding');
         state.holder = 'retired';
         state.retire = { id, since: r.since, anchoredAt, reason: r.reason };
     }

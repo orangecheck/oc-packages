@@ -12,6 +12,7 @@ import {
     judgeWalletLink,
     namedIssuer,
     parseRecord,
+    possessionSign,
     publicationTags,
     recordId,
     resolveIssuers,
@@ -65,7 +66,7 @@ const retire = retireRecord({
     since: { height: 200, block: H },
     reason: 'deleted',
 });
-const envB = { record: binding, issuer_sig: issuerSign(binding, ISSUER_KEY) };
+const envB = { record: binding, issuer_sig: issuerSign(binding, ISSUER_KEY), ...possessionSign(binding, KEYS) };
 const envT = { record: takeover, issuer_sig: issuerSign(takeover, ISSUER_KEY), ...identitySign(takeover, KEYS) };
 const envR = { record: retire, issuer_sig: issuerSign(retire, ISSUER_KEY) };
 const all = (...envelopes: unknown[]) => ({ complete: true, records: envelopes.map((envelope) => ({ envelope })) });
@@ -113,11 +114,22 @@ describe('record text', () => {
 });
 
 describe('signing', () => {
-    it('lets the issuer sign any address record, and the identity only a user binding or a takeover', () => {
+    it('lets the issuer sign any address record, the custodial key only its binding, and the browser a user binding or a takeover', () => {
         expect(typeof issuerSign(binding, ISSUER_KEY)).toBe('string');
-        expect(() => identitySign(binding, KEYS)).toThrow(/signs nothing/);
-        expect(() => identitySign(retire, KEYS)).toThrow(/signs nothing/);
+        expect(() => identitySign(binding, KEYS)).toThrow(/possessionSign/);
+        expect(() => identitySign(retire, KEYS)).toThrow(/issuer signature only/);
         expect(() => identitySign(takeover, identityKeys(new Uint8Array(32).fill(2)))).toThrow(/not the record address/);
+        const user = binding.replace('key_holder: orangecheck', 'key_holder: user').replace(/trust: .*\n/, '');
+        expect(parseRecord(user)).toMatchObject({ keyHolder: 'user' });
+        expect(Object.keys(identitySign(user, KEYS))).toEqual(['address_sig', 'nostr_sig']);
+        for (const other of [takeover, retire, user, 'nope\n']) {
+            expect(() => possessionSign(other, KEYS)).toThrow(/only a canonical custodial binding/);
+        }
+        expect(() => possessionSign(binding, identityKeys(new Uint8Array(32).fill(2)))).toThrow(/not the record address/);
+        // The right address key beside another Nostr key: no Nostr signature the binding does not name.
+        const wrongNostr = { ...KEYS, nostrKey: identityKeys(new Uint8Array(32).fill(2)).nostrKey };
+        expect(() => possessionSign(binding, wrongNostr)).toThrow(/Nostr key/);
+        expect(() => identitySign(takeover, wrongNostr)).toThrow(/Nostr key/);
         expect(() => issuerSign('nope\n', ISSUER_KEY)).toThrow();
         expect(() => issuerSign(binding, new Uint8Array(32).fill(8))).toThrow();
         const r = issuerRecord({ old: ISSUER, new: NEXT, since: { height: 300, block: H } });
@@ -136,7 +148,7 @@ describe('verifyRecord', () => {
 
     it('refuses an envelope of the wrong shape', () => {
         for (const bad of [null, [], 'x', { record: binding }, { ...envB, extra: '' }, { ...envB, address_sig: 1 }]) {
-            expect(verifyRecord(bad, ctx)).toEqual({ ok: false, reason: 'malformed', issuerSigned: false });
+            expect(verifyRecord(bad, ctx)).toEqual({ ok: false, reason: 'malformed', signed: { issuer: false, address: false } });
         }
     });
 
@@ -144,33 +156,47 @@ describe('verifyRecord', () => {
         expect(verifyRecord({ ...envR, nostr_sig: envT.nostr_sig }, ctx)).toEqual({
             ok: false,
             reason: 'custodial_key_signed',
-            issuerSigned: true,
+            signed: { issuer: true, address: false },
         });
+    });
+
+    it('refuses a binding without its proof of possession, and says which key signed', () => {
+        const { address_sig: _a, ...noAddress } = envB;
+        const { nostr_sig: _n, ...noNostr } = envB;
+        expect(verifyRecord(noAddress, ctx)).toEqual({ ok: false, reason: 'address_sig_missing', signed: { issuer: true, address: false } });
+        expect(verifyRecord(noNostr, ctx)).toEqual({ ok: false, reason: 'nostr_sig_missing', signed: { issuer: true, address: true } });
+        expect(verifyRecord({ ...envB, address_sig: envT.address_sig }, ctx)).toEqual({
+            ok: false,
+            reason: 'address_sig_invalid',
+            signed: { issuer: true, address: false },
+        });
+        expect(verifyRecord(envB, ctx)).toMatchObject({ ok: true, signed: { issuer: true, address: true } });
+        expect(verifyRecord(envR, ctx)).toMatchObject({ ok: true, signed: { issuer: true, address: false } });
     });
 
     it('refuses a takeover with no Nostr signature, and a chain lookup that throws', () => {
         const { nostr_sig: _drop, ...noNostr } = envT;
-        expect(verifyRecord(noNostr, ctx)).toEqual({ ok: false, reason: 'nostr_sig_invalid', issuerSigned: true });
+        expect(verifyRecord(noNostr, ctx)).toEqual({ ok: false, reason: 'nostr_sig_missing', signed: { issuer: true, address: true } });
         const throwing: VerifyContext = {
             ...ctx,
             blockHash: () => {
                 throw new Error('offline');
             },
         };
-        expect(verifyRecord(envB, throwing)).toEqual({ ok: false, reason: 'since_unverified', issuerSigned: true });
+        expect(verifyRecord(envB, throwing)).toEqual({ ok: false, reason: 'since_unverified', signed: { issuer: true, address: true } });
     });
 
     it('trusts only the issuers it is given', () => {
         expect(verifyRecord(envB, { ...ctx, issuers: [] })).toEqual({
             ok: false,
             reason: 'issuer_unknown',
-            issuerSigned: false,
+            signed: { issuer: false, address: true },
         });
     });
 
     it('refuses an anchor that is not a height above the since block', () => {
         for (const a of [100, 99, -1, 150.5, Number.NaN]) {
-            expect(verifyRecord(envB, ctx, a)).toEqual({ ok: false, reason: 'bad_anchor', issuerSigned: true });
+            expect(verifyRecord(envB, ctx, a)).toEqual({ ok: false, reason: 'bad_anchor', signed: { issuer: true, address: true } });
         }
         expect(verifyRecord(envB, ctx, 101)).toMatchObject({ ok: true });
     });
@@ -208,8 +234,8 @@ describe('resolveIssuers', () => {
         if (!terms.ok) throw new Error(terms.reason);
         const v = { ...ctx, issuers: terms.terms };
         expect(verifyRecord(envB, v, 305)).toMatchObject({ ok: true });
-        expect(verifyRecord(envB, v, 306)).toEqual({ ok: false, reason: 'issuer_retired', issuerSigned: false });
-        expect(verifyRecord(envB, v)).toEqual({ ok: false, reason: 'issuer_retired', issuerSigned: false });
+        expect(verifyRecord(envB, v, 306)).toEqual({ ok: false, reason: 'issuer_retired', signed: { issuer: false, address: true } });
+        expect(verifyRecord(envB, v)).toEqual({ ok: false, reason: 'issuer_retired', signed: { issuer: false, address: true } });
     });
 });
 
@@ -242,6 +268,57 @@ describe('resolveKeyHolder', () => {
             status: 'refused',
             reason: 'record_unverified',
         });
+    });
+
+    it("ignores what the issuer alone signs about an address it does not hold", () => {
+        const { address_sig: _a, nostr_sig: _n, ...issuerOnly } = envB;
+        expect(resolveKeyHolder(KEYS.address, all(issuerOnly), ctx)).toEqual({ status: 'unbound' });
+        // A broken copy without the address's signature refuses nothing: anyone with the issuer key could make one.
+        expect(resolveKeyHolder(KEYS.address, all({ ...issuerOnly, address_sig: envT.address_sig }), ctx)).toEqual({ status: 'unbound' });
+        const { address_sig: _ta, nostr_sig: _tn, ...takeoverIssuerOnly } = envT;
+        expect(resolveKeyHolder(KEYS.address, all(envB, takeoverIssuerOnly), ctx)).toMatchObject({ holder: 'orangecheck' });
+        expect(resolveKeyHolder(KEYS.address, all(envR), ctx)).toEqual({ status: 'unbound' });
+        expect(resolveKeyHolder(KEYS.address, all(envT), ctx)).toEqual({ status: 'refused', reason: 'takeover_without_binding' });
+    });
+
+    it('lets a retire count only against the custodial binding it names, before any takeover', () => {
+        const user = binding.replace('key_holder: orangecheck', 'key_holder: user').replace(/trust: .*\n/, '');
+        const envU = { record: user, issuer_sig: issuerSign(user, ISSUER_KEY), ...identitySign(user, KEYS) };
+        const retireU = retire.replace(recordId(binding), recordId(user));
+        const envRU = { record: retireU, issuer_sig: issuerSign(retireU, ISSUER_KEY) };
+        expect(resolveKeyHolder(KEYS.address, all(envU, envRU), ctx)).toMatchObject({ born: 'user', holder: 'user' });
+        // A retire whose since block this chain lacks is not checked against a user binding.
+        const lateU = retireU.replace('since_height: 200', 'since_height: 250');
+        expect(resolveKeyHolder(KEYS.address, all(envU, { record: lateU, issuer_sig: issuerSign(lateU, ISSUER_KEY) }), ctx)).toMatchObject({
+            holder: 'user',
+        });
+        const late = retire.replace('since_height: 200', 'since_height: 250');
+        const envLate = { record: late, issuer_sig: issuerSign(late, ISSUER_KEY) };
+        expect(resolveKeyHolder(KEYS.address, all(envB, envLate), ctx)).toEqual({ status: 'refused', reason: 'record_unverified' });
+        const at = (envelope: unknown, anchoredAt?: number) => ({ envelope, ...(anchoredAt === undefined ? {} : { anchoredAt }) });
+        const read = (...records: { envelope: unknown; anchoredAt?: number }[]) => ({ complete: true, records });
+        // After the takeover: a broken retire anchored before it could be made refuses; one anchored later is no record.
+        expect(resolveKeyHolder(KEYS.address, read(at(envB, 110), at(envT, 210), at(envLate, 205)), ctx)).toMatchObject({ holder: 'user' });
+        expect(resolveKeyHolder(KEYS.address, read(at(envB, 110), at(envT, 210), at(envLate, 150)), ctx)).toEqual({
+            status: 'refused',
+            reason: 'bad_anchor',
+        });
+        const other = retire.replace(`did_oc: ${DID}`, 'did_oc: did:oc:fedcba9876543210fedcba9876543210');
+        const envOther = { record: other, issuer_sig: issuerSign(other, ISSUER_KEY) };
+        expect(resolveKeyHolder(KEYS.address, read(at(envB, 110), at(envT, 210), at(envR, 220), at(envOther, 221)), ctx)).toMatchObject({
+            holder: 'user',
+        });
+        expect(resolveKeyHolder(KEYS.address, all(envB, envOther), ctx)).toEqual({ status: 'refused', reason: 'retire_mismatch' });
+    });
+
+    it("gives broken copies of one record the same verdict in any order", () => {
+        const { nostr_sig: _n, ...noNostr } = envT;
+        for (const records of [
+            [{ envelope: envB }, { envelope: noNostr }, { envelope: envT, anchoredAt: 150 }],
+            [{ envelope: envB }, { envelope: envT, anchoredAt: 150 }, { envelope: noNostr }],
+        ]) {
+            expect(resolveKeyHolder(KEYS.address, { complete: true, records }, ctx)).toEqual({ status: 'refused', reason: 'bad_anchor' });
+        }
     });
 
     it('retires a custodial binding', () => {

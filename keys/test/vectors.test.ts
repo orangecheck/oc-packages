@@ -159,7 +159,7 @@ const resolve = (input: Any) =>
 describe('record vectors', () => {
     it.each<Case>(flat('record'))('$label', (c: Any) => {
         const r = verifyRecord(c.input.envelope, ctx, c.input.anchoredAt);
-        expect(r.ok ? { ok: true, id: r.id, type: r.record.type } : r).toEqual(c.expected);
+        expect(r.ok ? { ok: true, id: r.id, type: r.record.type, signed: r.signed } : r).toEqual(c.expected);
     });
 });
 
