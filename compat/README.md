@@ -14,14 +14,18 @@ as its own, never with a sign-in method it does not know.
 `fixtures/email-account.json` is an email account recorded from ochk.io's real sign-in, mint and
 read paths by oc-www's `src/lib/auth/own-keys-contract.test.ts`. The file names the commit it ran
 on. It holds the session token's claims, the claims of the token the sign-in popup mints for a
-site, the `/api/auth/me` and `/api/auth/identities` answers, and the statement ochk.io signs to
-vouch for an OC Chat session device. No token or vouch is committed: `src/mint.ts` signs the
-recorded claims and statement at test time with a key made for the run.
+site, the `/api/auth/me` and `/api/auth/identities` answers, the statement ochk.io signs to
+vouch for an OC Chat session device, and its two answers when a site's passkey settings add a
+passkey (register options, then verify). No token or vouch is committed, the register options'
+challenge token included: `src/mint.ts` signs the recorded claims and statement at test time with
+a key made for the run (the register test signs the challenge token's claims the same way), and
+`test/fixtures.test.ts` refuses any compact JWS in a fixture.
 
 `src/account.ts` builds the same account with its identity key in the plan's new field,
 `identity_key`, and compares what each reader returns for both. The tool sites' own
 `/api/auth/me` is site-kit's `createMeHandler` over the session token, so site-kit is read
-that way, with vault-core's `fetchIdentity` over its answer.
+that way, with vault-core's `fetchIdentity` over its answer. `useWebAuthnRegister` runs against
+the recorded register answers, with `navigator.credentials` standing in for the authenticator.
 
 `fixtures/custody-records.json` holds the public custody records ochk.io will publish (kind 30078),
 copied from the keys package's vectors at the commit it names: each record's envelope and its
@@ -31,7 +35,8 @@ attest SDK must skip every record, never throw on one, and read their own events
 
 `fixtures/me-email-account.json` is what me.ochk.io sends integrators about the same account once
 its ochk.io answers and token carry the identity key, recorded by oc-me-web's
-`src/__tests__/api/own-keys-contract.test.ts` from ochk.io's answers above: the scopes route by
+`src/__tests__/api/own-keys-contract.test.ts` from a recording of the same oc-www test, whose
+commit it names under `recorded_from.ochk_io`: the scopes route by
 session and by signed backend read, a delivered webhook body, the account the sign-in popup posts
 to a family site and to any other, and an activity attestation's signed bytes. No signature is
 committed: the me-client tests sign the webhook and the attestation with a key made for the run,

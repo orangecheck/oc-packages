@@ -1,7 +1,7 @@
 {
   "recorded_from": {
     "repo": "oc-www",
-    "base": "f1db57195e3f095710974c82fd2153d012ccdf4f",
+    "base": "0f48e3d86ac0d6ccbffaa901ecc13447855986d9",
     "test": "src/lib/auth/own-keys-contract.test.ts"
   },
   "token_header": {
@@ -10,9 +10,9 @@
     "kid": "test-kid"
   },
   "token_claims": {
-    "sub": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
-    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
-    "jti": "83e9761055b0808aa1da2fb6cec3993a",
+    "sub": "01fc3e06-5589-4190-9d6d-ca9aab180592",
+    "did_oc": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6",
+    "jti": "946179b72d65cb203ca9e4abcacb94ff",
     "signing_method": "fedimint_threshold",
     "display_identity": {
       "kind": "email",
@@ -21,10 +21,10 @@
     "amr": [
       "email"
     ],
-    "auth_time": 1795575495,
+    "auth_time": 1795583378,
     "iss": "https://ochk.io",
-    "iat": 1795575495,
-    "exp": 1798167495
+    "iat": 1795583378,
+    "exp": 1798175378
   },
   "audience_token_header": {
     "alg": "EdDSA",
@@ -32,30 +32,30 @@
     "kid": "test-kid"
   },
   "audience_token_claims": {
-    "sub": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
-    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
-    "rh": "5kFw3oRx0o_BEJjitnHGSw",
+    "sub": "01fc3e06-5589-4190-9d6d-ca9aab180592",
+    "did_oc": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6",
+    "rh": "SQ1EInzsXpZBPIMdmmx8CA",
     "amr": [
       "email"
     ],
-    "auth_time": 1795575495,
-    "jti": "6933e6731173967f7498ccb544a2f599",
+    "auth_time": 1795583378,
+    "jti": "7b76842e805dfec622eae91c1c48b836",
     "iss": "https://ochk.io",
     "aud": "https://shop.example",
-    "iat": 1795575496,
-    "exp": 1798167495
+    "iat": 1795583379,
+    "exp": 1798175378
   },
   "me": {
     "ok": true,
     "account": {
-      "id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
-      "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
+      "id": "01fc3e06-5589-4190-9d6d-ca9aab180592",
+      "did_oc": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6",
       "display_name": null,
       "nostr_npub": null,
       "home_federation_slug": null,
       "signing_method": "fedimint_threshold",
-      "created_at": "2026-11-25T02:58:15.264+00:00",
-      "last_signed_in_at": "2026-11-25T02:58:15.223+00:00",
+      "created_at": "2026-11-25T05:09:38.926+00:00",
+      "last_signed_in_at": "2026-11-25T05:09:38.9+00:00",
       "primary_btc": null,
       "has_email": true,
       "display_identity": {
@@ -69,16 +69,16 @@
   },
   "identities": {
     "ok": true,
-    "account_id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
-    "did_oc": "did:oc:222e0038c2121856123e238b53bb2ab1",
-    "created_at": "2026-11-25T02:58:15.264+00:00",
-    "last_signed_in_at": "2026-11-25T02:58:15.223+00:00",
+    "account_id": "01fc3e06-5589-4190-9d6d-ca9aab180592",
+    "did_oc": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6",
+    "created_at": "2026-11-25T05:09:38.926+00:00",
+    "last_signed_in_at": "2026-11-25T05:09:38.9+00:00",
     "linked": [
       {
-        "id": "f7ac4ac6-3c30-407b-b1a7-d1489902c0d7",
+        "id": "ad7358a1-47c2-4686-9ce9-62a93bba5492",
         "kind": "email",
         "value": "person@example.com",
-        "verified_at": "2026-11-25T02:58:15.281+00:00",
+        "verified_at": "2026-11-25T05:09:38.93+00:00",
         "verification_method": "email-otp",
         "is_primary": true,
         "providers": []
@@ -89,13 +89,13 @@
   "scope_grant_identities": {
     "ok": true,
     "plaintext": true,
-    "account_id": "3f5cd59f-82d2-4d21-98d5-64eccc66f6f1",
+    "account_id": "01fc3e06-5589-4190-9d6d-ca9aab180592",
     "linked": [
       {
-        "id": "f7ac4ac6-3c30-407b-b1a7-d1489902c0d7",
+        "id": "ad7358a1-47c2-4686-9ce9-62a93bba5492",
         "kind": "email",
         "value": "person@example.com",
-        "verified_at": "2026-11-25T02:58:15.281+00:00",
+        "verified_at": "2026-11-25T05:09:38.93+00:00",
         "verification_method": "email-otp",
         "is_primary": true
       }
@@ -103,15 +103,92 @@
   },
   "chat_vouch": {
     "request": {
-      "device_pk": "8d865c6bec4e8a1644d681b496b1cef5183c528d71f41ceb1e3db9703fa9c7a2",
-      "nostr_pk": "97f2ab0edcb9ba031326fd85e1cb4d639d3f51bca9734f578b4d6671709f964c",
-      "device_id": "95a715a9c1b2cddf1307720b04392974"
+      "device_pk": "8462d6cd8aa68c1e2a4298be2cf742767df277cbfacb8e2df88d16453df4c91a",
+      "nostr_pk": "05a342648b61dd3e5218acb08323f65b3544b391351441a2f29c53949cee98eb",
+      "device_id": "59863aeb5f97227c999856c16e51e45b"
     },
     "header": {
       "alg": "EdDSA",
       "typ": "oc-chat-device-vouch",
       "kid": "test-kid"
     },
-    "statement": "oc-chat:device-vouch:v1\ndid_oc: did:oc:222e0038c2121856123e238b53bb2ab1\ndevice_pk: 8d865c6bec4e8a1644d681b496b1cef5183c528d71f41ceb1e3db9703fa9c7a2\nnostr_pk: 97f2ab0edcb9ba031326fd85e1cb4d639d3f51bca9734f578b4d6671709f964c\ndevice_id: 95a715a9c1b2cddf1307720b04392974\nissued_at: 1795575496\n"
+    "statement": "oc-chat:device-vouch:v1\ndid_oc: did:oc:9e6ab20662b76ba6c8573cb7d1e598d6\ndevice_pk: 8462d6cd8aa68c1e2a4298be2cf742767df277cbfacb8e2df88d16453df4c91a\nnostr_pk: 05a342648b61dd3e5218acb08323f65b3544b391351441a2f29c53949cee98eb\ndevice_id: 59863aeb5f97227c999856c16e51e45b\nissued_at: 1795583379\n"
+  },
+  "webauthn_register": {
+    "options": {
+      "ok": true,
+      "options": {
+        "challenge": "aLPsq1v7szpkqtVTDaV_plksTH4pQbtsaH94Vy-kVlk",
+        "rp": {
+          "name": "OrangeCheck",
+          "id": "ochk.io"
+        },
+        "user": {
+          "id": "MDFmYzNlMDYtNTU4OS00MTkwLTlkNmQtY2E5YWFiMTgwNTky",
+          "name": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6",
+          "displayName": "did:oc:9e6ab20662b76ba6c8573cb7d1e598d6"
+        },
+        "pubKeyCredParams": [
+          {
+            "alg": -8,
+            "type": "public-key"
+          },
+          {
+            "alg": -7,
+            "type": "public-key"
+          },
+          {
+            "alg": -257,
+            "type": "public-key"
+          }
+        ],
+        "timeout": 60000,
+        "attestation": "none",
+        "excludeCredentials": [],
+        "authenticatorSelection": {
+          "residentKey": "preferred",
+          "userVerification": "required",
+          "requireResidentKey": false
+        },
+        "extensions": {
+          "credProps": true
+        },
+        "hints": []
+      },
+      "expires_at": "2026-11-25T05:14:39.000Z"
+    },
+    "challenge_token_header": {
+      "alg": "EdDSA",
+      "typ": "JWT",
+      "kid": "test-kid"
+    },
+    "challenge_token_claims": {
+      "purpose": "webauthn-challenge",
+      "kind": "register",
+      "challenge": "aLPsq1v7szpkqtVTDaV_plksTH4pQbtsaH94Vy-kVlk",
+      "account_id": "01fc3e06-5589-4190-9d6d-ca9aab180592",
+      "origin": "https://vault.ochk.io",
+      "jti": "2582b0fd37c7573d9c8e4331",
+      "iss": "https://ochk.io",
+      "iat": 1795583379,
+      "exp": 1795583679
+    },
+    "verify": {
+      "ok": true,
+      "credential": {
+        "id": "30b997e9-ef99-4121-81c2-cff4866f93a4",
+        "label": "contract key",
+        "authenticator_type": "platform",
+        "transports": [
+          "internal",
+          "hybrid"
+        ],
+        "user_verified": true,
+        "synced": true,
+        "discoverable": true,
+        "created_at": "2026-11-25T05:09:39.888+00:00",
+        "last_used_at": null
+      }
+    }
   }
 }

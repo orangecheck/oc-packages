@@ -26,6 +26,13 @@ export interface Recording {
         header: Record<string, unknown>;
         statement: string;
     };
+    /** What ochk.io answers a site's passkey settings: register options (its challenge token as claims), then verify. */
+    webauthn_register: {
+        options: Record<string, unknown>;
+        challenge_token_header: Record<string, unknown>;
+        challenge_token_claims: Record<string, unknown>;
+        verify: Record<string, unknown>;
+    };
 }
 
 export const recorded = recording as unknown as Recording;
@@ -37,10 +44,16 @@ export const IDENTITY_KEY = {
     key_holder: 'orangecheck',
 } as const;
 
+/** The credential id the register tests' stand-in authenticator returns. */
+export const PASSKEY_CREDENTIAL_ID = 'Y29tcGF0LXBhc3NrZXktMDE';
+
 export const EMAIL = (recorded.identities.linked[0] as { value: string }).value;
 export const AUDIENCE = recorded.audience_token_claims.aud as string;
 
-type Account = Pick<Recording, 'token_claims' | 'audience_token_claims' | 'me' | 'identities' | 'chat_vouch'>;
+type Account = Pick<
+    Recording,
+    'token_claims' | 'audience_token_claims' | 'me' | 'identities' | 'chat_vouch' | 'webauthn_register'
+>;
 
 const copy = <T>(v: T): T => structuredClone(v);
 
@@ -53,6 +66,7 @@ function withIdentityKey(a: Account): Account {
     a.audience_token_claims.identity_key = copy(IDENTITY_KEY);
     a.me.account.identity_key = copy(IDENTITY_KEY);
     a.identities.identity_key = copy(IDENTITY_KEY);
+    a.webauthn_register.verify.identity_key = copy(IDENTITY_KEY);
     return a;
 }
 
@@ -83,6 +97,20 @@ export const FORBIDDEN: Record<string, (a: Account) => void> = {
             is_primary: true,
             providers: [],
         }),
+    // The statement auth-client 2.52.0 asks a site's wallet signer to sign, binding the new passkey.
+    register_binding_statement: (a) => {
+        a.webauthn_register.verify.binding_statement = [
+            'oc-passkey:bind:v1',
+            `address: ${IDENTITY_KEY.address}`,
+            `did_oc: ${a.token_claims.did_oc as string}`,
+            'rp_id: ochk.io',
+            `credential_id: ${PASSKEY_CREDENTIAL_ID}`,
+            `issued_at: ${a.token_claims.iat as number}`,
+            `expires_at: ${(a.token_claims.iat as number) + 300}`,
+            'nonce: 00000000000000000000000000000000',
+            '',
+        ].join('\n');
+    },
     chat_vouch_line: (a) =>
         void (a.chat_vouch.statement = a.chat_vouch.statement.replace(
             /^issued_at: /m,
@@ -103,6 +131,7 @@ function base(): Account {
         me: copy(recorded.me),
         identities: copy(recorded.identities),
         chat_vouch: copy(recorded.chat_vouch),
+        webauthn_register: copy(recorded.webauthn_register),
     };
 }
 
