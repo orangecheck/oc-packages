@@ -9,7 +9,7 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
-## [0.9.0] — 2026-11-24
+## [0.9.0] — 2026-11-25
 
 ### Changed
 
