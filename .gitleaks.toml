@@ -27,3 +27,7 @@ condition = "AND"
 paths = ['''^auth-client/src/__tests__/webauthn-passkey\.test\.tsx$''']
 regexTarget = "line"
 regexes = ['''^\s*'credential_key: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\\n' \+$''']
+
+[[allowlists]]
+description = "keys' vectors: identity, wallet and issuer secrets derived from published labels, burn keys that open only the test copies beside them"
+paths = ['''^keys/test-vectors/keys-v1\.json$''']
