@@ -405,4 +405,40 @@ const copy = lockWithPasskey({ identitySecret: I, walletSecret: W, prfOutput, cr
 const opened = openWithPasskey(copy, prfOutput); // { ok: true, identitySecret, walletSecret }
 ```
 
+One call per step of a key's life (`src/issue.ts`). Each returns the record's
+id, its envelope and an unsigned kind-30078 event; the caller stamps the id
+with OpenTimestamps, adds the proof as `ots`, and signs the event with the
+key §4 names.
+
+```ts
+import {
+    countersignTakeover, identityKeys, issueCustodialBinding, issueRetire, randomSecret, readBack, signTakeover,
+} from '@orangecheck/keys';
+
+// ochk.io mints a key it holds, and binds it. The key signs nothing.
+const keys = identityKeys(randomSecret());
+const bound = issueCustodialBinding({ didOc, address: keys.address, nostr: keys.nostr, issuer, since: tip });
+
+// After publishing a batch, and before counting it done:
+readBack({ address: keys.address, expect: { binding: bound.id, holder: 'orangecheck' }, lookup, ctx });
+// { ok: true } or { ok: false, reason: 'unavailable' | 'not_seen' | 'other_binding' | 'holder_differs' | 'refused' }
+
+// Ending a binding never taken over (`withdrawn` undoes a published one):
+issueRetire({ didOc, address: keys.address, binding: bound.id, reason: 'withdrawn', issuer, since: tip });
+
+// The takeover, in two phases. The key frame signs first; ochk.io checks it
+// against the binding it holds, adds the issuer's signature, and deletes its
+// copy of the key only after `ok: true`. The user's own Nostr key publishes it.
+const request = signTakeover({ binding: bound.envelope, keys, issuer: issuer.address, since: tip });
+const done = countersignTakeover(request, { binding: bound.envelope, issuer, ctx });
+```
+
+`issuer` is `{ address, addressKey }`; an issue call refuses a key that is
+not that address, and fields that do not make a canonical record.
+`countersignTakeover` never throws on what the frame sends: it answers
+`{ ok: false, reason }`, from `malformed` to the finished envelope's own
+`verifyRecord` failure. It checks the request, not ochk.io's state: call it
+only for an account whose binding ochk.io still holds and has neither
+retired nor handed over.
+
 MIT.
