@@ -232,7 +232,8 @@ def _run_bond(vec: dict[str, Any]) -> None:
     bond = inputs["bond"]
     attest_d = inputs["attestation_resolved"]
 
-    swearer_address = attest_d["address"]
+    # A vector names its swearer, or the swearer is the attestation's address.
+    swearer_address = inputs.get("swearer_address", attest_d["address"])
     pledge = {
         "v": 1,
         "kind": "pledge",
