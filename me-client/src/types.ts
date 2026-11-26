@@ -432,13 +432,19 @@ export interface DropScheduleSummary {
     label: string;
     subtypes: EventSubtype[];
     cadence: DropCadence;
+    /** Seconds from a window's end to its signed manifest and
+     *  `drop.closed` while each sweep run finishes; a run that fails or
+     *  runs out of time leaves the rest to the next run. Absent from a
+     *  me.ochk.io that predates it: name no wait then. */
+    record_within_seconds?: number;
 }
 
 /** Drop-period context on event-ingest responses (single route:
  *  top-level `drop`; batch route: per-result `drop`). `state` flips
  *  from 'open' to 'closing' once the scheduled boundary passes and the
- *  window awaits its sweep (~15 min) — render "processing", never a
- *  negative countdown. */
+ *  window awaits the sweep that seals it and publishes its manifest
+ *  (how long: its schedule's `record_within_seconds`) — render
+ *  "processing", never a negative countdown. */
 export interface DropResponseBlock {
     window_id: string;
     label: string;

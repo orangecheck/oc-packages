@@ -10,6 +10,18 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+### Added
+
+- `DropScheduleSummary.record_within_seconds` (optional): how long after a
+  window's end its manifest and `drop.closed` can take while each sweep run
+  finishes. me.ochk.io serves it on each schedule in
+  `GET /api/integrator/config`'s `drops`.
+
+### Changed
+
+- `DropResponseBlock`'s doc points to its schedule's `record_within_seconds`
+  for how long a closing batch's manifest can take.
+
 ## [0.65.0] — 2026-11-25
 
 ### Changed
