@@ -37,7 +37,8 @@ export class MessageChangedError extends Error {
 
 /**
  * The wallet signed the message without its last line break, as Sparrow and Electrum's GUI do
- * when they trim it, and only an auth challenge verifies that way.
+ * when they trim it, and this message needs it. An auth challenge, an attestation, a bond, an
+ * OC Lock device bind or revocation and a passkey binding verify that way; no other message does.
  */
 export class TrimmedSignatureError extends Error {
   readonly code = "E_TRIMMED_SIGNATURE" as const;
