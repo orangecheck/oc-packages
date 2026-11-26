@@ -30,7 +30,7 @@ const blockHash = (h: number) => (h === 100 || h === 200 || h === 300 ? H : unde
 const ctx: VerifyContext = { issuers: namedIssuer(ISSUER.address), blockHash };
 const at = (height: number) => ({ height, block: H });
 
-const bound = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100) });
+const bound = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100), ctx });
 const request = () => signTakeover({ binding: bound.envelope, keys: KEYS, issuer: ISSUER.address, since: at(200) });
 const countersign = (req: unknown, over: Partial<Parameters<typeof countersignTakeover>[1]> = {}) =>
     countersignTakeover(req, { binding: bound.envelope, issuer: ISSUER, ctx, ...over });
@@ -62,7 +62,7 @@ describe('issueCustodialBinding', () => {
         expect(JSON.parse(bound.event.content)).toEqual(bound.envelope);
     });
     it('refuses fields that do not make a canonical record', () => {
-        const f = { didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100) };
+        const f = { didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100), ctx };
         expect(() => issueCustodialBinding({ ...f, didOc: 'did:oc:nothex' })).toThrow(RangeError);
         expect(() => issueCustodialBinding({ ...f, didOc: `${DID}\nkey_holder: user` })).toThrow(RangeError);
         expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, nostr: 'AB'.repeat(32) } })).toThrow(RangeError);
@@ -74,11 +74,12 @@ describe('issueCustodialBinding', () => {
                 keys: KEYS,
                 issuer: { address: ISSUER.address, addressKey: OTHER_KEY },
                 since: at(100),
+                ctx,
             })
         ).toThrow('not the key of this address');
     });
     it("binds no address or Nostr key whose private key it was not given", () => {
-        const f = { didOc: DID, issuer: ISSUER, since: at(100) };
+        const f = { didOc: DID, issuer: ISSUER, since: at(100), ctx };
         expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, addressKey: STRANGER.addressKey } })).toThrow(
             'not the key of this address'
         );
@@ -86,6 +87,36 @@ describe('issueCustodialBinding', () => {
         expect(() => issueCustodialBinding({ ...f, keys: { ...KEYS, address: STRANGER.address } })).toThrow(
             'not the key of this address'
         );
+    });
+});
+
+describe('issued records verify', () => {
+    // A record goes out under a key dropped once it signs, so a bad one could never be replaced.
+    it('refuses a binding whose finished envelope does not verify', () => {
+        const f = { didOc: DID, keys: KEYS, issuer: ISSUER, since: at(100), ctx };
+        const terms = (...issuers: VerifyContext['issuers']) => ({ ...ctx, issuers });
+        expect(() => issueCustodialBinding({ ...f, since: { height: 150, block: H } })).toThrow('does not verify: since_unverified');
+        expect(() => issueCustodialBinding({ ...f, since: { height: 100, block: 'cd'.repeat(32) } })).toThrow('since_not_on_chain');
+        expect(() => issueCustodialBinding({ ...f, issuer: OTHER })).toThrow('issuer_unknown');
+        // A since below its issuer's own term: the new issuer's record at a shallower depth than its hand-over.
+        expect(() => issueCustodialBinding({ ...f, ctx: terms({ address: ISSUER.address, from: 150 }) })).toThrow('issuer_not_yet');
+        expect(() => issueCustodialBinding({ ...f, ctx: terms({ address: ISSUER.address, from: 0, until: { since: 50 } }) })).toThrow(
+            'issuer_retired'
+        );
+    });
+    it('refuses a retire whose finished envelope does not verify', () => {
+        const f = {
+            didOc: DID,
+            address: KEYS.address,
+            binding: bound.id,
+            reason: 'withdrawn' as const,
+            issuer: ISSUER,
+            since: at(200),
+            ctx,
+        };
+        expect(() => issueRetire({ ...f, since: { height: 250, block: H } })).toThrow('does not verify: since_unverified');
+        expect(() => issueRetire({ ...f, issuer: OTHER })).toThrow('issuer_unknown');
+        expect(() => issueRetire({ ...f, ctx: { ...ctx, issuers: [{ address: ISSUER.address, from: 250 }] } })).toThrow('issuer_not_yet');
     });
 });
 
@@ -97,6 +128,7 @@ describe('issueRetire', () => {
         reason: 'withdrawn',
         issuer: ISSUER,
         since: at(200),
+        ctx,
     });
     it('names the binding and the reason, and verifies', () => {
         expect(parseRecord(retired.envelope.record)).toMatchObject({ type: 'retire', binding: bound.id, reason: 'withdrawn' });
@@ -119,6 +151,7 @@ describe('issueRetire', () => {
                 reason: 'wallet_linked' as never,
                 issuer: ISSUER,
                 since: at(200),
+                ctx,
             })
         ).toThrow(RangeError);
     });
@@ -229,12 +262,12 @@ describe('readBack', () => {
         expect(r).toMatchObject({ ok: false, reason: 'unavailable' });
     });
     it('says another binding holds the address', () => {
-        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300) });
+        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300), ctx });
         const r = readBack({ address: KEYS.address, expect: { binding: second.id, holder: 'orangecheck' }, lookup: complete(bound.envelope), ctx });
         expect(r).toMatchObject({ ok: false, reason: 'other_binding', state: { binding: { id: bound.id } } });
     });
     it('passes on the reason the records refuse the address', () => {
-        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300) });
+        const second = issueCustodialBinding({ didOc: DID, keys: KEYS, issuer: ISSUER, since: at(300), ctx });
         const r = readBack({
             address: KEYS.address,
             expect: { binding: bound.id, holder: 'orangecheck' },

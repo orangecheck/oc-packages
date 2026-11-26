@@ -3320,6 +3320,41 @@
           }
         },
         {
+          "name": "a takeover outside its issuer's term, beside A's binding: ignored, only a custodial binding is held",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkgwRQIhAKVn0flQ25cQlc5QCIm2hPEZgBLADJ8uUTH9ZEmFeXG3AiAKUXS7RQTGK3j4/+E8D9xVPMmrOHBHKqG7vnxrY4sh3gEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkcwRAIgHjBvGwoBJ2Y6yC1nBrg9ytPaZKpuawbmZX5PHoy74/0CIB5aC8eXv1r6tFZpHXOGNtZKbytrO8ZG1wx2FruSqbDaASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+                    "nostr_sig": "5c75f2699282898961416141fb9e25dfd59db7c6b802ec336d51010a97b6190708e055ad3375e82b9d816b19a258fc3b5b2b1a306807b6d1e5a8fe7065597c26"
+                  },
+                  "anchoredAt": 977003
+                },
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:takeover:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nbinding: 4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075\nkey_holder: user\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck held this key until this record was anchored and says it deleted its copy. That cannot be proven.\n",
+                    "issuer_sig": "AkgwRQIhANUeYSbj1EwlUFRq1Fvai1oFKVmo2xtovsXbWrUtAwt0AiA9qaIWn2Me98bbM+ELazuWRs5f7dnE4XCLAf5futscLgEhAyn/tuiZfF6+L4EtA/hIC2tM5/+COhiZjwCx0uHUWETx",
+                    "address_sig": "AkgwRQIhAOezcXa+PdTioTDZ29SGsZkRbaEKbte9IH+ZCZXMQjReAiADwccoA3BNons3XYxJKqv9z8EAsHh/+trdh5fMbGy6vQEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
+                    "nostr_sig": "ad5d842b953b0c10aa3aaa642996e5c7be4aedce15cb1cc24748ef57509b57c0d8761c6a3c2e8904d2bb035d822a61ec7716a7aaea449b3f0b9bf5462a789a65"
+                  },
+                  "anchoredAt": 977105
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "bound",
+            "born": "orangecheck",
+            "holder": "orangecheck",
+            "binding": "4ecbcbe7d226f6be89b630287e85b294bd99328fa2060739c53f60e9a3018075"
+          }
+        },
+        {
           "name": "a user binding under an issuer the verifier does not hold: ignored",
           "input": {
             "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
@@ -3447,6 +3482,53 @@
           "expected": {
             "status": "refused",
             "reason": "takeover_mismatch"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kh20",
+      "category": "key_holder",
+      "description": "with no issuer terms (an issuer read short of the floor, or a refused set) no address can be told from plain Bitcoin: every one is refused",
+      "cases": [
+        {
+          "name": "A's custodial binding",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "issuers": [],
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkgwRQIhAKVn0flQ25cQlc5QCIm2hPEZgBLADJ8uUTH9ZEmFeXG3AiAKUXS7RQTGK3j4/+E8D9xVPMmrOHBHKqG7vnxrY4sh3gEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkcwRAIgHjBvGwoBJ2Y6yC1nBrg9ytPaZKpuawbmZX5PHoy74/0CIB5aC8eXv1r6tFZpHXOGNtZKbytrO8ZG1wx2FruSqbDaASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+                    "nostr_sig": "5c75f2699282898961416141fb9e25dfd59db7c6b802ec336d51010a97b6190708e055ad3375e82b9d816b19a258fc3b5b2b1a306807b6d1e5a8fe7065597c26"
+                  },
+                  "anchoredAt": 977003
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "unavailable"
+          }
+        },
+        {
+          "name": "an address with no record",
+          "input": {
+            "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+            "issuers": [],
+            "lookup": {
+              "complete": true,
+              "records": []
+            }
+          },
+          "expected": {
+            "status": "refused",
+            "reason": "unavailable"
           }
         }
       ]

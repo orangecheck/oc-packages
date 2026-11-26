@@ -169,7 +169,10 @@ The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
   gone is refused for good (`since_not_on_chain`). A binding cannot be made
   again, since its key is sealed once it has signed; a stranded takeover
   refuses the address beside any later one, and a stranded issuer record
-  refuses every issuer read. Verifiers do not check the depth.
+  refuses every issuer read. An issuer record names its since at the same
+  depth as the records after it: a record the new issuer makes with a since
+  below its hand-over's is `issuer_not_yet`, and refused for good once
+  published. Verifiers do not check the depth.
 - **issuer** is orangecheck's issuer address, a mainnet P2WPKH address the
   spec names. The vectors use a placeholder burn key.
 
@@ -214,7 +217,7 @@ must be complete, as an address read must (below), else `unavailable`: a
 hand-over it missed would leave every binding of the issuer handed to
 unknown, and those addresses would read as plain Bitcoin (`ki09`). Without
 issuer terms, from a short read or a refused set, every address is refused,
-since none can be told from plain Bitcoin. An issuer's term starts at its
+since none can be told from plain Bitcoin (`kh20`). An issuer's term starts at its
 record's since block; a term that ended counts only for records anchored at
 or below the anchor of the record that ended it (the since block where that
 record has no anchor). orangecheck hands over only once every record the old
@@ -296,7 +299,9 @@ host records do; none goes out under orangecheck's service key or the
 person's own. A record's trust rests on its `issuer_sig` and `address_sig`,
 never on who published it, and a publishing key kept and then leaked could
 replace a record on any relay that keeps only the newest event per pubkey,
-kind and d tag.
+kind and d tag. Under a dropped key a record can never be replaced or
+withdrawn either, so its maker publishes nothing that fails `verifyRecord`:
+every issue call verifies the finished envelope and throws if it fails.
 
 ## §5 Signatures by a bound address
 
@@ -413,7 +418,7 @@ one.
 
 ## §7 Vectors
 
-`test-vectors/keys-v1.json`: 91 vectors (derivation `kd`, lock and open `kl`,
+`test-vectors/keys-v1.json`: 92 vectors (derivation `kd`, lock and open `kl`,
 record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
 `kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
 negative, each with `id`, `category`, `description`, `input` and `expected`
@@ -439,7 +444,8 @@ Two cross-checks outside the TypeScript:
   hash of the BIP's own list); both KEKs, every additional data, ciphertext
   and open; the record texts and ids, and which signatures each carries; the
   issuer terms, and that a refused set has a record on the walk that refuses
-  it; the publication tags; that a read short of the floor resolves nothing;
+  it; the publication tags; that a read short of the floor, or with no issuer
+  terms, resolves nothing;
   the key-holder and signature rules over the records the vectors call good,
   and over each `unbound` case whose records are noise by their shape alone;
   and the wallet-link rule over every
@@ -476,14 +482,14 @@ const since = { height: tipHeight - SINCE_DEPTH, block: blockHash(tipHeight - SI
 
 // ochk.io mints a key it holds, and binds it. The key signs its own binding, then is sealed.
 const keys = identityKeys(randomSecret());
-const bound = issueCustodialBinding({ didOc, keys, issuer, since });
+const bound = issueCustodialBinding({ didOc, keys, issuer, since, ctx });
 
 // After publishing a batch, and before counting it done:
 readBack({ address: keys.address, expect: { binding: bound.id, holder: 'orangecheck' }, lookup, ctx });
 // { ok: true } or { ok: false, reason: 'unavailable' | 'not_seen' | 'other_binding' | 'holder_differs' | 'refused' }
 
 // Ending a binding never taken over (`withdrawn` undoes a published one):
-issueRetire({ didOc, address: keys.address, binding: bound.id, reason: 'withdrawn', issuer, since });
+issueRetire({ didOc, address: keys.address, binding: bound.id, reason: 'withdrawn', issuer, since, ctx });
 
 // The takeover, in two phases. The key frame signs first; ochk.io checks it
 // against the binding it holds, adds the issuer's signature, and deletes its
@@ -493,7 +499,9 @@ const done = countersignTakeover(request, { binding: bound.envelope, issuer, ctx
 ```
 
 `issuer` is `{ address, addressKey }`; an issue call refuses a key that is
-not that address, and fields that do not make a canonical record. `ctx` is
+not that address, fields that do not make a canonical record, and a finished
+envelope that does not verify under `ctx`, such as one whose since block is
+not on its chain or is outside the issuer's term. `ctx` is
 `{ issuers, blockHash }`, where `issuers` is the terms `resolveIssuers` gives
 for a complete read of the issuer tag (§4).
 `issueCustodialBinding` binds the address and Nostr key of the `keys` it is

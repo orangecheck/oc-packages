@@ -154,8 +154,11 @@ const summary = (s: KeyHolderState) =>
               ...(s.retire ? { retire: s.retire.id, retire_reason: s.retire.reason } : {}),
           };
 
-const resolve = (input: Any) =>
-    resolveKeyHolder(input.address, input.lookup, input.namedBinding ? { ...ctx, namedBinding: input.namedBinding } : ctx);
+const resolve = (input: Any) => {
+    // A vector may name the verifier's issuer terms; otherwise they are the file's (ki01).
+    const base = input.issuers ? { ...ctx, issuers: input.issuers } : ctx;
+    return resolveKeyHolder(input.address, input.lookup, input.namedBinding ? { ...base, namedBinding: input.namedBinding } : base);
+};
 
 describe('record vectors', () => {
     it.each<Case>(flat('record'))('$label', (c: Any) => {

@@ -636,7 +636,7 @@ export interface ResolveContext extends VerifyContext {
 }
 
 export type ResolveFailure =
-    | 'unavailable' // the read was not complete
+    | 'unavailable' // the read was not complete, or there are no issuer terms to read it under
     | 'record_unverified' // a record the issuer signed, of which no copy verifies here
     | 'named_binding_missing'
     | 'conflicting_bindings'
@@ -683,7 +683,7 @@ export type KeyHolderState =
  * address's own key both signed it, so an issuer alone can neither bind an
  * address nor refuse one; a custodial binding its own key and a term's issuer
  * signed counts even outside that issuer's term, since only those two make
- * one. Short of the read floor nothing resolves. A retire, which only the issuer signs, counts only
+ * one. Short of the read floor, or with no issuer terms, nothing resolves. A retire, which only the issuer signs, counts only
  * against the custodial binding it names, before any takeover. A record that
  * counts is held once any copy of it verifies; if none does, the address is
  * refused, not read as unbound. Holding no takeover is not proof there is
@@ -694,6 +694,8 @@ export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: Res
     const refuse = (reason: ResolveFailure | RecordFailure): KeyHolderState => ({ status: 'refused', reason });
     // A record the read missed could refuse what the rest allow, so short of the floor nothing resolves.
     if (!lookup.complete) return refuse('unavailable');
+    // With no issuer terms (README §4) no address can be told from plain Bitcoin.
+    if (!ctx.issuers.length) return refuse('unavailable');
     type Held = { record: AddressRecord; anchoredAt?: number; reason?: RecordFailure };
     const valid = new Map<string, Held>();
     const broken = new Map<string, Held>();
