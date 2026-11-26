@@ -35,7 +35,7 @@ type Any = any;
 type Case = Record<string, Any>;
 const file: Any = JSON.parse(readFileSync(FILE, 'utf8'));
 const blockHash = (h: number): string | undefined => file.chain.headers[String(h)];
-const issuers = resolveIssuers(file.issuer.named, file.issuer.records, blockHash);
+const issuers = resolveIssuers(file.issuer.named, file.issuer.lookup, blockHash);
 if (!issuers.ok) throw new Error(`the file's issuer records do not resolve: ${issuers.reason}`);
 const ctx: VerifyContext = { issuers: issuers.terms, blockHash };
 const hex = (s: string) => fromHex(s)!;
@@ -166,7 +166,7 @@ describe('record vectors', () => {
 
 describe('issuer vectors', () => {
     it.each<Case>(flat('issuers'))('$label', (c: Any) => {
-        expect(resolveIssuers(c.input.named, c.input.records, blockHash)).toEqual(c.expected);
+        expect(resolveIssuers(c.input.named, c.input.lookup, blockHash)).toEqual(c.expected);
     });
 
     it("the file's own issuer records resolve to ki01's terms", () => {

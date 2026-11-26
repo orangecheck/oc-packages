@@ -209,7 +209,12 @@ and follows every issuer record signed by both sides, back and forward
 wrong with it, since anyone with two keys can sign one (`ki07`). Two records
 out of one address or into one, a loop, or a record the walk follows whose
 since block is not on the verifier's chain, or one copy of it anchored at or
-below that block, refuse the whole set (`ki06`, `ki08`). An issuer's term starts at its
+below that block, refuse the whole set (`ki06`, `ki08`). The read of the issuer tag
+must be complete, as an address read must (below), else `unavailable`: a
+hand-over it missed would leave every binding of the issuer handed to
+unknown, and those addresses would read as plain Bitcoin (`ki09`). Without
+issuer terms, from a short read or a refused set, every address is refused,
+since none can be told from plain Bitcoin. An issuer's term starts at its
 record's since block; a term that ended counts only for records anchored at
 or below the anchor of the record that ended it (the since block where that
 record has no anchor). orangecheck hands over only once every record the old
@@ -248,9 +253,11 @@ verifier read for the address:
   own key both signed it, and a retire where the issuer did. Anything else is
   ignored: anyone can publish under the address's tag, and the issuer alone
   cannot bind an address (`kh16`). A custodial binding the address's own key
-  signed is the exception: only the key's holder makes one, so it counts
-  whatever fails at steps 3 to 5, and the address is
-  refused rather than read as plain Bitcoin (`kh14`, `kh18`). A verifier
+  and a trusted issuer both signed is the exception: only the key's holder
+  and an issuer make one, so it counts though its since block is outside that
+  issuer's term (step 5), and the address is refused rather than read as plain
+  Bitcoin (`kh14`, `kh18`). One whose issuer part fails at step 3 is noise
+  like the rest, since the owner of any plain address can sign one (`kh18`). A verifier
   without OpenTimestamps therefore refuses every address bound in an issuer
   term that has ended;
 - a record that counts is held once any copy of it verifies. If none does,
@@ -406,7 +413,7 @@ one.
 
 ## §7 Vectors
 
-`test-vectors/keys-v1.json`: 90 vectors (derivation `kd`, lock and open `kl`,
+`test-vectors/keys-v1.json`: 91 vectors (derivation `kd`, lock and open `kl`,
 record `kr`, issuer `ki`, key holder `kh`, signature `ks`, wallet record
 `kw`, wallet link `kb` and its copies `kc`, publication `kn`), positive and
 negative, each with `id`, `category`, `description`, `input` and `expected`
@@ -416,8 +423,9 @@ negative, each with `id`, `category`, `description`, `input` and `expected`
   a published label in `test/vectors.build.ts`. None guards anything. Never
   send funds to these addresses.
 - `chain.headers` holds the four mainnet blocks the records name. `issuer`
-  holds the placeholder issuer address and the issuer record every record and
-  key-holder vector is checked under (`ki01` gives the terms).
+  holds the placeholder issuer address and a complete read of the issuer tag,
+  the issuer record every record and key-holder vector is checked under
+  (`ki01` gives the terms).
 - `yarn vectors` rebuilds the file. `yarn test` fails unless the committed
   file is byte-identical to a rebuild and every vector holds when read back
   from the JSON alone.
@@ -485,7 +493,9 @@ const done = countersignTakeover(request, { binding: bound.envelope, issuer, ctx
 ```
 
 `issuer` is `{ address, addressKey }`; an issue call refuses a key that is
-not that address, and fields that do not make a canonical record.
+not that address, and fields that do not make a canonical record. `ctx` is
+`{ issuers, blockHash }`, where `issuers` is the terms `resolveIssuers` gives
+for a complete read of the issuer tag (§4).
 `issueCustodialBinding` binds the address and Nostr key of the `keys` it is
 given, and refuses keys whose private halves are not theirs.
 `countersignTakeover` never throws on what the frame sends: it answers

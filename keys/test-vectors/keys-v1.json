@@ -18,18 +18,21 @@
     }
   },
   "issuer": {
-    "note": "A placeholder for the issuer address the spec names. Every record and key-holder vector is checked against the terms this name and these records resolve to (ki01).",
+    "note": "A placeholder for the issuer address the spec names. Every record and key-holder vector is checked against the terms this name and this complete read resolve to (ki01).",
     "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-    "records": [
-      {
-        "envelope": {
-          "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-          "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-          "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-        },
-        "anchoredAt": 977002
-      }
-    ]
+    "lookup": {
+      "complete": true,
+      "records": [
+        {
+          "envelope": {
+            "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+            "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+            "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+          },
+          "anchoredAt": 977002
+        }
+      ]
+    }
   },
   "burn_keys": {
     "issuer": {
@@ -1256,32 +1259,35 @@
       "description": "the named issuer and three copies of its hand-over record with different proofs: the old issuer before it, until the earliest anchor",
       "input": {
         "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-        "records": [
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977004
             },
-            "anchoredAt": 977004
-          },
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977002
             },
-            "anchoredAt": 977002
-          },
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-            },
-            "anchoredAt": 977005
-          }
-        ]
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977005
+            }
+          ]
+        }
       },
       "expected": {
         "ok": true,
@@ -1307,16 +1313,19 @@
       "description": "a verifier that still names the old issuer follows the hand-over to the current one",
       "input": {
         "named": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
-        "records": [
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-            },
-            "anchoredAt": 977002
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977002
+            }
+          ]
+        }
       },
       "expected": {
         "ok": true,
@@ -1342,16 +1351,19 @@
       "description": "a record the new issuer did not sign is ignored",
       "input": {
         "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-        "records": [
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAOZcyDR9cvNuqSB5m0YYpNiQK6Spa2Nwi4ZPMgDQu2IgAiAmvGQp6VpZMBo0kBZ2tgXAz65sxDc5OYBXlQFI+kJ8UQEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d"
-            },
-            "anchoredAt": 977002
-          }
-        ]
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAOZcyDR9cvNuqSB5m0YYpNiQK6Spa2Nwi4ZPMgDQu2IgAiAmvGQp6VpZMBo0kBZ2tgXAz65sxDc5OYBXlQFI+kJ8UQEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d"
+              },
+              "anchoredAt": 977002
+            }
+          ]
+        }
       },
       "expected": {
         "ok": true,
@@ -1369,23 +1381,26 @@
       "description": "two hand-overs to the same issuer: refused",
       "input": {
         "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-        "records": [
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              },
+              "anchoredAt": 977002
             },
-            "anchoredAt": 977002
-          },
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkgwRQIhAIR0GrWQCq6WcO/JfOQabsx08C8vBY0RyAmSk0suQUUBAiAbv4crG/58pO56WXlzkNr4bxPlU6gMmoIPWh3uJIEKagEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d",
-              "new_sig": "AkcwRAIgfsf15HAGLEs1dTHmTwKvIvinqQ4YnNKLiQcwihxeg8QCICaMRFREkL7oFAjNhiKmirQZtCivBnHOTSHWL1C17NcVASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkgwRQIhAIR0GrWQCq6WcO/JfOQabsx08C8vBY0RyAmSk0suQUUBAiAbv4crG/58pO56WXlzkNr4bxPlU6gMmoIPWh3uJIEKagEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d",
+                "new_sig": "AkcwRAIgfsf15HAGLEs1dTHmTwKvIvinqQ4YnNKLiQcwihxeg8QCICaMRFREkL7oFAjNhiKmirQZtCivBnHOTSHWL1C17NcVASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+              }
             }
-          }
-        ]
+          ]
+        }
       },
       "expected": {
         "ok": false,
@@ -1398,22 +1413,25 @@
       "description": "a hand-over and one back: refused",
       "input": {
         "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-        "records": [
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-              "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-              "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+        "lookup": {
+          "complete": true,
+          "records": [
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+              }
+            },
+            {
+              "envelope": {
+                "record": "oc-attest-key:issuer:v1\nold: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nnew: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+                "old_sig": "AkcwRAIgNoUqHBed7oofTnUVsPoDFaM83xlmfvzj5VB5i94E5joCIGGPtzGsTP86yJOZzmM2cLCpTskpbtcNe5gChjRNa24jASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
+                "new_sig": "AkcwRAIgBhM6LwepKo/ztq13IKSdwHYMWSKvBNbEkzgaSUmfb9ECIGhy16Sn+6VcOeNcX7r2SGTEMv2td4VhpN2TuSNSfu8oASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
+              }
             }
-          },
-          {
-            "envelope": {
-              "record": "oc-attest-key:issuer:v1\nold: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nnew: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-              "old_sig": "AkcwRAIgNoUqHBed7oofTnUVsPoDFaM83xlmfvzj5VB5i94E5joCIGGPtzGsTP86yJOZzmM2cLCpTskpbtcNe5gChjRNa24jASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ=",
-              "new_sig": "AkcwRAIgBhM6LwepKo/ztq13IKSdwHYMWSKvBNbEkzgaSUmfb9ECIGhy16Sn+6VcOeNcX7r2SGTEMv2td4VhpN2TuSNSfu8oASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE="
-            }
-          }
-        ]
+          ]
+        }
       },
       "expected": {
         "ok": false,
@@ -1429,15 +1447,18 @@
           "name": "a verifier that names the new issuer",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-                  "old_sig": "AkcwRAIgKwJ/sAlY/bI5ueEqCQ3K4O3kUYV25aRlx2U/qDEdLrYCIEGlHAlIjmfzEt4xJ/0E+8nRLoXhGyfVA2jCUFW9hvdsASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkcwRAIgYJz6wevQjPMsLLKTKDJSU+TfedRMSEhE5R1eME0scwwCIAgy4d0oUBKvmd85D6SB0xM2qWu9/jTjLtMW5AhGQR/BASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+                    "old_sig": "AkcwRAIgKwJ/sAlY/bI5ueEqCQ3K4O3kUYV25aRlx2U/qDEdLrYCIEGlHAlIjmfzEt4xJ/0E+8nRLoXhGyfVA2jCUFW9hvdsASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkcwRAIgYJz6wevQjPMsLLKTKDJSU+TfedRMSEhE5R1eME0scwwCIAgy4d0oUBKvmd85D6SB0xM2qWu9/jTjLtMW5AhGQR/BASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
                 }
-              }
-            ]
+              ]
+            }
           },
           "expected": {
             "ok": false,
@@ -1448,15 +1469,18 @@
           "name": "a verifier that names the old issuer",
           "input": {
             "named": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-                  "old_sig": "AkcwRAIgKwJ/sAlY/bI5ueEqCQ3K4O3kUYV25aRlx2U/qDEdLrYCIEGlHAlIjmfzEt4xJ/0E+8nRLoXhGyfVA2jCUFW9hvdsASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkcwRAIgYJz6wevQjPMsLLKTKDJSU+TfedRMSEhE5R1eME0scwwCIAgy4d0oUBKvmd85D6SB0xM2qWu9/jTjLtMW5AhGQR/BASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+                    "old_sig": "AkcwRAIgKwJ/sAlY/bI5ueEqCQ3K4O3kUYV25aRlx2U/qDEdLrYCIEGlHAlIjmfzEt4xJ/0E+8nRLoXhGyfVA2jCUFW9hvdsASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkcwRAIgYJz6wevQjPMsLLKTKDJSU+TfedRMSEhE5R1eME0scwwCIAgy4d0oUBKvmd85D6SB0xM2qWu9/jTjLtMW5AhGQR/BASECFAtnR6WZvrxMxK//oB4E7p2kJ5M4EuuHgdZr4zpJlaQ="
+                  }
                 }
-              }
-            ]
+              ]
+            }
           },
           "expected": {
             "ok": false,
@@ -1474,23 +1498,26 @@
           "name": "its since block is not on the chain",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
                 },
-                "anchoredAt": 977002
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
-                  "old_sig": "AkcwRAIgX6v+8+crWuXkA9Tf6GRNT+3hJ7mKy/ncxS0UTUW89eoCIDsNyOfL4IWuR/3Qx3WdaW37EaRQyukkrzrgkrr26pNHASEC48TlH646KSFcmiEOWuIa9zFfU+Du7XP9hv176gImepA=",
-                  "new_sig": "AkcwRAIgI1oUDDRK66wyXrzUlysEsorEY3MuNveB2HNw0w2XVSICIGGVf8Abe6MoKJL6u66Odq/MvQx+oujCAPvudU0BRhhPASECWiV2Okk1HbYNzdkfnC8+nAoaNfxkflDPTZBXwJ9S+Go="
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977000\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\n",
+                    "old_sig": "AkcwRAIgX6v+8+crWuXkA9Tf6GRNT+3hJ7mKy/ncxS0UTUW89eoCIDsNyOfL4IWuR/3Qx3WdaW37EaRQyukkrzrgkrr26pNHASEC48TlH646KSFcmiEOWuIa9zFfU+Du7XP9hv176gImepA=",
+                    "new_sig": "AkcwRAIgI1oUDDRK66wyXrzUlysEsorEY3MuNveB2HNw0w2XVSICIGGVf8Abe6MoKJL6u66Odq/MvQx+oujCAPvudU0BRhhPASECWiV2Okk1HbYNzdkfnC8+nAoaNfxkflDPTZBXwJ9S+Go="
+                  }
                 }
-              }
-            ]
+              ]
+            }
           },
           "expected": {
             "ok": true,
@@ -1514,23 +1541,26 @@
           "name": "its since height is past the tip",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
                 },
-                "anchoredAt": 977002
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
-                  "old_sig": "AkcwRAIgd6xQL4vjvh2TnvGkM8e0FnrnSd/nZVhwifMRi+3SCT4CIADdXW3oSAbBvIX9S0LJ9685aaFdsNymZBlppJeeUuK3ASEC48TlH646KSFcmiEOWuIa9zFfU+Du7XP9hv176gImepA=",
-                  "new_sig": "AkgwRQIhAKEkKmKMtCT2TFEeyW0beVYD+QWjcc+Zs3o4ePBqP2+ZAiAKLpvFR9P8+Haff9Pn/L3OKKXXAS7fuY4LQuuBEeMVYwEhAloldjpJNR22Dc3ZH5wvPpwKGjX8ZH5Qz02QV8CfUvhq"
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977300\nsince_block: 000000000000000000016b62f76491f2263475ccb36871294632ace78c53a947\n",
+                    "old_sig": "AkcwRAIgd6xQL4vjvh2TnvGkM8e0FnrnSd/nZVhwifMRi+3SCT4CIADdXW3oSAbBvIX9S0LJ9685aaFdsNymZBlppJeeUuK3ASEC48TlH646KSFcmiEOWuIa9zFfU+Du7XP9hv176gImepA=",
+                    "new_sig": "AkgwRQIhAKEkKmKMtCT2TFEeyW0beVYD+QWjcc+Zs3o4ePBqP2+ZAiAKLpvFR9P8+Haff9Pn/L3OKKXXAS7fuY4LQuuBEeMVYwEhAloldjpJNR22Dc3ZH5wvPpwKGjX8ZH5Qz02QV8CfUvhq"
+                  }
                 }
-              }
-            ]
+              ]
+            }
           },
           "expected": {
             "ok": true,
@@ -1554,24 +1584,27 @@
           "name": "anchored at its own since block",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
                 },
-                "anchoredAt": 977002
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkgwRQIhAPzGrI9eXVM/CkSlYBoD766hCWPsTkwtXyRt08bZAjtZAiAtKUp3WVgseUH3V0DNVoOXD15JXUvQ1kpx/59nWSQyWgEhAuPE5R+uOikhXJohDlriGvcxX1Pg7u1z/Yb9e+oCJnqQ",
-                  "new_sig": "AkgwRQIhALt+7rlzOxpAaIArApM8pYuFYrIwWRmjnizu9NoFKlG4AiBtPrODos3KhrxGL5iVSeVNSwjpBahApAUCUI1zGzNEjQEhAloldjpJNR22Dc3ZH5wvPpwKGjX8ZH5Qz02QV8CfUvhq"
-                },
-                "anchoredAt": 977000
-              }
-            ]
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nnew: bc1qp6laatpuevkx9r53mrsq5fvr2mfwnqwp3dx2xy\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkgwRQIhAPzGrI9eXVM/CkSlYBoD766hCWPsTkwtXyRt08bZAjtZAiAtKUp3WVgseUH3V0DNVoOXD15JXUvQ1kpx/59nWSQyWgEhAuPE5R+uOikhXJohDlriGvcxX1Pg7u1z/Yb9e+oCJnqQ",
+                    "new_sig": "AkgwRQIhALt+7rlzOxpAaIArApM8pYuFYrIwWRmjnizu9NoFKlG4AiBtPrODos3KhrxGL5iVSeVNSwjpBahApAUCUI1zGzNEjQEhAloldjpJNR22Dc3ZH5wvPpwKGjX8ZH5Qz02QV8CfUvhq"
+                  },
+                  "anchoredAt": 977000
+                }
+              ]
+            }
           },
           "expected": {
             "ok": true,
@@ -1602,24 +1635,27 @@
           "name": "the bad copy first",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977000
                 },
-                "anchoredAt": 977000
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-                },
-                "anchoredAt": 977002
-              }
-            ]
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
+                }
+              ]
+            }
           },
           "expected": {
             "ok": false,
@@ -1630,24 +1666,27 @@
           "name": "the bad copy last",
           "input": {
             "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
                 },
-                "anchoredAt": 977002
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-                },
-                "anchoredAt": 977000
-              }
-            ]
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977000
+                }
+              ]
+            }
           },
           "expected": {
             "ok": false,
@@ -1658,28 +1697,89 @@
           "name": "a verifier that names the old issuer",
           "input": {
             "named": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
-            "records": [
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
                 },
-                "anchoredAt": 977002
-              },
-              {
-                "envelope": {
-                  "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
-                  "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
-                  "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
-                },
-                "anchoredAt": 977000
-              }
-            ]
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977000
+                }
+              ]
+            }
           },
           "expected": {
             "ok": false,
             "reason": "bad_anchor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ki09",
+      "category": "issuers",
+      "description": "a read of the issuer tag short of the floor resolves nothing, whatever it found: a hand-over it missed would leave a term's bindings unknown",
+      "cases": [
+        {
+          "name": "nothing found",
+          "input": {
+            "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+            "lookup": {
+              "complete": false,
+              "records": []
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "unavailable"
+          }
+        },
+        {
+          "name": "the hand-over found",
+          "input": {
+            "named": "bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a",
+            "lookup": {
+              "complete": false,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:issuer:v1\nold: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nnew: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\n",
+                    "old_sig": "AkcwRAIgZLpqkYGEwT2r/xVfuuY8jfVanqXEkXYCuSQkhfNWl7UCIDJHoYmu2TvC8NZPdFtu36180FdxcxUPuMKz1hWMpF1zASEDKf+26Jl8Xr4vgS0D+EgLa0zn/4I6GJmPALHS4dRYRPE=",
+                    "new_sig": "AkgwRQIhAKZmguhtbul5S0QCbtZBqEBU6Rc5znBM7S+J+uGA3qq/AiBGS3oWAMfCnj+T5OxbtBhRfulBm0tQ4Y/8JHdIjpKy8AEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk"
+                  },
+                  "anchoredAt": 977002
+                }
+              ]
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "unavailable"
+          }
+        },
+        {
+          "name": "a verifier that names the old issuer, nothing found",
+          "input": {
+            "named": "bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08",
+            "lookup": {
+              "complete": false,
+              "records": []
+            }
+          },
+          "expected": {
+            "ok": false,
+            "reason": "unavailable"
           }
         }
       ]
@@ -3084,56 +3184,10 @@
     {
       "id": "kh18",
       "category": "key_holder",
-      "description": "a custodial binding the address's own key signed is held, whatever fails in the issuer's part, since only the key's holder signs one: refused, never plain Bitcoin",
+      "description": "a custodial binding the address's own key signed: held where a trusted issuer signed it and only the term check fails, so the address is refused; noise where no trusted issuer did, since the owner of any plain address can make one",
       "cases": [
         {
-          "name": "under an issuer the verifier does not hold",
-          "input": {
-            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-            "lookup": {
-              "complete": true,
-              "records": [
-                {
-                  "envelope": {
-                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1qhu38chp2pyqwgkmfvy2z5y65q94xhydt5k7fep\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
-                    "issuer_sig": "AkcwRAIgOA+VWCaV6GMkc1kc5Ho2fiHB/x+HDrPmjW8UkfhqS3cCIAhfxAQWBitmim97BLzmiJBlSQsmUj0nKhgZS7IgGbbvASEDOKL1O4+veHuIsCXndrweF5DdF7WURRCT1uBmTOfYPp0=",
-                    "address_sig": "AkgwRQIhAICIc9VPqWSyXh0VC82eUHh5XGikbJa2NDIQpjQrT35oAiBLxfCL5S2EVccjz+tMpGCPtTjF/2eIv5vaAL2teMdj8gEhA91kMRgfkMm/xBFV025+YEvhvJtbzJpiAWHPi6veNc5y",
-                    "nostr_sig": "d8fd9ebbd5856079d1847bb945c1333f9636c781e8ebb748aa6e4c10441d894639438caec770a1578273c235bb29bff0eee7209fc47ba0297242c80b2cc4a647"
-                  }
-                }
-              ]
-            }
-          },
-          "expected": {
-            "status": "refused",
-            "reason": "record_unverified"
-          }
-        },
-        {
-          "name": "with an issuer signature by another key",
-          "input": {
-            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
-            "lookup": {
-              "complete": true,
-              "records": [
-                {
-                  "envelope": {
-                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
-                    "issuer_sig": "AkgwRQIhAPKU6xX9fZVsvy7TL7eGd2hkUeHlwiBBNxklnIC09hhIAiAsC7WTiMMiGBoo5RQTXJcB37Tr3edTYHyMvB9r2l4xgQEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d",
-                    "address_sig": "AkcwRAIgHjBvGwoBJ2Y6yC1nBrg9ytPaZKpuawbmZX5PHoy74/0CIB5aC8eXv1r6tFZpHXOGNtZKbytrO8ZG1wx2FruSqbDaASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
-                    "nostr_sig": "5c75f2699282898961416141fb9e25dfd59db7c6b802ec336d51010a97b6190708e055ad3375e82b9d816b19a258fc3b5b2b1a306807b6d1e5a8fe7065597c26"
-                  }
-                }
-              ]
-            }
-          },
-          "expected": {
-            "status": "refused",
-            "reason": "record_unverified"
-          }
-        },
-        {
-          "name": "naming a block before its issuer's term",
+          "name": "naming a block before its issuer's term: refused",
           "input": {
             "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
             "lookup": {
@@ -3153,6 +3207,116 @@
           "expected": {
             "status": "refused",
             "reason": "record_unverified"
+          }
+        },
+        {
+          "name": "E's owner, with an issuer signature by E's own key naming the issuer: plain Bitcoin",
+          "input": {
+            "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:e0e1e2e3e4e5e6e7e8e9eaebecedeeef\naddress: bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq\nnostr: 30b7f521ef84c3e16c5d36ed75d9a1a22dd1032eddb259e45e94dd0f108174c6\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkgwRQIhANlOqFTznQXyFeAPwI+L8IZdacGbzWvkHJYOTgi1oD51AiB5/z3J5Z7VOpYa2LAhHf8p9w4irSB2swgyZ9QjFr4IQQEhA8pXRUNOtNJvUv/VzlFl4DsNpzLxpVqt24j4THT3MYZD",
+                    "address_sig": "AkgwRQIhANlOqFTznQXyFeAPwI+L8IZdacGbzWvkHJYOTgi1oD51AiB5/z3J5Z7VOpYa2LAhHf8p9w4irSB2swgyZ9QjFr4IQQEhA8pXRUNOtNJvUv/VzlFl4DsNpzLxpVqt24j4THT3MYZD",
+                    "nostr_sig": "caf2c4062d7e414181355966f8e0bd51b04c1873a2b1270ba596a357450cfdde70c8b7dceff256c148a06b8b0bc13283b6dab7164e07f3df198042fb59a95c83"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        },
+        {
+          "name": "E's owner, naming the old issuer: plain Bitcoin",
+          "input": {
+            "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:e0e1e2e3e4e5e6e7e8e9eaebecedeeef\naddress: bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq\nnostr: 30b7f521ef84c3e16c5d36ed75d9a1a22dd1032eddb259e45e94dd0f108174c6\nkey_holder: orangecheck\nissuer: bc1qj4ylrw0ewmhxh3fwdpyau8c4chs9aepex0ac08\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgdxfzBAW2KCXr1rgjTbfFV1b1G3XqEDzHXIZbg+mojGUCIBUVI8//OPuUuAFa6342UKyT0fvWlORR0cpLCD5xqG0BASEDyldFQ0600m9S/9XOUWXgOw2nMvGlWq3biPhMdPcxhkM=",
+                    "address_sig": "AkcwRAIgdxfzBAW2KCXr1rgjTbfFV1b1G3XqEDzHXIZbg+mojGUCIBUVI8//OPuUuAFa6342UKyT0fvWlORR0cpLCD5xqG0BASEDyldFQ0600m9S/9XOUWXgOw2nMvGlWq3biPhMdPcxhkM=",
+                    "nostr_sig": "bae5be7cf873d0aad45d140af96fa8c4b79407c9973026537d82f6cf555f14329e9c93c68745292b0fccdbc8745a9d2da0448b78ca07840c047de3099da36e84"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        },
+        {
+          "name": "E's owner, with a second key of its own as the issuer: plain Bitcoin",
+          "input": {
+            "address": "bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:e0e1e2e3e4e5e6e7e8e9eaebecedeeef\naddress: bc1qa6gapjwxypdgwnlslfa2rkle9q0wgq72p3cjhq\nnostr: 30b7f521ef84c3e16c5d36ed75d9a1a22dd1032eddb259e45e94dd0f108174c6\nkey_holder: orangecheck\nissuer: bc1qsjwu2rmwsu0a0cg7rpvklrl5qs0atc5s3ahlvm\nsince_height: 977100\nsince_block: 00000000000000000000886598c890976f4cd4a493bb1c56d2021e8925525783\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkcwRAIgc9qXqlk4985U63A9FxicXiafbjcpLvFDJKbbjVBB+G8CIHhHm04J6lCutlxScq2PiKJ/MpNPlfi7q3QV2WTfRKFjASEC48TlH646KSFcmiEOWuIa9zFfU+Du7XP9hv176gImepA=",
+                    "address_sig": "AkgwRQIhAJUw91lnqTppQ7/d7K3cUxSZCBkAsjGepIu9p1F4+1TxAiAks1LDETXTy19/0WI0tSgPuJ3pqR6Fh8i/EpaueUgIsgEhA8pXRUNOtNJvUv/VzlFl4DsNpzLxpVqt24j4THT3MYZD",
+                    "nostr_sig": "cb2da3205e9d52cf254c61c029bd757d1e8173c15cd2197d3e74a5bb7965b13be162b78331ec9247f67e1278990c981a987b60016666a78dc665018f77fe4eab"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        },
+        {
+          "name": "A's binding with an issuer signature by another key, alone: noise",
+          "input": {
+            "address": "bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:0123456789abcdef0123456789abcdef\naddress: bc1q2t7hhwrqwv8s2yqqlfstrljy3eg7j9sy6lkwdx\nnostr: c3f01bce700cc500773357a9f19917d1d9bd786a99f44f2033c0a0d3441c9574\nkey_holder: orangecheck\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 977000\nsince_block: 00000000000000000001d9ed66ca43dc7765b3d6e9767304247fca17a4b085da\ntrust: orangecheck made this key and holds it. The key signed this binding and signs nothing else, so no signature by it before a takeover is the user's.\n",
+                    "issuer_sig": "AkgwRQIhAPKU6xX9fZVsvy7TL7eGd2hkUeHlwiBBNxklnIC09hhIAiAsC7WTiMMiGBoo5RQTXJcB37Tr3edTYHyMvB9r2l4xgQEhAzii9TuPr3h7iLAl53a8HheQ3Re1lEUQk9bgZkzn2D6d",
+                    "address_sig": "AkcwRAIgHjBvGwoBJ2Y6yC1nBrg9ytPaZKpuawbmZX5PHoy74/0CIB5aC8eXv1r6tFZpHXOGNtZKbytrO8ZG1wx2FruSqbDaASED3WQxGB+Qyb/EEVXTbn5gS+G8m1vMmmIBYc+Lq941znI=",
+                    "nostr_sig": "5c75f2699282898961416141fb9e25dfd59db7c6b802ec336d51010a97b6190708e055ad3375e82b9d816b19a258fc3b5b2b1a306807b6d1e5a8fe7065597c26"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
+          }
+        },
+        {
+          "name": "a user binding naming a block before its issuer's term: noise, since the user's key signed it",
+          "input": {
+            "address": "bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g",
+            "lookup": {
+              "complete": true,
+              "records": [
+                {
+                  "envelope": {
+                    "record": "oc-attest-key:binding:v1\ndid_oc: did:oc:fedcba9876543210fedcba9876543210\naddress: bc1qt3c4g3lu0v3nvgly59fkt2tnkjxm2mzwkqad9g\nnostr: 1f6a42c3565a63b2d17a92372d41e5b68939966c6ca2aafa734e97ba928a3ab3\nkey_holder: user\nissuer: bc1q0e6y6hlhjhcnqz6mdfrtlwvqqddgm2hzq7lk4a\nsince_height: 976900\nsince_block: 00000000000000000000c00783f0f06030c8d46616a43715335b7b30e5b7d8b1\n",
+                    "issuer_sig": "AkgwRQIhAL3co1/kB50xQMn+aL2LRhcheUcbbZC3jAhLQWdiYofiAiALxwtwb6NM8BMsm1mXFiEN7mk3FP367SI+IsPLrlCm0wEhAhQLZ0elmb68TMSv/6AeBO6dpCeTOBLrh4HWa+M6SZWk",
+                    "address_sig": "AkcwRAIgHqSeW2KIMgabprlKx/rWi2aB13FNFR67vkxeN73pQsMCIFNz1Gd9+CyhhUfVNJd13PSukTrPsChOtkTH95P9Mm6PASECqaA/ijKVLkX6nJkZVPdsMLMoBd1ssE6slZnHqr1rHXE=",
+                    "nostr_sig": "6bc420aeddd0cfc7de66cea5d3e7d832bb7443f736817c84ac4a5fe56ecce93cddd21e9c695fd4d6d0e4cadd000134441c84f782bdde0f3f8fa660a67383f2e0"
+                  }
+                }
+              ]
+            }
+          },
+          "expected": {
+            "status": "unbound"
           }
         },
         {
