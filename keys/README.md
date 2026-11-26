@@ -216,8 +216,11 @@ below that block, refuse the whole set (`ki06`, `ki08`). The read of the issuer 
 must be complete, as an address read must (below), else `unavailable`: a
 hand-over it missed would leave every binding of the issuer handed to
 unknown, and those addresses would read as plain Bitcoin (`ki09`). Without
-issuer terms, from a short read or a refused set, every address is refused,
-since none can be told from plain Bitcoin (`kh20`). An issuer's term starts at its
+issuer terms, from a short read or a refused set, an address whose read
+holds any record is refused, since that record could be a binding by an
+issuer the read missed; one whose complete read holds none is plain Bitcoin,
+since no issuer bound it (`kh20`). An issuer read cut short therefore refuses
+every bound address until a complete one. An issuer's term starts at its
 record's since block; a term that ended counts only for records anchored at
 or below the anchor of the record that ended it (the since block where that
 record has no anchor). orangecheck hands over only once every record the old
@@ -301,7 +304,12 @@ never on who published it, and a publishing key kept and then leaked could
 replace a record on any relay that keeps only the newest event per pubkey,
 kind and d tag. Under a dropped key a record can never be replaced or
 withdrawn either, so its maker publishes nothing that fails `verifyRecord`:
-every issue call verifies the finished envelope and throws if it fails.
+every issue call verifies the finished envelope and throws if it fails. A
+hand-over (`issuerRecord`, `rotationSign`) and a wallet link or unlink
+(`walletLinkRecord`, `walletUnlinkRecord` and their signers) have no issue
+call; their makers check the same way before publishing: the hand-over with
+`resolveIssuers` over a complete read of the issuer tag plus the new record,
+which must give the new term, and a wallet record with `verifyWalletRecord`.
 
 ## §5 Signatures by a bound address
 
