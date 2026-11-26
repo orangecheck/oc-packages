@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.53.0] — 2026-11-26
+
 ### Added
 
 - `accountAddress(account)`: the account's Bitcoin address, `primaryBtc` when
@@ -17,6 +19,14 @@ this file tracks the package's TS / Node / runtime API surface.
   `primary_btc: null`, so a wallet account's address reaches the page only as
   its display identity. Null for an account that shows an email, a did or a
   Nostr key and has no primary address.
+
+### Changed
+
+- Depends on `@orangecheck/wallet-adapter` `^0.9.0` and `@orangecheck/bip322`
+  `^1.2.0`, so a site on wallet-adapter 0.9.0 keeps one copy of each. The bond
+  button hands on a bond signed without its final LF, which wallet-adapter
+  0.9.0's `assertSignedBy` passes, and a wallet signature bip322 1.2.0 refuses
+  is refused before it is sent.
 
 ## [2.52.0] — 2026-11-24
 
