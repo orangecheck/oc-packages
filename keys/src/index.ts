@@ -46,7 +46,6 @@ export {
     issuerSign,
     judgeSignature,
     judgeWalletLink,
-    namedIssuer,
     parseRecord,
     possessionSign,
     publicationTags,

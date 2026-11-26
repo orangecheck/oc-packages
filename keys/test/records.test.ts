@@ -207,7 +207,7 @@ describe('resolveIssuers', () => {
     const env = { record: r, ...rotationSign(r, ISSUER_KEY, NEXT_KEY) };
 
     it('follows a hand-over and ends the old term at its since block', () => {
-        expect(resolveIssuers(ISSUER, [{ envelope: env, anchoredAt: 305 }], blockHash)).toEqual({
+        expect(resolveIssuers(ISSUER, { complete: true, records: [{ envelope: env, anchoredAt: 305 }] }, blockHash)).toEqual({
             ok: true,
             terms: [
                 { address: ISSUER, from: 0, until: { since: 300, anchoredAt: 305 } },
@@ -218,19 +218,28 @@ describe('resolveIssuers', () => {
 
     it('ignores anything that is not an issuer record signed by both', () => {
         for (const noise of [null, 'x', envB, { ...env, extra: 1 }, { ...env, old_sig: env.new_sig }]) {
-            expect(resolveIssuers(ISSUER, [{ envelope: noise }], blockHash)).toEqual({ ok: true, terms: namedIssuer(ISSUER) });
+            expect(resolveIssuers(ISSUER, { complete: true, records: [{ envelope: noise }] }, blockHash)).toEqual({
+                ok: true,
+                terms: namedIssuer(ISSUER),
+            });
+        }
+    });
+
+    it('resolves nothing from a read short of the floor, whatever it found', () => {
+        for (const records of [[], [{ envelope: env, anchoredAt: 305 }]]) {
+            expect(resolveIssuers(ISSUER, { complete: false, records }, blockHash)).toEqual({ ok: false, reason: 'unavailable' });
         }
     });
 
     it('refuses an anchor at or below the hand-over since block', () => {
-        expect(resolveIssuers(ISSUER, [{ envelope: env, anchoredAt: 300 }], blockHash)).toEqual({
+        expect(resolveIssuers(ISSUER, { complete: true, records: [{ envelope: env, anchoredAt: 300 }] }, blockHash)).toEqual({
             ok: false,
             reason: 'bad_anchor',
         });
     });
 
     it('takes the old issuer only until the hand-over is anchored', () => {
-        const terms = resolveIssuers(ISSUER, [{ envelope: env, anchoredAt: 305 }], blockHash);
+        const terms = resolveIssuers(ISSUER, { complete: true, records: [{ envelope: env, anchoredAt: 305 }] }, blockHash);
         if (!terms.ok) throw new Error(terms.reason);
         const v = { ...ctx, issuers: terms.terms };
         expect(verifyRecord(envB, v, 305)).toMatchObject({ ok: true });
@@ -263,11 +272,16 @@ describe('resolveKeyHolder', () => {
         expect(resolveKeyHolder(KEYS.address, all(...noise), ctx)).toEqual({ status: 'unbound' });
     });
 
-    it("holds a custodial binding its own key signed, whatever is wrong with the issuer's signature", () => {
+    it('holds a custodial binding its own key and a trusted issuer signed, outside that issuer\'s term', () => {
+        const notYet = { ...ctx, issuers: [{ address: ISSUER, from: 150 }] };
+        const ended = { ...ctx, issuers: [{ address: ISSUER, from: 0, until: { since: 50 } }] };
+        expect(resolveKeyHolder(KEYS.address, all(envB), notYet)).toEqual({ status: 'refused', reason: 'record_unverified' });
+        expect(resolveKeyHolder(KEYS.address, all(envB), ended)).toEqual({ status: 'refused', reason: 'record_unverified' });
+        // No trusted issuer's signature: noise, since the owner of any plain address can make one.
         const badIssuerSig = { ...envB, issuer_sig: envT.address_sig };
         expect(resolveKeyHolder(KEYS.address, all(badIssuerSig, envB), ctx)).toMatchObject({ status: 'bound', holder: 'orangecheck' });
-        expect(resolveKeyHolder(KEYS.address, all(badIssuerSig), ctx)).toEqual({ status: 'refused', reason: 'record_unverified' });
-        expect(resolveKeyHolder(KEYS.address, all(envB), { ...ctx, issuers: [] })).toEqual({ status: 'refused', reason: 'record_unverified' });
+        expect(resolveKeyHolder(KEYS.address, all(badIssuerSig), ctx)).toEqual({ status: 'unbound' });
+        expect(resolveKeyHolder(KEYS.address, all(envB), { ...ctx, issuers: [] })).toEqual({ status: 'unbound' });
         // A user binding or a retire under an issuer the verifier does not hold stays noise.
         const user = binding.replace('key_holder: orangecheck', 'key_holder: user').replace(/trust: .*\n/, '');
         const envU = { record: user, issuer_sig: issuerSign(user, ISSUER_KEY), ...identitySign(user, KEYS) };

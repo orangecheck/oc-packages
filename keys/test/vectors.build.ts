@@ -75,6 +75,7 @@ const DID_A = 'did:oc:0123456789abcdef0123456789abcdef';
 const DID_B = 'did:oc:fedcba9876543210fedcba9876543210';
 const DID_C = 'did:oc:00112233445566778899aabbccddeeff';
 const DID_D = 'did:oc:0f1e2d3c4b5a69788796a5b4c3d2e1f0';
+const DID_E = 'did:oc:e0e1e2e3e4e5e6e7e8e9eaebecedeeef';
 const I_A = label('identity A');
 const W_A = label('wallet A');
 const I_B = label('identity B');
@@ -86,6 +87,7 @@ const KEYS_A = identityKeys(I_A);
 const KEYS_B = identityKeys(I_B);
 const KEYS_C = identityKeys(I_C);
 const KEYS_D = identityKeys(I_D);
+const KEYS_E = identityKeys(I_E);
 // The first receive address of each wallet secret, which a wallet link names.
 const WALLET_A = walletKey(W_A);
 const WALLET_B = walletKey(W_B);
@@ -297,7 +299,8 @@ export function buildVectors(): unknown {
     });
     const takeoverOtherDidA = takeOver(idA, DID_B, recordId(bindingA), at(977100));
     // Bindings the address's own key signed, under an issuer the verifier does not hold.
-    const envStrangerBindingOwnKey = signed(strangerBinding, STRANGER_KEY, KEYS_A);
+    // E's owner signs a custodial binding for E's plain address, with an issuer part no trusted issuer made.
+    const ownerBindingE = (issuer: string) => bind(idE, DID_E, 'orangecheck', at(977100), issuer);
     const envStrangerUserBindingB = signed(bind(idB, DID_B, 'user', at(977000), STRANGER), STRANGER_KEY, KEYS_B);
     const strangerTakeoverA = takeoverRecord({
         didOc: DID_A,
@@ -332,6 +335,8 @@ export function buildVectors(): unknown {
         new_sig: signMessage(STRANGER, rotation, STRANGER_KEY),
     };
 
+    // A read of the issuer tag.
+    const read = (records: { envelope: unknown; anchoredAt?: number }[], complete = true) => ({ complete, records });
     const found = (records: [unknown, number?][], complete = true) => ({
         complete,
         records: records.map(([envelope, anchoredAt]) => (anchoredAt === undefined ? { envelope } : { envelope, anchoredAt })),
@@ -508,9 +513,9 @@ export function buildVectors(): unknown {
         },
         chain: { headers: HEADERS },
         issuer: {
-            note: 'A placeholder for the issuer address the spec names. Every record and key-holder vector is checked against the terms this name and these records resolve to (ki01).',
+            note: 'A placeholder for the issuer address the spec names. Every record and key-holder vector is checked against the terms this name and this complete read resolve to (ki01).',
             named: ISSUER,
-            records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }],
+            lookup: read([{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }]),
         },
         burn_keys: {
             issuer: { private_key: toHex(ISSUER_KEY), address: ISSUER },
@@ -876,11 +881,11 @@ export function buildVectors(): unknown {
                 description: 'the named issuer and three copies of its hand-over record with different proofs: the old issuer before it, until the earliest anchor',
                 input: {
                     named: ISSUER,
-                    records: [
+                    lookup: read([
                         { envelope: envRotation, anchoredAt: ROTATION_ANCHOR + 2 },
                         { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
                         { envelope: envRotation, anchoredAt: ROTATION_ANCHOR + 3 },
-                    ],
+                    ]),
                 },
                 expected: {
                     ok: true,
@@ -894,7 +899,7 @@ export function buildVectors(): unknown {
                 id: 'ki02',
                 category: 'issuers',
                 description: 'a verifier that still names the old issuer follows the hand-over to the current one',
-                input: { named: OLD_ISSUER, records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }] },
+                input: { named: OLD_ISSUER, lookup: read([{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }]) },
                 expected: {
                     ok: true,
                     terms: [
@@ -907,7 +912,7 @@ export function buildVectors(): unknown {
                 id: 'ki03',
                 category: 'issuers',
                 description: 'a record the new issuer did not sign is ignored',
-                input: { named: ISSUER, records: [{ envelope: envForgedRotation, anchoredAt: ROTATION_ANCHOR }] },
+                input: { named: ISSUER, lookup: read([{ envelope: envForgedRotation, anchoredAt: ROTATION_ANCHOR }]) },
                 expected: { ok: true, terms: [{ address: ISSUER, from: 0 }] },
             },
             {
@@ -916,7 +921,7 @@ export function buildVectors(): unknown {
                 description: 'two hand-overs to the same issuer: refused',
                 input: {
                     named: ISSUER,
-                    records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }, { envelope: envStrangerRotation }],
+                    lookup: read([{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }, { envelope: envStrangerRotation }]),
                 },
                 expected: { ok: false, reason: 'conflicting_issuer_records' },
             },
@@ -924,7 +929,7 @@ export function buildVectors(): unknown {
                 id: 'ki05',
                 category: 'issuers',
                 description: 'a hand-over and one back: refused',
-                input: { named: ISSUER, records: [{ envelope: envRotation }, { envelope: envBackRotation }] },
+                input: { named: ISSUER, lookup: read([{ envelope: envRotation }, { envelope: envBackRotation }]) },
                 expected: { ok: false, reason: 'issuer_loop' },
             },
             {
@@ -934,12 +939,12 @@ export function buildVectors(): unknown {
                 cases: [
                     {
                         name: 'a verifier that names the new issuer',
-                        input: { named: ISSUER, records: [{ envelope: envOffChainRotation }] },
+                        input: { named: ISSUER, lookup: read([{ envelope: envOffChainRotation }]) },
                         expected: { ok: false, reason: 'issuer_record_unverified' },
                     },
                     {
                         name: 'a verifier that names the old issuer',
-                        input: { named: OLD_ISSUER, records: [{ envelope: envOffChainRotation }] },
+                        input: { named: OLD_ISSUER, lookup: read([{ envelope: envOffChainRotation }]) },
                         expected: { ok: false, reason: 'issuer_record_unverified' },
                     },
                 ],
@@ -956,7 +961,7 @@ export function buildVectors(): unknown {
                     ] as const
                 ).map(([name, record]) => ({
                     name,
-                    input: { named: ISSUER, records: [{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }, record] },
+                    input: { named: ISSUER, lookup: read([{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }, record]) },
                     expected: {
                         ok: true,
                         terms: [
@@ -975,10 +980,10 @@ export function buildVectors(): unknown {
                         name: 'the bad copy first',
                         input: {
                             named: ISSUER,
-                            records: [
+                            lookup: read([
                                 { envelope: envRotation, anchoredAt: 977000 },
                                 { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
-                            ],
+                            ]),
                         },
                         expected: { ok: false, reason: 'bad_anchor' },
                     },
@@ -986,10 +991,10 @@ export function buildVectors(): unknown {
                         name: 'the bad copy last',
                         input: {
                             named: ISSUER,
-                            records: [
+                            lookup: read([
                                 { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
                                 { envelope: envRotation, anchoredAt: 977000 },
-                            ],
+                            ]),
                         },
                         expected: { ok: false, reason: 'bad_anchor' },
                     },
@@ -997,12 +1002,35 @@ export function buildVectors(): unknown {
                         name: 'a verifier that names the old issuer',
                         input: {
                             named: OLD_ISSUER,
-                            records: [
+                            lookup: read([
                                 { envelope: envRotation, anchoredAt: ROTATION_ANCHOR },
                                 { envelope: envRotation, anchoredAt: 977000 },
-                            ],
+                            ]),
                         },
                         expected: { ok: false, reason: 'bad_anchor' },
+                    },
+                ],
+            },
+            {
+                id: 'ki09',
+                category: 'issuers',
+                description:
+                    "a read of the issuer tag short of the floor resolves nothing, whatever it found: a hand-over it missed would leave a term's bindings unknown",
+                cases: [
+                    {
+                        name: 'nothing found',
+                        input: { named: ISSUER, lookup: read([], false) },
+                        expected: { ok: false, reason: 'unavailable' },
+                    },
+                    {
+                        name: 'the hand-over found',
+                        input: { named: ISSUER, lookup: read([{ envelope: envRotation, anchoredAt: ROTATION_ANCHOR }], false) },
+                        expected: { ok: false, reason: 'unavailable' },
+                    },
+                    {
+                        name: 'a verifier that names the old issuer, nothing found',
+                        input: { named: OLD_ISSUER, lookup: read([], false) },
+                        expected: { ok: false, reason: 'unavailable' },
                     },
                 ],
             },
@@ -1454,22 +1482,40 @@ export function buildVectors(): unknown {
                 id: 'kh18',
                 category: 'key_holder',
                 description:
-                    "a custodial binding the address's own key signed is held, whatever fails in the issuer's part, since only the key's holder signs one: refused, never plain Bitcoin",
+                    "a custodial binding the address's own key signed: held where a trusted issuer signed it and only the term check fails, so the address is refused; noise where no trusted issuer did, since the owner of any plain address can make one",
                 cases: [
                     {
-                        name: 'under an issuer the verifier does not hold',
-                        input: { address: idA.address, lookup: found([[envStrangerBindingOwnKey]]) },
-                        expected: { status: 'refused', reason: 'record_unverified' },
-                    },
-                    {
-                        name: "with an issuer signature by another key",
-                        input: { address: idA.address, lookup: found([[forgedIssuerSig]]) },
-                        expected: { status: 'refused', reason: 'record_unverified' },
-                    },
-                    {
-                        name: "naming a block before its issuer's term",
+                        name: "naming a block before its issuer's term: refused",
                         input: { address: idA.address, lookup: found([[signed(tooEarly, ISSUER_KEY, KEYS_A)]]) },
                         expected: { status: 'refused', reason: 'record_unverified' },
+                    },
+                    {
+                        name: "E's owner, with an issuer signature by E's own key naming the issuer: plain Bitcoin",
+                        input: { address: idE.address, lookup: found([[signed(ownerBindingE(ISSUER), KEYS_E.addressKey, KEYS_E)]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "E's owner, naming the old issuer: plain Bitcoin",
+                        input: { address: idE.address, lookup: found([[signed(ownerBindingE(OLD_ISSUER), KEYS_E.addressKey, KEYS_E)]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "E's owner, with a second key of its own as the issuer: plain Bitcoin",
+                        input: { address: idE.address, lookup: found([[signed(ownerBindingE(JUNK_X), JUNK_X_KEY, KEYS_E)]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "A's binding with an issuer signature by another key, alone: noise",
+                        input: { address: idA.address, lookup: found([[forgedIssuerSig]]) },
+                        expected: { status: 'unbound' },
+                    },
+                    {
+                        name: "a user binding naming a block before its issuer's term: noise, since the user's key signed it",
+                        input: {
+                            address: idB.address,
+                            lookup: found([[signed(bind(idB, DID_B, 'user', at(976900)), ISSUER_KEY, KEYS_B)]]),
+                        },
+                        expected: { status: 'unbound' },
                     },
                     {
                         name: 'a user binding under an issuer the verifier does not hold: ignored',

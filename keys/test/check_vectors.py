@@ -349,8 +349,12 @@ def main(path):
                 checked += 1
         elif cat == "issuers":
             for c in v.get("cases", [v]):
-                exp, recs = c["expected"], c["input"]["records"]
-                if exp.get("ok") and len(exp["terms"]) > 1:
+                exp, recs = c["expected"], c["input"]["lookup"]["records"]
+                if not c["input"]["lookup"]["complete"]:
+                    # Short of the floor nothing resolves, whatever the read found.
+                    assert exp == {"ok": False, "reason": "unavailable"}, (v["id"], c.get("name"))
+                    checked += 1
+                elif exp.get("ok") and len(exp["terms"]) > 1:
                     old, new = exp["terms"]
                     # Only records into or out of a term's address are on the walk; any other is ignored, whatever is wrong with it.
                     on = [r for r in recs if {fields(r["envelope"]["record"])[1][k] for k in ("old", "new")} & {old["address"], new["address"]}]

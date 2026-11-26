@@ -445,24 +445,28 @@ export type IssuerFailure =
     | 'issuer_record_unverified' // signed by both, but the chain lacks its since block or names another
     | 'conflicting_issuer_records' // two records move one issuer to two, or two to one
     | 'issuer_loop'
-    | 'bad_anchor';
+    | 'bad_anchor'
+    | 'unavailable'; // the read under the issuer tag was not complete
 
 const ROTATION_KEYS = new Set(['record', 'old_sig', 'new_sig', 'ots']);
 
 /**
  * The issuer terms, from the address the spec names and every issuer record
- * the verifier holds. Records signed by both sides are followed back to the
- * issuers before it and on to any after it; any other record is ignored,
- * since anyone can publish one. A record's since block off the chain, or an
- * anchor at or below it, refuses the set only when the walk reaches that record.
+ * the verifier read under the issuer tag, which must reach the read floor.
+ * Records signed by both sides are followed back to the issuers before it and
+ * on to any after it; any other record is ignored, since anyone can publish
+ * one. A record's since block off the chain, or an anchor at or below it,
+ * refuses the set only when the walk reaches that record.
  */
 export function resolveIssuers(
     named: string,
-    records: readonly Anchored[],
+    lookup: RecordLookup,
     blockHash: (height: number) => string | undefined
 ): { ok: true; terms: IssuerTerm[] } | { ok: false; reason: IssuerFailure } {
+    // A hand-over the read missed would leave a term's bindings unknown, so short of the floor nothing resolves.
+    if (!lookup.complete) return { ok: false, reason: 'unavailable' };
     const valid = new Map<string, { r: ParsedRecord & { type: 'issuer' }; anchoredAt?: number; bad?: IssuerFailure }>();
-    for (const { envelope, anchoredAt } of records) {
+    for (const { envelope, anchoredAt } of lookup.records) {
         if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) continue;
         const e = envelope as Record<string, unknown>;
         if (Object.keys(e).some((k) => !ROTATION_KEYS.has(k))) continue;
@@ -515,13 +519,16 @@ export function resolveIssuers(
     return { ok: true, terms };
 }
 
-/** The terms of the one issuer address the spec names, with no issuer record. */
+/**
+ * The terms of the named issuer when a complete read holds no issuer record.
+ * Only that read can show the issuer was never rotated, so this is for tests.
+ */
 export function namedIssuer(address: string): IssuerTerm[] {
     return [{ address, from: 0 }];
 }
 
 export interface VerifyContext {
-    /** The issuer terms (resolveIssuers, or namedIssuer for an issuer never rotated). */
+    /** The issuer terms, from resolveIssuers over a complete read of the issuer tag. */
     issuers: readonly IssuerTerm[];
     /** The hash of the block at `height` on the verifier's own header chain, or undefined. */
     blockHash: (height: number) => string | undefined;
@@ -614,9 +621,9 @@ export function verifyRecord(env: unknown, ctx: VerifyContext, anchoredAt?: numb
 }
 
 /**
- * What a verifier read for one address: every record copy relays served
- * under its `oc-attest-key:<address>` tag, and whether the read was complete, which a verifier may
- * say only at the read floor (README §4).
+ * What a verifier read under one tag (`oc-attest-key:<address>`, or the issuer
+ * tag): every record copy relays served, and whether the read was complete,
+ * which a verifier may say only at the read floor (README §4).
  */
 export interface RecordLookup {
     complete: boolean;
@@ -674,8 +681,8 @@ export type KeyHolderState =
  * Who holds an address's identity key, from every record copy the verifier
  * read for it. A binding or takeover counts only where the issuer and the
  * address's own key both signed it, so an issuer alone can neither bind an
- * address nor refuse one; a custodial binding its own key signed counts
- * whatever is wrong with the issuer's part, since only the key's holder makes
+ * address nor refuse one; a custodial binding its own key and a term's issuer
+ * signed counts even outside that issuer's term, since only those two make
  * one. Short of the read floor nothing resolves. A retire, which only the issuer signs, counts only
  * against the custodial binding it names, before any takeover. A record that
  * counts is held once any copy of it verifies; if none does, the address is
@@ -695,8 +702,9 @@ export function resolveKeyHolder(address: string, lookup: RecordLookup, ctx: Res
         const signer = v.signed.issuer || v.signed.address;
         const r = v.ok ? v.record : signer ? (parseRecord((envelope as SignedRecord).record) as AddressRecord) : null;
         if (!r || r.address !== address) continue;
-        // Only the key's holder signs a custodial binding: held, whatever the issuer's part says.
-        const custodial = r.type === 'binding' && r.keyHolder === 'orangecheck' && v.signed.address;
+        // Only the key's holder and a term's issuer sign a custodial binding: held where only the term check fails.
+        const outOfTerm = !v.ok && (v.reason === 'issuer_not_yet' || v.reason === 'issuer_retired');
+        const custodial = r.type === 'binding' && r.keyHolder === 'orangecheck' && outOfTerm;
         if (!v.ok && !v.signed.issuer && !custodial) continue;
         // Noise unless its own signers signed it: the issuer, and for a binding or takeover the address's key.
         if (r.type !== 'retire' && !v.signed.address) continue;
