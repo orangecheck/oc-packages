@@ -281,11 +281,15 @@ describe('resolveKeyHolder', () => {
         const badIssuerSig = { ...envB, issuer_sig: envT.address_sig };
         expect(resolveKeyHolder(KEYS.address, all(badIssuerSig, envB), ctx)).toMatchObject({ status: 'bound', holder: 'orangecheck' });
         expect(resolveKeyHolder(KEYS.address, all(badIssuerSig), ctx)).toEqual({ status: 'unbound' });
-        expect(resolveKeyHolder(KEYS.address, all(envB), { ...ctx, issuers: [] })).toEqual({ status: 'unbound' });
+        const stranger = { ...ctx, issuers: [{ address: NEXT, from: 0 }] };
+        expect(resolveKeyHolder(KEYS.address, all(envB), stranger)).toEqual({ status: 'unbound' });
+        // With no issuer terms at all no address can be told from plain Bitcoin.
+        expect(resolveKeyHolder(KEYS.address, all(envB), { ...ctx, issuers: [] })).toEqual({ status: 'refused', reason: 'unavailable' });
+        expect(resolveKeyHolder(KEYS.address, all(), { ...ctx, issuers: [] })).toEqual({ status: 'refused', reason: 'unavailable' });
         // A user binding or a retire under an issuer the verifier does not hold stays noise.
         const user = binding.replace('key_holder: orangecheck', 'key_holder: user').replace(/trust: .*\n/, '');
         const envU = { record: user, issuer_sig: issuerSign(user, ISSUER_KEY), ...identitySign(user, KEYS) };
-        expect(resolveKeyHolder(KEYS.address, all(envU, envR), { ...ctx, issuers: [] })).toEqual({ status: 'unbound' });
+        expect(resolveKeyHolder(KEYS.address, all(envU, envR), stranger)).toEqual({ status: 'unbound' });
     });
 
     it('refuses where an issuer-signed copy is broken and none other verifies', () => {

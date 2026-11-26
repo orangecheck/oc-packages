@@ -381,10 +381,12 @@ def main(path):
             for c in v.get("cases", [v]):
                 exp = c["expected"]
                 records = c["input"]["lookup"]["records"]
-                if not c["input"]["lookup"]["complete"]:
-                    # Short of the floor nothing resolves, whatever the read found.
+                if not c["input"]["lookup"]["complete"] or c["input"].get("issuers") == []:
+                    # Short of the floor, or with no issuer terms, nothing resolves, whatever the read found.
                     assert exp == {"status": "refused", "reason": "unavailable"}, (v["id"], c.get("name"))
                     checked += 1
+                elif "issuers" in c["input"]:
+                    raise AssertionError((v["id"], c.get("name"), "a vector's own issuer terms are only ever empty"))
                 elif exp["status"] == "bound":
                     # The records the vectors call good, and every retire that looks good here: a retire it ignores must change nothing.
                     ids = {exp["binding"], exp.get("takeover"), exp.get("retire")}

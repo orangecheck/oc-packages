@@ -49,6 +49,13 @@ function issued(envelope: SignedRecord): Issued {
     };
 }
 
+/** A record goes out under a key dropped once it signs, so it can never be replaced: nothing that fails to verify is issued. */
+function verified(envelope: SignedRecord, ctx: VerifyContext): Issued {
+    const v = verifyRecord(envelope, ctx);
+    if (!v.ok) throw new Error(`the finished record does not verify: ${v.reason}`);
+    return issued(envelope);
+}
+
 function canonical<T extends AddressRecord['type']>(text: string, type: T): Extract<AddressRecord, { type: T }> {
     const r = parseRecord(text);
     if (!r || r.type !== type) throw new RangeError(`not a canonical ${type}: check every field`);
@@ -58,13 +65,15 @@ function canonical<T extends AddressRecord['type']>(text: string, type: T): Extr
 /**
  * A custodial binding, at mint, before the key is sealed: the issuer's
  * signature and the key's own two (possessionSign), the one thing it ever
- * signs before a takeover. The address and Nostr key are the keys' own.
+ * signs before a takeover. The address and Nostr key are the keys' own. It
+ * throws unless the finished envelope verifies under `ctx`.
  */
 export function issueCustodialBinding(a: {
     didOc: string;
     keys: Pick<IdentityKeys, 'address' | 'nostr' | 'addressKey' | 'nostrKey'>;
     issuer: AddressKey;
     since: Since;
+    ctx: VerifyContext;
 }): Issued {
     const record = bindingRecord({
         didOc: a.didOc,
@@ -75,10 +84,10 @@ export function issueCustodialBinding(a: {
         since: a.since,
     });
     canonical(record, 'binding');
-    return issued({ record, issuer_sig: issuerSign(record, a.issuer.addressKey), ...possessionSign(record, a.keys) });
+    return verified({ record, issuer_sig: issuerSign(record, a.issuer.addressKey), ...possessionSign(record, a.keys) }, a.ctx);
 }
 
-/** Ends a custodial binding that was never taken over; `withdrawn` undoes a published one. */
+/** Ends a custodial binding that was never taken over; `withdrawn` undoes a published one. Throws as issueCustodialBinding. */
 export function issueRetire(a: {
     didOc: string;
     address: string;
@@ -86,10 +95,11 @@ export function issueRetire(a: {
     reason: RetireReason;
     issuer: AddressKey;
     since: Since;
+    ctx: VerifyContext;
 }): Issued {
     const record = retireRecord({ ...a, issuer: a.issuer.address });
     canonical(record, 'retire');
-    return issued({ record, issuer_sig: issuerSign(record, a.issuer.addressKey) });
+    return verified({ record, issuer_sig: issuerSign(record, a.issuer.addressKey) }, a.ctx);
 }
 
 /** The takeover as the key frame sends it: the identity's two signatures, no issuer's yet. */

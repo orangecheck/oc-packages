@@ -301,6 +301,15 @@ export function buildVectors(): unknown {
     // Bindings the address's own key signed, under an issuer the verifier does not hold.
     // E's owner signs a custodial binding for E's plain address, with an issuer part no trusted issuer made.
     const ownerBindingE = (issuer: string) => bind(idE, DID_E, 'orangecheck', at(977100), issuer);
+    // A takeover of A by the old issuer, after its hand-over: outside its term.
+    const oldIssuerTakeoverA = takeoverRecord({
+        didOc: DID_A,
+        address: idA.address,
+        nostr: idA.nostr,
+        binding: recordId(bindingA),
+        issuer: OLD_ISSUER,
+        since: at(977100),
+    });
     const envStrangerUserBindingB = signed(bind(idB, DID_B, 'user', at(977000), STRANGER), STRANGER_KEY, KEYS_B);
     const strangerTakeoverA = takeoverRecord({
         didOc: DID_A,
@@ -1518,6 +1527,17 @@ export function buildVectors(): unknown {
                         expected: { status: 'unbound' },
                     },
                     {
+                        name: "a takeover outside its issuer's term, beside A's binding: ignored, only a custodial binding is held",
+                        input: {
+                            address: idA.address,
+                            lookup: found([
+                                [envBindingA, ANCHOR.bindingA],
+                                [signed(oldIssuerTakeoverA, OLD_ISSUER_KEY, KEYS_A), ANCHOR.takeoverA],
+                            ]),
+                        },
+                        expected: { status: 'bound', born: 'orangecheck', holder: 'orangecheck', binding: recordId(bindingA) },
+                    },
+                    {
                         name: 'a user binding under an issuer the verifier does not hold: ignored',
                         input: { address: idB.address, lookup: found([[envStrangerUserBindingB]]) },
                         expected: { status: 'unbound' },
@@ -1561,6 +1581,24 @@ export function buildVectors(): unknown {
                             ]),
                         },
                         expected: { status: 'refused', reason: 'takeover_mismatch' },
+                    },
+                ],
+            },
+            {
+                id: 'kh20',
+                category: 'key_holder',
+                description:
+                    'with no issuer terms (an issuer read short of the floor, or a refused set) no address can be told from plain Bitcoin: every one is refused',
+                cases: [
+                    {
+                        name: "A's custodial binding",
+                        input: { address: idA.address, issuers: [], lookup: found([[envBindingA, ANCHOR.bindingA]]) },
+                        expected: { status: 'refused', reason: 'unavailable' },
+                    },
+                    {
+                        name: 'an address with no record',
+                        input: { address: idE.address, issuers: [], lookup: found([]) },
+                        expected: { status: 'refused', reason: 'unavailable' },
                     },
                 ],
             },
