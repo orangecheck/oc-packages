@@ -289,13 +289,14 @@ verifier read for the address:
   show", which only ever refuses more.
 
 **Publication.** Kind 30078, no new kind. Each record has its own d tag,
-`oc-attest-key:<address>:<id>` (an issuer record `oc-attest-key:issuer:<id>`),
-so no record replaces another even under one publishing key, plus a `t` tag
-`oc-attest-key:<address>` to read them by, and a `t` tag `oc-attest-key`
-(`oc-attest-key-issuer`). No `t` tag is a bare address, so oc-attest SPEC
+`oc-attest-key:<address>:<id>`, so no record replaces another even under one
+publishing key, plus a `t` tag `oc-attest-key:<address>` to read them by, and
+a `t` tag `oc-attest-key`. No `t` tag is a bare address, so oc-attest SPEC
 §6.2's address query returns attestations and never these records (`kn02`).
-Wallet links and unlinks (§6) have a d tag that names the wallet, and carry a
-`t` tag `oc-attest-key:<wallet>` and one `oc-attest-key:<identity>`.
+Wallet links and unlinks (§6) have a d tag that names the wallet, and carry
+`t` tags `oc-attest-key:<wallet>`, `oc-attest-key:<identity>` and
+`oc-attest-key`. An issuer record names no one address: it has only d tag
+`oc-attest-key:issuer:<id>` and `t` tag `oc-attest-key-issuer` (`kn01`).
 `publicationTags` builds the tags. Every record goes out under a fresh Nostr
 key made for it and dropped once it has signed the event, as oc-chat §8.6's
 host records do; none goes out under orangecheck's service key or the
