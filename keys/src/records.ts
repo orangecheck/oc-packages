@@ -48,6 +48,9 @@ export const WALLET_LINK_ACK = "The coins at this wallet count for this identity
 /** The Nostr d-tag prefix every record is published under (kind 30078). */
 export const D_TAG_PREFIX = 'oc-attest-key:';
 
+/** How many blocks below the tip a record's since block should be when it is made, so a reorg cannot strand it (README §4). */
+export const SINCE_DEPTH = 6;
+
 /** A block the record was made after: its height and its hash in the usual (RPC) byte order. */
 export interface Since {
     height: number;

@@ -34,6 +34,7 @@ export {
     CUSTODIAL_TRUST,
     D_TAG_PREFIX,
     RETIRE_REASONS,
+    SINCE_DEPTH,
     TAKEOVER_TRUST,
     WALLET_LINK_ACK,
     bindingRecord,

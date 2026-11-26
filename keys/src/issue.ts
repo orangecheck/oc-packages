@@ -27,7 +27,7 @@ import {
     type VerifyContext,
 } from './records';
 
-/** An unsigned kind-30078 event; the caller signs it with the publishing key (README §4, Publication). */
+/** An unsigned kind-30078 event; the caller signs it with a fresh Nostr key, then drops the key (README §4, Publication). */
 export interface NostrTemplate {
     kind: 30078;
     tags: string[][];

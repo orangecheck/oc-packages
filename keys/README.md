@@ -163,7 +163,13 @@ The two trust lines are fixed text (`CUSTODIAL_TRUST`, `TAKEOVER_TRUST` in
 - **issuer**: hands the issuer role from one address to another, signed by
   both.
 - **since** is a block the record was made after (its height and hash, RPC
-  byte order): the tip when it was made. A lower bound nobody can backdate.
+  byte order). A lower bound nobody can backdate. Whoever makes a record
+  should name the block `SINCE_DEPTH` (6) below the tip, not the tip: a
+  reorg can remove a block near the tip, and a record whose since block is
+  gone is refused for good (`since_not_on_chain`). A binding cannot be made
+  again, since its key is sealed once it has signed; a stranded takeover
+  refuses the address beside any later one, and a stranded issuer record
+  refuses every issuer read. Verifiers do not check the depth.
 - **issuer** is orangecheck's issuer address, a mainnet P2WPKH address the
   spec names. The vectors use a placeholder burn key.
 
@@ -274,11 +280,16 @@ verifier read for the address:
 so no record replaces another even under one publishing key, plus a `t` tag
 `oc-attest-key:<address>` to read them by, and a `t` tag `oc-attest-key`
 (`oc-attest-key-issuer`). No `t` tag is a bare address, so oc-attest SPEC
-§6.2's address query returns attestations and never these records (`kn02`). The binding, retire and
-issuer records go out under orangecheck's service Nostr key, the takeover
-under the user's own (oc-chat §8.6). Wallet links and unlinks (§6) also go
-out under the user's own; their d tag names the wallet, and they carry a `t`
-tag `oc-attest-key:<wallet>` and one `oc-attest-key:<identity>`. `publicationTags` builds the tags.
+§6.2's address query returns attestations and never these records (`kn02`).
+Wallet links and unlinks (§6) have a d tag that names the wallet, and carry a
+`t` tag `oc-attest-key:<wallet>` and one `oc-attest-key:<identity>`.
+`publicationTags` builds the tags. Every record goes out under a fresh Nostr
+key made for it and dropped once it has signed the event, as oc-chat §8.6's
+host records do; none goes out under orangecheck's service key or the
+person's own. A record's trust rests on its `issuer_sig` and `address_sig`,
+never on who published it, and a publishing key kept and then leaked could
+replace a record on any relay that keeps only the newest event per pubkey,
+kind and d tag.
 
 ## §5 Signatures by a bound address
 
@@ -444,29 +455,32 @@ const opened = openWithPasskey(copy, prfOutput); // { ok: true, identitySecret, 
 
 One call per step of a key's life (`src/issue.ts`). Each returns the record's
 id, its envelope and an unsigned kind-30078 event; the caller stamps the id
-with OpenTimestamps, adds the proof as `ots`, and signs the event with the
-key §4 names.
+with OpenTimestamps, adds the proof as `ots`, and signs the event with a
+fresh Nostr key, which it then drops (§4). `since` below is the block
+`SINCE_DEPTH` below the tip.
 
 ```ts
 import {
-    countersignTakeover, identityKeys, issueCustodialBinding, issueRetire, randomSecret, readBack, signTakeover,
+    SINCE_DEPTH, countersignTakeover, identityKeys, issueCustodialBinding, issueRetire, randomSecret, readBack, signTakeover,
 } from '@orangecheck/keys';
+
+const since = { height: tipHeight - SINCE_DEPTH, block: blockHash(tipHeight - SINCE_DEPTH) };
 
 // ochk.io mints a key it holds, and binds it. The key signs its own binding, then is sealed.
 const keys = identityKeys(randomSecret());
-const bound = issueCustodialBinding({ didOc, keys, issuer, since: tip });
+const bound = issueCustodialBinding({ didOc, keys, issuer, since });
 
 // After publishing a batch, and before counting it done:
 readBack({ address: keys.address, expect: { binding: bound.id, holder: 'orangecheck' }, lookup, ctx });
 // { ok: true } or { ok: false, reason: 'unavailable' | 'not_seen' | 'other_binding' | 'holder_differs' | 'refused' }
 
 // Ending a binding never taken over (`withdrawn` undoes a published one):
-issueRetire({ didOc, address: keys.address, binding: bound.id, reason: 'withdrawn', issuer, since: tip });
+issueRetire({ didOc, address: keys.address, binding: bound.id, reason: 'withdrawn', issuer, since });
 
 // The takeover, in two phases. The key frame signs first; ochk.io checks it
 // against the binding it holds, adds the issuer's signature, and deletes its
-// copy of the key only after `ok: true`. The user's own Nostr key publishes it.
-const request = signTakeover({ binding: bound.envelope, keys, issuer: issuer.address, since: tip });
+// copy of the key only after `ok: true`. A fresh Nostr key publishes it, as every record.
+const request = signTakeover({ binding: bound.envelope, keys, issuer: issuer.address, since });
 const done = countersignTakeover(request, { binding: bound.envelope, issuer, ctx });
 ```
 
