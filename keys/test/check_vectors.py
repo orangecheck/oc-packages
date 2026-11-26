@@ -381,9 +381,14 @@ def main(path):
             for c in v.get("cases", [v]):
                 exp = c["expected"]
                 records = c["input"]["lookup"]["records"]
-                if not c["input"]["lookup"]["complete"] or c["input"].get("issuers") == []:
-                    # Short of the floor, or with no issuer terms, nothing resolves, whatever the read found.
+                no_terms = c["input"].get("issuers") == []
+                if not c["input"]["lookup"]["complete"] or (no_terms and records):
+                    # Short of the floor nothing resolves; nor, with no issuer terms, does a read holding any record.
                     assert exp == {"status": "refused", "reason": "unavailable"}, (v["id"], c.get("name"))
+                    checked += 1
+                elif no_terms:
+                    # A complete read holding nothing: no issuer bound the address, known or missed.
+                    assert exp == {"status": "unbound"}, (v["id"], c.get("name"))
                     checked += 1
                 elif "issuers" in c["input"]:
                     raise AssertionError((v["id"], c.get("name"), "a vector's own issuer terms are only ever empty"))

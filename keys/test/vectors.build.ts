@@ -1588,7 +1588,7 @@ export function buildVectors(): unknown {
                 id: 'kh20',
                 category: 'key_holder',
                 description:
-                    'with no issuer terms (an issuer read short of the floor, or a refused set) no address can be told from plain Bitcoin: every one is refused',
+                    'with no issuer terms (an issuer read short of the floor, or a refused set) an address whose read holds any record is refused, since it could be a binding by an issuer the read missed; one whose complete read holds none is plain Bitcoin, terms or not',
                 cases: [
                     {
                         name: "A's custodial binding",
@@ -1596,9 +1596,14 @@ export function buildVectors(): unknown {
                         expected: { status: 'refused', reason: 'unavailable' },
                     },
                     {
-                        name: 'an address with no record',
-                        input: { address: idE.address, issuers: [], lookup: found([]) },
+                        name: "a record under E's tag that is noise by its shape",
+                        input: { address: idE.address, issuers: [], lookup: found([[{ record: 'noise', issuer_sig: '' }]]) },
                         expected: { status: 'refused', reason: 'unavailable' },
+                    },
+                    {
+                        name: 'an address with no record: plain Bitcoin',
+                        input: { address: idE.address, issuers: [], lookup: found([]) },
+                        expected: { status: 'unbound' },
                     },
                 ],
             },
