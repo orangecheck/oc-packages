@@ -9,6 +9,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [2.36.0] — 2026-11-26
+
 ### Added
 
 - **`freeTextProblem(value, max)`**, from the root and `./display-name`: the
