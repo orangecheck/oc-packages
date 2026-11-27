@@ -26,7 +26,9 @@ this file tracks the package's TS / Node / runtime API surface.
 ### Changed
 
 - `DropResponseBlock`'s doc points to its schedule's `record_within_seconds`
-  for how long a closing batch's manifest can take.
+  for how long a closing batch's manifest can take, counted from the batch's
+  end: `closes_at_target`, or for a batch with a `close_height_target`, its
+  block or 24 hours after `closes_at_target`, whichever comes first.
 
 ## [0.65.0] — 2026-11-25
 
