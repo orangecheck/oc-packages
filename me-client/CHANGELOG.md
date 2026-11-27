@@ -10,6 +10,8 @@ this file tracks the package's TS / Node / runtime API surface.
 
 ## [Unreleased]
 
+## [0.66.0] — 2026-11-27
+
 ### Added
 
 - `DropScheduleSummary.record_within_seconds` (optional): how long after a
