@@ -186,7 +186,11 @@ export async function exchangeNativeCode(
     // The token itself: signature, issuer, expiry, audience and handle.
     const verified = await checkOcToken(token, { audience: input.audience, issuer });
     if (verified.status === 'unavailable') return { status: 'unavailable', reason: 'key_set_unavailable' };
-    if (verified.status === 'invalid') return { status: 'invalid', reason: verified.reason ?? 'invalid_token' };
+    // It passes no requireSignIn, so insufficient_authentication never comes back here.
+    if (verified.status === 'invalid') {
+        const reason = verified.reason === 'insufficient_authentication' ? undefined : verified.reason;
+        return { status: 'invalid', reason: reason ?? 'invalid_token' };
+    }
 
     // The list of ended sessions, as a write, exactly as the adapters read it.
     const where = meOrigin ? { meOrigin } : {};
