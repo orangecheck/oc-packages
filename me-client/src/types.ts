@@ -441,10 +441,12 @@ export interface DropScheduleSummary {
 
 /** Drop-period context on event-ingest responses (single route:
  *  top-level `drop`; batch route: per-result `drop`). `state` flips
- *  from 'open' to 'closing' once the scheduled boundary passes and the
- *  window awaits the sweep that seals it and publishes its manifest
- *  (how long: its schedule's `record_within_seconds`) — render
- *  "processing", never a negative countdown. */
+ *  from 'open' to 'closing' once `closes_at_target` passes — render
+ *  "processing", never a negative countdown. A batch with no
+ *  `close_height_target` ends then; one with it ends at that block or
+ *  24 hours after `closes_at_target`, whichever comes first. Its
+ *  manifest and `drop.closed` follow within its schedule's
+ *  `record_within_seconds` of that end. */
 export interface DropResponseBlock {
     window_id: string;
     label: string;
