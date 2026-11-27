@@ -4,7 +4,7 @@
  * read as a failed sign-in. It tells them apart and keeps the handle rule.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 const core = vi.hoisted(() => ({ answer: { status: 'invalid' } as Record<string, unknown> }));
 vi.mock('@orangecheck/auth-core', async (importOriginal) => {
@@ -13,7 +13,7 @@ vi.mock('@orangecheck/auth-core', async (importOriginal) => {
 });
 import { checkOcToken as coreCheckOcToken } from '@orangecheck/auth-core';
 
-import { checkOcToken } from '../server';
+import { checkOcToken, type OcTokenRefusal } from '../server';
 
 const SDK = /^@orangecheck\/me-client: /;
 const session = { sub: 'acct-1', did_oc: 'did:oc:abc', jti: 'j1', aud: 'https://site.example', rh: 'rh_1' };
@@ -45,6 +45,15 @@ describe('checkOcToken (me-client)', () => {
     it('says so when a genuine token was made for another site', async () => {
         core.answer = { status: 'invalid', reason: 'audience' };
         expect(await checkOcToken('t', { audience: 'https://site.example' })).toEqual({ status: 'invalid', reason: 'audience' });
+    });
+
+    it("says so when a genuine token's sign-in falls short of requireSignIn", async () => {
+        core.answer = { status: 'invalid', reason: 'insufficient_authentication' };
+        expect(await checkOcToken('t', { audience: 'https://site.example' })).toEqual({
+            status: 'invalid',
+            reason: 'insufficient_authentication',
+        });
+        expectTypeOf<OcTokenRefusal>().toEqualTypeOf<'no_session_handle' | 'audience' | 'insufficient_authentication'>();
     });
 
     it('refuses a bound token with no handle unless the site opted out', async () => {

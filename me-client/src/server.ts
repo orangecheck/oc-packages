@@ -90,11 +90,13 @@ export type OcSessionRefusal = 'no_session_handle';
 
 /**
  * Why {@link checkOcToken} refuses a token, when it can say: an
- * {@link OcSessionRefusal}, or `audience`: the token is genuine but was made
- * for another site. Check that `audience` is your origin exactly, scheme and
- * port included.
+ * {@link OcSessionRefusal}; `audience`: the token is genuine but was made for
+ * another site (check that `audience` is your origin exactly, scheme and port
+ * included); or `insufficient_authentication`: the token is genuine and for
+ * this site, but its sign-in does not meet `requireSignIn`, an option
+ * `@orangecheck/auth-core` reads from 2.35.0.
  */
-export type OcTokenRefusal = OcSessionRefusal | 'audience';
+export type OcTokenRefusal = OcSessionRefusal | 'audience' | 'insufficient_authentication';
 
 export interface VerifyOcTokenOptions extends VerifyOcOptions {
     /**

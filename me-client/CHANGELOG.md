@@ -16,6 +16,12 @@ this file tracks the package's TS / Node / runtime API surface.
   window's end its manifest and `drop.closed` can take while each sweep run
   finishes. me.ochk.io serves it on each schedule in
   `GET /api/integrator/config`'s `drops`.
+- `insufficient_authentication` in `OcTokenRefusal`. With
+  `@orangecheck/auth-core` 2.35.0 or later, `checkOcToken` hands
+  `requireSignIn` to auth-core's check, which refuses a genuine token for
+  this site whose sign-in does not meet it with that reason; the type now
+  names it, so me-client compiles against auth-core 2.35.0 and later.
+  Before 2.35.0 auth-core refuses `requireSignIn` as an unknown option.
 
 ### Changed
 
