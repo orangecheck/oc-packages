@@ -38,7 +38,43 @@ const ENTRIES = [
   },
 ];
 
-describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) => {
+/** One entry's two builds, copied alone into a directory and run by a fresh Node process: what its probe printed. */
+function probeAlone(name: string, probe: string): string {
+  const dist = new URL("../../dist/", import.meta.url);
+  const dir = mkdtempSync(join(tmpdir(), `${name}-`));
+  try {
+    copyFileSync(new URL(`${name}.mjs`, dist), join(dir, `${name}.mjs`));
+    copyFileSync(new URL(`${name}.js`, dist), join(dir, `${name}.cjs`));
+    writeFileSync(
+      join(dir, "probe.mjs"),
+      [
+        'import { createRequire } from "node:module";',
+        `const esm = await import("./${name}.mjs");`,
+        `const cjs = createRequire(import.meta.url)("./${name}.cjs");`,
+        `const run = (m) => { ${probe} };`,
+        "console.log(JSON.stringify([run(esm), run(cjs)]));",
+      ].join("\n"),
+    );
+    // A production process: the default for localhost must be closed there.
+    const env = { ...process.env, NODE_ENV: "production" };
+    return execFileSync(process.execPath, ["probe.mjs"], { cwd: dir, encoding: "utf8", env });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// Each entry's process runs here, at collection, which has no timeout: on a busy box one took 5.7 s inside its test.
+const PROBED = new Map(
+  ENTRIES.map(({ name, probe }): [string, { out: string } | { error: unknown }] => {
+    try {
+      return [name, { out: probeAlone(name, probe) }];
+    } catch (error) {
+      return [name, { error }];
+    }
+  }),
+);
+
+describe.each(ENTRIES)("the $name entry, as built", ({ name, answer }) => {
   const dist = new URL("../../dist/", import.meta.url);
   const files = [`${name}.mjs`, `${name}.js`];
 
@@ -55,27 +91,10 @@ describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) =>
   });
 
   it("loads with nothing else installed", () => {
-    const dir = mkdtempSync(join(tmpdir(), `${name}-`));
-    try {
-      copyFileSync(new URL(`${name}.mjs`, dist), join(dir, `${name}.mjs`));
-      copyFileSync(new URL(`${name}.js`, dist), join(dir, `${name}.cjs`));
-      writeFileSync(
-        join(dir, "probe.mjs"),
-        [
-          'import { createRequire } from "node:module";',
-          `const esm = await import("./${name}.mjs");`,
-          `const cjs = createRequire(import.meta.url)("./${name}.cjs");`,
-          `const run = (m) => { ${probe} };`,
-          "console.log(JSON.stringify([run(esm), run(cjs)]));",
-        ].join("\n"),
-      );
-      // A production process: the default for localhost must be closed there.
-      const env = { ...process.env, NODE_ENV: "production" };
-      const out = execFileSync(process.execPath, ["probe.mjs"], { cwd: dir, encoding: "utf8", env });
-      expect(JSON.parse(out)).toEqual([answer, answer]);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const probed = PROBED.get(name);
+    if (!probed) throw new Error(`${name} was not run at collection`);
+    if ("error" in probed) throw probed.error;
+    expect(JSON.parse(probed.out)).toEqual([answer, answer]);
   });
 });
 
