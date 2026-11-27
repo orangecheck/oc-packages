@@ -16,6 +16,20 @@ const vectors = JSON.parse(readFileSync(new URL("../../test-vectors/display-name
   free_text: Array<{ text: string; max: number; problem: string | null }>;
 };
 
+// A linear read costs 30 to 40 ms of CPU here, the quadratic one 1.5 s: the bound sits between them.
+const LINEAR_CPU_MS = 250;
+
+/** A read's own CPU time, in ms. On a busy box wall time measures the box, not the read. */
+function cpuMs(read: () => unknown): number {
+  if (typeof process.threadCpuUsage !== "function") {
+    throw new Error(`process.threadCpuUsage is missing in Node ${process.version}: this check needs Node 24, as .nvmrc and CI run`);
+  }
+  const start = process.threadCpuUsage();
+  read();
+  const { user, system } = process.threadCpuUsage(start);
+  return (user + system) / 1000;
+}
+
 describe("the family name rule", () => {
   it("refuses orangecheck's own names, whatever their case, width, spacing or variation selectors", () => {
     for (const name of vectors.reserved) {
@@ -63,9 +77,9 @@ describe("the family name rule", () => {
   // Every word start begins a read, so a read must stop where nothing can still spell a name.
   it("reads a long name in time linear in its length", () => {
     const name = "orange chec ".repeat(2000);
-    const started = performance.now();
-    expect(isReservedName(name)).toBe(false);
-    expect(performance.now() - started).toBeLessThan(1000);
+    let reserved: boolean | undefined;
+    expect(cpuMs(() => (reserved = isReservedName(name)))).toBeLessThan(LINEAR_CPU_MS);
+    expect(reserved).toBe(false);
   });
 
   it("refuses what hides or reorders text, before it can hide a reserved name", () => {
@@ -139,9 +153,10 @@ describe("the family name rule", () => {
 
   // A capital reads two ways; only the starts of our names are carried forward, or the reads double per letter.
   it("reads a long name in time linear in its length", () => {
-    const started = performance.now();
-    expect(isReservedName("A".repeat(22) + "B".repeat(2000))).toBe(false);
-    expect(performance.now() - started).toBeLessThan(1000);
+    const name = "A".repeat(22) + "B".repeat(2000);
+    let reserved: boolean | undefined;
+    expect(cpuMs(() => (reserved = isReservedName(name)))).toBeLessThan(LINEAR_CPU_MS);
+    expect(reserved).toBe(false);
   });
 
   it("says when a name is missing or too long", () => {
