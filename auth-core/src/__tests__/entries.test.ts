@@ -79,6 +79,12 @@ describe.each(ENTRIES)("the $name entry, as built", ({ name, probe, answer }) =>
   });
 });
 
+// Both relay-assertion builds load here, at collection, which has no timeout: a first import took seconds on a busy box.
+const RELAY = ["relay-assertion.mjs", "relay-assertion.js"].map((f) => new URL(f, new URL("../../dist/", import.meta.url)));
+const relayBuilt = RELAY.every((u) => existsSync(u));
+const relayEsm = relayBuilt ? await import(RELAY[0]!.href) : undefined;
+const relayCjs = relayBuilt ? createRequire(import.meta.url)(fileURLToPath(RELAY[1]!)) : undefined;
+
 // stamp-core reaches only the server entry that hashes relay bodies; the main and browser entries never load it.
 describe("stamp-core, as built", () => {
   const dist = new URL("../../dist/", import.meta.url);
@@ -101,8 +107,13 @@ describe("stamp-core, as built", () => {
   });
 
   it("signs in one format and verifies in the other", async () => {
-    const esm = await import(new URL("relay-assertion.mjs", dist).href);
-    const cjs = createRequire(import.meta.url)(fileURLToPath(new URL("relay-assertion.js", dist)));
+    expect(relayBuilt, "dist/relay-assertion.mjs or .js is missing: run yarn build first").toBe(true);
+    const [esm, cjs] = [relayEsm, relayCjs];
+    expect(esm, "the two builds loaded as one").not.toBe(cjs);
+    for (const m of [esm, cjs]) {
+      expect(typeof m.signRelayAssertion).toBe("function");
+      expect(typeof m.verifyRelayAssertion).toBe("function");
+    }
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64url");
     const request = { method: "POST", path: "/api/x?y=1" };
