@@ -301,9 +301,9 @@
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
 
 "@orangecheck/auth-core@^2.22.0":
-  version "2.35.0"
-  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.35.0.tgz#1dc7b360b28bccd968918dd62aa6ccace7a3bb0f"
-  integrity sha512-C2yeJHrrfH7Xd0vIg8n1a6QOMNuda/E/tzOyQhfqvLVQCAOIraNjk/KevSkHa74Ik2Qu13zL2fcGbmyz/TDfSg==
+  version "2.36.0"
+  resolved "https://registry.yarnpkg.com/@orangecheck/auth-core/-/auth-core-2.36.0.tgz#09308b1f3f111278f7ac9d41231f8cb24221af57"
+  integrity sha512-JIvJ6ebtE57U5Clxgv9xNFKxiftjov8eQlRlHNZvj/A8hTbH3orN/L/P6YCmjpZBgo2UjXD0GzKshTC8fVry+g==
   dependencies:
     "@orangecheck/stamp-core" "1.4.0"
     jose "^6.2.2"
